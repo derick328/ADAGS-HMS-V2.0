@@ -39,7 +39,7 @@ class MigrationConstraintsTest extends IntegrationTestSupport {
         UUID adminRoleId = queryUuid("SELECT id FROM role WHERE code = 'ADMIN'");
         String code = "TEST_NON_CLINICAL_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         UUID permissionId = jdbcTemplate.queryForObject(
-                "INSERT INTO permission (code, description, is_clinical) VALUES (:code, 'test fixture', FALSE) RETURNING id",
+                "INSERT INTO permission (code, module, description, is_clinical) VALUES (:code, 'admin', 'test fixture', FALSE) RETURNING id",
                 new MapSqlParameterSource("code", code), UUID.class);
 
         jdbcTemplate.update(
