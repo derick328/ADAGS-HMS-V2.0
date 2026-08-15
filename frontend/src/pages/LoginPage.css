@@ -1,0 +1,80 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--green-900);
+}
+
+.login-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.login-card h1 {
+  margin: 0;
+  color: var(--green-900);
+}
+
+.login-subtitle {
+  margin: 0 0 1.2rem;
+  color: var(--text-secondary);
+}
+
+.login-card label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 0.6rem;
+}
+
+.login-card input {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 1rem;
+}
+
+.login-card input:focus-visible {
+  outline: 2px solid var(--green-600);
+  outline-offset: 1px;
+}
+
+.field-error {
+  color: var(--critical);
+  font-size: 0.8rem;
+}
+
+.form-error {
+  margin-top: 0.8rem;
+  color: var(--critical);
+  font-size: 0.9rem;
+}
+
+.login-card button {
+  margin-top: 1.4rem;
+  padding: 0.7rem;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--green-600);
+  color: var(--text-on-dark);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-card button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.login-card button:focus-visible {
+  outline: 2px solid var(--green-signal);
+  outline-offset: 2px;
+}

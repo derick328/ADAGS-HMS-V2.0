@@ -1,0 +1,10 @@
+@import "./shared/styles/tokens.css";
+
+#root {
+  min-height: 100vh;
+}
+
+button,
+input {
+  font-family: inherit;
+}
