@@ -7,15 +7,21 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Types;
 import java.util.Map;
 import java.util.UUID;
 
 @Component
 public class JdbcAuditRecorder implements AuditRecorder {
 
-    private static final String INSERT_SQL = """
+    private static final String INSERT_BREAK_GLASS_SQL = """
             INSERT INTO audit_log (actor_user_id, action, resource_type, resource_id, patient_id, is_break_glass, justification)
             VALUES (:actorUserId, 'BREAK_GLASS_ACCESS', :resourceType, :resourceId, :patientId, TRUE, :justification)
+            """;
+
+    private static final String INSERT_SQL = """
+            INSERT INTO audit_log (actor_user_id, action, resource_type, resource_id, patient_id)
+            VALUES (:actorUserId, :action, :resourceType, :resourceId, :patientId)
             """;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -29,7 +35,7 @@ public class JdbcAuditRecorder implements AuditRecorder {
     @Override
     @Transactional
     public void recordBreakGlass(UUID actorUserId, UUID patientId, String resourceType, UUID resourceId, String justification) {
-        jdbcTemplate.update(INSERT_SQL, new MapSqlParameterSource()
+        jdbcTemplate.update(INSERT_BREAK_GLASS_SQL, new MapSqlParameterSource()
                 .addValue("actorUserId", actorUserId)
                 .addValue("resourceType", resourceType)
                 .addValue("resourceId", resourceId)
@@ -44,5 +50,16 @@ public class JdbcAuditRecorder implements AuditRecorder {
                 "resourceId", resourceId == null ? "" : resourceId.toString(),
                 "justification", justification
         ));
+    }
+
+    @Override
+    @Transactional
+    public void record(UUID actorUserId, String action, String resourceType, UUID resourceId, UUID patientId) {
+        jdbcTemplate.update(INSERT_SQL, new MapSqlParameterSource()
+                .addValue("actorUserId", actorUserId)
+                .addValue("action", action)
+                .addValue("resourceType", resourceType)
+                .addValue("resourceId", resourceId, Types.OTHER)
+                .addValue("patientId", patientId, Types.OTHER));
     }
 }

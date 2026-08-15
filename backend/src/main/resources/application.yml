@@ -45,6 +45,14 @@ adags:
   auth:
     access-token-ttl-minutes: 15
     refresh-token-ttl-days: 7
+  patients:
+    duplicate-detection:
+      # 05-receptionist.md §4.1: "tune the thresholds against real data
+      # during phase 1" — pg_trgm similarity over given_name || family_name.
+      # low: warn and show candidates. high (+ DOB match): block, overridable
+      # with a logged "not the same person" reason.
+      low-similarity-threshold: 0.3
+      high-similarity-threshold: 0.6
 
 server:
   port: 8080

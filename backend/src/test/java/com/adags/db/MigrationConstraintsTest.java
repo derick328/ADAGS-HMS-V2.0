@@ -142,6 +142,70 @@ class MigrationConstraintsTest extends IntegrationTestSupport {
         assertThat(count).isEqualTo(1);
     }
 
+    @Test
+    void patientNationalIdRejectsADuplicateNonNullValue() {
+        String nationalId = "NID-" + UUID.randomUUID();
+        insertFixturePatient("Amina", "Hassan", nationalId);
+
+        assertThatThrownBy(() -> insertFixturePatient("Different", "Person", nationalId))
+                .isInstanceOf(DataAccessException.class);
+    }
+
+    @Test
+    void patientNationalIdAllowsManyNullValues() {
+        insertFixturePatient("First", "Patient", null);
+        // Must not collide on NULL the way a plain UNIQUE index would on some configurations.
+        insertFixturePatient("Second", "Patient", null);
+    }
+
+    @Test
+    void patientMergeChainIntoAnAlreadyMergedRecordIsRejected() {
+        UUID original = insertFixturePatient("Original", "Record", null);
+        UUID survivor = insertFixturePatient("Survivor", "Record", null);
+        UUID thirdRecord = insertFixturePatient("Third", "Record", null);
+
+        jdbcTemplate.update("UPDATE patient SET merged_into_id = :survivor WHERE id = :original",
+                new MapSqlParameterSource().addValue("survivor", survivor).addValue("original", original));
+
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "UPDATE patient SET merged_into_id = :original WHERE id = :thirdRecord",
+                new MapSqlParameterSource().addValue("original", original).addValue("thirdRecord", thirdRecord)))
+                .isInstanceOf(DataAccessException.class)
+                .hasMessageContaining("already merged");
+    }
+
+    @Test
+    void patientMergeIsReversible() {
+        UUID original = insertFixturePatient("Original", "Record", null);
+        UUID survivor = insertFixturePatient("Survivor", "Record", null);
+
+        jdbcTemplate.update("UPDATE patient SET merged_into_id = :survivor WHERE id = :original",
+                new MapSqlParameterSource().addValue("survivor", survivor).addValue("original", original));
+
+        // Un-merge — 01-architecture.md §5.2 requires merge to be reversible.
+        jdbcTemplate.update("UPDATE patient SET merged_into_id = NULL WHERE id = :original",
+                new MapSqlParameterSource("original", original));
+
+        UUID mergedInto = jdbcTemplate.queryForObject(
+                "SELECT merged_into_id FROM patient WHERE id = :original",
+                new MapSqlParameterSource("original", original), UUID.class);
+        assertThat(mergedInto).isNull();
+    }
+
+    private UUID insertFixturePatient(String givenName, String familyName, String nationalId) {
+        return jdbcTemplate.queryForObject("""
+                        INSERT INTO patient (hospital_no, given_name, family_name, date_of_birth, gender, phone, national_id)
+                        VALUES (:hospitalNo, :givenName, :familyName, DATE '1990-01-01', 'FEMALE', '+255700000000', :nationalId)
+                        RETURNING id
+                        """,
+                new MapSqlParameterSource()
+                        .addValue("hospitalNo", "TEST-" + UUID.randomUUID())
+                        .addValue("givenName", givenName)
+                        .addValue("familyName", familyName)
+                        .addValue("nationalId", nationalId, java.sql.Types.VARCHAR),
+                UUID.class);
+    }
+
     private UUID insertFixtureUser() {
         String username = "fixture_" + UUID.randomUUID();
         return jdbcTemplate.queryForObject(
