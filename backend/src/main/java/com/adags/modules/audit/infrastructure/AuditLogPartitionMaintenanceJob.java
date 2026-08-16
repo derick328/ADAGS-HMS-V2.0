@@ -34,9 +34,10 @@ public class AuditLogPartitionMaintenanceJob {
         YearMonth currentMonth = YearMonth.from(LocalDate.now(clock));
         for (int i = 0; i < MONTHS_AHEAD; i++) {
             LocalDate month = currentMonth.plusMonths(i).atDay(1);
-            jdbcTemplate.update(
+            jdbcTemplate.queryForObject(
                     "SELECT fn_ensure_audit_log_partition(:month)",
-                    new MapSqlParameterSource("month", month));
+                    new MapSqlParameterSource("month", month),
+                    (rs, rowNum) -> null);
         }
     }
 }

@@ -3,6 +3,7 @@ package com.adags.modules.identity;
 import com.adags.support.IntegrationTestSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -67,7 +68,7 @@ class AuthFlowIntegrationTest extends IntegrationTestSupport {
         assertThat(meJson.get("scopes")).anyMatch(node -> node.get("scopeType").asText().equals("GLOBAL"));
 
         MvcResult refreshResult = mockMvc.perform(post("/auth/refresh")
-                        .header(HttpHeaders.COOKIE, "adags_refresh=" + refreshCookie))
+                        .cookie(new Cookie("adags_refresh", refreshCookie)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").isNotEmpty())
                 .andReturn();
@@ -77,7 +78,7 @@ class AuthFlowIntegrationTest extends IntegrationTestSupport {
         assertThat(newAccessToken).isNotEqualTo(accessToken);
 
         // The rotated-out refresh token must not work a second time.
-        mockMvc.perform(post("/auth/refresh").header(HttpHeaders.COOKIE, "adags_refresh=" + refreshCookie))
+        mockMvc.perform(post("/auth/refresh").cookie(new Cookie("adags_refresh", refreshCookie)))
                 .andExpect(status().isUnauthorized());
 
         mockMvc.perform(post("/auth/logout").header(HttpHeaders.AUTHORIZATION, "Bearer " + newAccessToken))

@@ -24,13 +24,12 @@ repositories {
 }
 
 val archunitVersion = "1.3.0"
-val testcontainersVersion = "1.21.3"
+val testcontainersVersion = "1.21.4"
 
-// Spring Boot's dependency-management BOM pins an older Testcontainers whose
-// bundled docker-java hardcodes API 1.32 during host detection — too old for
-// this host's Docker Engine (min supported 1.40). Override the BOM's own
-// version property, the mechanism it actually respects (plain resolutionStrategy.force
-// loses to the BOM here).
+// Override the BOM's own version property — the mechanism it actually respects
+// (plain resolutionStrategy.force loses to the BOM here). See backend/CLAUDE.md
+// for why this needs to stay current and why systemProperty("api.version", ...)
+// below is required regardless of which Testcontainers version is pinned.
 extra["testcontainers.version"] = testcontainersVersion
 
 dependencies {
@@ -66,10 +65,14 @@ tasks.withType<Test> {
     // Real OS env var, matching what V3__BootstrapAdmin reads in production —
     // this is a fixed test-only value, never used outside a Testcontainers Postgres.
     environment("ADAGS_BOOTSTRAP_ADMIN_PASSWORD", "Integration-Test-Bootstrap-Pw1")
-    // This host's Docker Engine (API 1.54) is newer than docker-java 3.x's
-    // negotiation handles by default, which falls back to a since-retired 1.32.
-    // Pin an explicit, supported version instead of relying on auto-negotiation.
-    environment("DOCKER_API_VERSION", "1.41")
+    // Testcontainers' DockerClientProviderStrategy falls back to hardcoded API
+    // 1.32 for its connectivity probe whenever it can't resolve an explicit
+    // client API version — true on every Testcontainers release through 2.0.x,
+    // not just old ones. This host's Docker Engine (API 1.54, min supported
+    // 1.40) rejects that probe outright. docker-java's config loader only
+    // reads the API version from the "api.version" JVM system property — there
+    // is no environment-variable form, so DOCKER_API_VERSION is a silent no-op.
+    systemProperty("api.version", "1.41")
 }
 
 // Emits api/openapi.yaml at the repo root by running OpenApiSpecGenerationTest,

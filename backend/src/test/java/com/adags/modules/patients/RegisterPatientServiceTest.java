@@ -6,6 +6,7 @@ import com.adags.modules.patients.application.RegisterPatientService;
 import com.adags.modules.patients.domain.NextOfKin;
 import com.adags.modules.patients.domain.Patient;
 import com.adags.support.IntegrationTestSupport;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -29,6 +30,16 @@ class RegisterPatientServiceTest extends IntegrationTestSupport {
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
+
+    // IntegrationTestSupport's Postgres container is a suite-wide singleton
+    // (see its class comment) — nothing rolls back between tests, so a
+    // patient registered by one test (e.g. "Amina Hassan" here and in
+    // PatientDuplicateDetectionTest) would otherwise still be visible to a
+    // later test's duplicate check and produce a false block.
+    @AfterEach
+    void cleanUpPatients() {
+        jdbcTemplate.update("TRUNCATE patient CASCADE", new MapSqlParameterSource());
+    }
 
     @Test
     void registersAPatientWithHospitalNumberNextOfKinAuditAndEvent() {

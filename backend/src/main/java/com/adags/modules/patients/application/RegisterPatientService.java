@@ -10,7 +10,7 @@ import com.adags.modules.patients.domain.PatientRepository;
 import com.adags.shared.authz.AuditRecorder;
 import com.adags.shared.events.DomainEventPublisher;
 import com.adags.shared.numbering.GaplessNumberAllocator;
-import org.springframework.beans.factory.annotation.Value;
+import com.adags.shared.settings.ProtocolSettingReader;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,13 +30,20 @@ public class RegisterPatientService {
     private static final String HOSPITAL_NUMBER_SEQUENCE = "HOSPITAL_NO";
     private static final int HOSPITAL_NUMBER_PAD_WIDTH = 6;
 
+    // Fallbacks only for a missing ProtocolSetting row (should not happen —
+    // V7__protocol_setting.sql seeds both) — see backend/CLAUDE.md for the
+    // similarity-score evidence behind these numbers.
+    private static final double DEFAULT_LOW_SIMILARITY_THRESHOLD = 0.4;
+    private static final double DEFAULT_HIGH_SIMILARITY_THRESHOLD = 0.65;
+    private static final String LOW_SIMILARITY_THRESHOLD_KEY = "patients.duplicate_detection.low_similarity_threshold";
+    private static final String HIGH_SIMILARITY_THRESHOLD_KEY = "patients.duplicate_detection.high_similarity_threshold";
+
     private final PatientRepository patientRepository;
     private final GaplessNumberAllocator numberAllocator;
     private final AuditRecorder auditRecorder;
     private final DomainEventPublisher eventPublisher;
     private final Clock clock;
-    private final double lowSimilarityThreshold;
-    private final double highSimilarityThreshold;
+    private final ProtocolSettingReader protocolSettings;
 
     public RegisterPatientService(
             PatientRepository patientRepository,
@@ -44,16 +51,14 @@ public class RegisterPatientService {
             AuditRecorder auditRecorder,
             DomainEventPublisher eventPublisher,
             Clock clock,
-            @Value("${adags.patients.duplicate-detection.low-similarity-threshold:0.3}") double lowSimilarityThreshold,
-            @Value("${adags.patients.duplicate-detection.high-similarity-threshold:0.6}") double highSimilarityThreshold
+            ProtocolSettingReader protocolSettings
     ) {
         this.patientRepository = patientRepository;
         this.numberAllocator = numberAllocator;
         this.auditRecorder = auditRecorder;
         this.eventPublisher = eventPublisher;
         this.clock = clock;
-        this.lowSimilarityThreshold = lowSimilarityThreshold;
-        this.highSimilarityThreshold = highSimilarityThreshold;
+        this.protocolSettings = protocolSettings;
     }
 
     @Transactional
@@ -89,6 +94,10 @@ public class RegisterPatientService {
     }
 
     private void checkForDuplicates(RegisterPatientCommand command, LocalDate dateOfBirth) {
+        double lowSimilarityThreshold = protocolSettings.getDouble(
+                LOW_SIMILARITY_THRESHOLD_KEY, DEFAULT_LOW_SIMILARITY_THRESHOLD);
+        double highSimilarityThreshold = protocolSettings.getDouble(
+                HIGH_SIMILARITY_THRESHOLD_KEY, DEFAULT_HIGH_SIMILARITY_THRESHOLD);
         DuplicateCheckQuery query = new DuplicateCheckQuery(
                 command.givenName(), command.familyName(), dateOfBirth,
                 command.nationalId(), command.phone(), lowSimilarityThreshold, highSimilarityThreshold);

@@ -45,14 +45,10 @@ adags:
   auth:
     access-token-ttl-minutes: 15
     refresh-token-ttl-days: 7
-  patients:
-    duplicate-detection:
-      # 05-receptionist.md §4.1: "tune the thresholds against real data
-      # during phase 1" — pg_trgm similarity over given_name || family_name.
-      # low: warn and show candidates. high (+ DOB match): block, overridable
-      # with a logged "not the same person" reason.
-      low-similarity-threshold: 0.3
-      high-similarity-threshold: 0.6
+  # Patient duplicate-detection thresholds (05-receptionist.md §4.1) live in
+  # the protocol_setting table (V7__protocol_setting.sql), not here — an
+  # admin needs to tune them against real data without a redeploy. See
+  # RegisterPatientService and backend/CLAUDE.md.
 
 server:
   port: 8080

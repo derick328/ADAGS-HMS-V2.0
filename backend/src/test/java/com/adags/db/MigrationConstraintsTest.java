@@ -128,13 +128,13 @@ class MigrationConstraintsTest extends IntegrationTestSupport {
 
     @Test
     void partitionMaintenanceFunctionIsIdempotentAndCreatesAFuturePartition() {
-        jdbcTemplate.update(
+        jdbcTemplate.queryForObject(
                 "SELECT fn_ensure_audit_log_partition(DATE '2030-01-01')",
-                new MapSqlParameterSource());
+                new MapSqlParameterSource(), (rs, rowNum) -> null);
         // Second call for the same month must not fail with "relation already exists".
-        jdbcTemplate.update(
+        jdbcTemplate.queryForObject(
                 "SELECT fn_ensure_audit_log_partition(DATE '2030-01-01')",
-                new MapSqlParameterSource());
+                new MapSqlParameterSource(), (rs, rowNum) -> null);
 
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM pg_class WHERE relname = 'audit_log_2030_01'",
