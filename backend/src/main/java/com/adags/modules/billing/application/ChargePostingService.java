@@ -80,6 +80,16 @@ public class ChargePostingService {
      * postCharge, but amount is used as gross directly instead of being
      * resolved via PriceResolutionService/price_list_entry. quantity is
      * always 1: a bed-day accrual row is one night, not a multiple.
+     *
+     * Known gap, flagged for Phase 7 (insurance): every other price in
+     * this system resolves per payer category and is versioned — "close
+     * valid_to, open a new row," never edited in place. A bed-day rate
+     * currently does neither: it is one column on Ward, the same for
+     * every payer, and changing it silently reprices every future night
+     * with no history of what it used to be. NHIF likely reimburses a
+     * different bed rate than cash. Leaving this as is until the
+     * insurance module needs per-payer ward pricing anyway — see root
+     * CLAUDE.md "Billing" for the versioning rule this doesn't yet follow.
      */
     @Transactional
     public ChargePostingResult postFixedAmountCharge(FixedAmountChargePostingCommand command) {
