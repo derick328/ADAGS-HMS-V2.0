@@ -13,4 +13,20 @@ import java.util.UUID;
 public interface EncounterFacade {
 
     Optional<EncounterContext> findContext(UUID encounterId);
+
+    /**
+     * 07-doctor.md §7's ADMITTED disposition: IN_CONSULT -> ADMITTED.
+     * Throws InvalidEncounterTransitionException if the encounter's current
+     * state does not allow it. The inpatient module calls this rather than
+     * importing EncounterState — same reasoning as every other cross-module
+     * write in this codebase going through a facade method, not the entity.
+     */
+    void admit(UUID encounterId, UUID actorUserId);
+
+    /**
+     * 17-ward-nurse.md §1's resolution table: ADMITTED -> IN_WARD, called on
+     * an admission's first bed assignment only — a transfer's later
+     * assignments must not call this again.
+     */
+    void moveToWard(UUID encounterId, UUID actorUserId);
 }

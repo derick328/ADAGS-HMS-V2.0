@@ -61,6 +61,49 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/LoginResponse"
+  /api/wards:
+    post:
+      tags:
+      - ward-controller
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWardRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WardResponse"
+  /api/wards/{wardId}/beds:
+    post:
+      tags:
+      - bed-controller
+      operationId: create_1
+      parameters:
+      - name: wardId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBedRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/BedResponse"
   /api/substitution-proposals/{id}/review:
     post:
       tags:
@@ -407,7 +450,7 @@ paths:
     post:
       tags:
       - lab-stock-request-controller
-      operationId: create
+      operationId: create_2
       requestBody:
         content:
           application/json:
@@ -581,7 +624,7 @@ paths:
     post:
       tags:
       - item-controller
-      operationId: create_1
+      operationId: create_3
       requestBody:
         content:
           application/json:
@@ -715,6 +758,74 @@ paths:
       responses:
         "200":
           description: OK
+  /api/admissions:
+    post:
+      tags:
+      - admission-controller
+      operationId: admit
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdmitPatientRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AdmissionResponse"
+  /api/admissions/{id}/nursing-assignments:
+    post:
+      tags:
+      - admission-controller
+      operationId: assignNurse
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignNurseRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NursingAssignmentResponse"
+  /api/admissions/{id}/bed-assignments:
+    post:
+      tags:
+      - admission-controller
+      operationId: assignBed
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignBedRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/BedAssignmentResponse"
   /me:
     get:
       tags:
@@ -727,6 +838,27 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/MeResponse"
+  /api/wards/{wardId}/beds/free:
+    get:
+      tags:
+      - bed-controller
+      operationId: free
+      parameters:
+      - name: wardId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BedResponse"
   /api/stock-reports/valuation:
     get:
       tags:
@@ -980,6 +1112,25 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/DispenseLabelResponse"
+  /api/admissions/{id}:
+    get:
+      tags:
+      - admission-controller
+      operationId: getById_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AdmissionResponse"
 components:
   schemas:
     TokenResponse:
@@ -1016,6 +1167,105 @@ components:
           format: date-time
         mustChangePassword:
           type: boolean
+    CreateWardRequest:
+      required:
+      - code
+      - currencyCode
+      - dailyRateMinor
+      - departmentId
+      - name
+      - wardClass
+      type: object
+      properties:
+        departmentId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        wardClass:
+          type: string
+          enum:
+          - GENERAL
+          - PRIVATE
+        genderRestriction:
+          type: string
+          enum:
+          - MALE
+          - FEMALE
+        dailyRateMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+    WardResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        facilityId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        wardClass:
+          type: string
+          enum:
+          - GENERAL
+          - PRIVATE
+        genderRestriction:
+          type: string
+          enum:
+          - MALE
+          - FEMALE
+        dailyRateMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    CreateBedRequest:
+      required:
+      - bedType
+      - label
+      type: object
+      properties:
+        label:
+          type: string
+        bedType:
+          type: string
+    BedResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        wardId:
+          type: string
+          format: uuid
+        label:
+          type: string
+        bedType:
+          type: string
+        status:
+          type: string
+          enum:
+          - AVAILABLE
+          - OUT_OF_SERVICE
+        createdAt:
+          type: string
+          format: date-time
     ReviewSubstitutionRequest:
       required:
       - decision
@@ -2142,6 +2392,156 @@ components:
             $ref: "#/components/schemas/DispenseLineResponse"
         prescriptionLine:
           $ref: "#/components/schemas/PrescriptionLineResponse"
+    AdmitPatientRequest:
+      required:
+      - encounterId
+      - orderedWardClass
+      type: object
+      properties:
+        encounterId:
+          type: string
+          format: uuid
+        orderedWardClass:
+          type: string
+          enum:
+          - GENERAL
+          - PRIVATE
+        retrospectiveCompletion:
+          type: boolean
+        retrospectiveNote:
+          type: string
+    AdmissionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        facilityId:
+          type: string
+          format: uuid
+        admittingDoctorId:
+          type: string
+          format: uuid
+        orderedWardClass:
+          type: string
+          enum:
+          - GENERAL
+          - PRIVATE
+        admittedAt:
+          type: string
+          format: date-time
+        dischargeOrderedAt:
+          type: string
+          format: date-time
+        dischargeOrderedBy:
+          type: string
+          format: uuid
+        actualDepartureAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+    AssignNurseRequest:
+      required:
+      - assignmentDate
+      - nurseId
+      - shift
+      type: object
+      properties:
+        nurseId:
+          type: string
+          format: uuid
+        shift:
+          type: string
+          enum:
+          - MORNING
+          - AFTERNOON
+          - NIGHT
+        assignmentDate:
+          type: string
+          format: date
+    NursingAssignmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        admissionId:
+          type: string
+          format: uuid
+        nurseId:
+          type: string
+          format: uuid
+        shift:
+          type: string
+          enum:
+          - MORNING
+          - AFTERNOON
+          - NIGHT
+        assignmentDate:
+          type: string
+          format: date
+        assignedBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+    AssignBedRequest:
+      required:
+      - bedId
+      type: object
+      properties:
+        bedId:
+          type: string
+          format: uuid
+        placementReason:
+          type: string
+          enum:
+          - NO_BED_IN_ORDERED_CLASS
+          - CLINICAL_NEED
+          - PATIENT_REQUEST
+          - OTHER
+    BedAssignmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        admissionId:
+          type: string
+          format: uuid
+        bedId:
+          type: string
+          format: uuid
+        assignedAt:
+          type: string
+          format: date-time
+        releasedAt:
+          type: string
+          format: date-time
+        assignedBy:
+          type: string
+          format: uuid
+        placedAboveOrderedClass:
+          type: boolean
+        placementReason:
+          type: string
+          enum:
+          - NO_BED_IN_ORDERED_CLASS
+          - CLINICAL_NEED
+          - PATIENT_REQUEST
+          - OTHER
     MeResponse:
       type: object
       properties:

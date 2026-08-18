@@ -1,0 +1,135 @@
+package com.adags.modules.inpatient.api;
+
+import com.adags.modules.encounters.EncounterFacade;
+import com.adags.modules.inpatient.application.AdmitPatientCommand;
+import com.adags.modules.inpatient.application.AdmitPatientService;
+import com.adags.modules.inpatient.application.AssignBedCommand;
+import com.adags.modules.inpatient.application.AssignBedService;
+import com.adags.modules.inpatient.application.AssignNurseCommand;
+import com.adags.modules.inpatient.application.AssignNurseService;
+import com.adags.modules.inpatient.domain.Admission;
+import com.adags.modules.inpatient.domain.AdmissionRepository;
+import com.adags.modules.inpatient.domain.Bed;
+import com.adags.modules.inpatient.domain.BedAssignment;
+import com.adags.modules.inpatient.domain.BedAssignmentRepository;
+import com.adags.modules.inpatient.domain.BedRepository;
+import com.adags.modules.inpatient.domain.NursingAssignment;
+import com.adags.shared.authz.Actor;
+import com.adags.shared.authz.AuthorizationService;
+import com.adags.shared.authz.ScopeRef;
+import com.adags.shared.authz.ScopeType;
+import com.adags.shared.kernel.EncounterContext;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.NoSuchElementException;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/admissions")
+public class AdmissionController {
+
+    private final AdmitPatientService admitPatientService;
+    private final AssignBedService assignBedService;
+    private final AssignNurseService assignNurseService;
+    private final AdmissionRepository admissionRepository;
+    private final BedRepository bedRepository;
+    private final BedAssignmentRepository bedAssignmentRepository;
+    private final EncounterFacade encounterFacade;
+    private final AuthorizationService authorizationService;
+
+    public AdmissionController(
+            AdmitPatientService admitPatientService,
+            AssignBedService assignBedService,
+            AssignNurseService assignNurseService,
+            AdmissionRepository admissionRepository,
+            BedRepository bedRepository,
+            BedAssignmentRepository bedAssignmentRepository,
+            EncounterFacade encounterFacade,
+            AuthorizationService authorizationService
+    ) {
+        this.admitPatientService = admitPatientService;
+        this.assignBedService = assignBedService;
+        this.assignNurseService = assignNurseService;
+        this.admissionRepository = admissionRepository;
+        this.bedRepository = bedRepository;
+        this.bedAssignmentRepository = bedAssignmentRepository;
+        this.encounterFacade = encounterFacade;
+        this.authorizationService = authorizationService;
+    }
+
+    // 07-doctor.md §7's ADMITTED disposition. Scoped to the encounter's
+    // department — same pattern as EncounterController's other checks.
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public AdmissionResponse admit(@Valid @RequestBody AdmitPatientRequest request, @AuthenticationPrincipal Actor actor) {
+        EncounterContext context = encounterFacade.findContext(request.encounterId())
+                .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + request.encounterId()));
+        requirePermission(actor, "ADMISSION_ORDER", ScopeType.DEPARTMENT, context.departmentId());
+
+        AdmitPatientCommand command = new AdmitPatientCommand(request.encounterId(), actor.userId(),
+                request.orderedWardClass(), request.retrospectiveCompletion(), request.retrospectiveNote());
+        Admission admission = admitPatientService.admit(command);
+        return AdmissionResponse.from(admission);
+    }
+
+    @GetMapping("/{id}")
+    public AdmissionResponse getById(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
+        Admission admission = admissionRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Admission not found: " + id));
+        requirePermission(actor, "WARD_PATIENT_READ", ScopeType.FACILITY, admission.facilityId());
+        return AdmissionResponse.from(admission);
+    }
+
+    // 17-ward-nurse.md §8.1/§8.3: first call moves the encounter into
+    // IN_WARD; every later call on the same admission is a transfer.
+    // Scoped to the target bed's ward.
+    @PostMapping("/{id}/bed-assignments")
+    @ResponseStatus(HttpStatus.CREATED)
+    public BedAssignmentResponse assignBed(
+            @PathVariable UUID id, @Valid @RequestBody AssignBedRequest request, @AuthenticationPrincipal Actor actor
+    ) {
+        Bed bed = bedRepository.findById(request.bedId())
+                .orElseThrow(() -> new NoSuchElementException("Bed not found: " + request.bedId()));
+        requirePermission(actor, "BED_ASSIGN", ScopeType.WARD, bed.wardId());
+
+        AssignBedCommand command = new AssignBedCommand(id, request.bedId(), request.placementReason(), actor.userId());
+        BedAssignment assignment = assignBedService.assign(command);
+        return BedAssignmentResponse.from(assignment);
+    }
+
+    // 17-ward-nurse.md §8.2: care responsibility, not a blanket ward
+    // permission — reuses BED_ASSIGN, scoped to the admission's current
+    // ward, same as bed assignment itself.
+    @PostMapping("/{id}/nursing-assignments")
+    @ResponseStatus(HttpStatus.CREATED)
+    public NursingAssignmentResponse assignNurse(
+            @PathVariable UUID id, @Valid @RequestBody AssignNurseRequest request, @AuthenticationPrincipal Actor actor
+    ) {
+        BedAssignment currentBed = bedAssignmentRepository.findActiveByAdmissionId(id)
+                .orElseThrow(() -> new NoSuchElementException("Admission has no active bed assignment: " + id));
+        Bed bed = bedRepository.findById(currentBed.bedId())
+                .orElseThrow(() -> new NoSuchElementException("Bed not found: " + currentBed.bedId()));
+        requirePermission(actor, "BED_ASSIGN", ScopeType.WARD, bed.wardId());
+
+        AssignNurseCommand command = new AssignNurseCommand(
+                id, request.nurseId(), request.shift(), request.assignmentDate(), actor.userId());
+        NursingAssignment assignment = assignNurseService.assign(command);
+        return NursingAssignmentResponse.from(assignment);
+    }
+
+    private void requirePermission(Actor actor, String permissionCode, ScopeType scopeType, UUID scopeId) {
+        if (!authorizationService.hasPermission(actor, permissionCode, ScopeRef.of(scopeType, scopeId))) {
+            throw new AccessDeniedException("Missing permission: " + permissionCode);
+        }
+    }
+}
