@@ -3,6 +3,14 @@ package com.adags.shared.web;
 import com.adags.modules.billing.domain.BillingGateRejectedException;
 import com.adags.modules.encounters.application.InvalidEncounterTransitionException;
 import com.adags.modules.encounters.application.MissingCloseReasonException;
+import com.adags.modules.inventory.domain.BatchExpiredException;
+import com.adags.modules.inventory.domain.ControlledItemBlockedException;
+import com.adags.modules.inventory.domain.DuplicateItemCodeException;
+import com.adags.modules.inventory.domain.InsufficientStockException;
+import com.adags.modules.inventory.domain.LabStockRequestExceedsRequestedException;
+import com.adags.modules.inventory.domain.LabStockRequestNotOpenException;
+import com.adags.modules.inventory.domain.PharmacyItemProposalAlreadyReviewedException;
+import com.adags.modules.inventory.domain.PharmacyItemProposalSelfReviewNotAllowedException;
 import com.adags.modules.laboratory.domain.CriticalNotificationAlreadyAcknowledgedException;
 import com.adags.modules.laboratory.domain.ImplausibleResultValueException;
 import com.adags.modules.laboratory.domain.MissingAmendmentReasonException;
@@ -12,6 +20,14 @@ import com.adags.modules.laboratory.domain.MissingQualityNoteException;
 import com.adags.modules.laboratory.domain.ResultNotPendingVerificationException;
 import com.adags.modules.laboratory.domain.SpecimenNotProcessableException;
 import com.adags.modules.patients.application.DuplicatePatientException;
+import com.adags.modules.pharmacy.domain.DispenseExceedsPrescribedException;
+import com.adags.modules.pharmacy.domain.InsufficientBatchStockException;
+import com.adags.modules.pharmacy.domain.ItemNotDispensableException;
+import com.adags.modules.pharmacy.domain.MissingFefoOverrideReasonException;
+import com.adags.modules.pharmacy.domain.PrescriptionLineNotOpenException;
+import com.adags.modules.pharmacy.domain.SubstitutionAlreadyReviewedException;
+import com.adags.modules.pharmacy.domain.SubstitutionNotAllowedException;
+import com.adags.modules.pharmacy.domain.SubstitutionSelfReviewNotAllowedException;
 import com.adags.modules.referencedata.application.SynonymAlreadyReviewedException;
 import com.adags.modules.referencedata.domain.SelfReviewNotAllowedException;
 import com.adags.shared.security.InvalidCredentialsException;
@@ -121,6 +137,118 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CriticalNotificationAlreadyAcknowledgedException.class)
     public ProblemDetail handleCriticalNotificationAlreadyAcknowledged(CriticalNotificationAlreadyAcknowledgedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateItemCodeException.class)
+    public ProblemDetail handleDuplicateItemCode(DuplicateItemCodeException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // 14-controlled-medicines-tanzania.md §2/§3: CONTROLLED is blocked from
+    // catalogue activation, restock, prescribing and dispensing. 409, not
+    // 400 — the request is well-formed, the item's regulatory status is
+    // what forbids it (same treatment as SpecimenNotProcessableException).
+    @ExceptionHandler(ControlledItemBlockedException.class)
+    public ProblemDetail handleControlledItemBlocked(ControlledItemBlockedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("itemId", ex.itemId());
+        return problem;
+    }
+
+    // root CLAUDE.md "Concurrency": two pharmacists dispensing the same
+    // batch must not both succeed past available quantity — the loser
+    // gets this, not a 500.
+    @ExceptionHandler(InsufficientStockException.class)
+    public ProblemDetail handleInsufficientStock(InsufficientStockException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("batchId", ex.batchId());
+        return problem;
+    }
+
+    @ExceptionHandler(LabStockRequestNotOpenException.class)
+    public ProblemDetail handleLabStockRequestNotOpen(LabStockRequestNotOpenException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("requestId", ex.requestId());
+        return problem;
+    }
+
+    @ExceptionHandler(LabStockRequestExceedsRequestedException.class)
+    public ProblemDetail handleLabStockRequestExceedsRequested(LabStockRequestExceedsRequestedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(PharmacyItemProposalAlreadyReviewedException.class)
+    public ProblemDetail handlePharmacyItemProposalAlreadyReviewed(PharmacyItemProposalAlreadyReviewedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(PharmacyItemProposalSelfReviewNotAllowedException.class)
+    public ProblemDetail handlePharmacyItemProposalSelfReviewNotAllowed(PharmacyItemProposalSelfReviewNotAllowedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // 12-pharmacist.md §6.3: hard-blocked, not flagged.
+    @ExceptionHandler(BatchExpiredException.class)
+    public ProblemDetail handleBatchExpired(BatchExpiredException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("batchId", ex.batchId());
+        return problem;
+    }
+
+    // 12-pharmacist.md §4.4: "dispensed_total > prescribed -> rejected, hard block."
+    @ExceptionHandler(DispenseExceedsPrescribedException.class)
+    public ProblemDetail handleDispenseExceedsPrescribed(DispenseExceedsPrescribedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("prescriptionLineId", ex.prescriptionLineId());
+        return problem;
+    }
+
+    // 14-controlled-medicines-tanzania.md §3: prescribing/dispensing a
+    // controlled (or otherwise inactive) item, rejected server-side even
+    // when a valid item_id is submitted directly.
+    @ExceptionHandler(ItemNotDispensableException.class)
+    public ProblemDetail handleItemNotDispensable(ItemNotDispensableException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("itemId", ex.itemId());
+        return problem;
+    }
+
+    @ExceptionHandler(MissingFefoOverrideReasonException.class)
+    public ProblemDetail handleMissingFefoOverrideReason(MissingFefoOverrideReasonException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(InsufficientBatchStockException.class)
+    public ProblemDetail handleInsufficientBatchStock(InsufficientBatchStockException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("itemId", ex.itemId());
+        return problem;
+    }
+
+    @ExceptionHandler(PrescriptionLineNotOpenException.class)
+    public ProblemDetail handlePrescriptionLineNotOpen(PrescriptionLineNotOpenException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("prescriptionLineId", ex.prescriptionLineId());
+        return problem;
+    }
+
+    // 12-pharmacist.md §5.1: "The prescriber's substitution_allowed flag
+    // governs whether a proposal is possible at all."
+    @ExceptionHandler(SubstitutionNotAllowedException.class)
+    public ProblemDetail handleSubstitutionNotAllowed(SubstitutionNotAllowedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("prescriptionLineId", ex.prescriptionLineId());
+        return problem;
+    }
+
+    @ExceptionHandler(SubstitutionAlreadyReviewedException.class)
+    public ProblemDetail handleSubstitutionAlreadyReviewed(SubstitutionAlreadyReviewedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(SubstitutionSelfReviewNotAllowedException.class)
+    public ProblemDetail handleSubstitutionSelfReviewNotAllowed(SubstitutionSelfReviewNotAllowedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     // backend/CLAUDE.md "API": "402 Payment Required when the billing gate

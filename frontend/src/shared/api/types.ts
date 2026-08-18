@@ -52,6 +52,502 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/substitution-proposals/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["restock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/specimens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["collect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reference/icd10/synonyms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["proposeSynonym"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reference/icd10/synonyms/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["rejectSynonym"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reference/icd10/synonyms/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approveSynonym"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reference/icd10/search/{logId}/selection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["recordSelection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reference/icd10/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["importRelease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prescriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["place"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prescription-lines/{id}/substitution-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["propose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prescription-lines/{id}/mark-unavailable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markUnavailable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pharmacy-item-proposals/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["review_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pharmacy-item-proposals/price-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["proposePriceChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pharmacy-item-proposals/new-item": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["proposeNewItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/patients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/narcotic-watchlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list"];
+        put?: never;
+        post: operations["add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-stock-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-stock-requests/{id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["release"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-stock-requests/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-stock-requests/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["close"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-results/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-results/{id}/amend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["amend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["place_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}/classify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["classify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["close_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dispenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["dispense"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/critical-result-notifications/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["acknowledge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me": {
         parameters: {
             query?: never;
@@ -60,6 +556,230 @@ export interface paths {
             cookie?: never;
         };
         get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-reports/valuation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["valuation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-reports/low-stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["lowStock"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-reports/expiring-batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["expiringBatches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-reports/current-stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["currentStock"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reference/icd10/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prescription-lines/{id}/dispense-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["dispenseContext"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/patients/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/patients/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["search_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-stock-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["search_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/misclassification-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getById_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dispenses/{id}/label": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["label"];
         put?: never;
         post?: never;
         delete?: never;
@@ -91,6 +811,540 @@ export interface components {
             accessTokenExpiresAt?: string;
             mustChangePassword?: boolean;
         };
+        ReviewSubstitutionRequest: {
+            /** @enum {string} */
+            decision: "PROPOSED" | "APPROVED" | "REJECTED";
+            reviewNote?: string;
+        };
+        PrescriptionLineResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            prescriptionOrderId?: string;
+            /** Format: uuid */
+            itemId?: string;
+            /** Format: int32 */
+            quantityPrescribed?: number;
+            /** Format: int32 */
+            quantityDispensed?: number;
+            /** Format: int32 */
+            remaining?: number;
+            dosageInstructions?: string;
+            /** @enum {string} */
+            status?: "AWAITING_DISPENSE" | "PARTIALLY_DISPENSED" | "COMPLETED" | "CANCELLED" | "UNAVAILABLE";
+            substitutionAllowed?: boolean;
+            statusReason?: string;
+        };
+        SubstitutionProposalResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            prescriptionLineId?: string;
+            /** Format: uuid */
+            proposedItemId?: string;
+            reason?: string;
+            /** @enum {string} */
+            status?: "PROPOSED" | "APPROVED" | "REJECTED";
+            /** Format: uuid */
+            reviewedBy?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewNote?: string;
+            /** Format: uuid */
+            replacementLineId?: string;
+        };
+        SubstitutionReviewResponse: {
+            proposal?: components["schemas"]["SubstitutionProposalResponse"];
+            cancelledLine?: components["schemas"]["PrescriptionLineResponse"];
+            replacementLine?: components["schemas"]["PrescriptionLineResponse"];
+        };
+        RestockRequest: {
+            /** Format: uuid */
+            itemId: string;
+            /** Format: uuid */
+            storeId: string;
+            batchNumber: string;
+            /** Format: date */
+            expiryDate: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int64 */
+            unitCostAmountMinor?: number;
+            unitCostCurrencyCode?: string;
+            /** Format: uuid */
+            supplierId: string;
+            deliveryNoteRef: string;
+            notes?: string;
+        };
+        StockBatchResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            itemId?: string;
+            /** Format: uuid */
+            storeId?: string;
+            batchNumber?: string;
+            /** Format: date */
+            expiryDate?: string;
+            /** Format: int64 */
+            unitCostAmountMinor?: number;
+            unitCostCurrencyCode?: string;
+            /** Format: uuid */
+            supplierId?: string;
+            deliveryNoteRef?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "QUARANTINED" | "EXPIRED" | "WRITTEN_OFF";
+        };
+        CollectSpecimenRequest: {
+            /** Format: uuid */
+            labOrderId: string;
+            /** @enum {string} */
+            quality: "ADEQUATE" | "HAEMOLYSED" | "CLOTTED" | "INSUFFICIENT_VOLUME" | "WRONG_CONTAINER" | "MISLABELLED" | "DELAYED_TRANSPORT";
+            qualityNote?: string;
+        };
+        SpecimenResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            labOrderId?: string;
+            accessionNo?: string;
+            sampleType?: string;
+            containerType?: string;
+            /** @enum {string} */
+            quality?: "ADEQUATE" | "HAEMOLYSED" | "CLOTTED" | "INSUFFICIENT_VOLUME" | "WRONG_CONTAINER" | "MISLABELLED" | "DELAYED_TRANSPORT";
+            /** @enum {string} */
+            status?: "COLLECTED" | "IN_PROGRESS" | "REJECTED";
+            rejectionReason?: string;
+            /** Format: date-time */
+            collectedAt?: string;
+        };
+        ProposeSynonymRequest: {
+            code: string;
+            term: string;
+            language: string;
+        };
+        SynonymResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            term?: string;
+            language?: string;
+            /** @enum {string} */
+            status?: "PROPOSED" | "APPROVED" | "REJECTED";
+            /** Format: uuid */
+            proposedBy?: string;
+            /** Format: date-time */
+            proposedAt?: string;
+            /** Format: uuid */
+            reviewedBy?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewNote?: string;
+        };
+        ReviewSynonymRequest: {
+            reviewNote?: string;
+        };
+        RecordSelectionRequest: {
+            selectedCode: string;
+        };
+        Icd10ImportRow: {
+            code?: string;
+            title?: string;
+            chapter?: string;
+            block?: string;
+            parentCode?: string;
+            isBillable?: boolean;
+        };
+        ImportIcd10ReleaseRequest: {
+            release: string;
+            codes: components["schemas"]["Icd10ImportRow"][];
+        };
+        Icd10ImportResult: {
+            /** Format: int32 */
+            inserted?: number;
+            /** Format: int32 */
+            updated?: number;
+        };
+        PlacePrescriptionRequest: {
+            /** Format: uuid */
+            encounterId: string;
+            /** Format: uuid */
+            itemId: string;
+            /** Format: int32 */
+            quantityPrescribed?: number;
+            dosageInstructions: string;
+            substitutionAllowed?: boolean;
+        };
+        ProposeSubstitutionRequest: {
+            /** Format: uuid */
+            proposedItemId: string;
+            reason: string;
+        };
+        MarkUnavailableRequest: {
+            reason: string;
+        };
+        ReviewPharmacyItemProposalRequest: {
+            /** @enum {string} */
+            decision: "PROPOSED" | "APPROVED" | "REJECTED";
+            reviewNote?: string;
+        };
+        PharmacyItemProposalResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            proposalType?: "NEW_ITEM" | "PRICE_CHANGE";
+            /** Format: uuid */
+            itemId?: string;
+            proposedName?: string;
+            /** Format: int64 */
+            proposedPriceAmountMinor?: number;
+            /** Format: int64 */
+            currentPriceAmountMinor?: number;
+            justification?: string;
+            /** @enum {string} */
+            status?: "PROPOSED" | "APPROVED" | "REJECTED";
+            reviewNote?: string;
+            /** Format: uuid */
+            createdItemId?: string;
+        };
+        ProposePriceChangeRequest: {
+            /** Format: uuid */
+            itemId: string;
+            /** Format: int64 */
+            proposedPriceMinor?: number;
+            justification: string;
+        };
+        ProposeNewItemRequest: {
+            proposedName: string;
+            proposedClassification: string;
+            proposedForm: string;
+            proposedUnit: string;
+            /** Format: int64 */
+            proposedPriceMinor?: number;
+            justification?: string;
+        };
+        InsurancePolicyRequest: {
+            /** Format: uuid */
+            schemeId: string;
+            policyNumber: string;
+            memberNumber?: string;
+            isPrincipal?: boolean;
+            principalName?: string;
+            /** Format: date */
+            validFrom?: string;
+            /** Format: date */
+            validTo?: string;
+        };
+        NextOfKinRequest: {
+            fullName: string;
+            relationship: string;
+            phone: string;
+            isGuardian?: boolean;
+        };
+        PatientAddressRequest: {
+            addressType: string;
+            region?: string;
+            district?: string;
+            ward?: string;
+            streetOrVillage?: string;
+            landmark?: string;
+        };
+        RegisterPatientRequest: {
+            givenName: string;
+            middleName?: string;
+            familyName: string;
+            /** Format: date */
+            dateOfBirth?: string;
+            /** Format: int32 */
+            ageYears?: number;
+            /** Format: int32 */
+            ageMonths?: number;
+            gender: string;
+            maritalStatus?: string;
+            nationalId?: string;
+            phone: string;
+            email?: string;
+            occupation?: string;
+            nextOfKin: components["schemas"]["NextOfKinRequest"];
+            addresses?: components["schemas"]["PatientAddressRequest"][];
+            insurancePolicy?: components["schemas"]["InsurancePolicyRequest"];
+            /** Format: uuid */
+            facilityId: string;
+            notSamePersonConfirmationReason?: string;
+        };
+        PatientResponse: {
+            /** Format: uuid */
+            id?: string;
+            hospitalNo?: string;
+            fullName?: string;
+            /** Format: date */
+            dateOfBirth?: string;
+            dobIsEstimated?: boolean;
+            gender?: string;
+            maritalStatus?: string;
+            nationalId?: string;
+            phone?: string;
+            email?: string;
+            active?: boolean;
+        };
+        AddWatchlistEntryRequest: {
+            innName: string;
+            atcPrefix?: string;
+            sourceDocument: string;
+            /** Format: date */
+            sourceDate: string;
+        };
+        WatchlistEntryResponse: {
+            /** Format: uuid */
+            id?: string;
+            innName?: string;
+            atcPrefix?: string;
+            sourceDocument?: string;
+            /** Format: date */
+            sourceDate?: string;
+        };
+        CreateLabStockRequestRequest: {
+            /** Format: uuid */
+            itemId: string;
+            /** Format: int32 */
+            requestedQuantity?: number;
+            /** Format: uuid */
+            requestingStoreId: string;
+        };
+        LabStockRequestResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            itemId?: string;
+            /** Format: int32 */
+            requestedQuantity?: number;
+            /** Format: int32 */
+            releasedQuantity?: number;
+            /** Format: int32 */
+            remaining?: number;
+            /** Format: uuid */
+            requestingStoreId?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "PARTIALLY_RELEASED" | "RELEASED" | "REJECTED" | "CLOSED";
+            responseNotes?: string;
+        };
+        ReleaseLabStockRequestRequest: {
+            /** Format: uuid */
+            batchId: string;
+            /** Format: int32 */
+            quantity?: number;
+        };
+        RespondToLabStockRequestRequest: {
+            responseNotes: string;
+        };
+        ParameterValueRequest: {
+            /** Format: uuid */
+            parameterId: string;
+            /** Format: double */
+            resultValue: number;
+            /** @enum {string} */
+            overrideFlag?: "NORMAL" | "HIGH" | "LOW" | "CRITICAL";
+            overrideReason?: string;
+        };
+        ReagentRequest: {
+            /** Format: uuid */
+            stockBatchId?: string;
+            /** Format: double */
+            quantityUsed?: number;
+            note?: string;
+        };
+        RecordLabResultRequest: {
+            /** Format: uuid */
+            specimenId: string;
+            methodology?: string;
+            reagentsUsedNote?: string;
+            findings?: string;
+            interpretation?: string;
+            referenceRangeNote?: string;
+            conclusion?: string;
+            machineOutputObjectKey?: string;
+            parameterValues: components["schemas"]["ParameterValueRequest"][];
+            reagents?: components["schemas"]["ReagentRequest"][];
+        };
+        LabResultResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            labOrderId?: string;
+            /** Format: uuid */
+            specimenId?: string;
+            /** Format: date-time */
+            enteredAt?: string;
+            /** Format: date-time */
+            releasedAt?: string;
+            /** @enum {string} */
+            verificationState?: "NOT_REQUIRED" | "PENDING" | "VERIFIED" | "AMENDED" | "LAPSED";
+            /** @enum {string} */
+            verificationLevelApplied?: "NONE" | "SELF" | "SECOND_PERSON" | "SPECIALIST";
+            /** Format: uuid */
+            amendsId?: string;
+            amendmentReason?: string;
+            parameterValues?: components["schemas"]["ParameterValueResponse"][];
+            criticalNotificationIds?: string[];
+        };
+        ParameterValueResponse: {
+            /** Format: uuid */
+            parameterId?: string;
+            /** Format: double */
+            resultValue?: number;
+            /** @enum {string} */
+            flag?: "NORMAL" | "HIGH" | "LOW" | "CRITICAL";
+            flagOverridden?: boolean;
+            overrideReason?: string;
+        };
+        VerifyLabResultRequest: {
+            verificationComment?: string;
+        };
+        AmendLabResultRequest: {
+            amendmentReason: string;
+            methodology?: string;
+            reagentsUsedNote?: string;
+            findings?: string;
+            interpretation?: string;
+            referenceRangeNote?: string;
+            conclusion?: string;
+            machineOutputObjectKey?: string;
+            parameterValues: components["schemas"]["ParameterValueRequest"][];
+            reagents?: components["schemas"]["ReagentRequest"][];
+        };
+        PlaceLabOrderRequest: {
+            /** Format: uuid */
+            encounterId: string;
+            labTestCode: string;
+            clinicalIndication?: string;
+            /** @enum {string} */
+            urgency: "STAT" | "URGENT" | "ROUTINE";
+        };
+        LabOrderResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            /** Format: uuid */
+            labTestId?: string;
+            clinicalIndication?: string;
+            /** @enum {string} */
+            urgency?: "STAT" | "URGENT" | "ROUTINE";
+            /** Format: uuid */
+            invoiceLineId?: string;
+            /** Format: date-time */
+            orderedAt?: string;
+        };
+        CreateItemRequest: {
+            code: string;
+            name: string;
+            classification: string;
+            form: string;
+            strength?: string;
+            unit: string;
+            /** Format: int32 */
+            reorderLevel?: number;
+        };
+        ItemResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            classification?: string;
+            form?: string;
+            strength?: string;
+            unit?: string;
+            /** @enum {string} */
+            regulatorySchedule?: "CONTROLLED" | "PRESCRIPTION_ONLY" | "PHARMACY_ONLY_BTC" | "PHARMACY_ONLY_OTC" | "GENERAL_SALES" | "ADDO_PRESCRIPTION" | "RADIOPHARMACEUTICAL" | "UNCLASSIFIED";
+            /** Format: int32 */
+            reorderLevel?: number;
+            active?: boolean;
+        };
+        ClassifyItemRequest: {
+            /** @enum {string} */
+            regulatorySchedule: "CONTROLLED" | "PRESCRIPTION_ONLY" | "PHARMACY_ONLY_BTC" | "PHARMACY_ONLY_OTC" | "GENERAL_SALES" | "ADDO_PRESCRIPTION" | "RADIOPHARMACEUTICAL" | "UNCLASSIFIED";
+            reason: string;
+        };
+        OpenEncounterRequest: {
+            /** Format: uuid */
+            patientId: string;
+            /** Format: uuid */
+            departmentId: string;
+            /** Format: uuid */
+            appointmentId?: string;
+        };
+        EncounterResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            patientId?: string;
+            /** Format: uuid */
+            facilityId?: string;
+            /** Format: uuid */
+            departmentId?: string;
+            /** Format: uuid */
+            appointmentId?: string;
+            /** Format: uuid */
+            assignedProviderId?: string;
+            /** @enum {string} */
+            type?: "OUTPATIENT" | "EMERGENCY";
+            /** @enum {string} */
+            state?: "AWAITING_TRIAGE" | "AWAITING_PAYMENT" | "AWAITING_CONSULT" | "IN_CONSULT" | "AWAITING_RESULTS" | "CONSULT_COMPLETE" | "PENDING_SETTLEMENT" | "ADMITTED" | "IN_WARD" | "DISCHARGE_ORDERED" | "LEFT_WITHOUT_BEING_SEEN" | "ABANDONED_UNPAID" | "CANCELLED_IN_ERROR" | "REFERRED_OUT" | "DECEASED" | "CLOSED" | "DISCHARGED";
+            /** @enum {string} */
+            payerType?: "CASH" | "INSURANCE";
+            /** Format: int32 */
+            version?: number;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        CloseEncounterRequest: {
+            /** @enum {string} */
+            outcome: "AWAITING_TRIAGE" | "AWAITING_PAYMENT" | "AWAITING_CONSULT" | "IN_CONSULT" | "AWAITING_RESULTS" | "CONSULT_COMPLETE" | "PENDING_SETTLEMENT" | "ADMITTED" | "IN_WARD" | "DISCHARGE_ORDERED" | "LEFT_WITHOUT_BEING_SEEN" | "ABANDONED_UNPAID" | "CANCELLED_IN_ERROR" | "REFERRED_OUT" | "DECEASED" | "CLOSED" | "DISCHARGED";
+            reason?: string;
+        };
+        DispenseLineRequest: {
+            /** Format: uuid */
+            batchId: string;
+            /** Format: int32 */
+            quantity?: number;
+            overrideReason?: string;
+        };
+        DispenseRequest: {
+            /** Format: uuid */
+            prescriptionLineId: string;
+            lines: components["schemas"]["DispenseLineRequest"][];
+            idempotencyKey: string;
+            counsellingNotes?: string;
+            dispensingNotes?: string;
+        };
+        DispenseLineResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            itemId?: string;
+            /** Format: uuid */
+            batchId?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int64 */
+            unitCostAmountMinor?: number;
+            unitCostCurrencyCode?: string;
+            fefoOverrideReason?: string;
+        };
+        DispenseResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            prescriptionLineId?: string;
+            /** Format: date-time */
+            dispensedAt?: string;
+            /** Format: int32 */
+            quantityDispensed?: number;
+            lines?: components["schemas"]["DispenseLineResponse"][];
+            prescriptionLine?: components["schemas"]["PrescriptionLineResponse"];
+        };
         MeResponse: {
             /** Format: uuid */
             userId?: string;
@@ -108,6 +1362,164 @@ export interface components {
             validFrom?: string;
             /** Format: date-time */
             validTo?: string;
+        };
+        StockValuationResponse: {
+            /** Format: uuid */
+            storeId?: string;
+            storeName?: string;
+            /** Format: int64 */
+            totalValueAmountMinor?: number;
+            currencyCode?: string;
+        };
+        LowStockResponse: {
+            /** Format: uuid */
+            itemId?: string;
+            itemCode?: string;
+            itemName?: string;
+            /** Format: int32 */
+            totalQuantity?: number;
+            /** Format: int32 */
+            reorderLevel?: number;
+        };
+        ExpiringBatchResponse: {
+            /** Format: uuid */
+            batchId?: string;
+            /** Format: uuid */
+            itemId?: string;
+            itemCode?: string;
+            itemName?: string;
+            batchNumber?: string;
+            /** Format: date */
+            expiryDate?: string;
+            /** Format: int32 */
+            quantity?: number;
+        };
+        CurrentStockResponse: {
+            /** Format: uuid */
+            itemId?: string;
+            itemCode?: string;
+            itemName?: string;
+            /** Format: uuid */
+            batchId?: string;
+            batchNumber?: string;
+            /** Format: date */
+            expiryDate?: string;
+            /** Format: uuid */
+            storeId?: string;
+            storeName?: string;
+            /** Format: int32 */
+            quantity?: number;
+        };
+        Icd10SearchResponse: {
+            /** Format: uuid */
+            searchLogId?: string;
+            results?: components["schemas"]["Icd10SearchResult"][];
+        };
+        Icd10SearchResult: {
+            code?: string;
+            title?: string;
+            isBillable?: boolean;
+            /** Format: double */
+            score?: number;
+        };
+        AllergyResponse: {
+            description?: string;
+            reaction?: string;
+            severity?: string;
+            confirmationStatus?: string;
+        };
+        BatchAllocationResponse: {
+            /** Format: uuid */
+            batchId?: string;
+            /** Format: int32 */
+            quantity?: number;
+        };
+        BatchAvailabilityResponse: {
+            /** Format: uuid */
+            batchId?: string;
+            batchNumber?: string;
+            /** Format: date */
+            expiryDate?: string;
+            /** Format: int32 */
+            quantityAvailable?: number;
+        };
+        DispenseContextResponse: {
+            prescriptionLine?: components["schemas"]["PrescriptionLineResponse"];
+            item?: components["schemas"]["ItemSummaryResponse"];
+            allergies?: components["schemas"]["AllergyResponse"][];
+            availableBatches?: components["schemas"]["BatchAvailabilityResponse"][];
+            fefoSuggestion?: components["schemas"]["BatchAllocationResponse"][];
+        };
+        ItemSummaryResponse: {
+            /** Format: uuid */
+            itemId?: string;
+            code?: string;
+            name?: string;
+            unit?: string;
+        };
+        PatientSearchResult: {
+            /** Format: uuid */
+            id?: string;
+            hospitalNo?: string;
+            fullName?: string;
+            /** Format: date */
+            dateOfBirth?: string;
+            dobIsEstimated?: boolean;
+            phone?: string;
+        };
+        WatchlistListResponse: {
+            curationGuidance?: string;
+            entries?: components["schemas"]["WatchlistEntryResponse"][];
+        };
+        ItemSearchResultResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            form?: string;
+            strength?: string;
+            /** @enum {string} */
+            regulatorySchedule?: "CONTROLLED" | "PRESCRIPTION_ONLY" | "PHARMACY_ONLY_BTC" | "PHARMACY_ONLY_OTC" | "GENERAL_SALES" | "ADDO_PRESCRIPTION" | "RADIOPHARMACEUTICAL" | "UNCLASSIFIED";
+            selectable?: boolean;
+            unselectableReason?: string;
+        };
+        ControlledReleaseResponse: {
+            /** Format: uuid */
+            itemId?: string;
+            reason?: string;
+            /** Format: uuid */
+            changedBy?: string;
+            /** Format: date-time */
+            changedAt?: string;
+        };
+        MisclassificationCandidateResponse: {
+            /** Format: uuid */
+            itemId?: string;
+            itemCode?: string;
+            itemName?: string;
+            /** @enum {string} */
+            regulatorySchedule?: "CONTROLLED" | "PRESCRIPTION_ONLY" | "PHARMACY_ONLY_BTC" | "PHARMACY_ONLY_OTC" | "GENERAL_SALES" | "ADDO_PRESCRIPTION" | "RADIOPHARMACEUTICAL" | "UNCLASSIFIED";
+            matchedInnName?: string;
+            /** Format: double */
+            similarityScore?: number;
+        };
+        MisclassificationReportResponse: {
+            candidates?: components["schemas"]["MisclassificationCandidateResponse"][];
+            controlledReleases?: components["schemas"]["ControlledReleaseResponse"][];
+        };
+        DispenseLabelResponse: {
+            patientName?: string;
+            hospitalNumber?: string;
+            drugName?: string;
+            doseInstructions?: string;
+            /** Format: date */
+            dispensedDate?: string;
+            batchLines?: components["schemas"]["LabelBatchLineResponse"][];
+        };
+        LabelBatchLineResponse: {
+            batchNumber?: string;
+            /** Format: date */
+            expiryDate?: string;
         };
     };
     responses: never;
@@ -186,6 +1598,788 @@ export interface operations {
             };
         };
     };
+    review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewSubstitutionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubstitutionReviewResponse"];
+                };
+            };
+        };
+    };
+    restock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestockRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StockBatchResponse"];
+                };
+            };
+        };
+    };
+    collect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectSpecimenRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SpecimenResponse"];
+                };
+            };
+        };
+    };
+    proposeSynonym: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposeSynonymRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SynonymResponse"];
+                };
+            };
+        };
+    };
+    rejectSynonym: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReviewSynonymRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SynonymResponse"];
+                };
+            };
+        };
+    };
+    approveSynonym: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReviewSynonymRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SynonymResponse"];
+                };
+            };
+        };
+    };
+    recordSelection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                logId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordSelectionRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    importRelease: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportIcd10ReleaseRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Icd10ImportResult"];
+                };
+            };
+        };
+    };
+    place: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacePrescriptionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PrescriptionLineResponse"];
+                };
+            };
+        };
+    };
+    propose: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposeSubstitutionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubstitutionProposalResponse"];
+                };
+            };
+        };
+    };
+    markUnavailable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkUnavailableRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PrescriptionLineResponse"];
+                };
+            };
+        };
+    };
+    review_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewPharmacyItemProposalRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PharmacyItemProposalResponse"];
+                };
+            };
+        };
+    };
+    proposePriceChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposePriceChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PharmacyItemProposalResponse"];
+                };
+            };
+        };
+    };
+    proposeNewItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposeNewItemRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PharmacyItemProposalResponse"];
+                };
+            };
+        };
+    };
+    register: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterPatientRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PatientResponse"];
+                };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WatchlistListResponse"];
+                };
+            };
+        };
+    };
+    add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddWatchlistEntryRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WatchlistEntryResponse"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLabStockRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabStockRequestResponse"];
+                };
+            };
+        };
+    };
+    release: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleaseLabStockRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabStockRequestResponse"];
+                };
+            };
+        };
+    };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RespondToLabStockRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabStockRequestResponse"];
+                };
+            };
+        };
+    };
+    close: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RespondToLabStockRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabStockRequestResponse"];
+                };
+            };
+        };
+    };
+    record: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordLabResultRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabResultResponse"];
+                };
+            };
+        };
+    };
+    verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["VerifyLabResultRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    amend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AmendLabResultRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabResultResponse"];
+                };
+            };
+        };
+    };
+    place_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaceLabOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabOrderResponse"];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateItemRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ItemResponse"];
+                };
+            };
+        };
+    };
+    classify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassifyItemRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ItemResponse"];
+                };
+            };
+        };
+    };
+    activate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ItemResponse"];
+                };
+            };
+        };
+    };
+    open: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenEncounterRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EncounterResponse"];
+                };
+            };
+        };
+    };
+    close_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseEncounterRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EncounterResponse"];
+                };
+            };
+        };
+    };
+    dispense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DispenseRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DispenseResponse"];
+                };
+            };
+        };
+    };
+    acknowledge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -202,6 +2396,306 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MeResponse"];
+                };
+            };
+        };
+    };
+    valuation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StockValuationResponse"][];
+                };
+            };
+        };
+    };
+    lowStock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LowStockResponse"][];
+                };
+            };
+        };
+    };
+    expiringBatches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExpiringBatchResponse"][];
+                };
+            };
+        };
+    };
+    currentStock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CurrentStockResponse"][];
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query: {
+                q: string;
+                departmentId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Icd10SearchResponse"];
+                };
+            };
+        };
+    };
+    dispenseContext: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DispenseContextResponse"];
+                };
+            };
+        };
+    };
+    getById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PatientResponse"];
+                };
+            };
+        };
+    };
+    search_1: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PatientSearchResult"][];
+                };
+            };
+        };
+    };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabStockRequestResponse"];
+                };
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ItemResponse"];
+                };
+            };
+        };
+    };
+    search_2: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ItemSearchResultResponse"][];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MisclassificationReportResponse"];
+                };
+            };
+        };
+    };
+    getById_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EncounterResponse"];
+                };
+            };
+        };
+    };
+    label: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DispenseLabelResponse"];
                 };
             };
         };

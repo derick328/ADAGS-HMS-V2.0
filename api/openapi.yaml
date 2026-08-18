@@ -61,6 +61,660 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/LoginResponse"
+  /api/substitution-proposals/{id}/review:
+    post:
+      tags:
+      - substitution-controller
+      operationId: review
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewSubstitutionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SubstitutionReviewResponse"
+  /api/stock-batches:
+    post:
+      tags:
+      - stock-batch-controller
+      operationId: restock
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RestockRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StockBatchResponse"
+  /api/specimens:
+    post:
+      tags:
+      - specimen-controller
+      operationId: collect
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectSpecimenRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SpecimenResponse"
+  /api/reference/icd10/synonyms:
+    post:
+      tags:
+      - icd-10-reference-controller
+      operationId: proposeSynonym
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposeSynonymRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SynonymResponse"
+  /api/reference/icd10/synonyms/{id}/reject:
+    post:
+      tags:
+      - icd-10-reference-controller
+      operationId: rejectSynonym
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewSynonymRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SynonymResponse"
+  /api/reference/icd10/synonyms/{id}/approve:
+    post:
+      tags:
+      - icd-10-reference-controller
+      operationId: approveSynonym
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewSynonymRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SynonymResponse"
+  /api/reference/icd10/search/{logId}/selection:
+    post:
+      tags:
+      - icd-10-reference-controller
+      operationId: recordSelection
+      parameters:
+      - name: logId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordSelectionRequest"
+        required: true
+      responses:
+        "204":
+          description: No Content
+  /api/reference/icd10/import:
+    post:
+      tags:
+      - icd-10-reference-controller
+      operationId: importRelease
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportIcd10ReleaseRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Icd10ImportResult"
+  /api/prescriptions:
+    post:
+      tags:
+      - prescription-controller
+      operationId: place
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlacePrescriptionRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PrescriptionLineResponse"
+  /api/prescription-lines/{id}/substitution-proposals:
+    post:
+      tags:
+      - substitution-controller
+      operationId: propose
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposeSubstitutionRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SubstitutionProposalResponse"
+  /api/prescription-lines/{id}/mark-unavailable:
+    post:
+      tags:
+      - prescription-line-controller
+      operationId: markUnavailable
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarkUnavailableRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PrescriptionLineResponse"
+  /api/pharmacy-item-proposals/{id}/review:
+    post:
+      tags:
+      - pharmacy-item-proposal-controller
+      operationId: review_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewPharmacyItemProposalRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PharmacyItemProposalResponse"
+  /api/pharmacy-item-proposals/price-change:
+    post:
+      tags:
+      - pharmacy-item-proposal-controller
+      operationId: proposePriceChange
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposePriceChangeRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PharmacyItemProposalResponse"
+  /api/pharmacy-item-proposals/new-item:
+    post:
+      tags:
+      - pharmacy-item-proposal-controller
+      operationId: proposeNewItem
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposeNewItemRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PharmacyItemProposalResponse"
+  /api/patients:
+    post:
+      tags:
+      - patient-controller
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterPatientRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PatientResponse"
+  /api/narcotic-watchlist:
+    get:
+      tags:
+      - watchlist-controller
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WatchlistListResponse"
+    post:
+      tags:
+      - watchlist-controller
+      operationId: add
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddWatchlistEntryRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WatchlistEntryResponse"
+  /api/lab-stock-requests:
+    post:
+      tags:
+      - lab-stock-request-controller
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLabStockRequestRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LabStockRequestResponse"
+  /api/lab-stock-requests/{id}/release:
+    post:
+      tags:
+      - lab-stock-request-controller
+      operationId: release
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReleaseLabStockRequestRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LabStockRequestResponse"
+  /api/lab-stock-requests/{id}/reject:
+    post:
+      tags:
+      - lab-stock-request-controller
+      operationId: reject
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RespondToLabStockRequestRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LabStockRequestResponse"
+  /api/lab-stock-requests/{id}/close:
+    post:
+      tags:
+      - lab-stock-request-controller
+      operationId: close
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RespondToLabStockRequestRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LabStockRequestResponse"
+  /api/lab-results:
+    post:
+      tags:
+      - lab-result-controller
+      operationId: record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordLabResultRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LabResultResponse"
+  /api/lab-results/{id}/verify:
+    post:
+      tags:
+      - lab-result-controller
+      operationId: verify
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyLabResultRequest"
+      responses:
+        "200":
+          description: OK
+  /api/lab-results/{id}/amend:
+    post:
+      tags:
+      - lab-result-controller
+      operationId: amend
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AmendLabResultRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LabResultResponse"
+  /api/lab-orders:
+    post:
+      tags:
+      - lab-order-controller
+      operationId: place_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceLabOrderRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LabOrderResponse"
+  /api/items:
+    post:
+      tags:
+      - item-controller
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateItemRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ItemResponse"
+  /api/items/{id}/classify:
+    post:
+      tags:
+      - item-controller
+      operationId: classify
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClassifyItemRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ItemResponse"
+  /api/items/{id}/activate:
+    post:
+      tags:
+      - item-controller
+      operationId: activate
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ItemResponse"
+  /api/encounters:
+    post:
+      tags:
+      - encounter-controller
+      operationId: open
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenEncounterRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EncounterResponse"
+  /api/encounters/{id}/close:
+    post:
+      tags:
+      - encounter-controller
+      operationId: close_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CloseEncounterRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EncounterResponse"
+  /api/dispenses:
+    post:
+      tags:
+      - dispense-controller
+      operationId: dispense
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DispenseRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DispenseResponse"
+  /api/critical-result-notifications/{id}/acknowledge:
+    post:
+      tags:
+      - critical-result-notification-controller
+      operationId: acknowledge
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
   /me:
     get:
       tags:
@@ -73,6 +727,259 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/MeResponse"
+  /api/stock-reports/valuation:
+    get:
+      tags:
+      - stock-report-controller
+      operationId: valuation
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockValuationResponse"
+  /api/stock-reports/low-stock:
+    get:
+      tags:
+      - stock-report-controller
+      operationId: lowStock
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LowStockResponse"
+  /api/stock-reports/expiring-batches:
+    get:
+      tags:
+      - stock-report-controller
+      operationId: expiringBatches
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExpiringBatchResponse"
+  /api/stock-reports/current-stock:
+    get:
+      tags:
+      - stock-report-controller
+      operationId: currentStock
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CurrentStockResponse"
+  /api/reference/icd10/search:
+    get:
+      tags:
+      - icd-10-reference-controller
+      operationId: search
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: departmentId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Icd10SearchResponse"
+  /api/prescription-lines/{id}/dispense-context:
+    get:
+      tags:
+      - dispense-controller
+      operationId: dispenseContext
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DispenseContextResponse"
+  /api/patients/{id}:
+    get:
+      tags:
+      - patient-controller
+      operationId: getById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PatientResponse"
+  /api/patients/search:
+    get:
+      tags:
+      - patient-controller
+      operationId: search_1
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PatientSearchResult"
+  /api/lab-stock-requests/{id}:
+    get:
+      tags:
+      - lab-stock-request-controller
+      operationId: get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LabStockRequestResponse"
+  /api/items/{id}:
+    get:
+      tags:
+      - item-controller
+      operationId: get_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ItemResponse"
+  /api/items/search:
+    get:
+      tags:
+      - item-controller
+      operationId: search_2
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemSearchResultResponse"
+  /api/items/misclassification-report:
+    get:
+      tags:
+      - misclassification-report-controller
+      operationId: get_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MisclassificationReportResponse"
+  /api/encounters/{id}:
+    get:
+      tags:
+      - encounter-controller
+      operationId: getById_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EncounterResponse"
+  /api/dispenses/{id}/label:
+    get:
+      tags:
+      - dispense-controller
+      operationId: label
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DispenseLabelResponse"
 components:
   schemas:
     TokenResponse:
@@ -109,6 +1016,1132 @@ components:
           format: date-time
         mustChangePassword:
           type: boolean
+    ReviewSubstitutionRequest:
+      required:
+      - decision
+      type: object
+      properties:
+        decision:
+          type: string
+          enum:
+          - PROPOSED
+          - APPROVED
+          - REJECTED
+        reviewNote:
+          type: string
+    PrescriptionLineResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        prescriptionOrderId:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        quantityPrescribed:
+          type: integer
+          format: int32
+        quantityDispensed:
+          type: integer
+          format: int32
+        remaining:
+          type: integer
+          format: int32
+        dosageInstructions:
+          type: string
+        status:
+          type: string
+          enum:
+          - AWAITING_DISPENSE
+          - PARTIALLY_DISPENSED
+          - COMPLETED
+          - CANCELLED
+          - UNAVAILABLE
+        substitutionAllowed:
+          type: boolean
+        statusReason:
+          type: string
+    SubstitutionProposalResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        prescriptionLineId:
+          type: string
+          format: uuid
+        proposedItemId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+        status:
+          type: string
+          enum:
+          - PROPOSED
+          - APPROVED
+          - REJECTED
+        reviewedBy:
+          type: string
+          format: uuid
+        reviewedAt:
+          type: string
+          format: date-time
+        reviewNote:
+          type: string
+        replacementLineId:
+          type: string
+          format: uuid
+    SubstitutionReviewResponse:
+      type: object
+      properties:
+        proposal:
+          $ref: "#/components/schemas/SubstitutionProposalResponse"
+        cancelledLine:
+          $ref: "#/components/schemas/PrescriptionLineResponse"
+        replacementLine:
+          $ref: "#/components/schemas/PrescriptionLineResponse"
+    RestockRequest:
+      required:
+      - batchNumber
+      - deliveryNoteRef
+      - expiryDate
+      - itemId
+      - storeId
+      - supplierId
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        storeId:
+          type: string
+          format: uuid
+        batchNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        quantity:
+          type: integer
+          format: int32
+        unitCostAmountMinor:
+          minimum: 0
+          type: integer
+          format: int64
+        unitCostCurrencyCode:
+          type: string
+        supplierId:
+          type: string
+          format: uuid
+        deliveryNoteRef:
+          type: string
+        notes:
+          type: string
+    StockBatchResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        storeId:
+          type: string
+          format: uuid
+        batchNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        unitCostAmountMinor:
+          type: integer
+          format: int64
+        unitCostCurrencyCode:
+          type: string
+        supplierId:
+          type: string
+          format: uuid
+        deliveryNoteRef:
+          type: string
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - QUARANTINED
+          - EXPIRED
+          - WRITTEN_OFF
+    CollectSpecimenRequest:
+      required:
+      - labOrderId
+      - quality
+      type: object
+      properties:
+        labOrderId:
+          type: string
+          format: uuid
+        quality:
+          type: string
+          enum:
+          - ADEQUATE
+          - HAEMOLYSED
+          - CLOTTED
+          - INSUFFICIENT_VOLUME
+          - WRONG_CONTAINER
+          - MISLABELLED
+          - DELAYED_TRANSPORT
+        qualityNote:
+          type: string
+    SpecimenResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        labOrderId:
+          type: string
+          format: uuid
+        accessionNo:
+          type: string
+        sampleType:
+          type: string
+        containerType:
+          type: string
+        quality:
+          type: string
+          enum:
+          - ADEQUATE
+          - HAEMOLYSED
+          - CLOTTED
+          - INSUFFICIENT_VOLUME
+          - WRONG_CONTAINER
+          - MISLABELLED
+          - DELAYED_TRANSPORT
+        status:
+          type: string
+          enum:
+          - COLLECTED
+          - IN_PROGRESS
+          - REJECTED
+        rejectionReason:
+          type: string
+        collectedAt:
+          type: string
+          format: date-time
+    ProposeSynonymRequest:
+      required:
+      - code
+      - language
+      - term
+      type: object
+      properties:
+        code:
+          type: string
+        term:
+          type: string
+        language:
+          type: string
+    SynonymResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        term:
+          type: string
+        language:
+          type: string
+        status:
+          type: string
+          enum:
+          - PROPOSED
+          - APPROVED
+          - REJECTED
+        proposedBy:
+          type: string
+          format: uuid
+        proposedAt:
+          type: string
+          format: date-time
+        reviewedBy:
+          type: string
+          format: uuid
+        reviewedAt:
+          type: string
+          format: date-time
+        reviewNote:
+          type: string
+    ReviewSynonymRequest:
+      type: object
+      properties:
+        reviewNote:
+          type: string
+    RecordSelectionRequest:
+      required:
+      - selectedCode
+      type: object
+      properties:
+        selectedCode:
+          type: string
+    Icd10ImportRow:
+      type: object
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        chapter:
+          type: string
+        block:
+          type: string
+        parentCode:
+          type: string
+        isBillable:
+          type: boolean
+    ImportIcd10ReleaseRequest:
+      required:
+      - codes
+      - release
+      type: object
+      properties:
+        release:
+          type: string
+        codes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Icd10ImportRow"
+    Icd10ImportResult:
+      type: object
+      properties:
+        inserted:
+          type: integer
+          format: int32
+        updated:
+          type: integer
+          format: int32
+    PlacePrescriptionRequest:
+      required:
+      - dosageInstructions
+      - encounterId
+      - itemId
+      type: object
+      properties:
+        encounterId:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        quantityPrescribed:
+          type: integer
+          format: int32
+        dosageInstructions:
+          type: string
+        substitutionAllowed:
+          type: boolean
+    ProposeSubstitutionRequest:
+      required:
+      - proposedItemId
+      - reason
+      type: object
+      properties:
+        proposedItemId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+    MarkUnavailableRequest:
+      required:
+      - reason
+      type: object
+      properties:
+        reason:
+          type: string
+    ReviewPharmacyItemProposalRequest:
+      required:
+      - decision
+      type: object
+      properties:
+        decision:
+          type: string
+          enum:
+          - PROPOSED
+          - APPROVED
+          - REJECTED
+        reviewNote:
+          type: string
+    PharmacyItemProposalResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        proposalType:
+          type: string
+          enum:
+          - NEW_ITEM
+          - PRICE_CHANGE
+        itemId:
+          type: string
+          format: uuid
+        proposedName:
+          type: string
+        proposedPriceAmountMinor:
+          type: integer
+          format: int64
+        currentPriceAmountMinor:
+          type: integer
+          format: int64
+        justification:
+          type: string
+        status:
+          type: string
+          enum:
+          - PROPOSED
+          - APPROVED
+          - REJECTED
+        reviewNote:
+          type: string
+        createdItemId:
+          type: string
+          format: uuid
+    ProposePriceChangeRequest:
+      required:
+      - itemId
+      - justification
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        proposedPriceMinor:
+          minimum: 0
+          type: integer
+          format: int64
+        justification:
+          type: string
+    ProposeNewItemRequest:
+      required:
+      - proposedClassification
+      - proposedForm
+      - proposedName
+      - proposedUnit
+      type: object
+      properties:
+        proposedName:
+          type: string
+        proposedClassification:
+          type: string
+        proposedForm:
+          type: string
+        proposedUnit:
+          type: string
+        proposedPriceMinor:
+          minimum: 0
+          type: integer
+          format: int64
+        justification:
+          type: string
+    InsurancePolicyRequest:
+      required:
+      - policyNumber
+      - schemeId
+      type: object
+      properties:
+        schemeId:
+          type: string
+          format: uuid
+        policyNumber:
+          type: string
+        memberNumber:
+          type: string
+        isPrincipal:
+          type: boolean
+        principalName:
+          type: string
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+    NextOfKinRequest:
+      required:
+      - fullName
+      - phone
+      - relationship
+      type: object
+      properties:
+        fullName:
+          type: string
+        relationship:
+          type: string
+        phone:
+          type: string
+        isGuardian:
+          type: boolean
+    PatientAddressRequest:
+      required:
+      - addressType
+      type: object
+      properties:
+        addressType:
+          type: string
+        region:
+          type: string
+        district:
+          type: string
+        ward:
+          type: string
+        streetOrVillage:
+          type: string
+        landmark:
+          type: string
+    RegisterPatientRequest:
+      required:
+      - facilityId
+      - familyName
+      - gender
+      - givenName
+      - nextOfKin
+      - phone
+      type: object
+      properties:
+        givenName:
+          type: string
+        middleName:
+          type: string
+        familyName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        ageYears:
+          type: integer
+          format: int32
+        ageMonths:
+          type: integer
+          format: int32
+        gender:
+          type: string
+        maritalStatus:
+          type: string
+        nationalId:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        occupation:
+          type: string
+        nextOfKin:
+          $ref: "#/components/schemas/NextOfKinRequest"
+        addresses:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatientAddressRequest"
+        insurancePolicy:
+          $ref: "#/components/schemas/InsurancePolicyRequest"
+        facilityId:
+          type: string
+          format: uuid
+        notSamePersonConfirmationReason:
+          type: string
+    PatientResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        hospitalNo:
+          type: string
+        fullName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        dobIsEstimated:
+          type: boolean
+        gender:
+          type: string
+        maritalStatus:
+          type: string
+        nationalId:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        active:
+          type: boolean
+    AddWatchlistEntryRequest:
+      required:
+      - innName
+      - sourceDate
+      - sourceDocument
+      type: object
+      properties:
+        innName:
+          type: string
+        atcPrefix:
+          type: string
+        sourceDocument:
+          type: string
+        sourceDate:
+          type: string
+          format: date
+    WatchlistEntryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        innName:
+          type: string
+        atcPrefix:
+          type: string
+        sourceDocument:
+          type: string
+        sourceDate:
+          type: string
+          format: date
+    CreateLabStockRequestRequest:
+      required:
+      - itemId
+      - requestingStoreId
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        requestedQuantity:
+          type: integer
+          format: int32
+        requestingStoreId:
+          type: string
+          format: uuid
+    LabStockRequestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        requestedQuantity:
+          type: integer
+          format: int32
+        releasedQuantity:
+          type: integer
+          format: int32
+        remaining:
+          type: integer
+          format: int32
+        requestingStoreId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - PENDING
+          - PARTIALLY_RELEASED
+          - RELEASED
+          - REJECTED
+          - CLOSED
+        responseNotes:
+          type: string
+    ReleaseLabStockRequestRequest:
+      required:
+      - batchId
+      type: object
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          format: int32
+    RespondToLabStockRequestRequest:
+      required:
+      - responseNotes
+      type: object
+      properties:
+        responseNotes:
+          type: string
+    ParameterValueRequest:
+      required:
+      - parameterId
+      - resultValue
+      type: object
+      properties:
+        parameterId:
+          type: string
+          format: uuid
+        resultValue:
+          type: number
+          format: double
+        overrideFlag:
+          type: string
+          enum:
+          - NORMAL
+          - HIGH
+          - LOW
+          - CRITICAL
+        overrideReason:
+          type: string
+    ReagentRequest:
+      type: object
+      properties:
+        stockBatchId:
+          type: string
+          format: uuid
+        quantityUsed:
+          type: number
+          format: double
+        note:
+          type: string
+    RecordLabResultRequest:
+      required:
+      - parameterValues
+      - specimenId
+      type: object
+      properties:
+        specimenId:
+          type: string
+          format: uuid
+        methodology:
+          type: string
+        reagentsUsedNote:
+          type: string
+        findings:
+          type: string
+        interpretation:
+          type: string
+        referenceRangeNote:
+          type: string
+        conclusion:
+          type: string
+        machineOutputObjectKey:
+          type: string
+        parameterValues:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParameterValueRequest"
+        reagents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReagentRequest"
+    LabResultResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        labOrderId:
+          type: string
+          format: uuid
+        specimenId:
+          type: string
+          format: uuid
+        enteredAt:
+          type: string
+          format: date-time
+        releasedAt:
+          type: string
+          format: date-time
+        verificationState:
+          type: string
+          enum:
+          - NOT_REQUIRED
+          - PENDING
+          - VERIFIED
+          - AMENDED
+          - LAPSED
+        verificationLevelApplied:
+          type: string
+          enum:
+          - NONE
+          - SELF
+          - SECOND_PERSON
+          - SPECIALIST
+        amendsId:
+          type: string
+          format: uuid
+        amendmentReason:
+          type: string
+        parameterValues:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParameterValueResponse"
+        criticalNotificationIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    ParameterValueResponse:
+      type: object
+      properties:
+        parameterId:
+          type: string
+          format: uuid
+        resultValue:
+          type: number
+          format: double
+        flag:
+          type: string
+          enum:
+          - NORMAL
+          - HIGH
+          - LOW
+          - CRITICAL
+        flagOverridden:
+          type: boolean
+        overrideReason:
+          type: string
+    VerifyLabResultRequest:
+      type: object
+      properties:
+        verificationComment:
+          type: string
+    AmendLabResultRequest:
+      required:
+      - amendmentReason
+      - parameterValues
+      type: object
+      properties:
+        amendmentReason:
+          type: string
+        methodology:
+          type: string
+        reagentsUsedNote:
+          type: string
+        findings:
+          type: string
+        interpretation:
+          type: string
+        referenceRangeNote:
+          type: string
+        conclusion:
+          type: string
+        machineOutputObjectKey:
+          type: string
+        parameterValues:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParameterValueRequest"
+        reagents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReagentRequest"
+    PlaceLabOrderRequest:
+      required:
+      - encounterId
+      - labTestCode
+      - urgency
+      type: object
+      properties:
+        encounterId:
+          type: string
+          format: uuid
+        labTestCode:
+          type: string
+        clinicalIndication:
+          type: string
+        urgency:
+          type: string
+          enum:
+          - STAT
+          - URGENT
+          - ROUTINE
+    LabOrderResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        labTestId:
+          type: string
+          format: uuid
+        clinicalIndication:
+          type: string
+        urgency:
+          type: string
+          enum:
+          - STAT
+          - URGENT
+          - ROUTINE
+        invoiceLineId:
+          type: string
+          format: uuid
+        orderedAt:
+          type: string
+          format: date-time
+    CreateItemRequest:
+      required:
+      - classification
+      - code
+      - form
+      - name
+      - unit
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        classification:
+          type: string
+        form:
+          type: string
+        strength:
+          type: string
+        unit:
+          type: string
+        reorderLevel:
+          minimum: 0
+          type: integer
+          format: int32
+    ItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        classification:
+          type: string
+        form:
+          type: string
+        strength:
+          type: string
+        unit:
+          type: string
+        regulatorySchedule:
+          type: string
+          enum:
+          - CONTROLLED
+          - PRESCRIPTION_ONLY
+          - PHARMACY_ONLY_BTC
+          - PHARMACY_ONLY_OTC
+          - GENERAL_SALES
+          - ADDO_PRESCRIPTION
+          - RADIOPHARMACEUTICAL
+          - UNCLASSIFIED
+        reorderLevel:
+          type: integer
+          format: int32
+        active:
+          type: boolean
+    ClassifyItemRequest:
+      required:
+      - reason
+      - regulatorySchedule
+      type: object
+      properties:
+        regulatorySchedule:
+          type: string
+          enum:
+          - CONTROLLED
+          - PRESCRIPTION_ONLY
+          - PHARMACY_ONLY_BTC
+          - PHARMACY_ONLY_OTC
+          - GENERAL_SALES
+          - ADDO_PRESCRIPTION
+          - RADIOPHARMACEUTICAL
+          - UNCLASSIFIED
+        reason:
+          type: string
+    OpenEncounterRequest:
+      required:
+      - departmentId
+      - patientId
+      type: object
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+    EncounterResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        facilityId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+        assignedProviderId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum:
+          - OUTPATIENT
+          - EMERGENCY
+        state:
+          type: string
+          enum:
+          - AWAITING_TRIAGE
+          - AWAITING_PAYMENT
+          - AWAITING_CONSULT
+          - IN_CONSULT
+          - AWAITING_RESULTS
+          - CONSULT_COMPLETE
+          - PENDING_SETTLEMENT
+          - ADMITTED
+          - IN_WARD
+          - DISCHARGE_ORDERED
+          - LEFT_WITHOUT_BEING_SEEN
+          - ABANDONED_UNPAID
+          - CANCELLED_IN_ERROR
+          - REFERRED_OUT
+          - DECEASED
+          - CLOSED
+          - DISCHARGED
+        payerType:
+          type: string
+          enum:
+          - CASH
+          - INSURANCE
+        version:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+    CloseEncounterRequest:
+      required:
+      - outcome
+      type: object
+      properties:
+        outcome:
+          type: string
+          enum:
+          - AWAITING_TRIAGE
+          - AWAITING_PAYMENT
+          - AWAITING_CONSULT
+          - IN_CONSULT
+          - AWAITING_RESULTS
+          - CONSULT_COMPLETE
+          - PENDING_SETTLEMENT
+          - ADMITTED
+          - IN_WARD
+          - DISCHARGE_ORDERED
+          - LEFT_WITHOUT_BEING_SEEN
+          - ABANDONED_UNPAID
+          - CANCELLED_IN_ERROR
+          - REFERRED_OUT
+          - DECEASED
+          - CLOSED
+          - DISCHARGED
+        reason:
+          type: string
+    DispenseLineRequest:
+      required:
+      - batchId
+      type: object
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          format: int32
+        overrideReason:
+          type: string
+    DispenseRequest:
+      required:
+      - idempotencyKey
+      - lines
+      - prescriptionLineId
+      type: object
+      properties:
+        prescriptionLineId:
+          type: string
+          format: uuid
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/DispenseLineRequest"
+        idempotencyKey:
+          type: string
+        counsellingNotes:
+          type: string
+        dispensingNotes:
+          type: string
+    DispenseLineResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          format: int32
+        unitCostAmountMinor:
+          type: integer
+          format: int64
+        unitCostCurrencyCode:
+          type: string
+        fefoOverrideReason:
+          type: string
+    DispenseResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        prescriptionLineId:
+          type: string
+          format: uuid
+        dispensedAt:
+          type: string
+          format: date-time
+        quantityDispensed:
+          type: integer
+          format: int32
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/DispenseLineResponse"
+        prescriptionLine:
+          $ref: "#/components/schemas/PrescriptionLineResponse"
     MeResponse:
       type: object
       properties:
@@ -143,3 +2176,298 @@ components:
         validTo:
           type: string
           format: date-time
+    StockValuationResponse:
+      type: object
+      properties:
+        storeId:
+          type: string
+          format: uuid
+        storeName:
+          type: string
+        totalValueAmountMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+    LowStockResponse:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        totalQuantity:
+          type: integer
+          format: int32
+        reorderLevel:
+          type: integer
+          format: int32
+    ExpiringBatchResponse:
+      type: object
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        batchNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        quantity:
+          type: integer
+          format: int32
+    CurrentStockResponse:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        batchId:
+          type: string
+          format: uuid
+        batchNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        storeId:
+          type: string
+          format: uuid
+        storeName:
+          type: string
+        quantity:
+          type: integer
+          format: int32
+    Icd10SearchResponse:
+      type: object
+      properties:
+        searchLogId:
+          type: string
+          format: uuid
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Icd10SearchResult"
+    Icd10SearchResult:
+      type: object
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        isBillable:
+          type: boolean
+        score:
+          type: number
+          format: double
+    AllergyResponse:
+      type: object
+      properties:
+        description:
+          type: string
+        reaction:
+          type: string
+        severity:
+          type: string
+        confirmationStatus:
+          type: string
+    BatchAllocationResponse:
+      type: object
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          format: int32
+    BatchAvailabilityResponse:
+      type: object
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        batchNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        quantityAvailable:
+          type: integer
+          format: int32
+    DispenseContextResponse:
+      type: object
+      properties:
+        prescriptionLine:
+          $ref: "#/components/schemas/PrescriptionLineResponse"
+        item:
+          $ref: "#/components/schemas/ItemSummaryResponse"
+        allergies:
+          type: array
+          items:
+            $ref: "#/components/schemas/AllergyResponse"
+        availableBatches:
+          type: array
+          items:
+            $ref: "#/components/schemas/BatchAvailabilityResponse"
+        fefoSuggestion:
+          type: array
+          items:
+            $ref: "#/components/schemas/BatchAllocationResponse"
+    ItemSummaryResponse:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        unit:
+          type: string
+    PatientSearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        hospitalNo:
+          type: string
+        fullName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        dobIsEstimated:
+          type: boolean
+        phone:
+          type: string
+    WatchlistListResponse:
+      type: object
+      properties:
+        curationGuidance:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/WatchlistEntryResponse"
+    ItemSearchResultResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        form:
+          type: string
+        strength:
+          type: string
+        regulatorySchedule:
+          type: string
+          enum:
+          - CONTROLLED
+          - PRESCRIPTION_ONLY
+          - PHARMACY_ONLY_BTC
+          - PHARMACY_ONLY_OTC
+          - GENERAL_SALES
+          - ADDO_PRESCRIPTION
+          - RADIOPHARMACEUTICAL
+          - UNCLASSIFIED
+        selectable:
+          type: boolean
+        unselectableReason:
+          type: string
+    ControlledReleaseResponse:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+        changedBy:
+          type: string
+          format: uuid
+        changedAt:
+          type: string
+          format: date-time
+    MisclassificationCandidateResponse:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        regulatorySchedule:
+          type: string
+          enum:
+          - CONTROLLED
+          - PRESCRIPTION_ONLY
+          - PHARMACY_ONLY_BTC
+          - PHARMACY_ONLY_OTC
+          - GENERAL_SALES
+          - ADDO_PRESCRIPTION
+          - RADIOPHARMACEUTICAL
+          - UNCLASSIFIED
+        matchedInnName:
+          type: string
+        similarityScore:
+          type: number
+          format: double
+    MisclassificationReportResponse:
+      type: object
+      properties:
+        candidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/MisclassificationCandidateResponse"
+        controlledReleases:
+          type: array
+          items:
+            $ref: "#/components/schemas/ControlledReleaseResponse"
+    DispenseLabelResponse:
+      type: object
+      properties:
+        patientName:
+          type: string
+        hospitalNumber:
+          type: string
+        drugName:
+          type: string
+        doseInstructions:
+          type: string
+        dispensedDate:
+          type: string
+          format: date
+        batchLines:
+          type: array
+          items:
+            $ref: "#/components/schemas/LabelBatchLineResponse"
+    LabelBatchLineResponse:
+      type: object
+      properties:
+        batchNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
