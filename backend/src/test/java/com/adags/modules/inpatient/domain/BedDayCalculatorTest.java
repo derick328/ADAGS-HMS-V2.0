@@ -98,6 +98,54 @@ class BedDayCalculatorTest {
         assertThat(BedDayCalculator.boundariesToPost(lastPosted, now, FACILITY_ZONE)).isEmpty();
     }
 
+    // §3.7's table, verbatim: gap <= 4h stops billing at the order; gap >
+    // 4h stops it at actual departure — regardless of which is later.
+    @ParameterizedTest(name = "ordered {0}, departed {1} -> billing_stop {2}")
+    @CsvSource({
+            "2026-03-02T09:00, 2026-03-02T11:30, 2026-03-02T09:00", // 2.5h gap, stop at order
+            "2026-03-02T09:00, 2026-03-02T14:00, 2026-03-02T14:00", // 5h gap, stop at departure
+            "2026-03-02T11:00, 2026-03-02T12:00, 2026-03-02T11:00", // 1h gap, stop at order
+    })
+    void billingStopFollowsTheFourHourDepartureGrace(String orderedAt, String departedAt, String expectedStop) {
+        Instant result = BedDayCalculator.billingStop(local(orderedAt), local(departedAt));
+
+        assertThat(result).isEqualTo(local(expectedStop));
+    }
+
+    // The Phase 6 item 3 brief's own two cases, checked end to end through
+    // daysFor against a multi-day stay — admitted Saturday, discharge
+    // ordered Monday 09:00, so a real boundary (Monday 10:00) sits exactly
+    // in the gap between order and departure. "Day not charged" / "day
+    // charged" is then an assertion on the actual day count (2 vs 3), not
+    // just on which timestamp billingStop picked.
+    @Test
+    void aTwoAndAHalfHourGapLeavesTheStraddlingBoundaryDayUncharged() {
+        Instant admittedAt = local("2026-02-28T14:00"); // Saturday
+        Instant orderedAt = local("2026-03-02T09:00");  // Monday, before the 10:00 boundary
+        Instant departedAt = local("2026-03-02T11:30");
+
+        Instant stop = BedDayCalculator.billingStop(orderedAt, departedAt);
+
+        assertThat(stop).isEqualTo(orderedAt);
+        // Only Sunday 10:00 is strictly before Monday 09:00 — Monday
+        // 10:00 is forgiven by the grace: 1 boundary + 1 = 2 days.
+        assertThat(BedDayCalculator.daysFor(admittedAt, stop, FACILITY_ZONE)).isEqualTo(2);
+    }
+
+    @Test
+    void aFiveHourGapChargesTheStraddlingBoundaryDay() {
+        Instant admittedAt = local("2026-02-28T14:00"); // Saturday
+        Instant orderedAt = local("2026-03-02T09:00");  // Monday, before the 10:00 boundary
+        Instant departedAt = local("2026-03-02T14:00");
+
+        Instant stop = BedDayCalculator.billingStop(orderedAt, departedAt);
+
+        assertThat(stop).isEqualTo(departedAt);
+        // Sunday 10:00 AND Monday 10:00 are both strictly before Monday
+        // 14:00 — genuine bed-blocking, billed: 2 boundaries + 1 = 3 days.
+        assertThat(BedDayCalculator.daysFor(admittedAt, stop, FACILITY_ZONE)).isEqualTo(3);
+    }
+
     private static Instant local(String isoLocalDateTime) {
         return ZonedDateTime.of(LocalDateTime.parse(isoLocalDateTime), FACILITY_ZONE).toInstant();
     }

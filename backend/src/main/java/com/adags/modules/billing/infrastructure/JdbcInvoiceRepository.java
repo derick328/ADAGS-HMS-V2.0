@@ -70,6 +70,12 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
     }
 
     @Override
+    public List<Invoice> findByEncounterId(UUID encounterId) {
+        return jdbcTemplate.query(SELECT_COLUMNS + " WHERE encounter_id = :encounterId",
+                new MapSqlParameterSource("encounterId", encounterId), this::mapRow);
+    }
+
+    @Override
     public Invoice issue(UUID invoiceId, String invoiceNumber, int expectedVersion) {
         // The subquery is the totals recompute: derived fresh from
         // invoice_line at the moment of issue rather than trusted from
@@ -141,6 +147,16 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
         if (updated == 0) {
             throw new InvoiceCannotBeVoidedException(invoiceId);
         }
+        return findById(invoiceId).orElseThrow();
+    }
+
+    @Override
+    public Invoice markReceivablePostDischarge(UUID invoiceId) {
+        jdbcTemplate.update("""
+                        UPDATE invoice SET state = 'RECEIVABLE_POST_DISCHARGE'
+                        WHERE id = :invoiceId AND state = 'ISSUED' AND outstanding_total_minor > 0
+                        """,
+                new MapSqlParameterSource("invoiceId", invoiceId));
         return findById(invoiceId).orElseThrow();
     }
 

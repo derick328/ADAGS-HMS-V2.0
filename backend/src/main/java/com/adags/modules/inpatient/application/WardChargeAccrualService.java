@@ -26,7 +26,9 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 // 04-procedure-bedday-rules.md §3.5: the nightly accrual job's atomic
 // per-admission unit — one WardChargeAccrual row per occupied bed-day,
@@ -118,6 +120,67 @@ public class WardChargeAccrualService {
             posted++;
         }
         return posted;
+    }
+
+    /**
+     * 04-procedure-bedday-rules.md §3.6/§3.7: called once at discharge
+     * completion with the gap-adjusted billing_stop. The nightly job
+     * tracks bed occupancy only — it has no notion of a pending discharge
+     * order — so it may already have posted a boundary the final gap rule
+     * ends up forgiving. Those are reversed here (voided, never deleted);
+     * whatever the §3.1 day count still requires is then posted, including
+     * the final partial day that never reaches its own boundary — the
+     * same "+1" that formula adds — keyed at billing_stop itself since
+     * there is no real 10:00 crossing to key it at.
+     */
+    @Transactional
+    public void reconcileForDischarge(UUID admissionId, Instant billingStop, UUID actorUserId) {
+        Admission admission = admissionRepository.findById(admissionId)
+                .orElseThrow(() -> new NoSuchElementException("Admission not found: " + admissionId));
+        List<WardChargeAccrual> existing = wardChargeAccrualRepository.findByAdmissionId(admissionId);
+        int totalDays = BedDayCalculator.daysFor(admission.admittedAt(), billingStop, FACILITY_ZONE);
+
+        if (totalDays == 0) {
+            // Under the 4-hour floor overall — every accrued row (even one
+            // keyed before billing_stop, e.g. a boundary crossed minutes
+            // into a short stay) is forgiven.
+            for (WardChargeAccrual row : existing) {
+                billingFacade.voidUnpaidServiceCharge(row.invoiceLineId(),
+                        "Reversed at discharge — stay was under the 4-hour floor.", actorUserId);
+            }
+            return;
+        }
+
+        for (WardChargeAccrual row : existing) {
+            if (row.accrualBoundaryAt().isAfter(billingStop)) {
+                billingFacade.voidUnpaidServiceCharge(row.invoiceLineId(),
+                        "Reversed at discharge — falls within the 4-hour departure grace.", actorUserId);
+            }
+        }
+
+        List<BedAssignment> assignments = bedAssignmentRepository.findByAdmissionId(admissionId);
+        Instant effectiveStart = BedDayCalculator.effectiveStart(admission.admittedAt(), FACILITY_ZONE);
+        List<Instant> realBoundaries = BedDayCalculator.boundariesBetween(effectiveStart, billingStop, FACILITY_ZONE);
+        Set<Instant> validKeys = existing.stream()
+                .map(WardChargeAccrual::accrualBoundaryAt)
+                .filter(boundary -> !boundary.isAfter(billingStop))
+                .collect(Collectors.toSet());
+
+        EncounterContext context = encounterFacade.findContext(admission.encounterId())
+                .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + admission.encounterId()));
+
+        Instant currentWindowStart = effectiveStart;
+        for (Instant boundary : realBoundaries) {
+            if (!validKeys.contains(boundary)) {
+                highestRateOverlap(assignments, currentWindowStart, boundary)
+                        .ifPresent(winner -> postOneNight(admission, context, winner, boundary));
+            }
+            currentWindowStart = boundary;
+        }
+        if (!validKeys.contains(billingStop)) {
+            highestRateOverlap(assignments, currentWindowStart, billingStop)
+                    .ifPresent(winner -> postOneNight(admission, context, winner, billingStop));
+        }
     }
 
     private void postOneNight(Admission admission, EncounterContext context, RatedAssignment winner, Instant boundary) {

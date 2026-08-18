@@ -26,8 +26,21 @@ public final class BedDayCalculator {
 
     private static final LocalTime MORNING_WINDOW_START = LocalTime.of(6, 0);
     private static final LocalTime MORNING_WINDOW_END = LocalTime.of(10, 0);
+    private static final Duration DEPARTURE_GRACE = Duration.ofHours(4);
 
     private BedDayCalculator() {
+    }
+
+    /**
+     * §3.7: "gap = actual_departure - discharge_ordered_at. gap &lt;= 4h ->
+     * billing_stop = discharge_ordered_at. gap &gt; 4h -> billing_stop =
+     * actual_departure." Short delays the hospital caused (pharmacy
+     * queue, transport, paperwork) cost the patient nothing; genuine
+     * bed-blocking is billed. The result feeds daysFor as billingStop.
+     */
+    public static Instant billingStop(Instant dischargeOrderedAt, Instant actualDepartureAt) {
+        Duration gap = Duration.between(dischargeOrderedAt, actualDepartureAt);
+        return gap.compareTo(DEPARTURE_GRACE) <= 0 ? dischargeOrderedAt : actualDepartureAt;
     }
 
     /** §3.1's full formula: 0 if the stay is under 4 hours, else boundaries_passed + 1. */

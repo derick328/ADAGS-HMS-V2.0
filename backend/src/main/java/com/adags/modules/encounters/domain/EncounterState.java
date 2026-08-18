@@ -55,8 +55,12 @@ public enum EncounterState {
         graph.put(CONSULT_COMPLETE, EnumSet.of(PENDING_SETTLEMENT));
         graph.put(PENDING_SETTLEMENT, EnumSet.of(CLOSED));
         graph.put(ADMITTED, EnumSet.of(IN_WARD));
+        // DISCHARGE_ORDERED -> IN_WARD: 04-procedure-bedday-rules.md §3.9,
+        // reversing a discharge order. Absent from the original graph
+        // (Phase 2 only modelled the forward path); added in Phase 6 item 3,
+        // the first caller of this edge.
         graph.put(IN_WARD, EnumSet.of(DISCHARGE_ORDERED));
-        graph.put(DISCHARGE_ORDERED, EnumSet.of(DISCHARGED));
+        graph.put(DISCHARGE_ORDERED, EnumSet.of(DISCHARGED, IN_WARD));
         return graph;
     }
 

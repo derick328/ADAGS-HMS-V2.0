@@ -65,9 +65,13 @@ class EncounterStateTest {
         assertAllowedTargets(EncounterState.IN_WARD, EnumSet.of(EncounterState.DISCHARGE_ORDERED));
     }
 
+    // 04-procedure-bedday-rules.md §3.9: reversing a discharge order goes
+    // back to IN_WARD — added in Phase 6 item 3, absent when this state
+    // machine was first modelled in Phase 2.
     @Test
-    void dischargeOrderedAllowsOnlyDischarged() {
-        assertAllowedTargets(EncounterState.DISCHARGE_ORDERED, EnumSet.of(EncounterState.DISCHARGED));
+    void dischargeOrderedAllowsDischargedOrReversalToInWard() {
+        assertAllowedTargets(EncounterState.DISCHARGE_ORDERED,
+                EnumSet.of(EncounterState.DISCHARGED, EncounterState.IN_WARD));
     }
 
     @ParameterizedTest

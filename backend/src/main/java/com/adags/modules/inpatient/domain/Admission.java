@@ -11,10 +11,10 @@ import java.util.UUID;
 // doesn't: who ordered it, into what class, and the two discharge
 // timestamps.
 //
-// discharge_ordered_at/By and actual_departure_at are null until step 3
-// (discharge). actual_departure_at is this admission's own field, not any
-// one BedAssignment.released_at — a transfer releases an earlier bed well
-// before the patient actually leaves the building.
+// discharge_ordered_at/By/Role and actual_departure_at are null until
+// ordered (step 3, discharge). actual_departure_at is this admission's own
+// field, not any one BedAssignment.released_at — a transfer releases an
+// earlier bed well before the patient actually leaves the building.
 public record Admission(
         UUID id,
         UUID encounterId,
@@ -25,6 +25,8 @@ public record Admission(
         Instant admittedAt,
         Instant dischargeOrderedAt,
         UUID dischargeOrderedBy,
+        /** Not an authorization check — a reporting field distinguishing doctor-ordered from nurse-ordered discharges. */
+        DischargeOrdererRole dischargeOrdererRole,
         Instant actualDepartureAt,
         int version,
         Instant createdAt

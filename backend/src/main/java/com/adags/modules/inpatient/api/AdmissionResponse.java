@@ -1,6 +1,7 @@
 package com.adags.modules.inpatient.api;
 
 import com.adags.modules.inpatient.domain.Admission;
+import com.adags.modules.inpatient.domain.DischargeOrdererRole;
 import com.adags.modules.inpatient.domain.WardClass;
 
 import java.time.Instant;
@@ -16,6 +17,7 @@ public record AdmissionResponse(
         Instant admittedAt,
         Instant dischargeOrderedAt,
         UUID dischargeOrderedBy,
+        DischargeOrdererRole dischargeOrdererRole,
         Instant actualDepartureAt,
         int version,
         Instant createdAt
@@ -24,6 +26,6 @@ public record AdmissionResponse(
         return new AdmissionResponse(admission.id(), admission.encounterId(), admission.patientId(),
                 admission.facilityId(), admission.admittingDoctorId(), admission.orderedWardClass(),
                 admission.admittedAt(), admission.dischargeOrderedAt(), admission.dischargeOrderedBy(),
-                admission.actualDepartureAt(), admission.version(), admission.createdAt());
+                admission.dischargeOrdererRole(), admission.actualDepartureAt(), admission.version(), admission.createdAt());
     }
 }

@@ -31,16 +31,34 @@ public class EncounterFacadeImpl implements EncounterFacade {
     @Override
     @Transactional
     public void admit(UUID encounterId, UUID actorUserId) {
-        transition(encounterId, EncounterState.ADMITTED, actorUserId);
+        transition(encounterId, EncounterState.ADMITTED, actorUserId, null);
     }
 
     @Override
     @Transactional
     public void moveToWard(UUID encounterId, UUID actorUserId) {
-        transition(encounterId, EncounterState.IN_WARD, actorUserId);
+        transition(encounterId, EncounterState.IN_WARD, actorUserId, null);
     }
 
-    private void transition(UUID encounterId, EncounterState targetState, UUID actorUserId) {
+    @Override
+    @Transactional
+    public void orderDischarge(UUID encounterId, UUID actorUserId) {
+        transition(encounterId, EncounterState.DISCHARGE_ORDERED, actorUserId, null);
+    }
+
+    @Override
+    @Transactional
+    public void reverseDischargeOrder(UUID encounterId, UUID actorUserId, String reason) {
+        transition(encounterId, EncounterState.IN_WARD, actorUserId, reason);
+    }
+
+    @Override
+    @Transactional
+    public void completeDischarge(UUID encounterId, UUID actorUserId) {
+        transition(encounterId, EncounterState.DISCHARGED, actorUserId, null);
+    }
+
+    private void transition(UUID encounterId, EncounterState targetState, UUID actorUserId, String reason) {
         Encounter encounter = encounterRepository.findById(encounterId)
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + encounterId));
         if (!encounter.state().canTransitionTo(targetState)) {
@@ -48,7 +66,7 @@ public class EncounterFacadeImpl implements EncounterFacade {
         }
         encounterRepository.updateState(encounterId, targetState);
         encounterRepository.insertEvent(
-                new EncounterEvent(null, encounterId, encounter.state(), targetState, actorUserId, null, null));
+                new EncounterEvent(null, encounterId, encounter.state(), targetState, actorUserId, null, reason));
     }
 
     private EncounterContext toContext(Encounter encounter) {

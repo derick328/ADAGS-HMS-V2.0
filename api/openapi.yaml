@@ -801,6 +801,75 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/NursingAssignmentResponse"
+  /api/admissions/{id}/discharge:
+    post:
+      tags:
+      - admission-controller
+      operationId: completeDischarge
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteDischargeRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AdmissionResponse"
+  /api/admissions/{id}/discharge-order:
+    post:
+      tags:
+      - admission-controller
+      operationId: orderDischarge
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AdmissionResponse"
+  /api/admissions/{id}/discharge-order/reversal:
+    post:
+      tags:
+      - admission-controller
+      operationId: reverseDischargeOrder
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReverseDischargeOrderRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AdmissionResponse"
   /api/admissions/{id}/bed-assignments:
     post:
       tags:
@@ -2442,6 +2511,11 @@ components:
         dischargeOrderedBy:
           type: string
           format: uuid
+        dischargeOrdererRole:
+          type: string
+          enum:
+          - DOCTOR
+          - NURSE
         actualDepartureAt:
           type: string
           format: date-time
@@ -2497,6 +2571,19 @@ components:
         createdAt:
           type: string
           format: date-time
+    CompleteDischargeRequest:
+      type: object
+      properties:
+        actualDepartureAt:
+          type: string
+          format: date-time
+    ReverseDischargeOrderRequest:
+      required:
+      - reason
+      type: object
+      properties:
+        reason:
+          type: string
     AssignBedRequest:
       required:
       - bedId

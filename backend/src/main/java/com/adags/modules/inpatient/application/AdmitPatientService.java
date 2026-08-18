@@ -66,7 +66,7 @@ public class AdmitPatientService {
 
         Admission toInsert = new Admission(null, command.encounterId(), context.patientId(), context.facilityId(),
                 command.admittingDoctorId(), command.orderedWardClass(), Instant.now(clock),
-                null, null, null, 0, null);
+                null, null, null, null, 0, null);
         Admission saved = admissionRepository.insert(toInsert);
 
         eventPublisher.publish("PatientAdmitted", Map.of(

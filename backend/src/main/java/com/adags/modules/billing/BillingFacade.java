@@ -125,4 +125,15 @@ public interface BillingFacade {
     UUID postFixedAmountCharge(UUID encounterId, UUID patientId, UUID facilityId, PayerType payerType,
                                 String serviceItemCode, Money amount, String sourceEventType, UUID sourceEventId,
                                 UUID actorUserId);
+
+    /**
+     * 02-billing-architecture.md §8 / root CLAUDE.md "Billing": "if
+     * balance &gt; 0: create receivable" — never a blocker. For every
+     * ISSUED invoice on this encounter still carrying an outstanding
+     * balance, transitions it to RECEIVABLE_POST_DISCHARGE. Cannot throw:
+     * this is called from discharge completion, and there must be no
+     * code path where an unpaid balance prevents that. Returns the total
+     * amount moved to receivable (zero if nothing was outstanding).
+     */
+    Money createReceivablesForOutstandingBalance(UUID encounterId);
 }

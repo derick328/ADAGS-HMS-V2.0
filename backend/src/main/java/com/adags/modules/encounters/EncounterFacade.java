@@ -29,4 +29,23 @@ public interface EncounterFacade {
      * assignments must not call this again.
      */
     void moveToWard(UUID encounterId, UUID actorUserId);
+
+    /** 04-procedure-bedday-rules.md §3.6: IN_WARD -> DISCHARGE_ORDERED. */
+    void orderDischarge(UUID encounterId, UUID actorUserId);
+
+    /**
+     * §3.9: DISCHARGE_ORDERED -> IN_WARD, reversing a discharge order.
+     * reason is required by the caller (MissingReversalReasonException,
+     * inpatient's own check) and recorded on the EncounterEvent this
+     * writes — "without this path, staff delete the record and re-admit,
+     * which fragments the encounter."
+     */
+    void reverseDischargeOrder(UUID encounterId, UUID actorUserId, String reason);
+
+    /**
+     * §3.6/root CLAUDE.md "Billing": DISCHARGE_ORDERED -> DISCHARGED,
+     * terminal. Never conditioned on payment — there is no code path
+     * where an unpaid balance blocks this call.
+     */
+    void completeDischarge(UUID encounterId, UUID actorUserId);
 }

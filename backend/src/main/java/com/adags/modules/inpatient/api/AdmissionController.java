@@ -7,6 +7,12 @@ import com.adags.modules.inpatient.application.AssignBedCommand;
 import com.adags.modules.inpatient.application.AssignBedService;
 import com.adags.modules.inpatient.application.AssignNurseCommand;
 import com.adags.modules.inpatient.application.AssignNurseService;
+import com.adags.modules.inpatient.application.CompleteDischargeCommand;
+import com.adags.modules.inpatient.application.CompleteDischargeService;
+import com.adags.modules.inpatient.application.OrderDischargeCommand;
+import com.adags.modules.inpatient.application.OrderDischargeService;
+import com.adags.modules.inpatient.application.ReverseDischargeOrderCommand;
+import com.adags.modules.inpatient.application.ReverseDischargeOrderService;
 import com.adags.modules.inpatient.domain.Admission;
 import com.adags.modules.inpatient.domain.AdmissionRepository;
 import com.adags.modules.inpatient.domain.Bed;
@@ -41,6 +47,9 @@ public class AdmissionController {
     private final AdmitPatientService admitPatientService;
     private final AssignBedService assignBedService;
     private final AssignNurseService assignNurseService;
+    private final OrderDischargeService orderDischargeService;
+    private final ReverseDischargeOrderService reverseDischargeOrderService;
+    private final CompleteDischargeService completeDischargeService;
     private final AdmissionRepository admissionRepository;
     private final BedRepository bedRepository;
     private final BedAssignmentRepository bedAssignmentRepository;
@@ -51,6 +60,9 @@ public class AdmissionController {
             AdmitPatientService admitPatientService,
             AssignBedService assignBedService,
             AssignNurseService assignNurseService,
+            OrderDischargeService orderDischargeService,
+            ReverseDischargeOrderService reverseDischargeOrderService,
+            CompleteDischargeService completeDischargeService,
             AdmissionRepository admissionRepository,
             BedRepository bedRepository,
             BedAssignmentRepository bedAssignmentRepository,
@@ -60,6 +72,9 @@ public class AdmissionController {
         this.admitPatientService = admitPatientService;
         this.assignBedService = assignBedService;
         this.assignNurseService = assignNurseService;
+        this.orderDischargeService = orderDischargeService;
+        this.reverseDischargeOrderService = reverseDischargeOrderService;
+        this.completeDischargeService = completeDischargeService;
         this.admissionRepository = admissionRepository;
         this.bedRepository = bedRepository;
         this.bedAssignmentRepository = bedAssignmentRepository;
@@ -125,6 +140,52 @@ public class AdmissionController {
                 id, request.nurseId(), request.shift(), request.assignmentDate(), actor.userId());
         NursingAssignment assignment = assignNurseService.assign(command);
         return NursingAssignmentResponse.from(assignment);
+    }
+
+    // 04-procedure-bedday-rules.md §3.6. The base permission+scope check
+    // here; OrderDischargeService itself enforces the finer
+    // assignment-scoping for a nurse actor (this permission alone lets a
+    // doctor holding it through, but a nurse must additionally be on the
+    // roster — see that service).
+    @PostMapping("/{id}/discharge-order")
+    public AdmissionResponse orderDischarge(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "DISCHARGE_ORDER", ScopeType.WARD, currentWardId(id));
+        Admission admission = orderDischargeService.order(new OrderDischargeCommand(id, actor.userId()));
+        return AdmissionResponse.from(admission);
+    }
+
+    // §3.9: reason required — enforced in ReverseDischargeOrderService
+    // (MissingReversalReasonException), not just @NotBlank here, since the
+    // service is the one path other callers (a future UI shortcut, a
+    // script) would also go through.
+    @PostMapping("/{id}/discharge-order/reversal")
+    public AdmissionResponse reverseDischargeOrder(
+            @PathVariable UUID id, @Valid @RequestBody ReverseDischargeOrderRequest request, @AuthenticationPrincipal Actor actor
+    ) {
+        requirePermission(actor, "DISCHARGE_ORDER", ScopeType.WARD, currentWardId(id));
+        Admission admission = reverseDischargeOrderService.reverse(
+                new ReverseDischargeOrderCommand(id, request.reason(), actor.userId()));
+        return AdmissionResponse.from(admission);
+    }
+
+    // §3.6/§3.7. THE INVARIANT lives in CompleteDischargeService, not
+    // here: an outstanding balance never blocks this call.
+    @PostMapping("/{id}/discharge")
+    public AdmissionResponse completeDischarge(
+            @PathVariable UUID id, @Valid @RequestBody CompleteDischargeRequest request, @AuthenticationPrincipal Actor actor
+    ) {
+        requirePermission(actor, "DISCHARGE_ORDER", ScopeType.WARD, currentWardId(id));
+        Admission admission = completeDischargeService.complete(
+                new CompleteDischargeCommand(id, request.actualDepartureAt(), actor.userId()));
+        return AdmissionResponse.from(admission);
+    }
+
+    private UUID currentWardId(UUID admissionId) {
+        BedAssignment currentBed = bedAssignmentRepository.findActiveByAdmissionId(admissionId)
+                .orElseThrow(() -> new NoSuchElementException("Admission has no active bed assignment: " + admissionId));
+        return bedRepository.findById(currentBed.bedId())
+                .orElseThrow(() -> new NoSuchElementException("Bed not found: " + currentBed.bedId()))
+                .wardId();
     }
 
     private void requirePermission(Actor actor, String permissionCode, ScopeType scopeType, UUID scopeId) {

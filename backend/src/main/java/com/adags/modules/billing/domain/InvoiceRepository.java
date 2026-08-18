@@ -2,6 +2,7 @@ package com.adags.modules.billing.domain;
 
 import com.adags.shared.kernel.Money;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,6 +12,8 @@ public interface InvoiceRepository {
     Invoice insertDraft(Invoice invoice);
 
     Optional<Invoice> findById(UUID id);
+
+    List<Invoice> findByEncounterId(UUID encounterId);
 
     /**
      * DRAFT -> ISSUED: assigns invoiceNumber (from the gapless sequence,
@@ -41,4 +44,13 @@ public interface InvoiceRepository {
      * @throws InvoiceCannotBeVoidedException if the invoice is not ISSUED or has a settled amount.
      */
     Invoice voidUnpaid(UUID invoiceId, String reason, UUID voidedBy);
+
+    /**
+     * 02-billing-architecture.md §8: "if balance &gt; 0: create receivable."
+     * ISSUED -&gt; RECEIVABLE_POST_DISCHARGE, only when outstandingTotal &gt; 0
+     * — a no-op (state unchanged) otherwise. Deliberately cannot throw:
+     * root CLAUDE.md "Billing" — there must be no code path where this
+     * call blocks the discharge that triggers it.
+     */
+    Invoice markReceivablePostDischarge(UUID invoiceId);
 }

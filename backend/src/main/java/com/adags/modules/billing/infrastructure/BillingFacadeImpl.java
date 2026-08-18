@@ -9,10 +9,12 @@ import com.adags.modules.billing.application.SetPharmacyItemPriceCommand;
 import com.adags.modules.billing.application.SetPharmacyItemPriceService;
 import com.adags.modules.billing.domain.BillingGate;
 import com.adags.modules.billing.domain.PriceListEntry;
+import com.adags.modules.billing.domain.Invoice;
 import com.adags.modules.billing.domain.InvoiceCannotBeVoidedException;
 import com.adags.modules.billing.domain.InvoiceLine;
 import com.adags.modules.billing.domain.InvoiceLineRepository;
 import com.adags.modules.billing.domain.InvoiceRepository;
+import com.adags.modules.billing.domain.InvoiceState;
 import com.adags.modules.billing.domain.PayerCategory;
 import com.adags.modules.billing.domain.PaymentBypass;
 import com.adags.modules.billing.domain.PaymentBypassRepository;
@@ -155,6 +157,20 @@ public class BillingFacadeImpl implements BillingFacade {
                 encounterId, patientId, facilityId, payerCategory, serviceItemCode, amount,
                 sourceEventType, sourceEventId, actorUserId));
         return result.invoiceLineId();
+    }
+
+    @Override
+    public Money createReceivablesForOutstandingBalance(UUID encounterId) {
+        long totalMinor = 0;
+        String currencyCode = "TZS";
+        for (Invoice invoice : invoiceRepository.findByEncounterId(encounterId)) {
+            if (invoice.state() == InvoiceState.ISSUED && invoice.outstandingTotal().amountMinor() > 0) {
+                Invoice updated = invoiceRepository.markReceivablePostDischarge(invoice.id());
+                totalMinor += updated.outstandingTotal().amountMinor();
+                currencyCode = updated.outstandingTotal().currencyCode();
+            }
+        }
+        return new Money(totalMinor, currencyCode);
     }
 
     // Pricing keyed by the provider's actual role is a catalogue lookup,
