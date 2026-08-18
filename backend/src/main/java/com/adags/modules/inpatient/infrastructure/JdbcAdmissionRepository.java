@@ -67,6 +67,17 @@ public class JdbcAdmissionRepository implements AdmissionRepository {
                 null, null, null, rs.getInt("version"), rs.getTimestamp("created_at").toInstant()));
     }
 
+    @Override
+    public List<Admission> findAllWithActiveBedAssignment() {
+        String sql = SELECT_COLUMNS + """
+                 WHERE EXISTS (
+                     SELECT 1 FROM bed_assignment ba
+                      WHERE ba.admission_id = admission.id AND ba.released_at IS NULL
+                 )
+                """;
+        return jdbcTemplate.query(sql, new MapSqlParameterSource(), this::mapRow);
+    }
+
     private Admission mapRow(ResultSet rs, int rowNum) throws SQLException {
         Timestamp dischargeOrderedAt = rs.getTimestamp("discharge_ordered_at");
         Timestamp actualDepartureAt = rs.getTimestamp("actual_departure_at");

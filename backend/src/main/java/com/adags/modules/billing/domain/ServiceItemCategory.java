@@ -9,5 +9,10 @@ public enum ServiceItemCategory {
     CONSULTATION,
     LAB,
     PROCEDURE,
-    PHARMACY
+    PHARMACY,
+    // 04-procedure-bedday-rules.md §3.5: bed-day accrual. Priced from
+    // Ward.daily_rate_minor (snapshotted onto WardChargeAccrual at posting
+    // time), not resolved from PriceListEntry the way every other category
+    // here is — see ChargePostingService.postFixedAmountCharge.
+    WARD
 }

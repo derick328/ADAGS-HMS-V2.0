@@ -52,6 +52,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/wards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/wards/{wardId}/beds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/substitution-proposals/{id}/review": {
         parameters: {
             query?: never;
@@ -317,7 +349,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["create"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -445,7 +477,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["create_1"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -548,6 +580,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["admit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{id}/nursing-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["assignNurse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{id}/bed-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["assignBed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me": {
         parameters: {
             query?: never;
@@ -556,6 +636,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/wards/{wardId}/beds/free": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["free"];
         put?: never;
         post?: never;
         delete?: never;
@@ -788,6 +884,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admissions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getById_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -810,6 +922,55 @@ export interface components {
             /** Format: date-time */
             accessTokenExpiresAt?: string;
             mustChangePassword?: boolean;
+        };
+        CreateWardRequest: {
+            /** Format: uuid */
+            departmentId: string;
+            code: string;
+            name: string;
+            /** @enum {string} */
+            wardClass: "GENERAL" | "PRIVATE";
+            /** @enum {string} */
+            genderRestriction?: "MALE" | "FEMALE";
+            /** Format: int64 */
+            dailyRateMinor: number;
+            currencyCode: string;
+        };
+        WardResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            facilityId?: string;
+            /** Format: uuid */
+            departmentId?: string;
+            code?: string;
+            name?: string;
+            /** @enum {string} */
+            wardClass?: "GENERAL" | "PRIVATE";
+            /** @enum {string} */
+            genderRestriction?: "MALE" | "FEMALE";
+            /** Format: int64 */
+            dailyRateMinor?: number;
+            currencyCode?: string;
+            active?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        CreateBedRequest: {
+            label: string;
+            bedType: string;
+        };
+        BedResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            wardId?: string;
+            label?: string;
+            bedType?: string;
+            /** @enum {string} */
+            status?: "AVAILABLE" | "OUT_OF_SERVICE";
+            /** Format: date-time */
+            createdAt?: string;
         };
         ReviewSubstitutionRequest: {
             /** @enum {string} */
@@ -1345,6 +1506,87 @@ export interface components {
             lines?: components["schemas"]["DispenseLineResponse"][];
             prescriptionLine?: components["schemas"]["PrescriptionLineResponse"];
         };
+        AdmitPatientRequest: {
+            /** Format: uuid */
+            encounterId: string;
+            /** @enum {string} */
+            orderedWardClass: "GENERAL" | "PRIVATE";
+            retrospectiveCompletion?: boolean;
+            retrospectiveNote?: string;
+        };
+        AdmissionResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            /** Format: uuid */
+            facilityId?: string;
+            /** Format: uuid */
+            admittingDoctorId?: string;
+            /** @enum {string} */
+            orderedWardClass?: "GENERAL" | "PRIVATE";
+            /** Format: date-time */
+            admittedAt?: string;
+            /** Format: date-time */
+            dischargeOrderedAt?: string;
+            /** Format: uuid */
+            dischargeOrderedBy?: string;
+            /** Format: date-time */
+            actualDepartureAt?: string;
+            /** Format: int32 */
+            version?: number;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AssignNurseRequest: {
+            /** Format: uuid */
+            nurseId: string;
+            /** @enum {string} */
+            shift: "MORNING" | "AFTERNOON" | "NIGHT";
+            /** Format: date */
+            assignmentDate: string;
+        };
+        NursingAssignmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            admissionId?: string;
+            /** Format: uuid */
+            nurseId?: string;
+            /** @enum {string} */
+            shift?: "MORNING" | "AFTERNOON" | "NIGHT";
+            /** Format: date */
+            assignmentDate?: string;
+            /** Format: uuid */
+            assignedBy?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AssignBedRequest: {
+            /** Format: uuid */
+            bedId: string;
+            /** @enum {string} */
+            placementReason?: "NO_BED_IN_ORDERED_CLASS" | "CLINICAL_NEED" | "PATIENT_REQUEST" | "OTHER";
+        };
+        BedAssignmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            admissionId?: string;
+            /** Format: uuid */
+            bedId?: string;
+            /** Format: date-time */
+            assignedAt?: string;
+            /** Format: date-time */
+            releasedAt?: string;
+            /** Format: uuid */
+            assignedBy?: string;
+            placedAboveOrderedClass?: boolean;
+            /** @enum {string} */
+            placementReason?: "NO_BED_IN_ORDERED_CLASS" | "CLINICAL_NEED" | "PATIENT_REQUEST" | "OTHER";
+        };
         MeResponse: {
             /** Format: uuid */
             userId?: string;
@@ -1594,6 +1836,56 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LoginResponse"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWardRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WardResponse"];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBedRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BedResponse"];
                 };
             };
         };
@@ -2014,7 +2306,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -2214,7 +2506,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2380,6 +2672,82 @@ export interface operations {
             };
         };
     };
+    admit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmitPatientRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AdmissionResponse"];
+                };
+            };
+        };
+    };
+    assignNurse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignNurseRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NursingAssignmentResponse"];
+                };
+            };
+        };
+    };
+    assignBed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignBedRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BedAssignmentResponse"];
+                };
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -2396,6 +2764,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MeResponse"];
+                };
+            };
+        };
+    };
+    free: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BedResponse"][];
                 };
             };
         };
@@ -2696,6 +3086,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["DispenseLabelResponse"];
+                };
+            };
+        };
+    };
+    getById_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AdmissionResponse"];
                 };
             };
         };

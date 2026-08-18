@@ -112,4 +112,17 @@ public interface BillingFacade {
 
     /** The current CASH price for a service item code, if one has ever been set — 12-pharmacist.md §9.2's current_price_minor snapshot at proposal time. */
     Optional<Money> findCurrentPharmacyItemPrice(String itemCode);
+
+    /**
+     * 04-procedure-bedday-rules.md §3.5: posts a single retrospective
+     * bed-day charge as a freshly issued, single-line invoice — same
+     * mechanics as postServiceCharge, but amount is caller-supplied
+     * (Ward.daily_rate_minor, snapshotted) rather than resolved from
+     * price_list_entry; serviceItemCode still names a real, active
+     * ServiceItem (WARD_BED_DAY_GENERAL / WARD_BED_DAY_PRIVATE) so the
+     * line categorizes correctly in reports. Returns the invoice line id.
+     */
+    UUID postFixedAmountCharge(UUID encounterId, UUID patientId, UUID facilityId, PayerType payerType,
+                                String serviceItemCode, Money amount, String sourceEventType, UUID sourceEventId,
+                                UUID actorUserId);
 }

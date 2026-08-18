@@ -4,6 +4,7 @@ import com.adags.modules.billing.BillingFacade;
 import com.adags.modules.billing.application.ChargePostingCommand;
 import com.adags.modules.billing.application.ChargePostingResult;
 import com.adags.modules.billing.application.ChargePostingService;
+import com.adags.modules.billing.application.FixedAmountChargePostingCommand;
 import com.adags.modules.billing.application.SetPharmacyItemPriceCommand;
 import com.adags.modules.billing.application.SetPharmacyItemPriceService;
 import com.adags.modules.billing.domain.BillingGate;
@@ -143,6 +144,17 @@ public class BillingFacadeImpl implements BillingFacade {
     @Override
     public void authorizeConsumption(UUID invoiceLineId, UUID actorUserId) {
         billingGate.authorizeConsumption(invoiceLineId, actorUserId);
+    }
+
+    @Override
+    public UUID postFixedAmountCharge(UUID encounterId, UUID patientId, UUID facilityId, PayerType payerType,
+                                       String serviceItemCode, Money amount, String sourceEventType, UUID sourceEventId,
+                                       UUID actorUserId) {
+        PayerCategory payerCategory = toPayerCategory(payerType);
+        ChargePostingResult result = chargePostingService.postFixedAmountCharge(new FixedAmountChargePostingCommand(
+                encounterId, patientId, facilityId, payerCategory, serviceItemCode, amount,
+                sourceEventType, sourceEventId, actorUserId));
+        return result.invoiceLineId();
     }
 
     // Pricing keyed by the provider's actual role is a catalogue lookup,

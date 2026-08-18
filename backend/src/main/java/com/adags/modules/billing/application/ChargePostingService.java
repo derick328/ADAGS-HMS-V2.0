@@ -4,6 +4,7 @@ import com.adags.modules.billing.domain.Invoice;
 import com.adags.modules.billing.domain.InvoiceLine;
 import com.adags.modules.billing.domain.InvoiceLineRepository;
 import com.adags.modules.billing.domain.InvoiceRepository;
+import com.adags.modules.billing.domain.PayerCategory;
 import com.adags.modules.billing.domain.PriceNotConfiguredException;
 import com.adags.modules.billing.domain.ServiceItem;
 import com.adags.modules.billing.domain.ServiceItemRepository;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.UUID;
 
 // 02-billing-architecture.md §4: "Every charge is posted by a domain
 // event. There is no manual charge-entry path." The one seam every
@@ -63,41 +65,70 @@ public class ChargePostingService {
 
     @Transactional
     public ChargePostingResult postCharge(ChargePostingCommand command) {
-        ServiceItem serviceItem = serviceItemRepository.findByCode(command.serviceItemCode())
-                .filter(ServiceItem::isActive)
-                .orElseThrow(() -> new PriceNotConfiguredException(
-                        "No active service item with code '" + command.serviceItemCode() + "'."));
-
+        ServiceItem serviceItem = requireActiveServiceItem(command.serviceItemCode());
         Money unitPrice = priceResolutionService.resolvePrice(command.serviceItemCode(), command.payerCategory());
         Money gross = unitPrice.times(command.quantity());
+
+        return issueSingleLineInvoice(serviceItem, command.encounterId(), command.patientId(), command.facilityId(),
+                command.payerCategory(), command.insurancePolicyId(), command.quantity(), gross,
+                command.serviceItemCode(), command.sourceEventType(), command.sourceEventId(), command.actorUserId());
+    }
+
+    /**
+     * 04-procedure-bedday-rules.md §3.5: the caller already resolved its
+     * own price (Ward.daily_rate_minor) — same posting mechanics as
+     * postCharge, but amount is used as gross directly instead of being
+     * resolved via PriceResolutionService/price_list_entry. quantity is
+     * always 1: a bed-day accrual row is one night, not a multiple.
+     */
+    @Transactional
+    public ChargePostingResult postFixedAmountCharge(FixedAmountChargePostingCommand command) {
+        ServiceItem serviceItem = requireActiveServiceItem(command.serviceItemCode());
+
+        return issueSingleLineInvoice(serviceItem, command.encounterId(), command.patientId(), command.facilityId(),
+                command.payerCategory(), null, 1, command.amount(), command.serviceItemCode(),
+                command.sourceEventType(), command.sourceEventId(), command.actorUserId());
+    }
+
+    private ServiceItem requireActiveServiceItem(String serviceItemCode) {
+        return serviceItemRepository.findByCode(serviceItemCode)
+                .filter(ServiceItem::isActive)
+                .orElseThrow(() -> new PriceNotConfiguredException(
+                        "No active service item with code '" + serviceItemCode + "'."));
+    }
+
+    private ChargePostingResult issueSingleLineInvoice(
+            ServiceItem serviceItem, UUID encounterId, UUID patientId, UUID facilityId,
+            PayerCategory payerCategory, UUID insurancePolicyId, int quantity, Money gross,
+            String serviceItemCode, String sourceEventType, UUID sourceEventId, UUID actorUserId
+    ) {
         // No insurance module yet: the whole charge is the patient's
         // portion until SchemeCoverageRule exists to split it (§6.3).
         Money insurancePortion = new Money(0, gross.currencyCode());
         Money patientPortion = gross;
 
-        Invoice draft = invoiceRepository.insertDraft(Invoice.draft(command.encounterId(), command.patientId(),
-                command.facilityId(), command.payerCategory(), command.insurancePolicyId(), command.actorUserId()));
+        Invoice draft = invoiceRepository.insertDraft(Invoice.draft(encounterId, patientId, facilityId,
+                payerCategory, insurancePolicyId, actorUserId));
 
         InvoiceLine line = invoiceLineRepository.insert(InvoiceLine.unauthorized(draft.id(), serviceItem.id(),
-                command.quantity(), gross, insurancePortion, patientPortion, command.sourceEventType(),
-                command.sourceEventId()));
+                quantity, gross, insurancePortion, patientPortion, sourceEventType, sourceEventId));
 
         String invoiceNumber = numberAllocator.allocate(
-                INVOICE_NUMBER_SEQUENCE, command.facilityId(), LocalDate.now(clock).getYear(), INVOICE_NUMBER_PAD_WIDTH);
+                INVOICE_NUMBER_SEQUENCE, facilityId, LocalDate.now(clock).getYear(), INVOICE_NUMBER_PAD_WIDTH);
         Invoice issued = invoiceRepository.issue(draft.id(), invoiceNumber, draft.version());
 
         eventPublisher.publish("ChargePosted", Map.of(
                 "invoiceId", issued.id().toString(),
                 "invoiceLineId", line.id().toString(),
-                "encounterId", command.encounterId().toString(),
-                "serviceItemCode", command.serviceItemCode(),
+                "encounterId", encounterId.toString(),
+                "serviceItemCode", serviceItemCode,
                 "grossMinor", gross.amountMinor(),
-                "sourceEventType", command.sourceEventType(),
-                "sourceEventId", command.sourceEventId().toString()));
+                "sourceEventType", sourceEventType,
+                "sourceEventId", sourceEventId.toString()));
         eventPublisher.publish("InvoiceIssued", Map.of(
                 "invoiceId", issued.id().toString(),
                 "invoiceNumber", issued.invoiceNumber(),
-                "encounterId", command.encounterId().toString()));
+                "encounterId", encounterId.toString()));
 
         return new ChargePostingResult(issued.id(), issued.invoiceNumber(), line.id(), gross, patientPortion);
     }
