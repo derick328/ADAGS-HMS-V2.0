@@ -3,6 +3,14 @@ package com.adags.shared.web;
 import com.adags.modules.billing.domain.BillingGateRejectedException;
 import com.adags.modules.encounters.application.InvalidEncounterTransitionException;
 import com.adags.modules.encounters.application.MissingCloseReasonException;
+import com.adags.modules.laboratory.domain.CriticalNotificationAlreadyAcknowledgedException;
+import com.adags.modules.laboratory.domain.ImplausibleResultValueException;
+import com.adags.modules.laboratory.domain.MissingAmendmentReasonException;
+import com.adags.modules.laboratory.domain.MissingMachineOutputException;
+import com.adags.modules.laboratory.domain.MissingOverrideReasonException;
+import com.adags.modules.laboratory.domain.MissingQualityNoteException;
+import com.adags.modules.laboratory.domain.ResultNotPendingVerificationException;
+import com.adags.modules.laboratory.domain.SpecimenNotProcessableException;
 import com.adags.modules.patients.application.DuplicatePatientException;
 import com.adags.modules.referencedata.application.SynonymAlreadyReviewedException;
 import com.adags.modules.referencedata.domain.SelfReviewNotAllowedException;
@@ -73,6 +81,46 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SelfReviewNotAllowedException.class)
     public ProblemDetail handleSelfReviewNotAllowed(SelfReviewNotAllowedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(MissingQualityNoteException.class)
+    public ProblemDetail handleMissingQualityNote(MissingQualityNoteException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(ImplausibleResultValueException.class)
+    public ProblemDetail handleImplausibleResultValue(ImplausibleResultValueException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(MissingOverrideReasonException.class)
+    public ProblemDetail handleMissingOverrideReason(MissingOverrideReasonException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(MissingMachineOutputException.class)
+    public ProblemDetail handleMissingMachineOutput(MissingMachineOutputException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(MissingAmendmentReasonException.class)
+    public ProblemDetail handleMissingAmendmentReason(MissingAmendmentReasonException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(SpecimenNotProcessableException.class)
+    public ProblemDetail handleSpecimenNotProcessable(SpecimenNotProcessableException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(ResultNotPendingVerificationException.class)
+    public ProblemDetail handleResultNotPendingVerification(ResultNotPendingVerificationException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(CriticalNotificationAlreadyAcknowledgedException.class)
+    public ProblemDetail handleCriticalNotificationAlreadyAcknowledged(CriticalNotificationAlreadyAcknowledgedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     // backend/CLAUDE.md "API": "402 Payment Required when the billing gate
