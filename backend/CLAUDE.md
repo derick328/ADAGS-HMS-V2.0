@@ -14,6 +14,10 @@ com.adags
     patients/       MPI, demographics, next of kin, insurance policies
     encounters/     visit lifecycle, queues, triage
     clinical/       notes, diagnoses, allergies, vitals
+    referencedata/  ICD-10, synonyms, common lists, reference search
+                    (docs/spec/10-clinical-reference-data.md calls this
+                    module "clinical-reference" — no hyphens in a Java
+                    package, so the code uses this name instead)
     orders/         CPOE: the abstract order and its routing
     laboratory/     specimens, tests, results, reference ranges
     pharmacy/       formulary, prescriptions, dispensing
@@ -49,6 +53,14 @@ Enforce 1–3 with ArchUnit tests. Without them, the boundaries are decoration.
 
 - **Flyway from commit one.** `spring.jpa.hibernate.ddl-auto: validate`.
   Never `update`, never `create-drop` outside tests.
+- **A migration is immutable once its commit is merged.** Editing a table
+  in place (rather than adding a new `V<n>__...sql`) is only ever safe while
+  that migration exists solely on an unmerged branch — nothing has run
+  against it outside Testcontainers, so there's no checksum or deployed
+  schema to conflict with. The moment it lands on the main branch, treat it
+  as shipped: every later change is a new migration, full stop, even a
+  one-column addition to a table added last week. Don't infer "this table is
+  new" from the file being recent — check whether its migration is merged.
 - Domain layer has **no Spring annotations and no I/O**. Plain objects,
   unit-testable without a context.
 - `@Transactional` at the application service, never the repository.
@@ -73,6 +85,18 @@ Enforce 1–3 with ArchUnit tests. Without them, the boundaries are decoration.
 ## Testing
 
 - **Domain**: plain JUnit, no Spring context.
+- **Never `TRUNCATE` a table holding migration-seeded data other tests rely
+  on** (`protocol_setting`, `service_item`/`price_list`/`price_list_entry`,
+  `icd10_code` once real content lands) **— and check what `CASCADE` reaches
+  before adding it to any truncate list.** `TRUNCATE x CASCADE` empties every
+  table with an FK to `x`, unconditionally, regardless of whether any row
+  actually references what you're cleaning up. `TRUNCATE department CASCADE`
+  silently wiped `protocol_setting` this way (department is a column
+  `protocol_setting` merely allows to be NULL) across fifteen test files
+  before it was caught — the fallback defaults in code happened to match the
+  seeded ones, so nothing failed until a test asserted a non-default value.
+  Truncate only the tables your test actually populated; leftover
+  fixture rows with random codes/UUIDs elsewhere are harmless.
 - **Constraints**: Testcontainers against real Postgres. A partial unique index
   or a `CHECK` tested against H2 proves nothing — H2 does not implement them
   the same way.

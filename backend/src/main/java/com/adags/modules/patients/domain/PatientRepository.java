@@ -15,6 +15,11 @@ public interface PatientRepository {
 
     List<DuplicateCandidate> findDuplicateCandidates(DuplicateCheckQuery query);
 
+    /** Hospital number, name, phone, or national ID — 05-receptionist.md §5.1. */
+    List<PatientSearchResult> search(String query, int limit);
+
+    List<InsurancePolicy> findInsurancePoliciesByPatientId(UUID patientId);
+
     Patient insert(Patient patient, UUID createdByUserId);
 
     UUID insertNextOfKin(NextOfKin nextOfKin);

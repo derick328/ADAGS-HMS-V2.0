@@ -1,6 +1,7 @@
 package com.adags.db;
 
 import com.adags.support.IntegrationTestSupport;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -21,6 +22,15 @@ class MigrationConstraintsTest extends IntegrationTestSupport {
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
+
+    // IntegrationTestSupport's Postgres container is a suite-wide singleton
+    // — a fixture patient/department/encounter left behind here would
+    // otherwise be visible to a later test's duplicate-detection or
+    // one-open-encounter-per-patient assertions in a different class.
+    @AfterEach
+    void cleanUpFixtures() {
+        jdbcTemplate.update("TRUNCATE encounter, patient CASCADE", new MapSqlParameterSource());
+    }
 
     @Test
     void grantingAdminAClinicalPermissionIsRejected() {
@@ -190,6 +200,52 @@ class MigrationConstraintsTest extends IntegrationTestSupport {
                 "SELECT merged_into_id FROM patient WHERE id = :original",
                 new MapSqlParameterSource("original", original), UUID.class);
         assertThat(mergedInto).isNull();
+    }
+
+    // 05-receptionist.md ⚠7 / root CLAUDE.md "Concurrency": the raw
+    // constraint, independent of OpenEncounterServiceTest's application-
+    // level recovery test — proves the database itself rejects a second
+    // open encounter even if some future caller bypasses the service.
+    @Test
+    void encounterRejectsASecondOpenEncounterForTheSamePatient() {
+        UUID patientId = insertFixturePatient("Amina", "Hassan", null);
+        UUID departmentId = insertFixtureDepartment();
+        insertFixtureEncounter(patientId, departmentId, "AWAITING_TRIAGE");
+
+        assertThatThrownBy(() -> insertFixtureEncounter(patientId, departmentId, "AWAITING_PAYMENT"))
+                .isInstanceOf(DataAccessException.class);
+    }
+
+    @Test
+    void encounterAllowsANewOpenEncounterOnceThePriorOneIsTerminal() {
+        UUID patientId = insertFixturePatient("Amina", "Hassan", null);
+        UUID departmentId = insertFixtureDepartment();
+        insertFixtureEncounter(patientId, departmentId, "CLOSED");
+
+        // Must not throw — a terminal encounter does not hold the slot.
+        insertFixtureEncounter(patientId, departmentId, "AWAITING_TRIAGE");
+    }
+
+    private UUID insertFixtureDepartment() {
+        return jdbcTemplate.queryForObject("""
+                        INSERT INTO department (facility_id, code, name)
+                        VALUES ('00000000-0000-0000-0000-000000000001', :code, 'Test Department')
+                        RETURNING id
+                        """,
+                new MapSqlParameterSource("code", "TESTDEPT-" + UUID.randomUUID().toString().substring(0, 8)),
+                UUID.class);
+    }
+
+    private void insertFixtureEncounter(UUID patientId, UUID departmentId, String state) {
+        jdbcTemplate.update("""
+                        INSERT INTO encounter (patient_id, facility_id, department_id, type, state, payer_type, created_by)
+                        VALUES (:patientId, '00000000-0000-0000-0000-000000000001', :departmentId,
+                                'OUTPATIENT', :state, 'CASH', (SELECT id FROM app_user WHERE username = 'admin'))
+                        """,
+                new MapSqlParameterSource()
+                        .addValue("patientId", patientId)
+                        .addValue("departmentId", departmentId)
+                        .addValue("state", state));
     }
 
     private UUID insertFixturePatient(String givenName, String familyName, String nationalId) {

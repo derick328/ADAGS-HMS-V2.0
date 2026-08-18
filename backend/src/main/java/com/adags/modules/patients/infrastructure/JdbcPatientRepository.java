@@ -9,6 +9,7 @@ import com.adags.modules.patients.domain.Patient;
 import com.adags.modules.patients.domain.PatientAddress;
 import com.adags.modules.patients.domain.PatientIdentifier;
 import com.adags.modules.patients.domain.PatientRepository;
+import com.adags.modules.patients.domain.PatientSearchResult;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -67,6 +68,63 @@ public class JdbcPatientRepository implements PatientRepository {
                 new MapSqlParameterSource("id", id),
                 this::mapRow);
         return results.stream().findFirst();
+    }
+
+    @Override
+    public List<PatientSearchResult> search(String query, int limit) {
+        String sql = """
+                SELECT id, hospital_no, given_name, middle_name, family_name, date_of_birth,
+                       dob_is_estimated, phone
+                FROM patient
+                WHERE merged_into_id IS NULL
+                  AND (
+                       hospital_no ILIKE :pattern
+                    OR given_name ILIKE :pattern
+                    OR family_name ILIKE :pattern
+                    OR phone ILIKE :pattern
+                    OR national_id ILIKE :pattern
+                  )
+                ORDER BY family_name, given_name
+                LIMIT :limit
+                """;
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("pattern", "%" + query + "%")
+                .addValue("limit", limit);
+        return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            String middleName = rs.getString("middle_name");
+            String fullName = middleName == null || middleName.isBlank()
+                    ? rs.getString("given_name") + " " + rs.getString("family_name")
+                    : rs.getString("given_name") + " " + middleName + " " + rs.getString("family_name");
+            return new PatientSearchResult(
+                    (UUID) rs.getObject("id"),
+                    rs.getString("hospital_no"),
+                    fullName,
+                    rs.getObject("date_of_birth", LocalDate.class),
+                    rs.getBoolean("dob_is_estimated"),
+                    rs.getString("phone"));
+        });
+    }
+
+    @Override
+    public List<InsurancePolicy> findInsurancePoliciesByPatientId(UUID patientId) {
+        String sql = """
+                SELECT id, patient_id, scheme_id, policy_number, member_number, is_principal,
+                       principal_name, valid_from, valid_to, verification_status, verified_at
+                FROM insurance_policy
+                WHERE patient_id = :patientId
+                """;
+        return jdbcTemplate.query(sql, new MapSqlParameterSource("patientId", patientId), (rs, rowNum) -> new InsurancePolicy(
+                (UUID) rs.getObject("id"),
+                (UUID) rs.getObject("patient_id"),
+                (UUID) rs.getObject("scheme_id"),
+                rs.getString("policy_number"),
+                rs.getString("member_number"),
+                rs.getBoolean("is_principal"),
+                rs.getString("principal_name"),
+                rs.getObject("valid_from", LocalDate.class),
+                rs.getObject("valid_to", LocalDate.class),
+                rs.getString("verification_status"),
+                rs.getTimestamp("verified_at") == null ? null : rs.getTimestamp("verified_at").toInstant()));
     }
 
     @Override

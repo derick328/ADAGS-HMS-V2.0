@@ -30,11 +30,11 @@ public class RegisterPatientService {
     private static final String HOSPITAL_NUMBER_SEQUENCE = "HOSPITAL_NO";
     private static final int HOSPITAL_NUMBER_PAD_WIDTH = 6;
 
-    // Fallbacks only for a missing ProtocolSetting row (should not happen —
-    // V7__protocol_setting.sql seeds both) — see backend/CLAUDE.md for the
-    // similarity-score evidence behind these numbers.
-    private static final double DEFAULT_LOW_SIMILARITY_THRESHOLD = 0.4;
-    private static final double DEFAULT_HIGH_SIMILARITY_THRESHOLD = 0.65;
+    // No fallback constants: V7__protocol_setting.sql seeds both rows, so a
+    // missing one means the table is misconfigured or was wiped, not that
+    // a default is wanted — protocolSettings.getDouble(key) throws rather
+    // than silently substituting a value (see backend/CLAUDE.md for the
+    // similarity-score evidence behind these numbers).
     private static final String LOW_SIMILARITY_THRESHOLD_KEY = "patients.duplicate_detection.low_similarity_threshold";
     private static final String HIGH_SIMILARITY_THRESHOLD_KEY = "patients.duplicate_detection.high_similarity_threshold";
 
@@ -94,10 +94,8 @@ public class RegisterPatientService {
     }
 
     private void checkForDuplicates(RegisterPatientCommand command, LocalDate dateOfBirth) {
-        double lowSimilarityThreshold = protocolSettings.getDouble(
-                LOW_SIMILARITY_THRESHOLD_KEY, DEFAULT_LOW_SIMILARITY_THRESHOLD);
-        double highSimilarityThreshold = protocolSettings.getDouble(
-                HIGH_SIMILARITY_THRESHOLD_KEY, DEFAULT_HIGH_SIMILARITY_THRESHOLD);
+        double lowSimilarityThreshold = protocolSettings.getDouble(LOW_SIMILARITY_THRESHOLD_KEY);
+        double highSimilarityThreshold = protocolSettings.getDouble(HIGH_SIMILARITY_THRESHOLD_KEY);
         DuplicateCheckQuery query = new DuplicateCheckQuery(
                 command.givenName(), command.familyName(), dateOfBirth,
                 command.nationalId(), command.phone(), lowSimilarityThreshold, highSimilarityThreshold);
