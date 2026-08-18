@@ -1,5 +1,6 @@
 package com.adags.shared.web;
 
+import com.adags.modules.billing.domain.BillingGateRejectedException;
 import com.adags.modules.encounters.application.InvalidEncounterTransitionException;
 import com.adags.modules.encounters.application.MissingCloseReasonException;
 import com.adags.modules.patients.application.DuplicatePatientException;
@@ -72,5 +73,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SelfReviewNotAllowedException.class)
     public ProblemDetail handleSelfReviewNotAllowed(SelfReviewNotAllowedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // backend/CLAUDE.md "API": "402 Payment Required when the billing gate
+    // refuses, with the outstanding amount and the specific service in the
+    // body so the UI can offer 'send to cashier'" — 02-billing-architecture.md
+    // §3.3. Wired now even though no consuming endpoint exists yet, so the
+    // first one (lab specimen collection, dispensing, procedure start)
+    // inherits the correct response shape automatically.
+    @ExceptionHandler(BillingGateRejectedException.class)
+    public ProblemDetail handleBillingGateRejected(BillingGateRejectedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.PAYMENT_REQUIRED, ex.getMessage());
+        problem.setProperty("invoiceLineId", ex.invoiceLineId());
+        problem.setProperty("serviceName", ex.serviceName());
+        problem.setProperty("outstandingAmountMinor", ex.outstandingAmount().amountMinor());
+        problem.setProperty("currencyCode", ex.outstandingAmount().currencyCode());
+        return problem;
     }
 }
