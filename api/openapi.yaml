@@ -957,6 +957,31 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/CreditNoteResponse"
+  /api/billing/invoices/{invoiceId}/cancellation-requests:
+    post:
+      tags:
+      - invoice-cancellation-controller
+      operationId: request_2
+      parameters:
+      - name: invoiceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestInvoiceCancellationRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/InvoiceCancellationRequestResponse"
   /api/billing/credit-notes/{id}/review:
     post:
       tags:
@@ -982,6 +1007,31 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/CreditNoteResponse"
+  /api/billing/cancellation-requests/{id}/review:
+    post:
+      tags:
+      - invoice-cancellation-controller
+      operationId: review_5
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInvoiceCancellationRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/InvoiceCancellationRequestResponse"
   /api/admissions:
     post:
       tags:
@@ -1787,6 +1837,39 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CreditNoteResponse"
+  /api/billing/cancellation-requests/{id}:
+    get:
+      tags:
+      - invoice-cancellation-controller
+      operationId: findById_3
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/InvoiceCancellationRequestResponse"
+  /api/billing/cancellation-requests/pending:
+    get:
+      tags:
+      - invoice-cancellation-controller
+      operationId: pending_3
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InvoiceCancellationRequestResponse"
   /api/admissions/{id}:
     get:
       tags:
@@ -3482,6 +3565,50 @@ components:
           format: date-time
         decisionNote:
           type: string
+    RequestInvoiceCancellationRequest:
+      required:
+      - reason
+      type: object
+      properties:
+        reason:
+          type: string
+        supersedesRequestId:
+          type: string
+          format: uuid
+    InvoiceCancellationRequestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        invoiceId:
+          type: string
+          format: uuid
+        requestedBy:
+          type: string
+          format: uuid
+        reason:
+          type: string
+        requestedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+          - REJECTED
+        reviewedBy:
+          type: string
+          format: uuid
+        reviewedAt:
+          type: string
+          format: date-time
+        reviewNote:
+          type: string
+        supersedesRequestId:
+          type: string
+          format: uuid
     ReviewCreditNoteRequest:
       required:
       - decision
@@ -3494,6 +3621,19 @@ components:
           - APPLIED
           - REJECTED
         decisionNote:
+          type: string
+    ReviewInvoiceCancellationRequest:
+      required:
+      - decision
+      type: object
+      properties:
+        decision:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+          - REJECTED
+        reviewNote:
           type: string
     AdmitPatientRequest:
       required:

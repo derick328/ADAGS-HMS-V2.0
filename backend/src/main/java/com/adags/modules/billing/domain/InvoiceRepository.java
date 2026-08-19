@@ -36,14 +36,43 @@ public interface InvoiceRepository {
     Invoice recordSettlement(UUID invoiceId, Money settledAmount);
 
     /**
-     * ISSUED -&gt; VOID, only when nothing has been paid against it
-     * (outstandingTotal == grossTotal). §10: "Once any payment has
-     * landed, void is blocked" — a partially or fully paid invoice needs
-     * the accountant's cancellation-request flow instead (not built yet).
+     * ISSUED or CANCELLATION_PENDING -&gt; VOID, only when nothing has been
+     * paid against it (outstandingTotal == grossTotal). §10: "Once any
+     * payment has landed, void is blocked" — ApproveInvoiceCancellationService
+     * checks that before ever calling this, routing a paid invoice to the
+     * refund flow instead; this method's own WHERE clause is the
+     * database-level backstop for that same rule.
      *
-     * @throws InvoiceCannotBeVoidedException if the invoice is not ISSUED or has a settled amount.
+     * @throws InvoiceCannotBeVoidedException if the invoice is in neither state or has a settled amount.
      */
     Invoice voidUnpaid(UUID invoiceId, String reason, UUID voidedBy);
+
+    /**
+     * 18-admin.md §6: ISSUED or PATIENT_PORTION_SETTLED -&gt; CANCELLATION_PENDING
+     * — "frozen, no payments accepted" is already enforced elsewhere
+     * (PostPaymentService rejects CANCELLATION_PENDING invoices).
+     * PATIENT_PORTION_SETTLED is eligible too: §10's "once payment has
+     * landed, void is blocked, routed to the refund flow" only makes
+     * sense if a cancellation can be requested against an already-paid
+     * invoice in the first place.
+     *
+     * @throws InvoiceCancellationNotEligibleException if the invoice is in neither state.
+     */
+    Invoice markCancellationPending(UUID invoiceId);
+
+    /**
+     * 18-admin.md §6: CANCELLATION_PENDING -&gt; ISSUED or PATIENT_PORTION_SETTLED
+     * — a rejected cancellation request returns the invoice to whichever
+     * live state its outstandingTotal implies (0 -&gt; PATIENT_PORTION_SETTLED,
+     * matching recordSettlement's own invariant that outstanding reaching
+     * zero always means that state; otherwise ISSUED), never a fixed
+     * ISSUED regardless of payment history. "The invoice is always in a
+     * definite state — alive and collectable, or dead. It is never left
+     * frozen after a decision."
+     *
+     * @throws InvoiceCancellationNotEligibleException if the invoice is not CANCELLATION_PENDING.
+     */
+    Invoice returnToIssuedFromCancellationPending(UUID invoiceId);
 
     /**
      * 02-billing-architecture.md §8: "if balance &gt; 0: create receivable."

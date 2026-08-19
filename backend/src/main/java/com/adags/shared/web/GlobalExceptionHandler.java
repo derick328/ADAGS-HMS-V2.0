@@ -5,6 +5,10 @@ import com.adags.modules.billing.domain.CreditNoteAlreadyDecidedException;
 import com.adags.modules.billing.domain.CreditNoteExceedsOutstandingException;
 import com.adags.modules.billing.domain.CreditNoteNotEligibleException;
 import com.adags.modules.billing.domain.CreditNoteSelfApprovalNotAllowedException;
+import com.adags.modules.billing.domain.InvoiceAlreadyHasPendingCancellationException;
+import com.adags.modules.billing.domain.InvoiceCancellationNotEligibleException;
+import com.adags.modules.billing.domain.InvoiceCancellationRequestAlreadyDecidedException;
+import com.adags.modules.billing.domain.InvoiceCancellationRequiresRefundException;
 import com.adags.modules.billing.domain.InvoiceNotWriteOffEligibleException;
 import com.adags.modules.billing.domain.InvoiceWriteOffAlreadyDecidedException;
 import com.adags.modules.billing.domain.InvoiceWriteOffExceedsOutstandingException;
@@ -338,6 +342,33 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RefundSelfApprovalNotAllowedException.class)
     public ProblemDetail handleRefundSelfApprovalNotAllowed(RefundSelfApprovalNotAllowedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // Phase 7 item 2: invoice cancellation lifecycle (18-admin.md §6).
+    @ExceptionHandler(InvoiceAlreadyHasPendingCancellationException.class)
+    public ProblemDetail handleInvoiceAlreadyHasPendingCancellation(InvoiceAlreadyHasPendingCancellationException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvoiceCancellationNotEligibleException.class)
+    public ProblemDetail handleInvoiceCancellationNotEligible(InvoiceCancellationNotEligibleException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvoiceCancellationRequestAlreadyDecidedException.class)
+    public ProblemDetail handleInvoiceCancellationRequestAlreadyDecided(InvoiceCancellationRequestAlreadyDecidedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // §10 / §6.2: "Once payment has landed... that is a refund, not a
+    // void." 409, not 400 — the request is well-formed, the invoice's
+    // payment state is what blocks it (same treatment as
+    // ControlledItemBlockedException).
+    @ExceptionHandler(InvoiceCancellationRequiresRefundException.class)
+    public ProblemDetail handleInvoiceCancellationRequiresRefund(InvoiceCancellationRequiresRefundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("invoiceId", ex.invoiceId());
+        return problem;
     }
 
     @ExceptionHandler(BillingGateRejectedException.class)

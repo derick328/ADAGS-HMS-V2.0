@@ -2,6 +2,7 @@ package com.adags.modules.billing.infrastructure;
 
 import com.adags.modules.billing.domain.CreditNoteExceedsOutstandingException;
 import com.adags.modules.billing.domain.Invoice;
+import com.adags.modules.billing.domain.InvoiceCancellationNotEligibleException;
 import com.adags.modules.billing.domain.InvoiceCannotBeVoidedException;
 import com.adags.modules.billing.domain.InvoiceRepository;
 import com.adags.modules.billing.domain.InvoiceState;
@@ -140,7 +141,8 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
         String sql = """
                 UPDATE invoice
                 SET state = 'VOID', void_reason = :reason, voided_by = :voidedBy, voided_at = now()
-                WHERE id = :invoiceId AND state = 'ISSUED' AND outstanding_total_minor = gross_total_minor
+                WHERE id = :invoiceId AND state IN ('ISSUED', 'CANCELLATION_PENDING')
+                  AND outstanding_total_minor = gross_total_minor
                 """;
         int updated = jdbcTemplate.update(sql, new MapSqlParameterSource()
                 .addValue("invoiceId", invoiceId)
@@ -148,6 +150,35 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
                 .addValue("voidedBy", voidedBy));
         if (updated == 0) {
             throw new InvoiceCannotBeVoidedException(invoiceId);
+        }
+        return findById(invoiceId).orElseThrow();
+    }
+
+    @Override
+    public Invoice markCancellationPending(UUID invoiceId) {
+        int updated = jdbcTemplate.update("""
+                        UPDATE invoice SET state = 'CANCELLATION_PENDING'
+                        WHERE id = :invoiceId AND state IN ('ISSUED', 'PATIENT_PORTION_SETTLED')
+                        """,
+                new MapSqlParameterSource("invoiceId", invoiceId));
+        if (updated == 0) {
+            Invoice current = findById(invoiceId).orElseThrow();
+            throw new InvoiceCancellationNotEligibleException(invoiceId, current.state());
+        }
+        return findById(invoiceId).orElseThrow();
+    }
+
+    @Override
+    public Invoice returnToIssuedFromCancellationPending(UUID invoiceId) {
+        int updated = jdbcTemplate.update("""
+                        UPDATE invoice
+                        SET state = CASE WHEN outstanding_total_minor <= 0 THEN 'PATIENT_PORTION_SETTLED' ELSE 'ISSUED' END
+                        WHERE id = :invoiceId AND state = 'CANCELLATION_PENDING'
+                        """,
+                new MapSqlParameterSource("invoiceId", invoiceId));
+        if (updated == 0) {
+            Invoice current = findById(invoiceId).orElseThrow();
+            throw new InvoiceCancellationNotEligibleException(invoiceId, current.state());
         }
         return findById(invoiceId).orElseThrow();
     }
