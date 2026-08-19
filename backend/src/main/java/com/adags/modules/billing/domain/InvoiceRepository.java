@@ -50,7 +50,24 @@ public interface InvoiceRepository {
      * ISSUED -&gt; RECEIVABLE_POST_DISCHARGE, only when outstandingTotal &gt; 0
      * — a no-op (state unchanged) otherwise. Deliberately cannot throw:
      * root CLAUDE.md "Billing" — there must be no code path where this
-     * call blocks the discharge that triggers it.
+     * call blocks the discharge that triggers it. Also stamps
+     * receivableAt — the aging clock for the aged-receivables report,
+     * set once and never touched again.
      */
     Invoice markReceivablePostDischarge(UUID invoiceId);
+
+    /**
+     * 02-billing-architecture.md §9.3: decrements outstandingTotal by
+     * amount, the write-off component of that formula — same mechanism as
+     * recordSettlement, just a different reason the balance moved. Only
+     * from RECEIVABLE_POST_DISCHARGE, and only up to the current
+     * outstanding balance: the WHERE clause (not a prior read) is the
+     * concurrency guard (root CLAUDE.md "Concurrency" — a database
+     * constraint, not an application check), so two write-offs racing
+     * against the same invoice can't together exceed it.
+     *
+     * @throws InvoiceWriteOffExceedsOutstandingException if the invoice is not RECEIVABLE_POST_DISCHARGE
+     *         or amount exceeds the outstanding balance at the moment of the update.
+     */
+    Invoice recordWriteOff(UUID invoiceId, Money amount);
 }

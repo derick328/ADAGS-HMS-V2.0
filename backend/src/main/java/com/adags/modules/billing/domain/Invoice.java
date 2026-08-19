@@ -42,6 +42,13 @@ public record Invoice(
         String voidReason,
         UUID voidedBy,
         Instant voidedAt,
+        /**
+         * Set once, when markReceivablePostDischarge fires — the aging
+         * clock for the aged-receivables report (18-admin.md §10). Never
+         * touched again; a partial payment or write-off does not un-age a
+         * receivable. Null for every invoice that never became one.
+         */
+        Instant receivableAt,
         int version,
         Instant createdAt,
         UUID createdBy
@@ -53,6 +60,6 @@ public record Invoice(
                                  UUID insurancePolicyId, UUID createdBy) {
         Money zero = new Money(0, CURRENCY_CODE);
         return new Invoice(null, encounterId, patientId, facilityId, InvoiceState.DRAFT, payerCategory,
-                insurancePolicyId, null, zero, zero, zero, zero, null, null, null, 0, null, createdBy);
+                insurancePolicyId, null, zero, zero, zero, zero, null, null, null, null, 0, null, createdBy);
     }
 }

@@ -832,6 +832,56 @@ paths:
       responses:
         "200":
           description: OK
+  /api/billing/write-offs/{id}/review:
+    post:
+      tags:
+      - invoice-write-off-controller
+      operationId: review_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInvoiceWriteOffRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/InvoiceWriteOffResponse"
+  /api/billing/invoices/{invoiceId}/write-offs:
+    post:
+      tags:
+      - invoice-write-off-controller
+      operationId: request
+      parameters:
+      - name: invoiceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestInvoiceWriteOffRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/InvoiceWriteOffResponse"
   /api/admissions:
     post:
       tags:
@@ -998,7 +1048,7 @@ paths:
     get:
       tags:
       - wound-care-controller
-      operationId: list_1
+      operationId: list_2
       parameters:
       - name: admissionId
         in: path
@@ -1069,7 +1119,7 @@ paths:
     get:
       tags:
       - shift-handover-controller
-      operationId: list_2
+      operationId: list_3
       parameters:
       - name: admissionId
         in: path
@@ -1488,6 +1538,89 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/DispenseLabelResponse"
+  /api/billing/write-offs/{id}:
+    get:
+      tags:
+      - invoice-write-off-controller
+      operationId: findById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/InvoiceWriteOffResponse"
+  /api/billing/write-offs/pending:
+    get:
+      tags:
+      - invoice-write-off-controller
+      operationId: pending
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InvoiceWriteOffResponse"
+  /api/billing/receivables:
+    get:
+      tags:
+      - receivables-controller
+      operationId: list_1
+      parameters:
+      - name: payerCategory
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - CASH
+          - NHIF
+          - PRIVATE_SCHEME
+          - CORPORATE
+          - STAFF
+      - name: bucket
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - CURRENT
+          - DAYS_30
+          - DAYS_60
+          - DAYS_90_PLUS
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReceivableInvoiceResponse"
+  /api/billing/receivables/aging-summary:
+    get:
+      tags:
+      - receivables-controller
+      operationId: agingSummary
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgingSummaryResponse"
   /api/admissions/{id}:
     get:
       tags:
@@ -1511,7 +1644,7 @@ paths:
     get:
       tags:
       - medication-administration-controller
-      operationId: list_3
+      operationId: list_4
       parameters:
       - name: admissionId
         in: path
@@ -1553,7 +1686,7 @@ paths:
     get:
       tags:
       - ward-alert-notification-controller
-      operationId: list_4
+      operationId: list_5
       parameters:
       - name: admissionId
         in: path
@@ -3006,6 +3139,68 @@ components:
             $ref: "#/components/schemas/DispenseLineResponse"
         prescriptionLine:
           $ref: "#/components/schemas/PrescriptionLineResponse"
+    ReviewInvoiceWriteOffRequest:
+      required:
+      - decision
+      type: object
+      properties:
+        decision:
+          type: string
+          enum:
+          - PENDING
+          - APPLIED
+          - REJECTED
+        decisionNote:
+          type: string
+    InvoiceWriteOffResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        invoiceId:
+          type: string
+          format: uuid
+        amountMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        reason:
+          type: string
+        requestedBy:
+          type: string
+          format: uuid
+        requestedAt:
+          type: string
+          format: date-time
+        requiresSecondSignature:
+          type: boolean
+        status:
+          type: string
+          enum:
+          - PENDING
+          - APPLIED
+          - REJECTED
+        decidedBy:
+          type: string
+          format: uuid
+        decidedAt:
+          type: string
+          format: date-time
+        decisionNote:
+          type: string
+    RequestInvoiceWriteOffRequest:
+      required:
+      - reason
+      type: object
+      properties:
+        amountMinor:
+          minimum: 1
+          type: integer
+          format: int64
+        reason:
+          type: string
     AdmitPatientRequest:
       required:
       - encounterId
@@ -3789,6 +3984,72 @@ components:
         expiryDate:
           type: string
           format: date
+    ReceivableInvoiceResponse:
+      type: object
+      properties:
+        invoiceId:
+          type: string
+          format: uuid
+        invoiceNumber:
+          type: string
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        payerCategory:
+          type: string
+          enum:
+          - CASH
+          - NHIF
+          - PRIVATE_SCHEME
+          - CORPORATE
+          - STAFF
+        outstandingTotalMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        receivableAt:
+          type: string
+          format: date-time
+        agingDays:
+          type: integer
+          format: int64
+        bucket:
+          type: string
+          enum:
+          - CURRENT
+          - DAYS_30
+          - DAYS_60
+          - DAYS_90_PLUS
+    AgingSummaryResponse:
+      type: object
+      properties:
+        payerCategory:
+          type: string
+          enum:
+          - CASH
+          - NHIF
+          - PRIVATE_SCHEME
+          - CORPORATE
+          - STAFF
+        bucket:
+          type: string
+          enum:
+          - CURRENT
+          - DAYS_30
+          - DAYS_60
+          - DAYS_90_PLUS
+        invoiceCount:
+          type: integer
+          format: int32
+        totalOutstandingMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
     WardAlertNotification:
       type: object
       properties:

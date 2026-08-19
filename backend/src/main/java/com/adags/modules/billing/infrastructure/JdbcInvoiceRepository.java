@@ -4,6 +4,7 @@ import com.adags.modules.billing.domain.Invoice;
 import com.adags.modules.billing.domain.InvoiceCannotBeVoidedException;
 import com.adags.modules.billing.domain.InvoiceRepository;
 import com.adags.modules.billing.domain.InvoiceState;
+import com.adags.modules.billing.domain.InvoiceWriteOffExceedsOutstandingException;
 import com.adags.modules.billing.domain.PayerCategory;
 import com.adags.modules.billing.domain.StaleInvoiceException;
 import com.adags.shared.kernel.Money;
@@ -25,7 +26,7 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
     private static final String SELECT_COLUMNS = """
             SELECT id, encounter_id, patient_id, facility_id, state, payer_category, insurance_policy_id,
                    invoice_number, gross_total_minor, insurance_portion_total_minor, patient_portion_total_minor,
-                   outstanding_total_minor, void_reason, voided_by, voided_at, currency_code, version,
+                   outstanding_total_minor, void_reason, voided_by, voided_at, receivable_at, currency_code, version,
                    created_at, created_by
             FROM invoice
             """;
@@ -58,7 +59,7 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
                 (UUID) rs.getObject("id"), invoice.encounterId(), invoice.patientId(), invoice.facilityId(),
                 InvoiceState.DRAFT, invoice.payerCategory(), invoice.insurancePolicyId(), null,
                 invoice.grossTotal(), invoice.insurancePortionTotal(), invoice.patientPortionTotal(),
-                invoice.outstandingTotal(), null, null, null, 0,
+                invoice.outstandingTotal(), null, null, null, null, 0,
                 rs.getTimestamp("created_at").toInstant(), invoice.createdBy()));
     }
 
@@ -153,10 +154,27 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
     @Override
     public Invoice markReceivablePostDischarge(UUID invoiceId) {
         jdbcTemplate.update("""
-                        UPDATE invoice SET state = 'RECEIVABLE_POST_DISCHARGE'
+                        UPDATE invoice SET state = 'RECEIVABLE_POST_DISCHARGE', receivable_at = now()
                         WHERE id = :invoiceId AND state = 'ISSUED' AND outstanding_total_minor > 0
                         """,
                 new MapSqlParameterSource("invoiceId", invoiceId));
+        return findById(invoiceId).orElseThrow();
+    }
+
+    @Override
+    public Invoice recordWriteOff(UUID invoiceId, Money amount) {
+        String sql = """
+                UPDATE invoice
+                SET outstanding_total_minor = outstanding_total_minor - :amountMinor
+                WHERE id = :invoiceId AND state = 'RECEIVABLE_POST_DISCHARGE'
+                  AND outstanding_total_minor >= :amountMinor
+                """;
+        int updated = jdbcTemplate.update(sql, new MapSqlParameterSource()
+                .addValue("invoiceId", invoiceId)
+                .addValue("amountMinor", amount.amountMinor()));
+        if (updated == 0) {
+            throw new InvoiceWriteOffExceedsOutstandingException(invoiceId);
+        }
         return findById(invoiceId).orElseThrow();
     }
 
@@ -165,6 +183,7 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
         Object insurancePolicyId = rs.getObject("insurance_policy_id");
         Object voidedBy = rs.getObject("voided_by");
         Timestamp voidedAt = rs.getTimestamp("voided_at");
+        Timestamp receivableAt = rs.getTimestamp("receivable_at");
         return new Invoice(
                 (UUID) rs.getObject("id"),
                 (UUID) rs.getObject("encounter_id"),
@@ -181,6 +200,7 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
                 rs.getString("void_reason"),
                 voidedBy == null ? null : (UUID) voidedBy,
                 voidedAt == null ? null : voidedAt.toInstant(),
+                receivableAt == null ? null : receivableAt.toInstant(),
                 rs.getInt("version"),
                 rs.getTimestamp("created_at").toInstant(),
                 (UUID) rs.getObject("created_by"));

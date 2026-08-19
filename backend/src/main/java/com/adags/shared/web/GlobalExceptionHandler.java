@@ -1,6 +1,10 @@
 package com.adags.shared.web;
 
 import com.adags.modules.billing.domain.BillingGateRejectedException;
+import com.adags.modules.billing.domain.InvoiceNotWriteOffEligibleException;
+import com.adags.modules.billing.domain.InvoiceWriteOffAlreadyDecidedException;
+import com.adags.modules.billing.domain.InvoiceWriteOffExceedsOutstandingException;
+import com.adags.modules.billing.domain.InvoiceWriteOffSelfApprovalNotAllowedException;
 import com.adags.modules.encounters.application.InvalidEncounterTransitionException;
 import com.adags.modules.encounters.application.MissingCloseReasonException;
 import com.adags.modules.inventory.domain.BatchExpiredException;
@@ -257,6 +261,33 @@ public class GlobalExceptionHandler {
     // §3.3. Wired now even though no consuming endpoint exists yet, so the
     // first one (lab specimen collection, dispensing, procedure start)
     // inherits the correct response shape automatically.
+    // Phase 7 item 1: write-off is only meaningful against a post-discharge
+    // receivable — an ISSUED invoice still has the ordinary payment path.
+    @ExceptionHandler(InvoiceNotWriteOffEligibleException.class)
+    public ProblemDetail handleInvoiceNotWriteOffEligible(InvoiceNotWriteOffEligibleException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // root CLAUDE.md "Concurrency": the WHERE clause on
+    // InvoiceRepository.recordWriteOff is the real guard — this is what a
+    // losing concurrent write-off (or one that outran the balance) gets.
+    @ExceptionHandler(InvoiceWriteOffExceedsOutstandingException.class)
+    public ProblemDetail handleInvoiceWriteOffExceedsOutstanding(InvoiceWriteOffExceedsOutstandingException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvoiceWriteOffAlreadyDecidedException.class)
+    public ProblemDetail handleInvoiceWriteOffAlreadyDecided(InvoiceWriteOffAlreadyDecidedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // root CLAUDE.md "Authorisation": the second-person constraint above
+    // the write-off threshold — the requester cannot also be the reviewer.
+    @ExceptionHandler(InvoiceWriteOffSelfApprovalNotAllowedException.class)
+    public ProblemDetail handleInvoiceWriteOffSelfApprovalNotAllowed(InvoiceWriteOffSelfApprovalNotAllowedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     @ExceptionHandler(BillingGateRejectedException.class)
     public ProblemDetail handleBillingGateRejected(BillingGateRejectedException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.PAYMENT_REQUIRED, ex.getMessage());

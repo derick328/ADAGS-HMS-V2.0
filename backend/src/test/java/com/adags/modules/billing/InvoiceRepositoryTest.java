@@ -5,6 +5,7 @@ import com.adags.modules.billing.domain.InvoiceLine;
 import com.adags.modules.billing.domain.InvoiceLineRepository;
 import com.adags.modules.billing.domain.InvoiceRepository;
 import com.adags.modules.billing.domain.InvoiceState;
+import com.adags.modules.billing.domain.InvoiceWriteOffExceedsOutstandingException;
 import com.adags.modules.billing.domain.PayerCategory;
 import com.adags.modules.billing.domain.StaleInvoiceException;
 import com.adags.shared.kernel.Money;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -111,6 +113,80 @@ class InvoiceRepositoryTest extends IntegrationTestSupport {
 
         assertThatThrownBy(() -> invoiceRepository.issue(draft.id(), "FAC-2026-000004", issued.version()))
                 .isInstanceOf(StaleInvoiceException.class);
+    }
+
+    // Phase 7 item 1: RECEIVABLE_POST_DISCHARGE is §8's outcome of an
+    // unpaid balance surviving discharge; receivableAt is the aging clock
+    // the aged-receivables report buckets from.
+    @Test
+    void markReceivablePostDischargeStampsTheAgingClock() {
+        UUID patientId = insertFixturePatient();
+        UUID encounterId = insertFixtureEncounter(patientId);
+        UUID serviceItemId = insertFixtureServiceItem();
+        Invoice draft = invoiceRepository.insertDraft(Invoice.draft(encounterId, patientId, BOOTSTRAP_FACILITY_ID,
+                PayerCategory.CASH, null, bootstrapAdminId()));
+        invoiceLineRepository.insert(InvoiceLine.unauthorized(draft.id(), serviceItemId, 1,
+                new Money(15_000, "TZS"), new Money(0, "TZS"), new Money(15_000, "TZS"),
+                "TriageCompleted", encounterId));
+        Invoice issued = invoiceRepository.issue(draft.id(), "FAC-2026-000010", draft.version());
+        assertThat(issued.receivableAt()).isNull();
+
+        Instant before = Instant.now();
+        Invoice receivable = invoiceRepository.markReceivablePostDischarge(issued.id());
+
+        assertThat(receivable.state()).isEqualTo(InvoiceState.RECEIVABLE_POST_DISCHARGE);
+        assertThat(receivable.receivableAt()).isNotNull().isAfterOrEqualTo(before);
+    }
+
+    @Test
+    void recordWriteOffDecrementsOutstandingOnAReceivable() {
+        UUID patientId = insertFixturePatient();
+        UUID encounterId = insertFixtureEncounter(patientId);
+        UUID serviceItemId = insertFixtureServiceItem();
+        Invoice draft = invoiceRepository.insertDraft(Invoice.draft(encounterId, patientId, BOOTSTRAP_FACILITY_ID,
+                PayerCategory.CASH, null, bootstrapAdminId()));
+        invoiceLineRepository.insert(InvoiceLine.unauthorized(draft.id(), serviceItemId, 1,
+                new Money(15_000, "TZS"), new Money(0, "TZS"), new Money(15_000, "TZS"),
+                "TriageCompleted", encounterId));
+        Invoice issued = invoiceRepository.issue(draft.id(), "FAC-2026-000011", draft.version());
+        Invoice receivable = invoiceRepository.markReceivablePostDischarge(issued.id());
+
+        Invoice writtenOff = invoiceRepository.recordWriteOff(receivable.id(), new Money(5_000, "TZS"));
+
+        assertThat(writtenOff.outstandingTotal()).isEqualTo(new Money(10_000, "TZS"));
+    }
+
+    @Test
+    void recordWriteOffAboveOutstandingIsRejected() {
+        UUID patientId = insertFixturePatient();
+        UUID encounterId = insertFixtureEncounter(patientId);
+        UUID serviceItemId = insertFixtureServiceItem();
+        Invoice draft = invoiceRepository.insertDraft(Invoice.draft(encounterId, patientId, BOOTSTRAP_FACILITY_ID,
+                PayerCategory.CASH, null, bootstrapAdminId()));
+        invoiceLineRepository.insert(InvoiceLine.unauthorized(draft.id(), serviceItemId, 1,
+                new Money(15_000, "TZS"), new Money(0, "TZS"), new Money(15_000, "TZS"),
+                "TriageCompleted", encounterId));
+        Invoice issued = invoiceRepository.issue(draft.id(), "FAC-2026-000012", draft.version());
+        Invoice receivable = invoiceRepository.markReceivablePostDischarge(issued.id());
+
+        assertThatThrownBy(() -> invoiceRepository.recordWriteOff(receivable.id(), new Money(15_001, "TZS")))
+                .isInstanceOf(InvoiceWriteOffExceedsOutstandingException.class);
+    }
+
+    @Test
+    void recordWriteOffOnAnIssuedInvoiceThatIsNotYetAReceivableIsRejected() {
+        UUID patientId = insertFixturePatient();
+        UUID encounterId = insertFixtureEncounter(patientId);
+        UUID serviceItemId = insertFixtureServiceItem();
+        Invoice draft = invoiceRepository.insertDraft(Invoice.draft(encounterId, patientId, BOOTSTRAP_FACILITY_ID,
+                PayerCategory.CASH, null, bootstrapAdminId()));
+        invoiceLineRepository.insert(InvoiceLine.unauthorized(draft.id(), serviceItemId, 1,
+                new Money(15_000, "TZS"), new Money(0, "TZS"), new Money(15_000, "TZS"),
+                "TriageCompleted", encounterId));
+        Invoice issued = invoiceRepository.issue(draft.id(), "FAC-2026-000013", draft.version());
+
+        assertThatThrownBy(() -> invoiceRepository.recordWriteOff(issued.id(), new Money(5_000, "TZS")))
+                .isInstanceOf(InvoiceWriteOffExceedsOutstandingException.class);
     }
 
     private UUID insertFixtureServiceItem() {

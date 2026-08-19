@@ -628,6 +628,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/billing/write-offs/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["review_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/invoices/{invoiceId}/write-offs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admissions": {
         parameters: {
             query?: never;
@@ -747,7 +779,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         post: operations["record_1"];
         delete?: never;
@@ -779,7 +811,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         post: operations["record_3"];
         delete?: never;
@@ -1108,6 +1140,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/billing/write-offs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["findById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/write-offs/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pending"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/receivables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/receivables/aging-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["agingSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admissions/{id}": {
         parameters: {
             query?: never;
@@ -1131,7 +1227,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1163,7 +1259,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1865,6 +1961,38 @@ export interface components {
             lines?: components["schemas"]["DispenseLineResponse"][];
             prescriptionLine?: components["schemas"]["PrescriptionLineResponse"];
         };
+        ReviewInvoiceWriteOffRequest: {
+            /** @enum {string} */
+            decision: "PENDING" | "APPLIED" | "REJECTED";
+            decisionNote?: string;
+        };
+        InvoiceWriteOffResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            invoiceId?: string;
+            /** Format: int64 */
+            amountMinor?: number;
+            currencyCode?: string;
+            reason?: string;
+            /** Format: uuid */
+            requestedBy?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            requiresSecondSignature?: boolean;
+            /** @enum {string} */
+            status?: "PENDING" | "APPLIED" | "REJECTED";
+            /** Format: uuid */
+            decidedBy?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            decisionNote?: string;
+        };
+        RequestInvoiceWriteOffRequest: {
+            /** Format: int64 */
+            amountMinor?: number;
+            reason: string;
+        };
         AdmitPatientRequest: {
             /** Format: uuid */
             encounterId: string;
@@ -2269,6 +2397,37 @@ export interface components {
             batchNumber?: string;
             /** Format: date */
             expiryDate?: string;
+        };
+        ReceivableInvoiceResponse: {
+            /** Format: uuid */
+            invoiceId?: string;
+            invoiceNumber?: string;
+            /** Format: uuid */
+            patientId?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** @enum {string} */
+            payerCategory?: "CASH" | "NHIF" | "PRIVATE_SCHEME" | "CORPORATE" | "STAFF";
+            /** Format: int64 */
+            outstandingTotalMinor?: number;
+            currencyCode?: string;
+            /** Format: date-time */
+            receivableAt?: string;
+            /** Format: int64 */
+            agingDays?: number;
+            /** @enum {string} */
+            bucket?: "CURRENT" | "DAYS_30" | "DAYS_60" | "DAYS_90_PLUS";
+        };
+        AgingSummaryResponse: {
+            /** @enum {string} */
+            payerCategory?: "CASH" | "NHIF" | "PRIVATE_SCHEME" | "CORPORATE" | "STAFF";
+            /** @enum {string} */
+            bucket?: "CURRENT" | "DAYS_30" | "DAYS_60" | "DAYS_90_PLUS";
+            /** Format: int32 */
+            invoiceCount?: number;
+            /** Format: int64 */
+            totalOutstandingMinor?: number;
+            currencyCode?: string;
         };
         WardAlertNotification: {
             /** Format: uuid */
@@ -3300,6 +3459,58 @@ export interface operations {
             };
         };
     };
+    review_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewInvoiceWriteOffRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceWriteOffResponse"];
+                };
+            };
+        };
+    };
+    request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestInvoiceWriteOffRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceWriteOffResponse"];
+                };
+            };
+        };
+    };
     admit: {
         parameters: {
             query?: never;
@@ -3476,7 +3687,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3550,7 +3761,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -4031,6 +4242,91 @@ export interface operations {
             };
         };
     };
+    findById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceWriteOffResponse"];
+                };
+            };
+        };
+    };
+    pending: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceWriteOffResponse"][];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: {
+                payerCategory?: "CASH" | "NHIF" | "PRIVATE_SCHEME" | "CORPORATE" | "STAFF";
+                bucket?: "CURRENT" | "DAYS_30" | "DAYS_60" | "DAYS_90_PLUS";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivableInvoiceResponse"][];
+                };
+            };
+        };
+    };
+    agingSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AgingSummaryResponse"][];
+                };
+            };
+        };
+    };
     getById_3: {
         parameters: {
             query?: never;
@@ -4053,7 +4349,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -4097,7 +4393,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: never;
             header?: never;
