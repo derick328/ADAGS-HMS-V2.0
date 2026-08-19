@@ -34,6 +34,16 @@ public interface PatientFacade {
      */
     Optional<UUID> resolveActiveInsuranceSchemeId(UUID patientId, LocalDate onDate);
 
+    /**
+     * Phase 7 item 3 part 3: true when the patient holds an active
+     * policy on {@code onDate} AND that policy's verification_status is
+     * VERIFIED. This is the check resolveActiveInsuranceSchemeId
+     * deliberately skips (the split doesn't need verification) — the
+     * billing gate's coverage clause does: an unverified policy must not
+     * let a patient through for free.
+     */
+    boolean hasVerifiedActiveInsurancePolicy(UUID patientId, LocalDate onDate);
+
     /** Date of birth and gender — clinical/encounters need these for age-band vital ranges and pregnancy-prompt eligibility. */
     Optional<PatientDemographics> findDemographics(UUID patientId);
 

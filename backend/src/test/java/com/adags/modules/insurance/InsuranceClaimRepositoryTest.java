@@ -6,6 +6,7 @@ import com.adags.modules.billing.domain.PayerCategory;
 import com.adags.modules.insurance.domain.ClaimState;
 import com.adags.modules.insurance.domain.InsuranceClaim;
 import com.adags.modules.insurance.domain.InsuranceClaimRepository;
+import com.adags.modules.insurance.domain.InsuranceClaimStateConflictException;
 import com.adags.modules.insurance.domain.InsuranceScheme;
 import com.adags.modules.insurance.domain.InsuranceSchemeRepository;
 import com.adags.support.IntegrationTestSupport;
@@ -21,9 +22,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-// 02-billing-architecture.md §11's InsuranceClaim — schema only in this
-// part (Phase 7 item 3 part 1); insertDraft is the only lifecycle
-// operation, mirroring Invoice.insertDraft's two-step numbering pattern.
+// 02-billing-architecture.md §11's InsuranceClaim. Phase 7 item 3 part 3:
+// unlike Invoice's two-step draft()/issue(), a claim's number is
+// allocated at the same moment it's raised (still DRAFT) — there is no
+// manual entry to protect against here.
 class InsuranceClaimRepositoryTest extends IntegrationTestSupport {
 
     private static final UUID BOOTSTRAP_FACILITY_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
@@ -45,20 +47,67 @@ class InsuranceClaimRepositoryTest extends IntegrationTestSupport {
     }
 
     @Test
-    void insertDraftStartsWithNoClaimNumber() {
+    void insertingARaisedClaimStartsInDraftWithItsNumberAlreadyAllocated() {
         UUID admin = bootstrapAdminId();
         UUID invoiceId = insertFixtureInvoice(admin);
         UUID schemeId = insertFixtureScheme();
 
-        InsuranceClaim draft = claimRepository.insertDraft(InsuranceClaim.draft(invoiceId, schemeId));
+        InsuranceClaim raised = claimRepository.insert(InsuranceClaim.raise(invoiceId, schemeId, "FAC-2026-000001"));
 
-        assertThat(draft.id()).isNotNull();
-        assertThat(draft.state()).isEqualTo(ClaimState.DRAFT);
-        assertThat(draft.claimNo()).isNull();
+        assertThat(raised.id()).isNotNull();
+        assertThat(raised.state()).isEqualTo(ClaimState.DRAFT);
+        assertThat(raised.claimNo()).isEqualTo("FAC-2026-000001");
 
-        InsuranceClaim found = claimRepository.findById(draft.id()).orElseThrow();
+        InsuranceClaim found = claimRepository.findById(raised.id()).orElseThrow();
         assertThat(found.invoiceId()).isEqualTo(invoiceId);
         assertThat(found.schemeId()).isEqualTo(schemeId);
+    }
+
+    @Test
+    void raiseRejectsABlankClaimNo() {
+        assertThatThrownBy(() -> InsuranceClaim.raise(UUID.randomUUID(), UUID.randomUUID(), "  "))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void transitionMovesTheClaimAndStampsSubmittedAt() {
+        UUID admin = bootstrapAdminId();
+        UUID invoiceId = insertFixtureInvoice(admin);
+        UUID schemeId = insertFixtureScheme();
+        InsuranceClaim raised = claimRepository.insert(InsuranceClaim.raise(invoiceId, schemeId, "FAC-2026-000002"));
+
+        InsuranceClaim submitted = claimRepository.transition(raised.id(), ClaimState.DRAFT, ClaimState.SUBMITTED, null);
+
+        assertThat(submitted.state()).isEqualTo(ClaimState.SUBMITTED);
+        assertThat(submitted.submittedAt()).isNotNull();
+    }
+
+    @Test
+    void transitionToRejectedStoresTheReason() {
+        UUID admin = bootstrapAdminId();
+        UUID invoiceId = insertFixtureInvoice(admin);
+        UUID schemeId = insertFixtureScheme();
+        InsuranceClaim raised = claimRepository.insert(InsuranceClaim.raise(invoiceId, schemeId, "FAC-2026-000003"));
+        claimRepository.transition(raised.id(), ClaimState.DRAFT, ClaimState.SUBMITTED, null);
+
+        InsuranceClaim rejected = claimRepository.transition(
+                raised.id(), ClaimState.SUBMITTED, ClaimState.REJECTED, "missing pre-authorization");
+
+        assertThat(rejected.state()).isEqualTo(ClaimState.REJECTED);
+        assertThat(rejected.rejectedReason()).isEqualTo("missing pre-authorization");
+    }
+
+    // root CLAUDE.md "Concurrency": the WHERE-guarded UPDATE, not a prior
+    // read, is what stops two decisions racing against the same claim.
+    @Test
+    void transitionFromTheWrongExpectedStateIsRejected() {
+        UUID admin = bootstrapAdminId();
+        UUID invoiceId = insertFixtureInvoice(admin);
+        UUID schemeId = insertFixtureScheme();
+        InsuranceClaim raised = claimRepository.insert(InsuranceClaim.raise(invoiceId, schemeId, "FAC-2026-000004"));
+
+        assertThatThrownBy(() -> claimRepository.transition(raised.id(), ClaimState.SUBMITTED, ClaimState.APPROVED, null))
+                .isInstanceOf(InsuranceClaimStateConflictException.class);
     }
 
     // The DB CHECK behind the same two-step pattern invoice_number uses

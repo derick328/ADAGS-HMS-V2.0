@@ -86,7 +86,14 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
         // as §9.3. state = 'DRAFT' AND version = :expectedVersion in one
         // WHERE covers both "already issued" and "changed underneath you"
         // — either way, zero rows updated means reload and resubmit.
-        // outstanding_total_minor starts equal to gross — nothing paid yet.
+        //
+        // outstanding_total_minor starts equal to the PATIENT portion,
+        // not gross — nothing paid yet, but insurance's share was never
+        // the patient's debt to begin with (Phase 7 item 3 part 2: before
+        // the insurance split existed, patient == gross always, so this
+        // distinction was invisible; a patient's payment must zero out
+        // exactly what they owe, or PATIENT_PORTION_SETTLED never fires
+        // for a partially-covered invoice no matter how much they pay).
         String sql = """
                 UPDATE invoice
                 SET state = 'ISSUED',
@@ -94,7 +101,7 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
                     gross_total_minor = sub.gross,
                     insurance_portion_total_minor = sub.insurance,
                     patient_portion_total_minor = sub.patient,
-                    outstanding_total_minor = sub.gross,
+                    outstanding_total_minor = sub.patient,
                     version = version + 1
                 FROM (
                     SELECT COALESCE(SUM(gross_minor), 0) AS gross,

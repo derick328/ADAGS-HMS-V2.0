@@ -13,6 +13,10 @@ import com.adags.modules.billing.domain.PayerCategory;
 import com.adags.modules.billing.domain.PaymentBypass;
 import com.adags.modules.billing.domain.PaymentBypassRepository;
 import com.adags.modules.billing.domain.PaymentBypassSource;
+import com.adags.modules.insurance.domain.CoverageType;
+import com.adags.modules.insurance.domain.SchemeCoverageRule;
+import com.adags.modules.insurance.domain.SchemeCoverageRuleRepository;
+import com.adags.modules.insurance.domain.ServiceCategory;
 import com.adags.shared.kernel.Money;
 import com.adags.support.IntegrationTestSupport;
 import org.junit.jupiter.api.AfterEach;
@@ -21,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,13 +54,16 @@ class BillingGateTest extends IntegrationTestSupport {
     private PaymentBypassRepository paymentBypassRepository;
 
     @Autowired
+    private SchemeCoverageRuleRepository schemeCoverageRuleRepository;
+
+    @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
 
     @AfterEach
     void cleanUp() {
         jdbcTemplate.update("""
                         TRUNCATE service_authorization, invoice_line, invoice, payment_bypass, outbox_event,
-                                 encounter, patient CASCADE
+                                 scheme_coverage_rule, insurance_policy, insurance_scheme, encounter, patient CASCADE
                         """,
                 new MapSqlParameterSource());
     }
@@ -143,6 +151,51 @@ class BillingGateTest extends IntegrationTestSupport {
         assertThat(billingGate.isSatisfied(posted.invoiceLineId())).isTrue();
     }
 
+    // Phase 7 item 3 part 3: "gateSatisfied via insurance = VERIFIED AND
+    // scheme_covers(service) AND patient_portion_outstanding == 0." FULL
+    // coverage means patientPortion is 0 from the moment the line is
+    // posted — this must still require the policy to be VERIFIED, not
+    // grant for free the moment a coverage rule happens to zero it out.
+    @Test
+    void fullCoverageWithAVerifiedPolicyIsSatisfiedWithoutAnyPayment() {
+        UUID admin = bootstrapAdminId();
+        UUID patientId = insertFixturePatient();
+        UUID encounterId = insertFixtureEncounter(patientId);
+        UUID schemeId = insertFixtureSchemeWithPolicy(patientId, "VERIFIED");
+        String itemCode = insertFixtureNhifPricedServiceItem(500_000);
+        schemeCoverageRuleRepository.insert(SchemeCoverageRule.forCategory(
+                schemeId, ServiceCategory.CONSULTATION, CoverageType.FULL, null, false, admin));
+
+        ChargePostingResult posted = chargePostingService.postCharge(new ChargePostingCommand(
+                encounterId, patientId, BOOTSTRAP_FACILITY_ID, PayerCategory.NHIF, null,
+                itemCode, 1, "TestFixture", UUID.randomUUID(), admin));
+
+        assertThat(billingGate.isSatisfied(posted.invoiceLineId())).isTrue();
+        billingGate.authorizeConsumption(posted.invoiceLineId(), admin);
+        InvoiceLine authorized = invoiceLineRepository.findById(posted.invoiceLineId()).orElseThrow();
+        assertThat(authorized.authorizationId()).isNotNull();
+    }
+
+    // The gap this part closes: an UNVERIFIED policy must not let a
+    // FULL-coverage line through for free just because its
+    // patientPortion happens to be zero.
+    @Test
+    void fullCoverageWithAnUnverifiedPolicyIsNotSatisfied() {
+        UUID admin = bootstrapAdminId();
+        UUID patientId = insertFixturePatient();
+        UUID encounterId = insertFixtureEncounter(patientId);
+        UUID schemeId = insertFixtureSchemeWithPolicy(patientId, "UNVERIFIED");
+        String itemCode = insertFixtureNhifPricedServiceItem(500_000);
+        schemeCoverageRuleRepository.insert(SchemeCoverageRule.forCategory(
+                schemeId, ServiceCategory.CONSULTATION, CoverageType.FULL, null, false, admin));
+
+        ChargePostingResult posted = chargePostingService.postCharge(new ChargePostingCommand(
+                encounterId, patientId, BOOTSTRAP_FACILITY_ID, PayerCategory.NHIF, null,
+                itemCode, 1, "TestFixture", UUID.randomUUID(), admin));
+
+        assertThat(billingGate.isSatisfied(posted.invoiceLineId())).isFalse();
+    }
+
     private void revokeBypass(UUID bypassId) {
         jdbcTemplate.update("""
                         UPDATE payment_bypass
@@ -162,6 +215,45 @@ class BillingGateTest extends IntegrationTestSupport {
                         """,
                 new MapSqlParameterSource("code", "TEST-ITEM-" + UUID.randomUUID().toString().substring(0, 8)),
                 UUID.class);
+    }
+
+    private UUID insertFixtureSchemeWithPolicy(UUID patientId, String verificationStatus) {
+        UUID schemeId = jdbcTemplate.queryForObject("""
+                        INSERT INTO insurance_scheme (code, name) VALUES (:code, 'Test NHIF') RETURNING id
+                        """,
+                new MapSqlParameterSource("code", "TEST-SCHEME-" + UUID.randomUUID().toString().substring(0, 8)),
+                UUID.class);
+        jdbcTemplate.update("""
+                        INSERT INTO insurance_policy (patient_id, scheme_id, policy_number, valid_from, verification_status)
+                        VALUES (:patientId, :schemeId, :policyNumber, :validFrom, :verificationStatus)
+                        """,
+                new MapSqlParameterSource()
+                        .addValue("patientId", patientId)
+                        .addValue("schemeId", schemeId)
+                        .addValue("policyNumber", "POL-" + UUID.randomUUID().toString().substring(0, 8))
+                        .addValue("validFrom", LocalDate.now().minusDays(10))
+                        .addValue("verificationStatus", verificationStatus));
+        return schemeId;
+    }
+
+    // A dedicated fixture item, not the shared seeded CONSULT_GENERAL —
+    // only CASH has a seeded price (V15).
+    private String insertFixtureNhifPricedServiceItem(long amountMinor) {
+        String code = "TEST-ITEM-" + UUID.randomUUID().toString().substring(0, 8);
+        jdbcTemplate.update("INSERT INTO service_item (code, name, category) VALUES (:code, 'Test Item', 'CONSULTATION')",
+                new MapSqlParameterSource("code", code));
+        UUID priceListId = jdbcTemplate.queryForObject(
+                "SELECT id FROM price_list WHERE payer_category = 'NHIF'", new MapSqlParameterSource(), UUID.class);
+        jdbcTemplate.update("""
+                        INSERT INTO price_list_entry (price_list_id, service_item_id, amount_minor, created_by)
+                        VALUES (:priceListId, (SELECT id FROM service_item WHERE code = :code), :amountMinor,
+                                (SELECT id FROM app_user WHERE username = 'admin'))
+                        """,
+                new MapSqlParameterSource()
+                        .addValue("priceListId", priceListId)
+                        .addValue("code", code)
+                        .addValue("amountMinor", amountMinor));
+        return code;
     }
 
     private UUID insertFixturePatient() {

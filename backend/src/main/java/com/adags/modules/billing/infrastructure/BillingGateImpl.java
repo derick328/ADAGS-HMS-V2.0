@@ -15,11 +15,17 @@ import com.adags.modules.billing.domain.ServiceAuthorization;
 import com.adags.modules.billing.domain.ServiceAuthorizationRepository;
 import com.adags.modules.billing.domain.ServiceItem;
 import com.adags.modules.billing.domain.ServiceItemRepository;
+import com.adags.modules.insurance.InsuranceFacade;
+import com.adags.modules.insurance.domain.CoverageRuleNotConfiguredException;
+import com.adags.modules.patients.PatientFacade;
 import com.adags.shared.kernel.Money;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -31,6 +37,9 @@ public class BillingGateImpl implements BillingGate {
     private final PaymentAllocationRepository paymentAllocationRepository;
     private final ServiceAuthorizationRepository serviceAuthorizationRepository;
     private final ServiceItemRepository serviceItemRepository;
+    private final PatientFacade patientFacade;
+    private final InsuranceFacade insuranceFacade;
+    private final Clock clock;
 
     public BillingGateImpl(
             InvoiceLineRepository invoiceLineRepository,
@@ -38,7 +47,10 @@ public class BillingGateImpl implements BillingGate {
             PaymentBypassRepository paymentBypassRepository,
             PaymentAllocationRepository paymentAllocationRepository,
             ServiceAuthorizationRepository serviceAuthorizationRepository,
-            ServiceItemRepository serviceItemRepository
+            ServiceItemRepository serviceItemRepository,
+            PatientFacade patientFacade,
+            InsuranceFacade insuranceFacade,
+            Clock clock
     ) {
         this.invoiceLineRepository = invoiceLineRepository;
         this.invoiceRepository = invoiceRepository;
@@ -46,6 +58,9 @@ public class BillingGateImpl implements BillingGate {
         this.paymentAllocationRepository = paymentAllocationRepository;
         this.serviceAuthorizationRepository = serviceAuthorizationRepository;
         this.serviceItemRepository = serviceItemRepository;
+        this.patientFacade = patientFacade;
+        this.insuranceFacade = insuranceFacade;
+        this.clock = clock;
     }
 
     @Override
@@ -79,8 +94,9 @@ public class BillingGateImpl implements BillingGate {
         if (settled != null) {
             return settled;
         }
-        if (verifiedInsuranceCovers(line)) {
-            return new Grant(true, AuthorizationType.INSURANCE, null);
+        Optional<UUID> coveringRuleId = verifiedInsuranceCovers(line);
+        if (coveringRuleId.isPresent()) {
+            return new Grant(true, AuthorizationType.INSURANCE, coveringRuleId.get());
         }
         UUID encounterId = requireInvoice(line.invoiceId()).encounterId();
         if (encounterId != null) {
@@ -96,9 +112,14 @@ public class BillingGateImpl implements BillingGate {
     }
 
     // Two distinct cases, both real:
-    //  - patientPortion is exactly zero: trivially and permanently true
-    //    from the line's own immutable data — nothing revocable to
-    //    protect against later, so no ServiceAuthorization is written.
+    //  - patientPortion is exactly zero AND no coverage rule produced it:
+    //    trivially and permanently true from the line's own immutable
+    //    data — nothing revocable to protect against later, so no
+    //    ServiceAuthorization is written. A zero patientPortion that DID
+    //    come from a coverage rule (FULL coverage) is deliberately NOT
+    //    granted here — falls through to verifiedInsuranceCovers instead,
+    //    so a FULL-coverage line still requires the policy to actually be
+    //    VERIFIED before it's fulfillable for free.
     //  - settled (non-pending-clearance) PaymentAllocations sum to at
     //    least patientPortion: a real payment covered it. This DOES get
     //    durable protection — a later refund must not retroactively
@@ -107,23 +128,65 @@ public class BillingGateImpl implements BillingGate {
     //    line normally reaches this in exactly one allocation; the last
     //    contributing settled allocation's payment is the reference.
     private Grant patientPortionSettled(InvoiceLine line) {
-        if (line.patientPortion().amountMinor() == 0) {
+        if (line.patientPortion().amountMinor() == 0 && line.coverageRuleId() == null) {
             return new Grant(false, null, null);
         }
         List<PaymentAllocation> settledAllocations = paymentAllocationRepository.findSettledByInvoiceLineId(line.id());
         long settledTotal = settledAllocations.stream().mapToLong(a -> a.amount().amountMinor()).sum();
-        if (!settledAllocations.isEmpty() && settledTotal >= line.patientPortion().amountMinor()) {
+        if (settledTotal >= line.patientPortion().amountMinor() && !settledAllocations.isEmpty()) {
             UUID fundingPaymentId = settledAllocations.get(settledAllocations.size() - 1).paymentId();
             return new Grant(true, AuthorizationType.PAYMENT, fundingPaymentId);
         }
         return null;
     }
 
-    // No insurance module (SchemeCoverageRule, InsuranceClaim) — honestly
-    // unimplemented, not a silent no: named so it is obvious this always
-    // returns false today rather than a real coverage determination.
-    private boolean verifiedInsuranceCovers(InvoiceLine line) {
-        return false;
+    // 02-billing-architecture.md §6.1: "gateSatisfied via insurance =
+    // policy.verification_status == VERIFIED AND scheme_covers(service)
+    // AND patient_portion_outstanding == 0." All four conditions are
+    // checked here, independently of whatever got this line to
+    // patientPortionSettled returning null (a FULL-coverage zero patient
+    // portion, or a non-zero portion not yet paid) — this method is the
+    // single source of truth for "does insurance make this line
+    // fulfillable," not just a fallback.
+    //
+    // Re-resolves the coverage rule fresh via InsuranceFacade rather than
+    // trusting line.coverageRuleId() blindly — "use part 1's resolver,
+    // same date" (the line's own creation date, when ChargePostingService
+    // resolved this exact split). A missing rule at this point is treated
+    // as "not covered," not a crash: the throw-on-missing-configuration
+    // discipline belongs to charge-posting time (part 2), where it
+    // prevents a mispriced charge from ever being created — by gate-check
+    // time the charge already exists, and demanding perfect resolvability
+    // a second time would make an already-posted line permanently
+    // unfulfillable instead of falling through to the ordinary rejection.
+    private Optional<UUID> verifiedInsuranceCovers(InvoiceLine line) {
+        Invoice invoice = requireInvoice(line.invoiceId());
+        LocalDate serviceDate = line.createdAt().atZone(clock.getZone()).toLocalDate();
+
+        if (!patientFacade.hasVerifiedActiveInsurancePolicy(invoice.patientId(), serviceDate)) {
+            return Optional.empty();
+        }
+        Optional<UUID> schemeId = patientFacade.resolveActiveInsuranceSchemeId(invoice.patientId(), serviceDate);
+        if (schemeId.isEmpty()) {
+            return Optional.empty();
+        }
+        ServiceItem serviceItem = serviceItemRepository.findById(line.serviceItemId())
+                .orElseThrow(() -> new NoSuchElementException("No service item " + line.serviceItemId()));
+        Optional<UUID> coveringRuleId;
+        try {
+            coveringRuleId = insuranceFacade.resolveCoveringRuleId(
+                    schemeId.get(), serviceItem.id(), serviceItem.category().name(), serviceDate);
+        } catch (CoverageRuleNotConfiguredException noRuleFound) {
+            return Optional.empty();
+        }
+        if (coveringRuleId.isEmpty()) {
+            return Optional.empty();
+        }
+
+        long settledMinor = paymentAllocationRepository.findSettledByInvoiceLineId(line.id()).stream()
+                .mapToLong(a -> a.amount().amountMinor())
+                .sum();
+        return settledMinor >= line.patientPortion().amountMinor() ? coveringRuleId : Optional.empty();
     }
 
     // No inpatient module (DepositAccount, DepositTransaction) — same

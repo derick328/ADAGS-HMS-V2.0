@@ -18,6 +18,7 @@ import com.adags.modules.billing.domain.PaymentBypassRepository;
 import com.adags.modules.billing.domain.PaymentMethod;
 import com.adags.modules.billing.domain.PaymentRepository;
 import com.adags.modules.billing.domain.PaymentStatus;
+import com.adags.modules.insurance.InsuranceFacade;
 import com.adags.shared.events.DomainEventPublisher;
 import com.adags.shared.kernel.Money;
 import org.springframework.dao.DuplicateKeyException;
@@ -46,6 +47,7 @@ public class PostPaymentService {
     private final InvoiceLineRepository invoiceLineRepository;
     private final PaymentBypassRepository paymentBypassRepository;
     private final BillingGate billingGate;
+    private final InsuranceFacade insuranceFacade;
     private final DomainEventPublisher eventPublisher;
 
     public PostPaymentService(
@@ -56,6 +58,7 @@ public class PostPaymentService {
             InvoiceLineRepository invoiceLineRepository,
             PaymentBypassRepository paymentBypassRepository,
             BillingGate billingGate,
+            InsuranceFacade insuranceFacade,
             DomainEventPublisher eventPublisher
     ) {
         this.cashierShiftRepository = cashierShiftRepository;
@@ -65,6 +68,7 @@ public class PostPaymentService {
         this.invoiceLineRepository = invoiceLineRepository;
         this.paymentBypassRepository = paymentBypassRepository;
         this.billingGate = billingGate;
+        this.insuranceFacade = insuranceFacade;
         this.eventPublisher = eventPublisher;
     }
 
@@ -115,6 +119,15 @@ public class PostPaymentService {
                         "invoiceId", after.id().toString(),
                         "patientId", after.patientId().toString(),
                         "encounterId", after.encounterId() == null ? "" : after.encounterId().toString()));
+                // Phase 7 item 3 part 3: "the invoice reaches
+                // PATIENT_PORTION_SETTLED and a claim exists; it does not
+                // reach CLOSED until the remittance arrives" — coverage
+                // satisfying the gate is not the same as the claim being
+                // approved. Raised exactly once, at this same transition,
+                // never for every settlement (a multi-line invoice
+                // crosses this branch only on the allocation that
+                // actually zeroes its outstanding).
+                raiseInsuranceClaimIfAnyLineIsCovered(after, command.actorUserId());
             }
 
             long totalSettledForLine = v.alreadySettledBefore() + v.amountMinor();
@@ -129,6 +142,29 @@ public class PostPaymentService {
         }
 
         return saved;
+    }
+
+    // 02-billing-architecture.md §6: "raise an InsuranceClaim for any
+    // line where insurance_portion_minor > 0." coverageRuleId names the
+    // scheme; every line ChargePostingService ever splits shares one
+    // patient's one active policy at posting time, so any qualifying
+    // line's rule names the right scheme for the whole invoice.
+    private void raiseInsuranceClaimIfAnyLineIsCovered(Invoice invoice, UUID actorUserId) {
+        List<InvoiceLine> lines = invoiceLineRepository.findByInvoiceId(invoice.id());
+        long insuranceTotalMinor = 0;
+        UUID anyCoverageRuleId = null;
+        for (InvoiceLine line : lines) {
+            if (line.insurancePortion().amountMinor() > 0) {
+                insuranceTotalMinor += line.insurancePortion().amountMinor();
+                if (anyCoverageRuleId == null) {
+                    anyCoverageRuleId = line.coverageRuleId();
+                }
+            }
+        }
+        if (insuranceTotalMinor > 0) {
+            insuranceFacade.raiseClaim(invoice.id(), invoice.facilityId(), anyCoverageRuleId,
+                    new Money(insuranceTotalMinor, CURRENCY_CODE), actorUserId);
+        }
     }
 
     private List<ValidatedAllocation> validateAllocations(PostPaymentCommand command) {

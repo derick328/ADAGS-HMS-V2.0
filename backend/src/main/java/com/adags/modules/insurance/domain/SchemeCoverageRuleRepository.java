@@ -20,4 +20,7 @@ public interface SchemeCoverageRuleRepository {
      */
     Optional<SchemeCoverageRule> findApplicable(UUID schemeId, UUID serviceItemId, ServiceCategory serviceCategory,
                                                  LocalDate serviceDate);
+
+    /** Phase 7 item 3 part 3: raising a claim needs the schemeId behind an already-posted line's coverageRuleId. */
+    Optional<SchemeCoverageRule> findById(UUID id);
 }

@@ -88,6 +88,13 @@ public class JdbcSchemeCoverageRuleRepository implements SchemeCoverageRuleRepos
         return results.stream().findFirst();
     }
 
+    @Override
+    public Optional<SchemeCoverageRule> findById(UUID id) {
+        List<SchemeCoverageRule> results = jdbcTemplate.query(SELECT_COLUMNS + " WHERE id = :id",
+                new MapSqlParameterSource("id", id), this::mapRow);
+        return results.stream().findFirst();
+    }
+
     private SchemeCoverageRule mapRow(ResultSet rs, int rowNum) throws SQLException {
         String serviceCategory = rs.getString("service_category");
         Object serviceItemId = rs.getObject("service_item_id");

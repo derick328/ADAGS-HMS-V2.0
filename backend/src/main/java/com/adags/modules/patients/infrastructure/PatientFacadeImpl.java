@@ -42,6 +42,12 @@ public class PatientFacadeImpl implements PatientFacade {
     }
 
     @Override
+    public boolean hasVerifiedActiveInsurancePolicy(UUID patientId, LocalDate onDate) {
+        return patientRepository.findInsurancePoliciesByPatientId(patientId).stream()
+                .anyMatch(policy -> policy.isValidOn(onDate) && "VERIFIED".equals(policy.verificationStatus()));
+    }
+
+    @Override
     public Optional<PatientDemographics> findDemographics(UUID patientId) {
         return patientRepository.findById(patientId)
                 .map(patient -> new PatientDemographics(patient.dateOfBirth(), patient.gender()));
