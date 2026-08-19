@@ -756,6 +756,222 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ItemResponse"
+  /api/finance/payroll/batches:
+    post:
+      tags:
+      - payroll-controller
+      operationId: generate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GeneratePayrollBatchRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SalaryDisbursementBatchResponse"
+  /api/finance/payroll/batches/{id}/reverse:
+    post:
+      tags:
+      - payroll-controller
+      operationId: reverse
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReverseBatchRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SalaryDisbursementBatchResponse"
+  /api/finance/payroll/batches/{id}/disburse:
+    post:
+      tags:
+      - payroll-controller
+      operationId: disburse
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DisburseBatchRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SalaryDisbursementBatchResponse"
+  /api/finance/expenses:
+    get:
+      tags:
+      - expense-controller
+      operationId: findByStatus
+      parameters:
+      - name: status
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - DRAFT
+          - PENDING_APPROVAL
+          - APPROVED
+          - VOID
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExpenseResponse"
+    post:
+      tags:
+      - expense-controller
+      operationId: record_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordExpenseRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ExpenseResponse"
+  /api/finance/expenses/{id}/withdraw:
+    post:
+      tags:
+      - expense-controller
+      operationId: withdraw
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ExpenseResponse"
+  /api/finance/expenses/{id}/void:
+    post:
+      tags:
+      - expense-controller
+      operationId: voidExpense
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoidExpenseRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ExpenseResponse"
+  /api/finance/expenses/{id}/submit:
+    post:
+      tags:
+      - expense-controller
+      operationId: submit
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ExpenseResponse"
+  /api/finance/expenses/{id}/approve:
+    post:
+      tags:
+      - expense-controller
+      operationId: approve
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveExpenseRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ExpenseResponse"
+  /api/finance/deduction-rules:
+    post:
+      tags:
+      - deduction-rule-controller
+      operationId: define_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DefineDeductionRuleRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DeductionRuleResponse"
   /api/encounters:
     post:
       tags:
@@ -1218,7 +1434,7 @@ paths:
     post:
       tags:
       - wound-care-controller
-      operationId: record_1
+      operationId: record_2
       parameters:
       - name: admissionId
         in: path
@@ -1243,7 +1459,7 @@ paths:
     post:
       tags:
       - ward-vitals-controller
-      operationId: record_2
+      operationId: record_3
       parameters:
       - name: admissionId
         in: path
@@ -1289,7 +1505,7 @@ paths:
     post:
       tags:
       - shift-handover-controller
-      operationId: record_3
+      operationId: record_4
       parameters:
       - name: admissionId
         in: path
@@ -1650,6 +1866,101 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/MisclassificationReportResponse"
+  /api/finance/payroll/preview:
+    get:
+      tags:
+      - payroll-controller
+      operationId: preview
+      parameters:
+      - name: month
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - name: year
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PayrollBatchPreviewResponse"
+  /api/finance/payroll/batches/{id}:
+    get:
+      tags:
+      - payroll-controller
+      operationId: findById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SalaryDisbursementBatchResponse"
+  /api/finance/expenses/{id}:
+    get:
+      tags:
+      - expense-controller
+      operationId: findById_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ExpenseResponse"
+  /api/finance/deduction-rules/effective:
+    get:
+      tags:
+      - deduction-rule-controller
+      operationId: findEffective
+      parameters:
+      - name: employmentType
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - PERMANENT
+          - CONTRACT
+          - INTERN
+          - VOLUNTEER
+          - LOCUM
+      - name: asOf
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeductionRuleResponse"
   /api/encounters/{id}:
     get:
       tags:
@@ -1692,7 +2003,7 @@ paths:
     get:
       tags:
       - invoice-write-off-controller
-      operationId: findById
+      operationId: findById_2
       parameters:
       - name: id
         in: path
@@ -1725,7 +2036,7 @@ paths:
     get:
       tags:
       - refund-controller
-      operationId: findById_1
+      operationId: findById_3
       parameters:
       - name: id
         in: path
@@ -1808,7 +2119,7 @@ paths:
     get:
       tags:
       - credit-note-controller
-      operationId: findById_2
+      operationId: findById_4
       parameters:
       - name: id
         in: path
@@ -1841,7 +2152,7 @@ paths:
     get:
       tags:
       - invoice-cancellation-controller
-      operationId: findById_3
+      operationId: findById_5
       parameters:
       - name: id
         in: path
@@ -3213,6 +3524,301 @@ components:
       properties:
         requiresWitness:
           type: boolean
+    GeneratePayrollBatchRequest:
+      type: object
+      properties:
+        month:
+          maximum: 12
+          minimum: 1
+          type: integer
+          format: int32
+        year:
+          minimum: 2000
+          type: integer
+          format: int32
+    SalaryDisbursementBatchResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        batchType:
+          type: string
+        month:
+          type: integer
+          format: int32
+        year:
+          type: integer
+          format: int32
+        headcount:
+          type: integer
+          format: int32
+        grossTotalMinor:
+          type: integer
+          format: int64
+        deductionsTotalMinor:
+          type: integer
+          format: int64
+        netTotalMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        status:
+          type: string
+          enum:
+          - PENDING
+          - DISBURSED
+          - REVERSED
+        generatedBy:
+          type: string
+          format: uuid
+        generatedAt:
+          type: string
+          format: date-time
+        disbursedBy:
+          type: string
+          format: uuid
+        disbursedAt:
+          type: string
+          format: date-time
+        reversedBy:
+          type: string
+          format: uuid
+        reversedAt:
+          type: string
+          format: date-time
+        reversalReason:
+          type: string
+    ReverseBatchRequest:
+      required:
+      - reason
+      type: object
+      properties:
+        reason:
+          type: string
+    DisburseBatchRequest:
+      required:
+      - paymentMethod
+      type: object
+      properties:
+        paymentMethod:
+          type: string
+          enum:
+          - CASH
+          - DEBIT_CARD
+          - CREDIT_CARD
+          - MOBILE_MONEY
+          - BANK_TRANSFER
+          - CHEQUE
+    RecordExpenseRequest:
+      required:
+      - category
+      - expenseDate
+      - paidTo
+      - paymentMethod
+      - title
+      type: object
+      properties:
+        title:
+          type: string
+        category:
+          type: string
+        amountMinor:
+          minimum: 1
+          type: integer
+          format: int64
+        expenseDate:
+          type: string
+          format: date
+        paymentMethod:
+          type: string
+          enum:
+          - CASH
+          - DEBIT_CARD
+          - CREDIT_CARD
+          - MOBILE_MONEY
+          - BANK_TRANSFER
+          - CHEQUE
+        paidTo:
+          type: string
+        receiptNumber:
+          type: string
+        notes:
+          type: string
+        receiptFileKey:
+          type: string
+        recurring:
+          type: boolean
+        frequency:
+          type: string
+          enum:
+          - MONTHLY
+          - QUARTERLY
+          - ANNUALLY
+    ExpenseResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        category:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        expenseDate:
+          type: string
+          format: date
+        paymentMethod:
+          type: string
+          enum:
+          - CASH
+          - DEBIT_CARD
+          - CREDIT_CARD
+          - MOBILE_MONEY
+          - BANK_TRANSFER
+          - CHEQUE
+        paidTo:
+          type: string
+        receiptNumber:
+          type: string
+        notes:
+          type: string
+        receiptFileKey:
+          type: string
+        recurring:
+          type: boolean
+        frequency:
+          type: string
+          enum:
+          - MONTHLY
+          - QUARTERLY
+          - ANNUALLY
+        templateId:
+          type: string
+          format: uuid
+        period:
+          type: string
+        status:
+          type: string
+          enum:
+          - DRAFT
+          - PENDING_APPROVAL
+          - APPROVED
+          - VOID
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        approvedBy:
+          type: string
+          format: uuid
+        approvedAt:
+          type: string
+          format: date-time
+        approvalNote:
+          type: string
+        voidedBy:
+          type: string
+          format: uuid
+        voidedAt:
+          type: string
+          format: date-time
+        voidReason:
+          type: string
+    VoidExpenseRequest:
+      required:
+      - voidReason
+      type: object
+      properties:
+        voidReason:
+          type: string
+    ApproveExpenseRequest:
+      type: object
+      properties:
+        approvalNote:
+          type: string
+    DefineDeductionRuleRequest:
+      required:
+      - calculationMethod
+      - deductionCode
+      - employmentType
+      - rateOrAmount
+      type: object
+      properties:
+        employmentType:
+          type: string
+          enum:
+          - PERMANENT
+          - CONTRACT
+          - INTERN
+          - VOLUNTEER
+          - LOCUM
+        deductionCode:
+          type: string
+        calculationMethod:
+          type: string
+          enum:
+          - PERCENTAGE
+          - BAND
+          - FIXED
+        rateOrAmount:
+          type: number
+        thresholdMinor:
+          type: integer
+          format: int64
+        isEmployerPaid:
+          type: boolean
+    DeductionRuleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        employmentType:
+          type: string
+          enum:
+          - PERMANENT
+          - CONTRACT
+          - INTERN
+          - VOLUNTEER
+          - LOCUM
+        deductionCode:
+          type: string
+        calculationMethod:
+          type: string
+          enum:
+          - PERCENTAGE
+          - BAND
+          - FIXED
+        rateOrAmount:
+          type: number
+        thresholdMinor:
+          type: integer
+          format: int64
+        thresholdCurrencyCode:
+          type: string
+        isEmployerPaid:
+          type: boolean
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
     OpenEncounterRequest:
       required:
       - departmentId
@@ -4392,6 +4998,50 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ControlledReleaseResponse"
+    PayrollBatchPreviewResponse:
+      type: object
+      properties:
+        month:
+          type: integer
+          format: int32
+        year:
+          type: integer
+          format: int32
+        headcount:
+          type: integer
+          format: int32
+        grossTotalMinor:
+          type: integer
+          format: int64
+        deductionsTotalMinor:
+          type: integer
+          format: int64
+        netTotalMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/StaffLine"
+    StaffLine:
+      type: object
+      properties:
+        staffId:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        deductionsMinor:
+          type: integer
+          format: int64
+        netMinor:
+          type: integer
+          format: int64
     DispenseLabelResponse:
       type: object
       properties:

@@ -564,6 +564,150 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/finance/payroll/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/payroll/batches/{id}/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reverse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/payroll/batches/{id}/disburse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["disburse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["findByStatus"];
+        put?: never;
+        post: operations["record_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/expenses/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/expenses/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["voidExpense"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/expenses/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/expenses/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/deduction-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["define_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/encounters": {
         parameters: {
             query?: never;
@@ -877,7 +1021,7 @@ export interface paths {
         };
         get: operations["list_2"];
         put?: never;
-        post: operations["record_1"];
+        post: operations["record_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -893,7 +1037,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["record_2"];
+        post: operations["record_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -909,7 +1053,7 @@ export interface paths {
         };
         get: operations["list_3"];
         put?: never;
-        post: operations["record_3"];
+        post: operations["record_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1204,6 +1348,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/finance/payroll/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["preview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/payroll/batches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["findById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/expenses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["findById_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/finance/deduction-rules/effective": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["findEffective"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/encounters/{id}": {
         parameters: {
             query?: never;
@@ -1243,7 +1451,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["findById"];
+        get: operations["findById_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1275,7 +1483,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["findById_1"];
+        get: operations["findById_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1339,7 +1547,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["findById_2"];
+        get: operations["findById_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1371,7 +1579,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["findById_3"];
+        get: operations["findById_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2075,6 +2283,147 @@ export interface components {
         SetAdministrationWitnessRequest: {
             requiresWitness?: boolean;
         };
+        GeneratePayrollBatchRequest: {
+            /** Format: int32 */
+            month?: number;
+            /** Format: int32 */
+            year?: number;
+        };
+        SalaryDisbursementBatchResponse: {
+            /** Format: uuid */
+            id?: string;
+            batchType?: string;
+            /** Format: int32 */
+            month?: number;
+            /** Format: int32 */
+            year?: number;
+            /** Format: int32 */
+            headcount?: number;
+            /** Format: int64 */
+            grossTotalMinor?: number;
+            /** Format: int64 */
+            deductionsTotalMinor?: number;
+            /** Format: int64 */
+            netTotalMinor?: number;
+            currencyCode?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "DISBURSED" | "REVERSED";
+            /** Format: uuid */
+            generatedBy?: string;
+            /** Format: date-time */
+            generatedAt?: string;
+            /** Format: uuid */
+            disbursedBy?: string;
+            /** Format: date-time */
+            disbursedAt?: string;
+            /** Format: uuid */
+            reversedBy?: string;
+            /** Format: date-time */
+            reversedAt?: string;
+            reversalReason?: string;
+        };
+        ReverseBatchRequest: {
+            reason: string;
+        };
+        DisburseBatchRequest: {
+            /** @enum {string} */
+            paymentMethod: "CASH" | "DEBIT_CARD" | "CREDIT_CARD" | "MOBILE_MONEY" | "BANK_TRANSFER" | "CHEQUE";
+        };
+        RecordExpenseRequest: {
+            title: string;
+            category: string;
+            /** Format: int64 */
+            amountMinor?: number;
+            /** Format: date */
+            expenseDate: string;
+            /** @enum {string} */
+            paymentMethod: "CASH" | "DEBIT_CARD" | "CREDIT_CARD" | "MOBILE_MONEY" | "BANK_TRANSFER" | "CHEQUE";
+            paidTo: string;
+            receiptNumber?: string;
+            notes?: string;
+            receiptFileKey?: string;
+            recurring?: boolean;
+            /** @enum {string} */
+            frequency?: "MONTHLY" | "QUARTERLY" | "ANNUALLY";
+        };
+        ExpenseResponse: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            category?: string;
+            /** Format: int64 */
+            amountMinor?: number;
+            currencyCode?: string;
+            /** Format: date */
+            expenseDate?: string;
+            /** @enum {string} */
+            paymentMethod?: "CASH" | "DEBIT_CARD" | "CREDIT_CARD" | "MOBILE_MONEY" | "BANK_TRANSFER" | "CHEQUE";
+            paidTo?: string;
+            receiptNumber?: string;
+            notes?: string;
+            receiptFileKey?: string;
+            recurring?: boolean;
+            /** @enum {string} */
+            frequency?: "MONTHLY" | "QUARTERLY" | "ANNUALLY";
+            /** Format: uuid */
+            templateId?: string;
+            period?: string;
+            /** @enum {string} */
+            status?: "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "VOID";
+            /** Format: uuid */
+            createdBy?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: uuid */
+            approvedBy?: string;
+            /** Format: date-time */
+            approvedAt?: string;
+            approvalNote?: string;
+            /** Format: uuid */
+            voidedBy?: string;
+            /** Format: date-time */
+            voidedAt?: string;
+            voidReason?: string;
+        };
+        VoidExpenseRequest: {
+            voidReason: string;
+        };
+        ApproveExpenseRequest: {
+            approvalNote?: string;
+        };
+        DefineDeductionRuleRequest: {
+            /** @enum {string} */
+            employmentType: "PERMANENT" | "CONTRACT" | "INTERN" | "VOLUNTEER" | "LOCUM";
+            deductionCode: string;
+            /** @enum {string} */
+            calculationMethod: "PERCENTAGE" | "BAND" | "FIXED";
+            rateOrAmount: number;
+            /** Format: int64 */
+            thresholdMinor?: number;
+            isEmployerPaid?: boolean;
+        };
+        DeductionRuleResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            employmentType?: "PERMANENT" | "CONTRACT" | "INTERN" | "VOLUNTEER" | "LOCUM";
+            deductionCode?: string;
+            /** @enum {string} */
+            calculationMethod?: "PERCENTAGE" | "BAND" | "FIXED";
+            rateOrAmount?: number;
+            /** Format: int64 */
+            thresholdMinor?: number;
+            thresholdCurrencyCode?: string;
+            isEmployerPaid?: boolean;
+            /** Format: date */
+            effectiveFrom?: string;
+            /** Format: date */
+            effectiveTo?: string;
+            /** Format: uuid */
+            createdBy?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
         OpenEncounterRequest: {
             /** Format: uuid */
             patientId: string;
@@ -2671,6 +3020,33 @@ export interface components {
         MisclassificationReportResponse: {
             candidates?: components["schemas"]["MisclassificationCandidateResponse"][];
             controlledReleases?: components["schemas"]["ControlledReleaseResponse"][];
+        };
+        PayrollBatchPreviewResponse: {
+            /** Format: int32 */
+            month?: number;
+            /** Format: int32 */
+            year?: number;
+            /** Format: int32 */
+            headcount?: number;
+            /** Format: int64 */
+            grossTotalMinor?: number;
+            /** Format: int64 */
+            deductionsTotalMinor?: number;
+            /** Format: int64 */
+            netTotalMinor?: number;
+            currencyCode?: string;
+            lines?: components["schemas"]["StaffLine"][];
+        };
+        StaffLine: {
+            /** Format: uuid */
+            staffId?: string;
+            fullName?: string;
+            /** Format: int64 */
+            grossMinor?: number;
+            /** Format: int64 */
+            deductionsMinor?: number;
+            /** Format: int64 */
+            netMinor?: number;
         };
         DispenseLabelResponse: {
             patientName?: string;
@@ -3653,6 +4029,248 @@ export interface operations {
             };
         };
     };
+    generate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GeneratePayrollBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalaryDisbursementBatchResponse"];
+                };
+            };
+        };
+    };
+    reverse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReverseBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalaryDisbursementBatchResponse"];
+                };
+            };
+        };
+    };
+    disburse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisburseBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalaryDisbursementBatchResponse"];
+                };
+            };
+        };
+    };
+    findByStatus: {
+        parameters: {
+            query: {
+                status: "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "VOID";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExpenseResponse"][];
+                };
+            };
+        };
+    };
+    record_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordExpenseRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExpenseResponse"];
+                };
+            };
+        };
+    };
+    withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExpenseResponse"];
+                };
+            };
+        };
+    };
+    voidExpense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoidExpenseRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExpenseResponse"];
+                };
+            };
+        };
+    };
+    submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExpenseResponse"];
+                };
+            };
+        };
+    };
+    approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveExpenseRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExpenseResponse"];
+                };
+            };
+        };
+    };
+    define_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DefineDeductionRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DeductionRuleResponse"];
+                };
+            };
+        };
+    };
     open: {
         parameters: {
             query?: never;
@@ -4153,7 +4771,7 @@ export interface operations {
             };
         };
     };
-    record_1: {
+    record_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4179,7 +4797,7 @@ export interface operations {
             };
         };
     };
-    record_2: {
+    record_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -4227,7 +4845,7 @@ export interface operations {
             };
         };
     };
-    record_3: {
+    record_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -4642,6 +5260,96 @@ export interface operations {
             };
         };
     };
+    preview: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PayrollBatchPreviewResponse"];
+                };
+            };
+        };
+    };
+    findById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalaryDisbursementBatchResponse"];
+                };
+            };
+        };
+    };
+    findById_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExpenseResponse"];
+                };
+            };
+        };
+    };
+    findEffective: {
+        parameters: {
+            query: {
+                employmentType: "PERMANENT" | "CONTRACT" | "INTERN" | "VOLUNTEER" | "LOCUM";
+                asOf?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DeductionRuleResponse"][];
+                };
+            };
+        };
+    };
     getById_2: {
         parameters: {
             query?: never;
@@ -4686,7 +5394,7 @@ export interface operations {
             };
         };
     };
-    findById: {
+    findById_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4728,7 +5436,7 @@ export interface operations {
             };
         };
     };
-    findById_1: {
+    findById_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -4813,7 +5521,7 @@ export interface operations {
             };
         };
     };
-    findById_2: {
+    findById_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -4855,7 +5563,7 @@ export interface operations {
             };
         };
     };
-    findById_3: {
+    findById_5: {
         parameters: {
             query?: never;
             header?: never;

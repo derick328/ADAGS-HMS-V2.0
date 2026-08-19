@@ -19,6 +19,12 @@ import com.adags.modules.billing.domain.RefundExceedsAllocationException;
 import com.adags.modules.billing.domain.RefundSelfApprovalNotAllowedException;
 import com.adags.modules.encounters.application.InvalidEncounterTransitionException;
 import com.adags.modules.encounters.application.MissingCloseReasonException;
+import com.adags.modules.finance.domain.BatchSelfDisbursementNotAllowedException;
+import com.adags.modules.finance.domain.DuplicateBatchException;
+import com.adags.modules.finance.domain.DuplicateSalaryRecordException;
+import com.adags.modules.finance.domain.ExpenseSelfApprovalNotAllowedException;
+import com.adags.modules.finance.domain.InvalidBatchTransitionException;
+import com.adags.modules.finance.domain.InvalidExpenseTransitionException;
 import com.adags.modules.inventory.domain.BatchExpiredException;
 import com.adags.modules.inventory.domain.ControlledItemBlockedException;
 import com.adags.modules.inventory.domain.DuplicateItemCodeException;
@@ -369,6 +375,45 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
         problem.setProperty("invoiceId", ex.invoiceId());
         return problem;
+    }
+
+    // Phase 7 item 4 (expenses): DRAFT -> PENDING_APPROVAL -> APPROVED |
+    // VOID — the repository's WHERE-guarded UPDATE is the real guard.
+    @ExceptionHandler(InvalidExpenseTransitionException.class)
+    public ProblemDetail handleInvalidExpenseTransition(InvalidExpenseTransitionException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // root CLAUDE.md "Authorisation": CHECK (approved_by != created_by) on
+    // expenses — "one person recording, approving, and paying is the
+    // standard embezzlement path."
+    @ExceptionHandler(ExpenseSelfApprovalNotAllowedException.class)
+    public ProblemDetail handleExpenseSelfApprovalNotAllowed(ExpenseSelfApprovalNotAllowedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // Phase 7 item 4 (payroll): PENDING -> DISBURSED -> REVERSED.
+    @ExceptionHandler(InvalidBatchTransitionException.class)
+    public ProblemDetail handleInvalidBatchTransition(InvalidBatchTransitionException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // root CLAUDE.md "Authorisation": CHECK (generated_by != disbursed_by).
+    @ExceptionHandler(BatchSelfDisbursementNotAllowedException.class)
+    public ProblemDetail handleBatchSelfDisbursementNotAllowed(BatchSelfDisbursementNotAllowedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // root CLAUDE.md "Concurrency": UNIQUE (batch_type, month, year) —
+    // "running twice for one month must not pay twice."
+    @ExceptionHandler(DuplicateBatchException.class)
+    public ProblemDetail handleDuplicateBatch(DuplicateBatchException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateSalaryRecordException.class)
+    public ProblemDetail handleDuplicateSalaryRecord(DuplicateSalaryRecordException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(BillingGateRejectedException.class)
