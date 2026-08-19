@@ -1688,6 +1688,176 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CurrentStockResponse"
+  /api/reporting/revenue:
+    get:
+      tags:
+      - reporting-controller
+      operationId: revenue
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RevenueReport"
+  /api/reporting/receivables-overview:
+    get:
+      tags:
+      - reporting-controller
+      operationId: receivablesOverview
+      parameters:
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ReceivablesOverview"
+  /api/reporting/expenses/monthly-trend:
+    get:
+      tags:
+      - reporting-controller
+      operationId: expensesMonthlyTrend
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExpenseMonthlyTotal"
+  /api/reporting/expenses/by-category:
+    get:
+      tags:
+      - reporting-controller
+      operationId: expensesByCategory
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExpenseCategoryTotal"
+  /api/reporting/department-contribution:
+    get:
+      tags:
+      - reporting-controller
+      operationId: departmentContribution
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DepartmentContribution"
+  /api/reporting/claims:
+    get:
+      tags:
+      - reporting-controller
+      operationId: claims
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClaimsSummaryLine"
   /api/reference/icd10/search:
     get:
       tags:
@@ -4805,6 +4975,109 @@ components:
         quantity:
           type: integer
           format: int32
+    RevenueReport:
+      type: object
+      properties:
+        periodFrom:
+          type: string
+          format: date
+        periodTo:
+          type: string
+          format: date
+        collectedCashMinor:
+          type: integer
+          format: int64
+        insuranceBilledMinor:
+          type: integer
+          format: int64
+        emergencyBypassDebtMinor:
+          type: integer
+          format: int64
+        depositLiabilityMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+    ReceivablesOverview:
+      type: object
+      properties:
+        postDischargeOutstandingMinor:
+          type: integer
+          format: int64
+        postDischargeInvoiceCount:
+          type: integer
+          format: int32
+        activeEncounterOutstandingMinor:
+          type: integer
+          format: int64
+        activeEncounterInvoiceCount:
+          type: integer
+          format: int32
+        currencyCode:
+          type: string
+    ExpenseMonthlyTotal:
+      type: object
+      properties:
+        year:
+          type: integer
+          format: int32
+        month:
+          type: integer
+          format: int32
+        totalMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+    ExpenseCategoryTotal:
+      type: object
+      properties:
+        category:
+          type: string
+        totalMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+    DepartmentContribution:
+      type: object
+      properties:
+        departmentId:
+          type: string
+          format: uuid
+        departmentName:
+          type: string
+        cashCollectedMinor:
+          type: integer
+          format: int64
+        insuranceBilledMinor:
+          type: integer
+          format: int64
+        pharmacyCostMinor:
+          type: integer
+          format: int64
+        contributionMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        consumablesCostCaptured:
+          type: boolean
+        attributableSalariesCaptured:
+          type: boolean
+    ClaimsSummaryLine:
+      type: object
+      properties:
+        state:
+          type: string
+        count:
+          type: integer
+          format: int32
+        totalInsuranceAmountMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
     Icd10SearchResponse:
       type: object
       properties:

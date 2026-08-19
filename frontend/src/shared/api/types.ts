@@ -1204,6 +1204,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reporting/revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["revenue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reporting/receivables-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["receivablesOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reporting/expenses/monthly-trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["expensesMonthlyTrend"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reporting/expenses/by-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["expensesByCategory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reporting/department-contribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["departmentContribution"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reporting/claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["claims"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reference/icd10/search": {
         parameters: {
             query?: never;
@@ -2923,6 +3019,71 @@ export interface components {
             storeName?: string;
             /** Format: int32 */
             quantity?: number;
+        };
+        RevenueReport: {
+            /** Format: date */
+            periodFrom?: string;
+            /** Format: date */
+            periodTo?: string;
+            /** Format: int64 */
+            collectedCashMinor?: number;
+            /** Format: int64 */
+            insuranceBilledMinor?: number;
+            /** Format: int64 */
+            emergencyBypassDebtMinor?: number;
+            /** Format: int64 */
+            depositLiabilityMinor?: number;
+            currencyCode?: string;
+        };
+        ReceivablesOverview: {
+            /** Format: int64 */
+            postDischargeOutstandingMinor?: number;
+            /** Format: int32 */
+            postDischargeInvoiceCount?: number;
+            /** Format: int64 */
+            activeEncounterOutstandingMinor?: number;
+            /** Format: int32 */
+            activeEncounterInvoiceCount?: number;
+            currencyCode?: string;
+        };
+        ExpenseMonthlyTotal: {
+            /** Format: int32 */
+            year?: number;
+            /** Format: int32 */
+            month?: number;
+            /** Format: int64 */
+            totalMinor?: number;
+            currencyCode?: string;
+        };
+        ExpenseCategoryTotal: {
+            category?: string;
+            /** Format: int64 */
+            totalMinor?: number;
+            currencyCode?: string;
+        };
+        DepartmentContribution: {
+            /** Format: uuid */
+            departmentId?: string;
+            departmentName?: string;
+            /** Format: int64 */
+            cashCollectedMinor?: number;
+            /** Format: int64 */
+            insuranceBilledMinor?: number;
+            /** Format: int64 */
+            pharmacyCostMinor?: number;
+            /** Format: int64 */
+            contributionMinor?: number;
+            currencyCode?: string;
+            consumablesCostCaptured?: boolean;
+            attributableSalariesCaptured?: boolean;
+        };
+        ClaimsSummaryLine: {
+            state?: string;
+            /** Format: int32 */
+            count?: number;
+            /** Format: int64 */
+            totalInsuranceAmountMinor?: number;
+            currencyCode?: string;
         };
         Icd10SearchResponse: {
             /** Format: uuid */
@@ -5058,6 +5219,146 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CurrentStockResponse"][];
+                };
+            };
+        };
+    };
+    revenue: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                facilityId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RevenueReport"];
+                };
+            };
+        };
+    };
+    receivablesOverview: {
+        parameters: {
+            query: {
+                facilityId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReceivablesOverview"];
+                };
+            };
+        };
+    };
+    expensesMonthlyTrend: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExpenseMonthlyTotal"][];
+                };
+            };
+        };
+    };
+    expensesByCategory: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExpenseCategoryTotal"][];
+                };
+            };
+        };
+    };
+    departmentContribution: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                facilityId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DepartmentContribution"][];
+                };
+            };
+        };
+    };
+    claims: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                facilityId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClaimsSummaryLine"][];
                 };
             };
         };
