@@ -1,6 +1,7 @@
 package com.adags.modules.patients.infrastructure;
 
 import com.adags.modules.patients.PatientFacade;
+import com.adags.modules.patients.domain.InsurancePolicy;
 import com.adags.modules.patients.domain.PatientRepository;
 import com.adags.shared.kernel.PatientDemographics;
 import com.adags.shared.kernel.PatientIdentity;
@@ -30,6 +31,14 @@ public class PatientFacadeImpl implements PatientFacade {
         boolean hasActivePolicy = patientRepository.findInsurancePoliciesByPatientId(patientId).stream()
                 .anyMatch(policy -> policy.isValidOn(onDate));
         return hasActivePolicy ? PayerType.INSURANCE : PayerType.CASH;
+    }
+
+    @Override
+    public Optional<UUID> resolveActiveInsuranceSchemeId(UUID patientId, LocalDate onDate) {
+        return patientRepository.findInsurancePoliciesByPatientId(patientId).stream()
+                .filter(policy -> policy.isValidOn(onDate))
+                .map(InsurancePolicy::schemeId)
+                .findFirst();
     }
 
     @Override

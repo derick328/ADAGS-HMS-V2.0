@@ -3,6 +3,7 @@ package com.adags.modules.insurance;
 import com.adags.modules.insurance.domain.CoverageType;
 import com.adags.modules.insurance.domain.SchemeCoverageRule;
 import com.adags.modules.insurance.domain.ServiceCategory;
+import com.adags.shared.kernel.Money;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -74,5 +75,80 @@ class SchemeCoverageRuleTest {
 
         assertThat(rule.serviceItemId()).isEqualTo(serviceItemId);
         assertThat(rule.serviceCategory()).isNull();
+    }
+
+    // Phase 7 item 3 part 2: computeSplit — the pure arithmetic behind
+    // the InvoiceLine split.
+
+    @Test
+    void fullMeansInsuranceCoversTheWholeGross() {
+        SchemeCoverageRule rule = SchemeCoverageRule.forCategory(
+                UUID.randomUUID(), ServiceCategory.LAB, CoverageType.FULL, null, false, UUID.randomUUID());
+
+        SchemeCoverageRule.Split split = rule.computeSplit(new Money(50_000, "TZS"));
+
+        assertThat(split.insurancePortion()).isEqualTo(new Money(50_000, "TZS"));
+        assertThat(split.patientPortion()).isEqualTo(new Money(0, "TZS"));
+    }
+
+    @Test
+    void excludedMeansThePatientPaysEverything() {
+        SchemeCoverageRule rule = SchemeCoverageRule.forCategory(
+                UUID.randomUUID(), ServiceCategory.PHARMACY, CoverageType.EXCLUDED, null, false, UUID.randomUUID());
+
+        SchemeCoverageRule.Split split = rule.computeSplit(new Money(50_000, "TZS"));
+
+        assertThat(split.insurancePortion()).isEqualTo(new Money(0, "TZS"));
+        assertThat(split.patientPortion()).isEqualTo(new Money(50_000, "TZS"));
+    }
+
+    @Test
+    void percentageSplitsProportionallyAndTheHalvesSumToGross() {
+        SchemeCoverageRule rule = SchemeCoverageRule.forCategory(
+                UUID.randomUUID(), ServiceCategory.CONSULTATION, CoverageType.PERCENTAGE, BigDecimal.valueOf(80), false, UUID.randomUUID());
+
+        SchemeCoverageRule.Split split = rule.computeSplit(new Money(10_000, "TZS"));
+
+        assertThat(split.insurancePortion()).isEqualTo(new Money(8_000, "TZS"));
+        assertThat(split.patientPortion()).isEqualTo(new Money(2_000, "TZS"));
+    }
+
+    // A percentage that doesn't divide evenly into whole minor units must
+    // still leave the two halves summing exactly to gross —
+    // patientPortion is always the remainder, never independently
+    // rounded, so there is never an unaccounted-for minor unit.
+    @Test
+    void percentageRoundingNeverLosesOrGainsAMinorUnit() {
+        SchemeCoverageRule rule = SchemeCoverageRule.forCategory(
+                UUID.randomUUID(), ServiceCategory.CONSULTATION, CoverageType.PERCENTAGE, BigDecimal.valueOf(33), false, UUID.randomUUID());
+
+        // 10 * 33% = 3.3, rounds HALF_UP to 3 — not an exact division.
+        SchemeCoverageRule.Split split = rule.computeSplit(new Money(10, "TZS"));
+
+        assertThat(split.insurancePortion().amountMinor() + split.patientPortion().amountMinor()).isEqualTo(10);
+        assertThat(split.insurancePortion()).isEqualTo(new Money(3, "TZS"));
+        assertThat(split.patientPortion()).isEqualTo(new Money(7, "TZS"));
+    }
+
+    @Test
+    void fixedAmountIsCappedAtGross() {
+        SchemeCoverageRule rule = SchemeCoverageRule.forServiceItem(
+                UUID.randomUUID(), UUID.randomUUID(), CoverageType.FIXED_AMOUNT, BigDecimal.valueOf(100_000), false, UUID.randomUUID());
+
+        SchemeCoverageRule.Split split = rule.computeSplit(new Money(30_000, "TZS"));
+
+        assertThat(split.insurancePortion()).isEqualTo(new Money(30_000, "TZS"));
+        assertThat(split.patientPortion()).isEqualTo(new Money(0, "TZS"));
+    }
+
+    @Test
+    void fixedAmountBelowGrossLeavesARemainderForThePatient() {
+        SchemeCoverageRule rule = SchemeCoverageRule.forServiceItem(
+                UUID.randomUUID(), UUID.randomUUID(), CoverageType.FIXED_AMOUNT, BigDecimal.valueOf(20_000), false, UUID.randomUUID());
+
+        SchemeCoverageRule.Split split = rule.computeSplit(new Money(30_000, "TZS"));
+
+        assertThat(split.insurancePortion()).isEqualTo(new Money(20_000, "TZS"));
+        assertThat(split.patientPortion()).isEqualTo(new Money(10_000, "TZS"));
     }
 }

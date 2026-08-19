@@ -18,6 +18,22 @@ public interface PatientFacade {
     /** Active insurance policy on {@code onDate}, else CASH — 05-receptionist.md §5.2 step 2. */
     PayerType resolvePayerType(UUID patientId, LocalDate onDate);
 
+    /**
+     * The scheme of the patient's active insurance policy on
+     * {@code onDate}, if any — Phase 7 item 3: the coverage-rule split
+     * needs the scheme id itself, not just the coarse CASH/INSURANCE
+     * PayerType resolvePayerType already gives. Same "active" definition
+     * as resolvePayerType (InsurancePolicy.isValidOn), not verification
+     * status — verifying the policy is the billing gate's concern
+     * (BillingGate / a later part), not this split.
+     *
+     * ⚠ If a patient holds more than one active policy, the first found
+     * wins — no stated precedence exists yet (e.g. principal over
+     * dependent, or newest over oldest). Revisit if that ever matters in
+     * practice.
+     */
+    Optional<UUID> resolveActiveInsuranceSchemeId(UUID patientId, LocalDate onDate);
+
     /** Date of birth and gender — clinical/encounters need these for age-band vital ranges and pregnancy-prompt eligibility. */
     Optional<PatientDemographics> findDemographics(UUID patientId);
 

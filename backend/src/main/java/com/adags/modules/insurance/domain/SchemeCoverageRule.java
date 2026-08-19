@@ -1,6 +1,9 @@
 package com.adags.modules.insurance.domain;
 
+import com.adags.shared.kernel.Money;
+
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -62,5 +65,37 @@ public record SchemeCoverageRule(
                 && (coverageValue.signum() < 0 || coverageValue.compareTo(BigDecimal.valueOf(100)) > 0)) {
             throw new IllegalArgumentException("A PERCENTAGE coverageValue must be between 0 and 100.");
         }
+    }
+
+    // Phase 7 item 3 part 2: the InvoiceLine split this rule produces for
+    // a given gross amount. Pure computation, no I/O — unit-testable
+    // without a Spring context (backend/CLAUDE.md "Testing").
+    //
+    //   FULL         insurancePortion = gross,                    patientPortion = 0
+    //   PERCENTAGE   insurancePortion = round(gross * value/100),  patientPortion = remainder
+    //   FIXED_AMOUNT insurancePortion = min(value, gross),         patientPortion = remainder
+    //   EXCLUDED     insurancePortion = 0,                         patientPortion = gross
+    //
+    // patientPortion is always gross minus insurancePortion (a remainder),
+    // never independently rounded — so the two halves always sum back to
+    // gross exactly, with no rounding-gap minor unit unaccounted for.
+    public Split computeSplit(Money gross) {
+        long grossMinor = gross.amountMinor();
+        long insuranceMinor = switch (coverageType) {
+            case FULL -> grossMinor;
+            case EXCLUDED -> 0L;
+            // coverageValue is 0-100 here (V46), not a 0-1 fraction —
+            // dividing by 100 is not optional.
+            case PERCENTAGE -> BigDecimal.valueOf(grossMinor)
+                    .multiply(coverageValue)
+                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP)
+                    .longValueExact();
+            case FIXED_AMOUNT -> Math.min(coverageValue.longValueExact(), grossMinor);
+        };
+        long patientMinor = grossMinor - insuranceMinor;
+        return new Split(new Money(insuranceMinor, gross.currencyCode()), new Money(patientMinor, gross.currencyCode()));
+    }
+
+    public record Split(Money insurancePortion, Money patientPortion) {
     }
 }

@@ -35,7 +35,18 @@ public record InvoiceLine(
     public static InvoiceLine unauthorized(UUID invoiceId, UUID serviceItemId, int quantity, Money grossAmount,
                                             Money insurancePortion, Money patientPortion,
                                             String sourceEventType, UUID sourceEventId) {
+        return unauthorized(invoiceId, serviceItemId, quantity, grossAmount, insurancePortion, patientPortion,
+                null, sourceEventType, sourceEventId);
+    }
+
+    // Phase 7 item 3 part 2: the insured variant — coverageRuleId names
+    // which SchemeCoverageRule produced insurancePortion/patientPortion,
+    // so a later dispute or reconciliation can be traced back to the rule
+    // in effect at posting time, not just today's rule.
+    public static InvoiceLine unauthorized(UUID invoiceId, UUID serviceItemId, int quantity, Money grossAmount,
+                                            Money insurancePortion, Money patientPortion, UUID coverageRuleId,
+                                            String sourceEventType, UUID sourceEventId) {
         return new InvoiceLine(null, invoiceId, serviceItemId, quantity, grossAmount, insurancePortion,
-                patientPortion, null, null, sourceEventType, sourceEventId, null);
+                patientPortion, coverageRuleId, null, sourceEventType, sourceEventId, null);
     }
 }

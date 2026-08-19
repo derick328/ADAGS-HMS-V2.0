@@ -8,7 +8,10 @@ import com.adags.modules.billing.domain.PayerCategory;
 import com.adags.modules.billing.domain.PriceNotConfiguredException;
 import com.adags.modules.billing.domain.ServiceItem;
 import com.adags.modules.billing.domain.ServiceItemRepository;
+import com.adags.modules.insurance.InsuranceFacade;
+import com.adags.modules.patients.PatientFacade;
 import com.adags.shared.events.DomainEventPublisher;
+import com.adags.shared.kernel.CoverageSplit;
 import com.adags.shared.kernel.Money;
 import com.adags.shared.numbering.GaplessNumberAllocator;
 import org.springframework.stereotype.Service;
@@ -17,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 // 02-billing-architecture.md §4: "Every charge is posted by a domain
@@ -43,6 +47,8 @@ public class ChargePostingService {
     private final InvoiceLineRepository invoiceLineRepository;
     private final GaplessNumberAllocator numberAllocator;
     private final DomainEventPublisher eventPublisher;
+    private final PatientFacade patientFacade;
+    private final InsuranceFacade insuranceFacade;
     private final Clock clock;
 
     public ChargePostingService(
@@ -52,6 +58,8 @@ public class ChargePostingService {
             InvoiceLineRepository invoiceLineRepository,
             GaplessNumberAllocator numberAllocator,
             DomainEventPublisher eventPublisher,
+            PatientFacade patientFacade,
+            InsuranceFacade insuranceFacade,
             Clock clock
     ) {
         this.serviceItemRepository = serviceItemRepository;
@@ -60,6 +68,8 @@ public class ChargePostingService {
         this.invoiceLineRepository = invoiceLineRepository;
         this.numberAllocator = numberAllocator;
         this.eventPublisher = eventPublisher;
+        this.patientFacade = patientFacade;
+        this.insuranceFacade = insuranceFacade;
         this.clock = clock;
     }
 
@@ -69,9 +79,48 @@ public class ChargePostingService {
         Money unitPrice = priceResolutionService.resolvePrice(command.serviceItemCode(), command.payerCategory());
         Money gross = unitPrice.times(command.quantity());
 
+        CoverageSplitResult split = resolveCoverageSplit(command.payerCategory(), command.patientId(), serviceItem, gross);
+
         return issueSingleLineInvoice(serviceItem, command.encounterId(), command.patientId(), command.facilityId(),
                 command.payerCategory(), command.insurancePolicyId(), command.quantity(), gross,
+                split.insurancePortion(), split.patientPortion(), split.coverageRuleId(),
                 command.serviceItemCode(), command.sourceEventType(), command.sourceEventId(), command.actorUserId());
+    }
+
+    /**
+     * 02-billing-architecture.md §6.2/§6.3: for an NHIF/PRIVATE_SCHEME
+     * charge against a patient who actually holds an active policy on the
+     * service date, resolve that policy's scheme's coverage rule and
+     * split gross accordingly. Every other case — CASH/CORPORATE/STAFF,
+     * or an insurance-category charge with no active policy on file —
+     * falls through unchanged: the whole charge is the patient's portion,
+     * byte-identical to every phase before this one.
+     *
+     * ⚠ Once a scheme is actually resolved, a missing coverage rule for
+     * this item/category/date is NOT treated the same as "no policy" —
+     * it throws (CoverageRuleNotConfiguredException, via InsuranceFacade).
+     * A configuration gap is not a business answer; guessing EXCLUDED or
+     * FULL mis-prices the patient or the scheme.
+     */
+    private CoverageSplitResult resolveCoverageSplit(PayerCategory payerCategory, UUID patientId,
+                                                       ServiceItem serviceItem, Money gross) {
+        if (payerCategory != PayerCategory.NHIF && payerCategory != PayerCategory.PRIVATE_SCHEME) {
+            return CoverageSplitResult.patientPaysAll(gross);
+        }
+        LocalDate serviceDate = LocalDate.now(clock);
+        Optional<UUID> schemeId = patientFacade.resolveActiveInsuranceSchemeId(patientId, serviceDate);
+        if (schemeId.isEmpty()) {
+            return CoverageSplitResult.patientPaysAll(gross);
+        }
+        CoverageSplit split = insuranceFacade.resolveCoverageSplit(
+                schemeId.get(), serviceItem.id(), serviceItem.category().name(), gross, serviceDate);
+        return new CoverageSplitResult(split.insurancePortion(), split.patientPortion(), split.coverageRuleId());
+    }
+
+    private record CoverageSplitResult(Money insurancePortion, Money patientPortion, UUID coverageRuleId) {
+        static CoverageSplitResult patientPaysAll(Money gross) {
+            return new CoverageSplitResult(new Money(0, gross.currencyCode()), gross, null);
+        }
     }
 
     /**
@@ -95,9 +144,16 @@ public class ChargePostingService {
     public ChargePostingResult postFixedAmountCharge(FixedAmountChargePostingCommand command) {
         ServiceItem serviceItem = requireActiveServiceItem(command.serviceItemCode());
 
+        // Deliberately not run through resolveCoverageSplit — this caller
+        // supplies its own pre-resolved amount rather than going through
+        // PriceResolutionService (see this method's class-level comment:
+        // "Known gap, flagged for Phase 7 (insurance)... leaving this as
+        // is until the insurance module needs per-payer ward pricing
+        // anyway"). Still out of scope here.
         return issueSingleLineInvoice(serviceItem, command.encounterId(), command.patientId(), command.facilityId(),
-                command.payerCategory(), null, 1, command.amount(), command.serviceItemCode(),
-                command.sourceEventType(), command.sourceEventId(), command.actorUserId());
+                command.payerCategory(), null, 1, command.amount(),
+                new Money(0, command.amount().currencyCode()), command.amount(), null,
+                command.serviceItemCode(), command.sourceEventType(), command.sourceEventId(), command.actorUserId());
     }
 
     private ServiceItem requireActiveServiceItem(String serviceItemCode) {
@@ -110,18 +166,14 @@ public class ChargePostingService {
     private ChargePostingResult issueSingleLineInvoice(
             ServiceItem serviceItem, UUID encounterId, UUID patientId, UUID facilityId,
             PayerCategory payerCategory, UUID insurancePolicyId, int quantity, Money gross,
+            Money insurancePortion, Money patientPortion, UUID coverageRuleId,
             String serviceItemCode, String sourceEventType, UUID sourceEventId, UUID actorUserId
     ) {
-        // No insurance module yet: the whole charge is the patient's
-        // portion until SchemeCoverageRule exists to split it (§6.3).
-        Money insurancePortion = new Money(0, gross.currencyCode());
-        Money patientPortion = gross;
-
         Invoice draft = invoiceRepository.insertDraft(Invoice.draft(encounterId, patientId, facilityId,
                 payerCategory, insurancePolicyId, actorUserId));
 
         InvoiceLine line = invoiceLineRepository.insert(InvoiceLine.unauthorized(draft.id(), serviceItem.id(),
-                quantity, gross, insurancePortion, patientPortion, sourceEventType, sourceEventId));
+                quantity, gross, insurancePortion, patientPortion, coverageRuleId, sourceEventType, sourceEventId));
 
         String invoiceNumber = numberAllocator.allocate(
                 INVOICE_NUMBER_SEQUENCE, facilityId, LocalDate.now(clock).getYear(), INVOICE_NUMBER_PAD_WIDTH);
