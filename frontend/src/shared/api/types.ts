@@ -644,7 +644,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/billing/invoices/{invoiceId}/write-offs": {
+    "/api/billing/refunds/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["review_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/payment-allocations/{paymentAllocationId}/refunds": {
         parameters: {
             query?: never;
             header?: never;
@@ -654,6 +670,54 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/invoices/{invoiceId}/write-offs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["request_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/invoices/{invoiceId}/credit-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/credit-notes/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["review_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1172,6 +1236,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/billing/refunds/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["findById_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/refunds/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pending_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/billing/receivables": {
         parameters: {
             query?: never;
@@ -1196,6 +1292,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["agingSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/credit-notes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["findById_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/credit-notes/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pending_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1988,10 +2116,76 @@ export interface components {
             decidedAt?: string;
             decisionNote?: string;
         };
+        ReviewRefundRequest: {
+            /** @enum {string} */
+            decision: "PENDING" | "APPLIED" | "REJECTED";
+            decisionNote?: string;
+        };
+        RefundResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            paymentAllocationId?: string;
+            /** Format: int64 */
+            amountMinor?: number;
+            currencyCode?: string;
+            reason?: string;
+            /** Format: uuid */
+            requestedBy?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            requiresSecondSignature?: boolean;
+            /** @enum {string} */
+            status?: "PENDING" | "APPLIED" | "REJECTED";
+            /** Format: uuid */
+            decidedBy?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            decisionNote?: string;
+        };
+        RequestRefundRequest: {
+            /** Format: int64 */
+            amountMinor?: number;
+            reason: string;
+        };
         RequestInvoiceWriteOffRequest: {
             /** Format: int64 */
             amountMinor?: number;
             reason: string;
+        };
+        IssueCreditNoteRequest: {
+            /** Format: int64 */
+            amountMinor?: number;
+            reason: string;
+            reference?: string;
+        };
+        CreditNoteResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            invoiceId?: string;
+            /** Format: int64 */
+            amountMinor?: number;
+            currencyCode?: string;
+            reason?: string;
+            reference?: string;
+            /** Format: uuid */
+            issuedBy?: string;
+            /** Format: date-time */
+            issuedAt?: string;
+            requiresSecondSignature?: boolean;
+            /** @enum {string} */
+            status?: "PENDING" | "APPLIED" | "REJECTED";
+            /** Format: uuid */
+            approvedBy?: string;
+            /** Format: date-time */
+            approvedAt?: string;
+            decisionNote?: string;
+        };
+        ReviewCreditNoteRequest: {
+            /** @enum {string} */
+            decision: "PENDING" | "APPLIED" | "REJECTED";
+            decisionNote?: string;
         };
         AdmitPatientRequest: {
             /** Format: uuid */
@@ -3485,7 +3679,59 @@ export interface operations {
             };
         };
     };
+    review_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewRefundRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefundResponse"];
+                };
+            };
+        };
+    };
     request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentAllocationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestRefundRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefundResponse"];
+                };
+            };
+        };
+    };
+    request_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3507,6 +3753,58 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvoiceWriteOffResponse"];
+                };
+            };
+        };
+    };
+    issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueCreditNoteRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CreditNoteResponse"];
+                };
+            };
+        };
+    };
+    review_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewCreditNoteRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CreditNoteResponse"];
                 };
             };
         };
@@ -4284,6 +4582,48 @@ export interface operations {
             };
         };
     };
+    findById_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefundResponse"];
+                };
+            };
+        };
+    };
+    pending_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefundResponse"][];
+                };
+            };
+        };
+    };
     list_1: {
         parameters: {
             query?: {
@@ -4323,6 +4663,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AgingSummaryResponse"][];
+                };
+            };
+        };
+    };
+    findById_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CreditNoteResponse"];
+                };
+            };
+        };
+    };
+    pending_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CreditNoteResponse"][];
                 };
             };
         };

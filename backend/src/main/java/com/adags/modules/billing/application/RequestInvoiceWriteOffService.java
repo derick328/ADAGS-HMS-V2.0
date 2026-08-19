@@ -8,7 +8,6 @@ import com.adags.modules.billing.domain.InvoiceWriteOff;
 import com.adags.modules.billing.domain.InvoiceWriteOffRepository;
 import com.adags.modules.billing.domain.WriteOffStatus;
 import com.adags.shared.kernel.Money;
-import com.adags.shared.settings.ProtocolSettingReader;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,25 +20,18 @@ import java.util.NoSuchElementException;
 @Service
 public class RequestInvoiceWriteOffService {
 
-    // root CLAUDE.md "Money": stored as an admin-tunable protocol_setting
-    // (V43), not a constant — same reasoning as the patient duplicate-
-    // detection thresholds. Default mirrors the seed row; only used if
-    // that row is ever missing.
-    static final String THRESHOLD_SETTING_KEY = "billing.write_off.second_signature_threshold_minor";
-    private static final double DEFAULT_THRESHOLD_MINOR = 10_000_000;
-
     private final InvoiceRepository invoiceRepository;
     private final InvoiceWriteOffRepository invoiceWriteOffRepository;
-    private final ProtocolSettingReader protocolSettingReader;
+    private final SecondSignatureThresholdResolver thresholdResolver;
 
     public RequestInvoiceWriteOffService(
             InvoiceRepository invoiceRepository,
             InvoiceWriteOffRepository invoiceWriteOffRepository,
-            ProtocolSettingReader protocolSettingReader
+            SecondSignatureThresholdResolver thresholdResolver
     ) {
         this.invoiceRepository = invoiceRepository;
         this.invoiceWriteOffRepository = invoiceWriteOffRepository;
-        this.protocolSettingReader = protocolSettingReader;
+        this.thresholdResolver = thresholdResolver;
     }
 
     @Transactional
@@ -54,8 +46,7 @@ public class RequestInvoiceWriteOffService {
                     + " exceeds outstanding balance " + invoice.outstandingTotal().amountMinor() + ".");
         }
 
-        double thresholdMinor = protocolSettingReader.getDouble(THRESHOLD_SETTING_KEY, DEFAULT_THRESHOLD_MINOR);
-        boolean requiresSecondSignature = command.amountMinor() > thresholdMinor;
+        boolean requiresSecondSignature = thresholdResolver.requiresSecondSignature(command.amountMinor());
 
         InvoiceWriteOff saved = invoiceWriteOffRepository.insert(InvoiceWriteOff.request(invoice.id(),
                 new Money(command.amountMinor(), invoice.outstandingTotal().currencyCode()),

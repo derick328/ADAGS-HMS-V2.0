@@ -1,5 +1,6 @@
 package com.adags.modules.billing.infrastructure;
 
+import com.adags.modules.billing.domain.CreditNoteExceedsOutstandingException;
 import com.adags.modules.billing.domain.Invoice;
 import com.adags.modules.billing.domain.InvoiceCannotBeVoidedException;
 import com.adags.modules.billing.domain.InvoiceRepository;
@@ -175,6 +176,35 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
         if (updated == 0) {
             throw new InvoiceWriteOffExceedsOutstandingException(invoiceId);
         }
+        return findById(invoiceId).orElseThrow();
+    }
+
+    @Override
+    public Invoice recordCreditNote(UUID invoiceId, Money amount) {
+        String sql = """
+                UPDATE invoice
+                SET outstanding_total_minor = outstanding_total_minor - :amountMinor
+                WHERE id = :invoiceId AND state NOT IN ('DRAFT', 'VOID', 'CANCELLATION_PENDING')
+                  AND outstanding_total_minor >= :amountMinor
+                """;
+        int updated = jdbcTemplate.update(sql, new MapSqlParameterSource()
+                .addValue("invoiceId", invoiceId)
+                .addValue("amountMinor", amount.amountMinor()));
+        if (updated == 0) {
+            throw new CreditNoteExceedsOutstandingException(invoiceId);
+        }
+        return findById(invoiceId).orElseThrow();
+    }
+
+    @Override
+    public Invoice recordRefund(UUID invoiceId, Money amount) {
+        jdbcTemplate.update("""
+                        UPDATE invoice SET outstanding_total_minor = outstanding_total_minor + :amountMinor
+                        WHERE id = :invoiceId
+                        """,
+                new MapSqlParameterSource()
+                        .addValue("invoiceId", invoiceId)
+                        .addValue("amountMinor", amount.amountMinor()));
         return findById(invoiceId).orElseThrow();
     }
 

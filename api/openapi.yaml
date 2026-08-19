@@ -857,11 +857,61 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/InvoiceWriteOffResponse"
+  /api/billing/refunds/{id}/review:
+    post:
+      tags:
+      - refund-controller
+      operationId: review_3
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewRefundRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RefundResponse"
+  /api/billing/payment-allocations/{paymentAllocationId}/refunds:
+    post:
+      tags:
+      - refund-controller
+      operationId: request
+      parameters:
+      - name: paymentAllocationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestRefundRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RefundResponse"
   /api/billing/invoices/{invoiceId}/write-offs:
     post:
       tags:
       - invoice-write-off-controller
-      operationId: request
+      operationId: request_1
       parameters:
       - name: invoiceId
         in: path
@@ -882,6 +932,56 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/InvoiceWriteOffResponse"
+  /api/billing/invoices/{invoiceId}/credit-notes:
+    post:
+      tags:
+      - credit-note-controller
+      operationId: issue
+      parameters:
+      - name: invoiceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueCreditNoteRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CreditNoteResponse"
+  /api/billing/credit-notes/{id}/review:
+    post:
+      tags:
+      - credit-note-controller
+      operationId: review_4
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewCreditNoteRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CreditNoteResponse"
   /api/admissions:
     post:
       tags:
@@ -1571,6 +1671,39 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/InvoiceWriteOffResponse"
+  /api/billing/refunds/{id}:
+    get:
+      tags:
+      - refund-controller
+      operationId: findById_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RefundResponse"
+  /api/billing/refunds/pending:
+    get:
+      tags:
+      - refund-controller
+      operationId: pending_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RefundResponse"
   /api/billing/receivables:
     get:
       tags:
@@ -1621,6 +1754,39 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AgingSummaryResponse"
+  /api/billing/credit-notes/{id}:
+    get:
+      tags:
+      - credit-note-controller
+      operationId: findById_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CreditNoteResponse"
+  /api/billing/credit-notes/pending:
+    get:
+      tags:
+      - credit-note-controller
+      operationId: pending_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreditNoteResponse"
   /api/admissions/{id}:
     get:
       tags:
@@ -3190,6 +3356,68 @@ components:
           format: date-time
         decisionNote:
           type: string
+    ReviewRefundRequest:
+      required:
+      - decision
+      type: object
+      properties:
+        decision:
+          type: string
+          enum:
+          - PENDING
+          - APPLIED
+          - REJECTED
+        decisionNote:
+          type: string
+    RefundResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        paymentAllocationId:
+          type: string
+          format: uuid
+        amountMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        reason:
+          type: string
+        requestedBy:
+          type: string
+          format: uuid
+        requestedAt:
+          type: string
+          format: date-time
+        requiresSecondSignature:
+          type: boolean
+        status:
+          type: string
+          enum:
+          - PENDING
+          - APPLIED
+          - REJECTED
+        decidedBy:
+          type: string
+          format: uuid
+        decidedAt:
+          type: string
+          format: date-time
+        decisionNote:
+          type: string
+    RequestRefundRequest:
+      required:
+      - reason
+      type: object
+      properties:
+        amountMinor:
+          minimum: 1
+          type: integer
+          format: int64
+        reason:
+          type: string
     RequestInvoiceWriteOffRequest:
       required:
       - reason
@@ -3200,6 +3428,72 @@ components:
           type: integer
           format: int64
         reason:
+          type: string
+    IssueCreditNoteRequest:
+      required:
+      - reason
+      type: object
+      properties:
+        amountMinor:
+          minimum: 1
+          type: integer
+          format: int64
+        reason:
+          type: string
+        reference:
+          type: string
+    CreditNoteResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        invoiceId:
+          type: string
+          format: uuid
+        amountMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        reason:
+          type: string
+        reference:
+          type: string
+        issuedBy:
+          type: string
+          format: uuid
+        issuedAt:
+          type: string
+          format: date-time
+        requiresSecondSignature:
+          type: boolean
+        status:
+          type: string
+          enum:
+          - PENDING
+          - APPLIED
+          - REJECTED
+        approvedBy:
+          type: string
+          format: uuid
+        approvedAt:
+          type: string
+          format: date-time
+        decisionNote:
+          type: string
+    ReviewCreditNoteRequest:
+      required:
+      - decision
+      type: object
+      properties:
+        decision:
+          type: string
+          enum:
+          - PENDING
+          - APPLIED
+          - REJECTED
+        decisionNote:
           type: string
     AdmitPatientRequest:
       required:

@@ -70,4 +70,30 @@ public interface InvoiceRepository {
      *         or amount exceeds the outstanding balance at the moment of the update.
      */
     Invoice recordWriteOff(UUID invoiceId, Money amount);
+
+    /**
+     * 02-billing-architecture.md §9.3: decrements outstandingTotal by
+     * amount, the credit_notes component of that formula. Eligible
+     * against any invoice not in DRAFT, VOID, or CANCELLATION_PENDING —
+     * broader than recordWriteOff, since a wrong price or an undelivered
+     * service may be discovered before or after discharge. Same
+     * WHERE-clause concurrency guard as recordWriteOff.
+     *
+     * @throws CreditNoteExceedsOutstandingException if the invoice is not eligible or amount
+     *         exceeds the outstanding balance at the moment of the update.
+     */
+    Invoice recordCreditNote(UUID invoiceId, Money amount);
+
+    /**
+     * 02-billing-architecture.md §9.3: increments outstandingTotal by
+     * amount, the "+ refunds" component — money already counted as
+     * settled is now owed again. Deliberately does not touch the
+     * consumed line's ServiceAuthorization or invoice state: per root
+     * CLAUDE.md "Billing", an authorization already granted is durable
+     * and survives a later refund the same way it survives a bypass
+     * revocation. No state restriction — a refund is eligible whenever
+     * the payment_allocation it reverses was ever settled, regardless of
+     * what the invoice has done since.
+     */
+    Invoice recordRefund(UUID invoiceId, Money amount);
 }

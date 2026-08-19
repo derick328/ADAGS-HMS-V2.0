@@ -1,10 +1,18 @@
 package com.adags.shared.web;
 
 import com.adags.modules.billing.domain.BillingGateRejectedException;
+import com.adags.modules.billing.domain.CreditNoteAlreadyDecidedException;
+import com.adags.modules.billing.domain.CreditNoteExceedsOutstandingException;
+import com.adags.modules.billing.domain.CreditNoteNotEligibleException;
+import com.adags.modules.billing.domain.CreditNoteSelfApprovalNotAllowedException;
 import com.adags.modules.billing.domain.InvoiceNotWriteOffEligibleException;
 import com.adags.modules.billing.domain.InvoiceWriteOffAlreadyDecidedException;
 import com.adags.modules.billing.domain.InvoiceWriteOffExceedsOutstandingException;
 import com.adags.modules.billing.domain.InvoiceWriteOffSelfApprovalNotAllowedException;
+import com.adags.modules.billing.domain.PaymentAllocationNotSettledException;
+import com.adags.modules.billing.domain.RefundAlreadyDecidedException;
+import com.adags.modules.billing.domain.RefundExceedsAllocationException;
+import com.adags.modules.billing.domain.RefundSelfApprovalNotAllowedException;
 import com.adags.modules.encounters.application.InvalidEncounterTransitionException;
 import com.adags.modules.encounters.application.MissingCloseReasonException;
 import com.adags.modules.inventory.domain.BatchExpiredException;
@@ -285,6 +293,50 @@ public class GlobalExceptionHandler {
     // the write-off threshold — the requester cannot also be the reviewer.
     @ExceptionHandler(InvoiceWriteOffSelfApprovalNotAllowedException.class)
     public ProblemDetail handleInvoiceWriteOffSelfApprovalNotAllowed(InvoiceWriteOffSelfApprovalNotAllowedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // Phase 7 item 1 (credit notes): eligible against any live invoice —
+    // not DRAFT, VOID, or CANCELLATION_PENDING.
+    @ExceptionHandler(CreditNoteNotEligibleException.class)
+    public ProblemDetail handleCreditNoteNotEligible(CreditNoteNotEligibleException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(CreditNoteExceedsOutstandingException.class)
+    public ProblemDetail handleCreditNoteExceedsOutstanding(CreditNoteExceedsOutstandingException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(CreditNoteAlreadyDecidedException.class)
+    public ProblemDetail handleCreditNoteAlreadyDecided(CreditNoteAlreadyDecidedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(CreditNoteSelfApprovalNotAllowedException.class)
+    public ProblemDetail handleCreditNoteSelfApprovalNotAllowed(CreditNoteSelfApprovalNotAllowedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // Phase 7 item 1 (refunds): "can only exist against a settled payment
+    // allocation."
+    @ExceptionHandler(PaymentAllocationNotSettledException.class)
+    public ProblemDetail handlePaymentAllocationNotSettled(PaymentAllocationNotSettledException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(RefundExceedsAllocationException.class)
+    public ProblemDetail handleRefundExceedsAllocation(RefundExceedsAllocationException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(RefundAlreadyDecidedException.class)
+    public ProblemDetail handleRefundAlreadyDecided(RefundAlreadyDecidedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(RefundSelfApprovalNotAllowedException.class)
+    public ProblemDetail handleRefundSelfApprovalNotAllowed(RefundSelfApprovalNotAllowedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
