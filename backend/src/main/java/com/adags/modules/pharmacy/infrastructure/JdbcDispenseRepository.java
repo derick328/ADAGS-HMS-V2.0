@@ -66,6 +66,12 @@ public class JdbcDispenseRepository implements DispenseRepository {
         return results.stream().findFirst();
     }
 
+    @Override
+    public List<Dispense> findByPrescriptionLineId(UUID prescriptionLineId) {
+        return jdbcTemplate.query(SELECT_COLUMNS + " WHERE prescription_line_id = :prescriptionLineId",
+                new MapSqlParameterSource("prescriptionLineId", prescriptionLineId), this::mapRow);
+    }
+
     private Dispense mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Dispense(
                 (UUID) rs.getObject("id"),

@@ -22,19 +22,38 @@ public record PrescriptionLine(
         boolean substitutionAllowed,
         /** Why a CANCELLED or UNAVAILABLE line got there — null for every other status. */
         String statusReason,
+        // 17-ward-nurse.md §5.1: structured fields a MAR schedule can be
+        // generated from, alongside dosageInstructions (kept as the
+        // human-readable free text). All nullable — an outpatient
+        // prescription with no admission has no reason to carry them, and
+        // every row that predates this column has none. When frequency and
+        // durationDays are both present, this line generates a MAR
+        // schedule at prescribing time if the encounter has an admission
+        // (see InpatientFacade.generateMedicationAdministrationSchedule).
+        String route,
+        Double doseAmount,
+        String doseUnit,
+        PrescriptionFrequency frequency,
+        Integer durationDays,
         Instant createdAt
 ) {
 
     public static PrescriptionLine create(UUID prescriptionOrderId, UUID itemId, int quantityPrescribed,
-                                           String dosageInstructions, UUID invoiceLineId, boolean substitutionAllowed) {
+                                           String dosageInstructions, UUID invoiceLineId, boolean substitutionAllowed,
+                                           String route, Double doseAmount, String doseUnit,
+                                           PrescriptionFrequency frequency, Integer durationDays) {
         if (quantityPrescribed <= 0) {
             throw new IllegalArgumentException("quantityPrescribed must be > 0.");
         }
         if (dosageInstructions == null || dosageInstructions.isBlank()) {
             throw new IllegalArgumentException("dosageInstructions is required.");
         }
+        if (durationDays != null && durationDays <= 0) {
+            throw new IllegalArgumentException("durationDays must be > 0.");
+        }
         return new PrescriptionLine(null, prescriptionOrderId, itemId, quantityPrescribed, 0, dosageInstructions,
-                invoiceLineId, PrescriptionLineStatus.AWAITING_DISPENSE, substitutionAllowed, null, null);
+                invoiceLineId, PrescriptionLineStatus.AWAITING_DISPENSE, substitutionAllowed, null,
+                route, doseAmount, doseUnit, frequency, durationDays, null);
     }
 
     public int remaining() {
@@ -58,7 +77,8 @@ public record PrescriptionLine(
         PrescriptionLineStatus newStatus = newDispensed == quantityPrescribed
                 ? PrescriptionLineStatus.COMPLETED : PrescriptionLineStatus.PARTIALLY_DISPENSED;
         return new PrescriptionLine(id, prescriptionOrderId, itemId, quantityPrescribed, newDispensed,
-                dosageInstructions, invoiceLineId, newStatus, substitutionAllowed, statusReason, createdAt);
+                dosageInstructions, invoiceLineId, newStatus, substitutionAllowed, statusReason,
+                route, doseAmount, doseUnit, frequency, durationDays, createdAt);
     }
 
     /**
@@ -71,7 +91,8 @@ public record PrescriptionLine(
         requireOpen();
         requireReason(reason);
         return new PrescriptionLine(id, prescriptionOrderId, itemId, quantityPrescribed, quantityDispensed,
-                dosageInstructions, invoiceLineId, PrescriptionLineStatus.UNAVAILABLE, substitutionAllowed, reason, createdAt);
+                dosageInstructions, invoiceLineId, PrescriptionLineStatus.UNAVAILABLE, substitutionAllowed, reason,
+                route, doseAmount, doseUnit, frequency, durationDays, createdAt);
     }
 
     /**
@@ -89,7 +110,8 @@ public record PrescriptionLine(
             throw new SubstitutionNotAllowedException(id, "line already has dispensed quantity");
         }
         return new PrescriptionLine(id, prescriptionOrderId, itemId, quantityPrescribed, quantityDispensed,
-                dosageInstructions, invoiceLineId, PrescriptionLineStatus.CANCELLED, substitutionAllowed, reason, createdAt);
+                dosageInstructions, invoiceLineId, PrescriptionLineStatus.CANCELLED, substitutionAllowed, reason,
+                route, doseAmount, doseUnit, frequency, durationDays, createdAt);
     }
 
     private void requireOpen() {
@@ -108,6 +130,7 @@ public record PrescriptionLine(
     /** Pre-generated id — same LabOrder.withId pattern PrescriptionOrder uses. */
     public PrescriptionLine withId(UUID id) {
         return new PrescriptionLine(id, prescriptionOrderId, itemId, quantityPrescribed, quantityDispensed,
-                dosageInstructions, invoiceLineId, status, substitutionAllowed, statusReason, createdAt);
+                dosageInstructions, invoiceLineId, status, substitutionAllowed, statusReason,
+                route, doseAmount, doseUnit, frequency, durationDays, createdAt);
     }
 }

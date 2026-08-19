@@ -12,7 +12,10 @@ import com.adags.modules.clinical.domain.Avpu;
 import com.adags.modules.clinical.domain.ConsultationRecord;
 import com.adags.modules.clinical.domain.VitalSigns;
 import com.adags.modules.clinical.domain.VitalSignsContext;
+import com.adags.modules.clinical.domain.RecordedVital;
+import com.adags.shared.kernel.AbnormalVitalReading;
 import com.adags.shared.kernel.AllergySummary;
+import com.adags.shared.kernel.WardVitalsResult;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -52,9 +55,31 @@ public class ClinicalFacadeImpl implements ClinicalFacade {
                 encounterId, patientId, VitalSignsContext.TRIAGE, triageAssessmentId,
                 temperatureC, systolicMmHg, diastolicMmHg, pulseBpm, respiratoryRate, spo2Pct,
                 weightKg, heightCm, avpu == null ? null : Avpu.valueOf(avpu), bloodGlucoseMmol,
-                recordedBy, occurredAt);
+                null, null, null, recordedBy, occurredAt);
         VitalSigns saved = recordVitalSignsService.record(command);
         return saved.id();
+    }
+
+    @Override
+    public WardVitalsResult recordWardVitalSigns(
+            UUID encounterId, UUID patientId, UUID admissionId,
+            double temperatureC, double systolicMmHg, double diastolicMmHg,
+            double pulseBpm, double respiratoryRate, double spo2Pct,
+            double weightKg, double heightCm,
+            String avpu, Double bloodGlucoseMmol, Integer painScore, Integer intakeMl, Integer outputMl,
+            UUID recordedBy, Instant occurredAt
+    ) {
+        RecordVitalSignsCommand command = new RecordVitalSignsCommand(
+                encounterId, patientId, VitalSignsContext.WARD_ROUNDS, admissionId,
+                temperatureC, systolicMmHg, diastolicMmHg, pulseBpm, respiratoryRate, spo2Pct,
+                weightKg, heightCm, avpu == null ? null : Avpu.valueOf(avpu), bloodGlucoseMmol,
+                painScore, intakeMl, outputMl, recordedBy, occurredAt);
+        VitalSigns saved = recordVitalSignsService.record(command);
+        List<AbnormalVitalReading> abnormal = saved.readings().stream()
+                .filter(RecordedVital::abnormal)
+                .map(reading -> new AbnormalVitalReading(reading.vitalType().name(), reading.value()))
+                .toList();
+        return new WardVitalsResult(saved.id(), abnormal);
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.adags.modules.clinical.ClinicalFacade;
 import com.adags.modules.encounters.EncounterFacade;
 import com.adags.modules.inpatient.domain.Admission;
 import com.adags.modules.inpatient.domain.AdmissionRepository;
+import com.adags.modules.inpatient.domain.WardStatus;
 import com.adags.shared.events.DomainEventPublisher;
 import com.adags.shared.kernel.EncounterContext;
 import org.springframework.stereotype.Service;
@@ -66,7 +67,7 @@ public class AdmitPatientService {
 
         Admission toInsert = new Admission(null, command.encounterId(), context.patientId(), context.facilityId(),
                 command.admittingDoctorId(), command.orderedWardClass(), Instant.now(clock),
-                null, null, null, null, 0, null);
+                null, null, null, null, WardStatus.ADMITTED, null, null, null, 0, null);
         Admission saved = admissionRepository.insert(toInsert);
 
         eventPublisher.publish("PatientAdmitted", Map.of(

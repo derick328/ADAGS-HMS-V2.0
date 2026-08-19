@@ -15,11 +15,13 @@ public record ItemResponse(
         String unit,
         RegulatorySchedule regulatorySchedule,
         int reorderLevel,
-        boolean active
+        boolean active,
+        boolean requiresAdministrationWitness
 ) {
 
     public static ItemResponse from(Item item) {
         return new ItemResponse(item.id(), item.code(), item.name(), item.classification(), item.form(),
-                item.strength(), item.unit(), item.regulatorySchedule(), item.reorderLevel(), item.active());
+                item.strength(), item.unit(), item.regulatorySchedule(), item.reorderLevel(), item.active(),
+                item.requiresAdministrationWitness());
     }
 }

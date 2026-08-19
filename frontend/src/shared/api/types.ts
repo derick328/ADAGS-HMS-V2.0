@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/work-shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listActive"];
+        put?: never;
+        post: operations["define"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/wards": {
         parameters: {
             query?: never;
@@ -126,6 +142,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["collect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shift-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["assign"];
         delete?: never;
         options?: never;
         head?: never;
@@ -500,6 +532,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/items/{id}/administration-witness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["setAdministrationWitness"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/items/{id}/activate": {
         parameters: {
             query?: never;
@@ -596,6 +644,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admissions/{id}/ward-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateWardStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admissions/{id}/nursing-assignments": {
         parameters: {
             query?: never;
@@ -612,6 +676,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admissions/{id}/discharge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["completeDischarge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{id}/discharge-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["orderDischarge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{id}/discharge-order/reversal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reverseDischargeOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admissions/{id}/bed-assignments": {
         parameters: {
             query?: never;
@@ -622,6 +734,102 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["assignBed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{admissionId}/wound-care": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_1"];
+        put?: never;
+        post: operations["record_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{admissionId}/vitals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["record_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{admissionId}/shift-handovers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_2"];
+        put?: never;
+        post: operations["record_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{admissionId}/shift-handovers/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["acknowledge_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{admissionId}/mar/{id}/mark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["mark"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{admissionId}/alerts/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["acknowledge_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -740,6 +948,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/prescription-lines/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/prescription-lines/{id}/dispense-context": {
         parameters: {
             query?: never;
@@ -763,7 +987,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById"];
+        get: operations["getById_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -859,7 +1083,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById_1"];
+        get: operations["getById_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -891,7 +1115,55 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById_2"];
+        get: operations["getById_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{admissionId}/mar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{admissionId}/mar/overdue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["overdue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/{admissionId}/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -922,6 +1194,41 @@ export interface components {
             /** Format: date-time */
             accessTokenExpiresAt?: string;
             mustChangePassword?: boolean;
+        };
+        DefineWorkShiftRequest: {
+            code: string;
+            name: string;
+            /** Format: uuid */
+            departmentId?: string;
+            startTime: components["schemas"]["LocalTime"];
+            endTime: components["schemas"]["LocalTime"];
+            crossesMidnight?: boolean;
+            /** Format: int32 */
+            daysOfWeek?: number;
+        };
+        LocalTime: {
+            /** Format: int32 */
+            hour?: number;
+            /** Format: int32 */
+            minute?: number;
+            /** Format: int32 */
+            second?: number;
+            /** Format: int32 */
+            nano?: number;
+        };
+        WorkShiftResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            /** Format: uuid */
+            departmentId?: string;
+            startTime?: components["schemas"]["LocalTime"];
+            endTime?: components["schemas"]["LocalTime"];
+            crossesMidnight?: boolean;
+            /** Format: int32 */
+            daysOfWeek?: number;
+            isActive?: boolean;
         };
         CreateWardRequest: {
             /** Format: uuid */
@@ -995,6 +1302,14 @@ export interface components {
             status?: "AWAITING_DISPENSE" | "PARTIALLY_DISPENSED" | "COMPLETED" | "CANCELLED" | "UNAVAILABLE";
             substitutionAllowed?: boolean;
             statusReason?: string;
+            route?: string;
+            /** Format: double */
+            doseAmount?: number;
+            doseUnit?: string;
+            /** @enum {string} */
+            frequency?: "STAT" | "OD" | "BD" | "TDS" | "QDS" | "PRN";
+            /** Format: int32 */
+            durationDays?: number;
         };
         SubstitutionProposalResponse: {
             /** Format: uuid */
@@ -1079,6 +1394,38 @@ export interface components {
             /** Format: date-time */
             collectedAt?: string;
         };
+        AssignShiftRequest: {
+            /** Format: uuid */
+            userId: string;
+            /** Format: uuid */
+            workShiftId: string;
+            /** Format: date */
+            shiftDate: string;
+            /** Format: uuid */
+            wardId?: string;
+            /** Format: uuid */
+            departmentId: string;
+            /** @enum {string} */
+            roleContext: "WARD_NURSE" | "DOCTOR" | "TRIAGE_NURSE" | "ON_CALL_LEAD";
+        };
+        ShiftAssignmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            userId?: string;
+            /** Format: uuid */
+            workShiftId?: string;
+            /** Format: date */
+            shiftDate?: string;
+            /** Format: uuid */
+            wardId?: string;
+            /** Format: uuid */
+            departmentId?: string;
+            /** @enum {string} */
+            roleContext?: "WARD_NURSE" | "DOCTOR" | "TRIAGE_NURSE" | "ON_CALL_LEAD";
+            /** @enum {string} */
+            status?: "SCHEDULED" | "ACTIVE" | "COMPLETED" | "ABSENT" | "SWAPPED";
+        };
         ProposeSynonymRequest: {
             code: string;
             term: string;
@@ -1135,6 +1482,14 @@ export interface components {
             quantityPrescribed?: number;
             dosageInstructions: string;
             substitutionAllowed?: boolean;
+            route?: string;
+            /** Format: double */
+            doseAmount?: number;
+            doseUnit?: string;
+            /** @enum {string} */
+            frequency?: "STAT" | "OD" | "BD" | "TDS" | "QDS" | "PRN";
+            /** Format: int32 */
+            durationDays?: number;
         };
         ProposeSubstitutionRequest: {
             /** Format: uuid */
@@ -1422,11 +1777,15 @@ export interface components {
             /** Format: int32 */
             reorderLevel?: number;
             active?: boolean;
+            requiresAdministrationWitness?: boolean;
         };
         ClassifyItemRequest: {
             /** @enum {string} */
             regulatorySchedule: "CONTROLLED" | "PRESCRIPTION_ONLY" | "PHARMACY_ONLY_BTC" | "PHARMACY_ONLY_OTC" | "GENERAL_SALES" | "ADDO_PRESCRIPTION" | "RADIOPHARMACEUTICAL" | "UNCLASSIFIED";
             reason: string;
+        };
+        SetAdministrationWitnessRequest: {
+            requiresWitness?: boolean;
         };
         OpenEncounterRequest: {
             /** Format: uuid */
@@ -1533,12 +1892,22 @@ export interface components {
             dischargeOrderedAt?: string;
             /** Format: uuid */
             dischargeOrderedBy?: string;
+            /** @enum {string} */
+            dischargeOrdererRole?: "DOCTOR" | "NURSE";
             /** Format: date-time */
             actualDepartureAt?: string;
+            /** @enum {string} */
+            wardStatus?: "ADMITTED" | "STABLE" | "CRITICAL" | "DISCHARGED" | "TRANSFERRED";
+            /** Format: date-time */
+            wardStatusSuggestedCriticalAt?: string;
             /** Format: int32 */
             version?: number;
             /** Format: date-time */
             createdAt?: string;
+        };
+        UpdateWardStatusRequest: {
+            /** @enum {string} */
+            wardStatus: "ADMITTED" | "STABLE" | "CRITICAL" | "DISCHARGED" | "TRANSFERRED";
         };
         AssignNurseRequest: {
             /** Format: uuid */
@@ -1564,6 +1933,13 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        CompleteDischargeRequest: {
+            /** Format: date-time */
+            actualDepartureAt?: string;
+        };
+        ReverseDischargeOrderRequest: {
+            reason: string;
+        };
         AssignBedRequest: {
             /** Format: uuid */
             bedId: string;
@@ -1586,6 +1962,137 @@ export interface components {
             placedAboveOrderedClass?: boolean;
             /** @enum {string} */
             placementReason?: "NO_BED_IN_ORDERED_CLASS" | "CLINICAL_NEED" | "PATIENT_REQUEST" | "OTHER";
+        };
+        RecordWoundCareRequest: {
+            appearance: string;
+            dressingChanged?: boolean;
+            dressingType?: string;
+            signsOfInfection?: boolean;
+            infectionDescription?: string;
+            remarks?: string;
+        };
+        WoundCareResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            admissionId?: string;
+            appearance?: string;
+            dressingChanged?: boolean;
+            dressingType?: string;
+            signsOfInfection?: boolean;
+            infectionDescription?: string;
+            remarks?: string;
+            /** Format: uuid */
+            recordedBy?: string;
+            /** Format: date-time */
+            recordedAt?: string;
+        };
+        RecordWardVitalsRequest: {
+            /** Format: double */
+            temperatureC: number;
+            /** Format: double */
+            systolicMmHg: number;
+            /** Format: double */
+            diastolicMmHg: number;
+            /** Format: double */
+            pulseBpm: number;
+            /** Format: double */
+            respiratoryRate: number;
+            /** Format: double */
+            spo2Pct: number;
+            /** Format: double */
+            weightKg: number;
+            /** Format: double */
+            heightCm: number;
+            avpu?: string;
+            /** Format: double */
+            bloodGlucoseMmol?: number;
+            /** Format: int32 */
+            painScore?: number;
+            /** Format: int32 */
+            intakeMl?: number;
+            /** Format: int32 */
+            outputMl?: number;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        RecordShiftHandoverRequest: {
+            /** Format: uuid */
+            wardId: string;
+            /** Format: uuid */
+            shiftFrom: string;
+            /** Format: uuid */
+            shiftTo?: string;
+            situation: string;
+            background: string;
+            assessment: string;
+            recommendation: string;
+            additionalOutstandingTasks?: string[];
+        };
+        ShiftHandoverResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            admissionId?: string;
+            /** Format: uuid */
+            wardId?: string;
+            /** Format: uuid */
+            shiftFrom?: string;
+            /** Format: uuid */
+            shiftTo?: string;
+            /** Format: date-time */
+            handoverAt?: string;
+            /** Format: uuid */
+            outgoingNurseId?: string;
+            /** Format: uuid */
+            incomingNurseId?: string;
+            /** Format: date-time */
+            acknowledgedAt?: string;
+            /** Format: uuid */
+            acknowledgedBy?: string;
+            situation?: string;
+            background?: string;
+            assessment?: string;
+            recommendation?: string;
+            outstandingTasks?: string[];
+        };
+        MarkAdministrationRequest: {
+            /** @enum {string} */
+            status: "DUE" | "GIVEN" | "REFUSED" | "OMITTED" | "HELD";
+            doseGiven?: string;
+            /** Format: uuid */
+            batchId?: string;
+            /** Format: uuid */
+            witnessUserId?: string;
+            /** @enum {string} */
+            omissionReason?: "REFUSED_BY_PATIENT" | "NIL_BY_MOUTH" | "PATIENT_ABSENT" | "DRUG_UNAVAILABLE" | "CLINICAL_HOLD" | "VOMITED" | "IV_ACCESS_LOST" | "DUPLICATE_DOSE";
+            omissionNotes?: string;
+            remarks?: string;
+        };
+        MedicationAdministrationResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            admissionId?: string;
+            /** Format: uuid */
+            prescriptionLineId?: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** @enum {string} */
+            status?: "DUE" | "GIVEN" | "REFUSED" | "OMITTED" | "HELD";
+            /** Format: date-time */
+            administeredAt?: string;
+            /** Format: uuid */
+            administeredBy?: string;
+            doseGiven?: string;
+            /** Format: uuid */
+            batchId?: string;
+            /** Format: uuid */
+            witnessUserId?: string;
+            /** @enum {string} */
+            omissionReason?: "REFUSED_BY_PATIENT" | "NIL_BY_MOUTH" | "PATIENT_ABSENT" | "DRUG_UNAVAILABLE" | "CLINICAL_HOLD" | "VOMITED" | "IV_ACCESS_LOST" | "DUPLICATE_DOSE";
+            omissionNotes?: string;
+            remarks?: string;
         };
         MeResponse: {
             /** Format: uuid */
@@ -1763,6 +2270,33 @@ export interface components {
             /** Format: date */
             expiryDate?: string;
         };
+        WardAlertNotification: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            admissionId?: string;
+            /** @enum {string} */
+            sourceType?: "VITAL_BREACH" | "WOUND_INFECTION" | "DRUG_UNAVAILABLE";
+            /** Format: uuid */
+            sourceId?: string;
+            detail?: string;
+            /** Format: uuid */
+            notifiedUserId?: string;
+            /** Format: date-time */
+            notifiedAt?: string;
+            /** Format: date-time */
+            acknowledgedAt?: string;
+            /** Format: uuid */
+            acknowledgedBy?: string;
+            /** Format: date-time */
+            escalatedAt?: string;
+            /** Format: uuid */
+            escalatedToUserId?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            acknowledged?: boolean;
+            escalated?: boolean;
+        };
     };
     responses: never;
     parameters: never;
@@ -1836,6 +2370,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LoginResponse"];
+                };
+            };
+        };
+    };
+    listActive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkShiftResponse"][];
+                };
+            };
+        };
+    };
+    define: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DefineWorkShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkShiftResponse"];
                 };
             };
         };
@@ -1960,6 +2538,30 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SpecimenResponse"];
+                };
+            };
+        };
+    };
+    assign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShiftAssignmentResponse"];
                 };
             };
         };
@@ -2556,6 +3158,32 @@ export interface operations {
             };
         };
     };
+    setAdministrationWitness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAdministrationWitnessRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ItemResponse"];
+                };
+            };
+        };
+    };
     activate: {
         parameters: {
             query?: never;
@@ -2696,6 +3324,32 @@ export interface operations {
             };
         };
     };
+    updateWardStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWardStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AdmissionResponse"];
+                };
+            };
+        };
+    };
     assignNurse: {
         parameters: {
             query?: never;
@@ -2718,6 +3372,80 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["NursingAssignmentResponse"];
+                };
+            };
+        };
+    };
+    completeDischarge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteDischargeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AdmissionResponse"];
+                };
+            };
+        };
+    };
+    orderDischarge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AdmissionResponse"];
+                };
+            };
+        };
+    };
+    reverseDischargeOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReverseDischargeOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AdmissionResponse"];
                 };
             };
         };
@@ -2745,6 +3473,197 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["BedAssignmentResponse"];
                 };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WoundCareResponse"][];
+                };
+            };
+        };
+    };
+    record_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordWoundCareRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WoundCareResponse"];
+                };
+            };
+        };
+    };
+    record_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordWardVitalsRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    list_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShiftHandoverResponse"][];
+                };
+            };
+        };
+    };
+    record_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordShiftHandoverRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShiftHandoverResponse"];
+                };
+            };
+        };
+    };
+    acknowledge_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admissionId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    mark: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admissionId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkAdministrationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MedicationAdministrationResponse"];
+                };
+            };
+        };
+    };
+    acknowledge_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admissionId: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2893,6 +3812,28 @@ export interface operations {
             };
         };
     };
+    getById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PrescriptionLineResponse"];
+                };
+            };
+        };
+    };
     dispenseContext: {
         parameters: {
             query?: never;
@@ -2915,7 +3856,7 @@ export interface operations {
             };
         };
     };
-    getById: {
+    getById_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3046,7 +3987,7 @@ export interface operations {
             };
         };
     };
-    getById_1: {
+    getById_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3090,7 +4031,7 @@ export interface operations {
             };
         };
     };
-    getById_2: {
+    getById_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -3108,6 +4049,72 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AdmissionResponse"];
+                };
+            };
+        };
+    };
+    list_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MedicationAdministrationResponse"][];
+                };
+            };
+        };
+    };
+    overdue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MedicationAdministrationResponse"][];
+                };
+            };
+        };
+    };
+    list_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                admissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WardAlertNotification"][];
                 };
             };
         };

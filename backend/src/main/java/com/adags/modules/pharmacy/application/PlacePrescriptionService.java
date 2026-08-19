@@ -2,6 +2,7 @@ package com.adags.modules.pharmacy.application;
 
 import com.adags.modules.billing.BillingFacade;
 import com.adags.modules.encounters.EncounterFacade;
+import com.adags.modules.inpatient.InpatientFacade;
 import com.adags.modules.inventory.InventoryFacade;
 import com.adags.modules.pharmacy.domain.ItemNotDispensableException;
 import com.adags.modules.pharmacy.domain.PrescriptionLine;
@@ -41,6 +42,7 @@ public class PlacePrescriptionService {
     private final EncounterFacade encounterFacade;
     private final InventoryFacade inventoryFacade;
     private final BillingFacade billingFacade;
+    private final InpatientFacade inpatientFacade;
     private final DomainEventPublisher eventPublisher;
 
     public PlacePrescriptionService(
@@ -49,6 +51,7 @@ public class PlacePrescriptionService {
             EncounterFacade encounterFacade,
             InventoryFacade inventoryFacade,
             BillingFacade billingFacade,
+            InpatientFacade inpatientFacade,
             DomainEventPublisher eventPublisher
     ) {
         this.prescriptionOrderRepository = prescriptionOrderRepository;
@@ -56,6 +59,7 @@ public class PlacePrescriptionService {
         this.encounterFacade = encounterFacade;
         this.inventoryFacade = inventoryFacade;
         this.billingFacade = billingFacade;
+        this.inpatientFacade = inpatientFacade;
         this.eventPublisher = eventPublisher;
     }
 
@@ -87,7 +91,8 @@ public class PlacePrescriptionService {
         PrescriptionOrder savedOrder = prescriptionOrderRepository.insert(order);
 
         PrescriptionLine line = PrescriptionLine.create(savedOrder.id(), command.itemId(),
-                command.quantityPrescribed(), command.dosageInstructions(), invoiceLineId, command.substitutionAllowed());
+                command.quantityPrescribed(), command.dosageInstructions(), invoiceLineId, command.substitutionAllowed(),
+                command.route(), command.doseAmount(), command.doseUnit(), command.frequency(), command.durationDays());
         PrescriptionLine savedLine = prescriptionLineRepository.insert(line);
 
         eventPublisher.publish(PRESCRIPTION_ISSUED_EVENT, Map.of(
@@ -97,6 +102,19 @@ public class PlacePrescriptionService {
                 "patientId", savedOrder.patientId().toString(),
                 "itemId", command.itemId().toString(),
                 "invoiceLineId", invoiceLineId.toString()));
+
+        // 17-ward-nurse.md §5.1: "system generates 15 slots" — a direct,
+        // same-transaction call, not the outbox (nothing in this codebase
+        // consumes the outbox today, and the nurse needs this schedule
+        // this shift, not eventually). Only when the encounter is under an
+        // active admission and the prescriber supplied a schedulable
+        // frequency (PRN and a bare null both generate nothing — see
+        // PrescriptionFrequency).
+        if (command.frequency() != null && command.durationDays() != null) {
+            inpatientFacade.findActiveAdmissionId(command.encounterId()).ifPresent(admissionId ->
+                    inpatientFacade.generateMedicationAdministrationSchedule(admissionId, savedLine.id(),
+                            command.frequency().name(), command.durationDays(), savedOrder.prescribedAt()));
+        }
 
         return savedLine;
     }

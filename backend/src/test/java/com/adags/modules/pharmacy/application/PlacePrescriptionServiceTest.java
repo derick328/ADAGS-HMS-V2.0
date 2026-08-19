@@ -68,7 +68,8 @@ class PlacePrescriptionServiceTest extends IntegrationTestSupport {
                 new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
 
         assertThatThrownBy(() -> placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
-                encounter.id(), item.id(), 10, "AS DIRECTED", false, admin)))
+                encounter.id(), item.id(), 10, "AS DIRECTED", false, admin,
+                null, null, null, null, null)))
                 .isInstanceOf(ItemNotDispensableException.class);
     }
 

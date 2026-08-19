@@ -12,6 +12,7 @@ import com.adags.shared.authz.ScopeType;
 import jakarta.validation.Valid;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -41,6 +42,22 @@ public class PrescriptionLineController {
         this.prescriptionLineRepository = prescriptionLineRepository;
         this.prescriptionOrderRepository = prescriptionOrderRepository;
         this.authorizationService = authorizationService;
+    }
+
+    // 17-ward-nurse.md §5.1: the read-only drug/dose/route/frequency a MAR
+    // view joins against by prescriptionLineId — nothing about this line is
+    // ever duplicated onto MedicationAdministration.
+    @GetMapping("/{id}")
+    public PrescriptionLineResponse getById(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
+        PrescriptionLine line = prescriptionLineRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Prescription line not found: " + id));
+        PrescriptionOrder order = prescriptionOrderRepository.findById(line.prescriptionOrderId())
+                .orElseThrow(() -> new NoSuchElementException("Prescription order not found: " + line.prescriptionOrderId()));
+        if (!authorizationService.hasPermission(
+                actor, "PRESCRIPTION_READ", ScopeRef.of(ScopeType.FACILITY, order.facilityId()))) {
+            throw new AccessDeniedException("Missing permission: PRESCRIPTION_READ");
+        }
+        return PrescriptionLineResponse.from(line);
     }
 
     @PostMapping("/{id}/mark-unavailable")

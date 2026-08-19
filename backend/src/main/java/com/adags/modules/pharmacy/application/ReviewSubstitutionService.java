@@ -109,7 +109,9 @@ public class ReviewSubstitutionService {
         // the original permission.
         PrescriptionLine replacementLine = prescriptionLineRepository.insert(PrescriptionLine.create(
                 order.id(), proposal.proposedItemId(), originalLine.quantityPrescribed(),
-                originalLine.dosageInstructions(), newInvoiceLineId, false).withId(replacementLineId));
+                originalLine.dosageInstructions(), newInvoiceLineId, false,
+                originalLine.route(), originalLine.doseAmount(), originalLine.doseUnit(),
+                originalLine.frequency(), originalLine.durationDays()).withId(replacementLineId));
 
         SubstitutionProposal approved = substitutionProposalRepository.update(new SubstitutionProposal(
                 proposal.id(), proposal.prescriptionLineId(), proposal.proposedItemId(), proposal.reason(),

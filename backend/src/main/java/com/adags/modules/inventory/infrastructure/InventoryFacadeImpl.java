@@ -59,7 +59,8 @@ public class InventoryFacadeImpl implements InventoryFacade {
     public Optional<ItemSummary> findItemSummary(UUID itemId) {
         return itemRepository.findById(itemId)
                 .map(item -> new ItemSummary(item.id(), item.code(), item.name(), item.unit(),
-                        item.regulatorySchedule().isDispensable(), item.active()));
+                        item.regulatorySchedule().isDispensable(), item.active(),
+                        item.requiresAdministrationWitness()));
     }
 
     @Override

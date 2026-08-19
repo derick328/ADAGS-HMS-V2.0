@@ -5,6 +5,8 @@ import com.adags.modules.inventory.application.ClassifyItemCommand;
 import com.adags.modules.inventory.application.ClassifyItemService;
 import com.adags.modules.inventory.application.CreateItemCommand;
 import com.adags.modules.inventory.application.CreateItemService;
+import com.adags.modules.inventory.application.SetAdministrationWitnessCommand;
+import com.adags.modules.inventory.application.SetAdministrationWitnessService;
 import com.adags.modules.inventory.domain.Item;
 import com.adags.modules.inventory.domain.ItemRepository;
 import com.adags.shared.authz.Actor;
@@ -43,6 +45,7 @@ public class ItemController {
     private final CreateItemService createItemService;
     private final ClassifyItemService classifyItemService;
     private final ActivateItemService activateItemService;
+    private final SetAdministrationWitnessService setAdministrationWitnessService;
     private final ItemRepository itemRepository;
     private final AuthorizationService authorizationService;
 
@@ -50,12 +53,14 @@ public class ItemController {
             CreateItemService createItemService,
             ClassifyItemService classifyItemService,
             ActivateItemService activateItemService,
+            SetAdministrationWitnessService setAdministrationWitnessService,
             ItemRepository itemRepository,
             AuthorizationService authorizationService
     ) {
         this.createItemService = createItemService;
         this.classifyItemService = classifyItemService;
         this.activateItemService = activateItemService;
+        this.setAdministrationWitnessService = setAdministrationWitnessService;
         this.itemRepository = itemRepository;
         this.authorizationService = authorizationService;
     }
@@ -108,6 +113,17 @@ public class ItemController {
     public ItemResponse activate(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
         requireItemClassify(actor);
         return ItemResponse.from(activateItemService.activate(id));
+    }
+
+    @PostMapping("/{id}/administration-witness")
+    public ItemResponse setAdministrationWitness(
+            @PathVariable UUID id, @Valid @RequestBody SetAdministrationWitnessRequest request,
+            @AuthenticationPrincipal Actor actor
+    ) {
+        requireItemClassify(actor);
+        Item item = setAdministrationWitnessService.setRequiresWitness(
+                new SetAdministrationWitnessCommand(id, request.requiresWitness()));
+        return ItemResponse.from(item);
     }
 
     private void requireItemClassify(Actor actor) {

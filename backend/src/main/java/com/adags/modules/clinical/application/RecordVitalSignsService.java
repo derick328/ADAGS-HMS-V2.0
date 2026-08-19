@@ -77,6 +77,9 @@ public class RecordVitalSignsService {
                 null,
                 command.avpu(),
                 command.bloodGlucoseMmol(),
+                command.painScore(),
+                command.intakeMl(),
+                command.outputMl(),
                 command.recordedBy(),
                 null,
                 command.occurredAt());

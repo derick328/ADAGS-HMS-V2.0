@@ -17,6 +17,9 @@ public interface ItemRepository {
 
     Item updateSchedule(UUID itemId, RegulatorySchedule newSchedule);
 
+    /** 17-ward-nurse.md §5.3: whether administering this item requires a witness. */
+    Item updateAdministrationWitness(UUID itemId, boolean requiresWitness);
+
     /**
      * Name search, case-insensitive substring — the prescriber typeahead
      * (13-controlled-medicines-policy.md §4). Returns every match

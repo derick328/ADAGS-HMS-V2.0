@@ -28,7 +28,7 @@ class ItemTest {
     @Test
     void assertDispensableRejectsAControlledItem() {
         Item item = new Item(UUID.randomUUID(), "MOR10", "Morphine sulfate 10mg tablet", "OPIOID", "TABLET", "10mg",
-                "TABLET", RegulatorySchedule.CONTROLLED, 0, false, UUID.randomUUID(), null);
+                "TABLET", RegulatorySchedule.CONTROLLED, 0, false, false, UUID.randomUUID(), null);
 
         assertThatThrownBy(item::assertDispensable).isInstanceOf(ControlledItemBlockedException.class);
     }

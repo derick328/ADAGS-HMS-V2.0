@@ -20,6 +20,14 @@ public record VitalSigns(
         Double bmi,
         Avpu avpu,
         Double bloodGlucoseMmol,
+        // 17-ward-nurse.md §4.1/§4.4: pain_score is in the spec's full field
+        // list; intake_ml/output_ml (fluid balance) are called out
+        // explicitly as absent and expected day one. All nullable —
+        // triage/consultation/post_op readings don't carry fluid balance,
+        // and every row before this column existed has none.
+        Integer painScore,
+        Integer intakeMl,
+        Integer outputMl,
         UUID recordedBy,
         Instant recordedAt,
         Instant occurredAt

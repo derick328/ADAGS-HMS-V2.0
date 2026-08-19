@@ -402,7 +402,8 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
         Encounter encounter = openEncounterService.checkIn(
                 new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
         PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
-                encounter.id(), itemId, 30, "TAKE ONE TABLET THREE TIMES A DAY", false, admin));
+                encounter.id(), itemId, 30, "TAKE ONE TABLET THREE TIMES A DAY", false, admin,
+                null, null, null, null, null));
 
         return new Fixture(patient.id(), line, batch.id());
     }
@@ -413,7 +414,8 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
         Encounter encounter = openEncounterService.checkIn(
                 new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
         PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
-                encounter.id(), itemId, quantity, "TAKE ONE TABLET THREE TIMES A DAY", false, admin));
+                encounter.id(), itemId, quantity, "TAKE ONE TABLET THREE TIMES A DAY", false, admin,
+                null, null, null, null, null));
         payLine(line.invoiceLineId(), patient.id(), admin);
         return line;
     }

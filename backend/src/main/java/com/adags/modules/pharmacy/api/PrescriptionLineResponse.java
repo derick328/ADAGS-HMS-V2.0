@@ -1,5 +1,6 @@
 package com.adags.modules.pharmacy.api;
 
+import com.adags.modules.pharmacy.domain.PrescriptionFrequency;
 import com.adags.modules.pharmacy.domain.PrescriptionLine;
 import com.adags.modules.pharmacy.domain.PrescriptionLineStatus;
 
@@ -15,12 +16,18 @@ public record PrescriptionLineResponse(
         String dosageInstructions,
         PrescriptionLineStatus status,
         boolean substitutionAllowed,
-        String statusReason
+        String statusReason,
+        String route,
+        Double doseAmount,
+        String doseUnit,
+        PrescriptionFrequency frequency,
+        Integer durationDays
 ) {
 
     public static PrescriptionLineResponse from(PrescriptionLine line) {
         return new PrescriptionLineResponse(line.id(), line.prescriptionOrderId(), line.itemId(),
                 line.quantityPrescribed(), line.quantityDispensed(), line.remaining(), line.dosageInstructions(),
-                line.status(), line.substitutionAllowed(), line.statusReason());
+                line.status(), line.substitutionAllowed(), line.statusReason(), line.route(), line.doseAmount(),
+                line.doseUnit(), line.frequency(), line.durationDays());
     }
 }

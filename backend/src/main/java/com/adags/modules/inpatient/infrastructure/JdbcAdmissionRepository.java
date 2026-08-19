@@ -5,6 +5,7 @@ import com.adags.modules.inpatient.domain.AdmissionRepository;
 import com.adags.modules.inpatient.domain.DischargeOrdererRole;
 import com.adags.modules.inpatient.domain.StaleAdmissionException;
 import com.adags.modules.inpatient.domain.WardClass;
+import com.adags.modules.inpatient.domain.WardStatus;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -23,7 +24,8 @@ public class JdbcAdmissionRepository implements AdmissionRepository {
     private static final String SELECT_COLUMNS = """
             SELECT id, encounter_id, patient_id, facility_id, admitting_doctor_id, ordered_ward_class,
                    admitted_at, discharge_ordered_at, discharge_ordered_by, discharge_orderer_role,
-                   actual_departure_at, version, created_at
+                   actual_departure_at, ward_status, ward_status_updated_at, ward_status_updated_by,
+                   ward_status_suggested_critical_at, version, created_at
             FROM admission
             """;
 
@@ -67,7 +69,8 @@ public class JdbcAdmissionRepository implements AdmissionRepository {
         return jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> new Admission(
                 (UUID) rs.getObject("id"), admission.encounterId(), admission.patientId(), admission.facilityId(),
                 admission.admittingDoctorId(), admission.orderedWardClass(), admission.admittedAt(),
-                null, null, null, null, rs.getInt("version"), rs.getTimestamp("created_at").toInstant()));
+                null, null, null, null, WardStatus.ADMITTED, null, null, null,
+                rs.getInt("version"), rs.getTimestamp("created_at").toInstant()));
     }
 
     @Override
@@ -135,9 +138,36 @@ public class JdbcAdmissionRepository implements AdmissionRepository {
         return findById(admissionId).orElseThrow();
     }
 
+    @Override
+    public Admission updateWardStatus(UUID admissionId, WardStatus wardStatus, Instant updatedAt, UUID updatedBy) {
+        String sql = """
+                UPDATE admission
+                SET ward_status = :wardStatus, ward_status_updated_at = :updatedAt,
+                    ward_status_updated_by = :updatedBy, ward_status_suggested_critical_at = NULL
+                WHERE id = :id
+                """;
+        jdbcTemplate.update(sql, new MapSqlParameterSource()
+                .addValue("wardStatus", wardStatus.name())
+                .addValue("updatedAt", Timestamp.from(updatedAt))
+                .addValue("updatedBy", updatedBy)
+                .addValue("id", admissionId));
+        return findById(admissionId).orElseThrow();
+    }
+
+    @Override
+    public Admission suggestCriticalStatus(UUID admissionId, Instant suggestedAt) {
+        String sql = "UPDATE admission SET ward_status_suggested_critical_at = :suggestedAt WHERE id = :id";
+        jdbcTemplate.update(sql, new MapSqlParameterSource()
+                .addValue("suggestedAt", Timestamp.from(suggestedAt))
+                .addValue("id", admissionId));
+        return findById(admissionId).orElseThrow();
+    }
+
     private Admission mapRow(ResultSet rs, int rowNum) throws SQLException {
         Timestamp dischargeOrderedAt = rs.getTimestamp("discharge_ordered_at");
         Timestamp actualDepartureAt = rs.getTimestamp("actual_departure_at");
+        Timestamp wardStatusUpdatedAt = rs.getTimestamp("ward_status_updated_at");
+        Timestamp wardStatusSuggestedCriticalAt = rs.getTimestamp("ward_status_suggested_critical_at");
         String dischargeOrdererRole = rs.getString("discharge_orderer_role");
         return new Admission(
                 (UUID) rs.getObject("id"),
@@ -151,6 +181,10 @@ public class JdbcAdmissionRepository implements AdmissionRepository {
                 (UUID) rs.getObject("discharge_ordered_by"),
                 dischargeOrdererRole == null ? null : DischargeOrdererRole.valueOf(dischargeOrdererRole),
                 actualDepartureAt == null ? null : actualDepartureAt.toInstant(),
+                WardStatus.valueOf(rs.getString("ward_status")),
+                wardStatusUpdatedAt == null ? null : wardStatusUpdatedAt.toInstant(),
+                (UUID) rs.getObject("ward_status_updated_by"),
+                wardStatusSuggestedCriticalAt == null ? null : wardStatusSuggestedCriticalAt.toInstant(),
                 rs.getInt("version"),
                 rs.getTimestamp("created_at").toInstant());
     }

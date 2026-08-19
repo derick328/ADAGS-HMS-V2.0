@@ -71,7 +71,8 @@ class PharmacyItemProposalTest extends IntegrationTestSupport {
                         """,
                 new MapSqlParameterSource("id", approved.createdItemId()),
                 (rs, rowNum) -> new Item(null, null, rs.getString("name"), null, null, null, null,
-                        RegulatorySchedule.valueOf(rs.getString("regulatory_schedule")), 0, rs.getBoolean("active"), null, null));
+                        RegulatorySchedule.valueOf(rs.getString("regulatory_schedule")), 0, rs.getBoolean("active"),
+                        false, null, null));
         assertThat(created.regulatorySchedule()).isEqualTo(RegulatorySchedule.UNCLASSIFIED);
         assertThat(created.active()).isFalse();
         assertThat(created.name()).isEqualTo("Ibuprofen 400mg tablet");

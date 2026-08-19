@@ -61,6 +61,37 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/LoginResponse"
+  /api/work-shifts:
+    get:
+      tags:
+      - work-shift-controller
+      operationId: listActive
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkShiftResponse"
+    post:
+      tags:
+      - work-shift-controller
+      operationId: define
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DefineWorkShiftRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WorkShiftResponse"
   /api/wards:
     post:
       tags:
@@ -165,6 +196,24 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SpecimenResponse"
+  /api/shift-assignments:
+    post:
+      tags:
+      - shift-assignment-controller
+      operationId: assign
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignShiftRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ShiftAssignmentResponse"
   /api/reference/icd10/synonyms:
     post:
       tags:
@@ -663,6 +712,31 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ItemResponse"
+  /api/items/{id}/administration-witness:
+    post:
+      tags:
+      - item-controller
+      operationId: setAdministrationWitness
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetAdministrationWitnessRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ItemResponse"
   /api/items/{id}/activate:
     post:
       tags:
@@ -772,6 +846,31 @@ paths:
       responses:
         "201":
           description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AdmissionResponse"
+  /api/admissions/{id}/ward-status:
+    post:
+      tags:
+      - admission-controller
+      operationId: updateWardStatus
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWardStatusRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
           content:
             '*/*':
               schema:
@@ -895,6 +994,195 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/BedAssignmentResponse"
+  /api/admissions/{admissionId}/wound-care:
+    get:
+      tags:
+      - wound-care-controller
+      operationId: list_1
+      parameters:
+      - name: admissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WoundCareResponse"
+    post:
+      tags:
+      - wound-care-controller
+      operationId: record_1
+      parameters:
+      - name: admissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordWoundCareRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WoundCareResponse"
+  /api/admissions/{admissionId}/vitals:
+    post:
+      tags:
+      - ward-vitals-controller
+      operationId: record_2
+      parameters:
+      - name: admissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordWardVitalsRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: uuid
+  /api/admissions/{admissionId}/shift-handovers:
+    get:
+      tags:
+      - shift-handover-controller
+      operationId: list_2
+      parameters:
+      - name: admissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShiftHandoverResponse"
+    post:
+      tags:
+      - shift-handover-controller
+      operationId: record_3
+      parameters:
+      - name: admissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordShiftHandoverRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ShiftHandoverResponse"
+  /api/admissions/{admissionId}/shift-handovers/{id}/acknowledge:
+    post:
+      tags:
+      - shift-handover-controller
+      operationId: acknowledge_1
+      parameters:
+      - name: admissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+  /api/admissions/{admissionId}/mar/{id}/mark:
+    post:
+      tags:
+      - medication-administration-controller
+      operationId: mark
+      parameters:
+      - name: admissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarkAdministrationRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MedicationAdministrationResponse"
+  /api/admissions/{admissionId}/alerts/{id}/acknowledge:
+    post:
+      tags:
+      - ward-alert-notification-controller
+      operationId: acknowledge_2
+      parameters:
+      - name: admissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
   /me:
     get:
       tags:
@@ -1008,6 +1296,25 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/Icd10SearchResponse"
+  /api/prescription-lines/{id}:
+    get:
+      tags:
+      - prescription-line-controller
+      operationId: getById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PrescriptionLineResponse"
   /api/prescription-lines/{id}/dispense-context:
     get:
       tags:
@@ -1031,7 +1338,7 @@ paths:
     get:
       tags:
       - patient-controller
-      operationId: getById
+      operationId: getById_1
       parameters:
       - name: id
         in: path
@@ -1147,7 +1454,7 @@ paths:
     get:
       tags:
       - encounter-controller
-      operationId: getById_1
+      operationId: getById_2
       parameters:
       - name: id
         in: path
@@ -1185,7 +1492,7 @@ paths:
     get:
       tags:
       - admission-controller
-      operationId: getById_2
+      operationId: getById_3
       parameters:
       - name: id
         in: path
@@ -1200,6 +1507,69 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/AdmissionResponse"
+  /api/admissions/{admissionId}/mar:
+    get:
+      tags:
+      - medication-administration-controller
+      operationId: list_3
+      parameters:
+      - name: admissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MedicationAdministrationResponse"
+  /api/admissions/{admissionId}/mar/overdue:
+    get:
+      tags:
+      - medication-administration-controller
+      operationId: overdue
+      parameters:
+      - name: admissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MedicationAdministrationResponse"
+  /api/admissions/{admissionId}/alerts:
+    get:
+      tags:
+      - ward-alert-notification-controller
+      operationId: list_4
+      parameters:
+      - name: admissionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WardAlertNotification"
 components:
   schemas:
     TokenResponse:
@@ -1235,6 +1605,69 @@ components:
           type: string
           format: date-time
         mustChangePassword:
+          type: boolean
+    DefineWorkShiftRequest:
+      required:
+      - code
+      - endTime
+      - name
+      - startTime
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        departmentId:
+          type: string
+          format: uuid
+        startTime:
+          $ref: "#/components/schemas/LocalTime"
+        endTime:
+          $ref: "#/components/schemas/LocalTime"
+        crossesMidnight:
+          type: boolean
+        daysOfWeek:
+          type: integer
+          format: int32
+    LocalTime:
+      type: object
+      properties:
+        hour:
+          type: integer
+          format: int32
+        minute:
+          type: integer
+          format: int32
+        second:
+          type: integer
+          format: int32
+        nano:
+          type: integer
+          format: int32
+    WorkShiftResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        departmentId:
+          type: string
+          format: uuid
+        startTime:
+          $ref: "#/components/schemas/LocalTime"
+        endTime:
+          $ref: "#/components/schemas/LocalTime"
+        crossesMidnight:
+          type: boolean
+        daysOfWeek:
+          type: integer
+          format: int32
+        isActive:
           type: boolean
     CreateWardRequest:
       required:
@@ -1383,6 +1816,25 @@ components:
           type: boolean
         statusReason:
           type: string
+        route:
+          type: string
+        doseAmount:
+          type: number
+          format: double
+        doseUnit:
+          type: string
+        frequency:
+          type: string
+          enum:
+          - STAT
+          - OD
+          - BD
+          - TDS
+          - QDS
+          - PRN
+        durationDays:
+          type: integer
+          format: int32
     SubstitutionProposalResponse:
       type: object
       properties:
@@ -1551,6 +2003,73 @@ components:
         collectedAt:
           type: string
           format: date-time
+    AssignShiftRequest:
+      required:
+      - departmentId
+      - roleContext
+      - shiftDate
+      - userId
+      - workShiftId
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        workShiftId:
+          type: string
+          format: uuid
+        shiftDate:
+          type: string
+          format: date
+        wardId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+        roleContext:
+          type: string
+          enum:
+          - WARD_NURSE
+          - DOCTOR
+          - TRIAGE_NURSE
+          - ON_CALL_LEAD
+    ShiftAssignmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        workShiftId:
+          type: string
+          format: uuid
+        shiftDate:
+          type: string
+          format: date
+        wardId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+        roleContext:
+          type: string
+          enum:
+          - WARD_NURSE
+          - DOCTOR
+          - TRIAGE_NURSE
+          - ON_CALL_LEAD
+        status:
+          type: string
+          enum:
+          - SCHEDULED
+          - ACTIVE
+          - COMPLETED
+          - ABSENT
+          - SWAPPED
     ProposeSynonymRequest:
       required:
       - code
@@ -1664,6 +2183,25 @@ components:
           type: string
         substitutionAllowed:
           type: boolean
+        route:
+          type: string
+        doseAmount:
+          type: number
+          format: double
+        doseUnit:
+          type: string
+        frequency:
+          type: string
+          enum:
+          - STAT
+          - OD
+          - BD
+          - TDS
+          - QDS
+          - PRN
+        durationDays:
+          type: integer
+          format: int32
     ProposeSubstitutionRequest:
       required:
       - proposedItemId
@@ -2267,6 +2805,8 @@ components:
           format: int32
         active:
           type: boolean
+        requiresAdministrationWitness:
+          type: boolean
     ClassifyItemRequest:
       required:
       - reason
@@ -2286,6 +2826,11 @@ components:
           - UNCLASSIFIED
         reason:
           type: string
+    SetAdministrationWitnessRequest:
+      type: object
+      properties:
+        requiresWitness:
+          type: boolean
     OpenEncounterRequest:
       required:
       - departmentId
@@ -2519,12 +3064,36 @@ components:
         actualDepartureAt:
           type: string
           format: date-time
+        wardStatus:
+          type: string
+          enum:
+          - ADMITTED
+          - STABLE
+          - CRITICAL
+          - DISCHARGED
+          - TRANSFERRED
+        wardStatusSuggestedCriticalAt:
+          type: string
+          format: date-time
         version:
           type: integer
           format: int32
         createdAt:
           type: string
           format: date-time
+    UpdateWardStatusRequest:
+      required:
+      - wardStatus
+      type: object
+      properties:
+        wardStatus:
+          type: string
+          enum:
+          - ADMITTED
+          - STABLE
+          - CRITICAL
+          - DISCHARGED
+          - TRANSFERRED
     AssignNurseRequest:
       required:
       - assignmentDate
@@ -2629,6 +3198,268 @@ components:
           - CLINICAL_NEED
           - PATIENT_REQUEST
           - OTHER
+    RecordWoundCareRequest:
+      required:
+      - appearance
+      type: object
+      properties:
+        appearance:
+          type: string
+        dressingChanged:
+          type: boolean
+        dressingType:
+          type: string
+        signsOfInfection:
+          type: boolean
+        infectionDescription:
+          type: string
+        remarks:
+          type: string
+    WoundCareResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        admissionId:
+          type: string
+          format: uuid
+        appearance:
+          type: string
+        dressingChanged:
+          type: boolean
+        dressingType:
+          type: string
+        signsOfInfection:
+          type: boolean
+        infectionDescription:
+          type: string
+        remarks:
+          type: string
+        recordedBy:
+          type: string
+          format: uuid
+        recordedAt:
+          type: string
+          format: date-time
+    RecordWardVitalsRequest:
+      required:
+      - diastolicMmHg
+      - heightCm
+      - occurredAt
+      - pulseBpm
+      - respiratoryRate
+      - spo2Pct
+      - systolicMmHg
+      - temperatureC
+      - weightKg
+      type: object
+      properties:
+        temperatureC:
+          type: number
+          format: double
+        systolicMmHg:
+          type: number
+          format: double
+        diastolicMmHg:
+          type: number
+          format: double
+        pulseBpm:
+          type: number
+          format: double
+        respiratoryRate:
+          type: number
+          format: double
+        spo2Pct:
+          type: number
+          format: double
+        weightKg:
+          type: number
+          format: double
+        heightCm:
+          type: number
+          format: double
+        avpu:
+          type: string
+        bloodGlucoseMmol:
+          type: number
+          format: double
+        painScore:
+          type: integer
+          format: int32
+        intakeMl:
+          type: integer
+          format: int32
+        outputMl:
+          type: integer
+          format: int32
+        occurredAt:
+          type: string
+          format: date-time
+    RecordShiftHandoverRequest:
+      required:
+      - assessment
+      - background
+      - recommendation
+      - shiftFrom
+      - situation
+      - wardId
+      type: object
+      properties:
+        wardId:
+          type: string
+          format: uuid
+        shiftFrom:
+          type: string
+          format: uuid
+        shiftTo:
+          type: string
+          format: uuid
+        situation:
+          type: string
+        background:
+          type: string
+        assessment:
+          type: string
+        recommendation:
+          type: string
+        additionalOutstandingTasks:
+          type: array
+          items:
+            type: string
+    ShiftHandoverResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        admissionId:
+          type: string
+          format: uuid
+        wardId:
+          type: string
+          format: uuid
+        shiftFrom:
+          type: string
+          format: uuid
+        shiftTo:
+          type: string
+          format: uuid
+        handoverAt:
+          type: string
+          format: date-time
+        outgoingNurseId:
+          type: string
+          format: uuid
+        incomingNurseId:
+          type: string
+          format: uuid
+        acknowledgedAt:
+          type: string
+          format: date-time
+        acknowledgedBy:
+          type: string
+          format: uuid
+        situation:
+          type: string
+        background:
+          type: string
+        assessment:
+          type: string
+        recommendation:
+          type: string
+        outstandingTasks:
+          type: array
+          items:
+            type: string
+    MarkAdministrationRequest:
+      required:
+      - status
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - DUE
+          - GIVEN
+          - REFUSED
+          - OMITTED
+          - HELD
+        doseGiven:
+          type: string
+        batchId:
+          type: string
+          format: uuid
+        witnessUserId:
+          type: string
+          format: uuid
+        omissionReason:
+          type: string
+          enum:
+          - REFUSED_BY_PATIENT
+          - NIL_BY_MOUTH
+          - PATIENT_ABSENT
+          - DRUG_UNAVAILABLE
+          - CLINICAL_HOLD
+          - VOMITED
+          - IV_ACCESS_LOST
+          - DUPLICATE_DOSE
+        omissionNotes:
+          type: string
+        remarks:
+          type: string
+    MedicationAdministrationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        admissionId:
+          type: string
+          format: uuid
+        prescriptionLineId:
+          type: string
+          format: uuid
+        scheduledAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - DUE
+          - GIVEN
+          - REFUSED
+          - OMITTED
+          - HELD
+        administeredAt:
+          type: string
+          format: date-time
+        administeredBy:
+          type: string
+          format: uuid
+        doseGiven:
+          type: string
+        batchId:
+          type: string
+          format: uuid
+        witnessUserId:
+          type: string
+          format: uuid
+        omissionReason:
+          type: string
+          enum:
+          - REFUSED_BY_PATIENT
+          - NIL_BY_MOUTH
+          - PATIENT_ABSENT
+          - DRUG_UNAVAILABLE
+          - CLINICAL_HOLD
+          - VOMITED
+          - IV_ACCESS_LOST
+          - DUPLICATE_DOSE
+        omissionNotes:
+          type: string
+        remarks:
+          type: string
     MeResponse:
       type: object
       properties:
@@ -2958,3 +3789,48 @@ components:
         expiryDate:
           type: string
           format: date
+    WardAlertNotification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        admissionId:
+          type: string
+          format: uuid
+        sourceType:
+          type: string
+          enum:
+          - VITAL_BREACH
+          - WOUND_INFECTION
+          - DRUG_UNAVAILABLE
+        sourceId:
+          type: string
+          format: uuid
+        detail:
+          type: string
+        notifiedUserId:
+          type: string
+          format: uuid
+        notifiedAt:
+          type: string
+          format: date-time
+        acknowledgedAt:
+          type: string
+          format: date-time
+        acknowledgedBy:
+          type: string
+          format: uuid
+        escalatedAt:
+          type: string
+          format: date-time
+        escalatedToUserId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        acknowledged:
+          type: boolean
+        escalated:
+          type: boolean

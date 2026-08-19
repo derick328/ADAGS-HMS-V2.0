@@ -28,6 +28,14 @@ public record Admission(
         /** Not an authorization check — a reporting field distinguishing doctor-ordered from nurse-ordered discharges. */
         DischargeOrdererRole dischargeOrdererRole,
         Instant actualDepartureAt,
+        // 17-ward-nurse.md §9/§4.3. wardStatusSuggestedCriticalAt is a
+        // proposal, not a decision: a breaching vital sets it, but
+        // wardStatus itself only ever changes through the nurse's own
+        // UpdateWardStatusService call, whether she agrees or not.
+        WardStatus wardStatus,
+        Instant wardStatusUpdatedAt,
+        UUID wardStatusUpdatedBy,
+        Instant wardStatusSuggestedCriticalAt,
         int version,
         Instant createdAt
 ) {

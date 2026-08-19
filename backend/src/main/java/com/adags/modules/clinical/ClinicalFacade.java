@@ -1,6 +1,7 @@
 package com.adags.modules.clinical;
 
 import com.adags.shared.kernel.AllergySummary;
+import com.adags.shared.kernel.WardVitalsResult;
 
 import java.time.Instant;
 import java.util.List;
@@ -38,6 +39,36 @@ public interface ClinicalFacade {
             double heightCm,
             String avpu,
             Double bloodGlucoseMmol,
+            UUID recordedBy,
+            Instant occurredAt
+    );
+
+    /**
+     * 17-ward-nurse.md §4.1/§4.3: records one WARD_ROUNDS-context set of
+     * vitals against an admission (contextRefId = admissionId), reusing
+     * the same VitalSigns table and reference-range evaluation triage
+     * uses — no second vitals table. painScore/intakeMl/outputMl are the
+     * ward-specific additions (§4.4's fluid balance). Returns the saved
+     * reading's id plus every breaching vital, so the caller can raise a
+     * ward alert and suggest CRITICAL without re-evaluating anything.
+     */
+    WardVitalsResult recordWardVitalSigns(
+            UUID encounterId,
+            UUID patientId,
+            UUID admissionId,
+            double temperatureC,
+            double systolicMmHg,
+            double diastolicMmHg,
+            double pulseBpm,
+            double respiratoryRate,
+            double spo2Pct,
+            double weightKg,
+            double heightCm,
+            String avpu,
+            Double bloodGlucoseMmol,
+            Integer painScore,
+            Integer intakeMl,
+            Integer outputMl,
             UUID recordedBy,
             Instant occurredAt
     );

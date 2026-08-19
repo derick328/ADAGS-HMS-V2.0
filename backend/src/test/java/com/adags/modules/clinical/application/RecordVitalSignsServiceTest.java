@@ -63,7 +63,7 @@ class RecordVitalSignsServiceTest extends IntegrationTestSupport {
                 encounterId, patientId, VitalSignsContext.TRIAGE, UUID.randomUUID(),
                 38.5, // above the adult abnormal_high of 38.0, still below implausible_high of 43
                 120, 80, 80, 16, 98,
-                70, 175, Avpu.ALERT, 5.0, bootstrapAdminId(), Instant.now());
+                70, 175, Avpu.ALERT, 5.0, null, null, null, bootstrapAdminId(), Instant.now());
 
         VitalSigns saved = service.record(command);
 
@@ -82,7 +82,7 @@ class RecordVitalSignsServiceTest extends IntegrationTestSupport {
                 encounterId, patientId, VitalSignsContext.TRIAGE, UUID.randomUUID(),
                 44.0, // above implausible_high of 43
                 120, 80, 80, 16, 98,
-                70, 175, null, null, bootstrapAdminId(), Instant.now());
+                70, 175, null, null, null, null, null, bootstrapAdminId(), Instant.now());
 
         assertThatThrownBy(() -> service.record(command))
                 .isInstanceOf(ImplausibleVitalException.class)
@@ -105,7 +105,7 @@ class RecordVitalSignsServiceTest extends IntegrationTestSupport {
         RecordVitalSignsCommand command = new RecordVitalSignsCommand(
                 encounterId, patientId, VitalSignsContext.TRIAGE, UUID.randomUUID(),
                 37.0, 100, 65, 90, 18, 99,
-                20, 110, null, null, bootstrapAdminId(), Instant.now());
+                20, 110, null, null, null, null, null, bootstrapAdminId(), Instant.now());
 
         assertThatThrownBy(() -> service.record(command))
                 .isInstanceOf(VitalReferenceRangeNotConfiguredException.class);
@@ -115,7 +115,7 @@ class RecordVitalSignsServiceTest extends IntegrationTestSupport {
         return new RecordVitalSignsCommand(
                 encounterId, patientId, VitalSignsContext.TRIAGE, UUID.randomUUID(),
                 36.8, 120, 80, 75, 16, 98,
-                70, 175, Avpu.ALERT, 5.0, bootstrapAdminId(), Instant.now());
+                70, 175, Avpu.ALERT, 5.0, null, null, null, bootstrapAdminId(), Instant.now());
     }
 
     private UUID insertFixturePatient(LocalDate dateOfBirth, String gender) {

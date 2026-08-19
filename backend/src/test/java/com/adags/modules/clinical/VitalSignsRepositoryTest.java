@@ -49,7 +49,7 @@ class VitalSignsRepositoryTest extends IntegrationTestSupport {
         VitalSigns toInsert = new VitalSigns(
                 null, encounterId, VitalSignsContext.TRIAGE, UUID.randomUUID(),
                 List.of(new RecordedVital(VitalType.TEMPERATURE, 36.8, false, rangeId)),
-                70.0, 175.0, null, Avpu.ALERT, 5.5,
+                70.0, 175.0, null, Avpu.ALERT, 5.5, null, null, null,
                 bootstrapAdminId(), null, Instant.now());
 
         VitalSigns saved = repository.insert(toInsert);
@@ -73,7 +73,7 @@ class VitalSignsRepositoryTest extends IntegrationTestSupport {
 
         VitalSigns toInsert = new VitalSigns(
                 null, encounterId, VitalSignsContext.TRIAGE, UUID.randomUUID(),
-                List.of(), 60.0, 160.0, null, null, null,
+                List.of(), 60.0, 160.0, null, null, null, null, null, null,
                 bootstrapAdminId(), null, Instant.now());
 
         VitalSigns saved = repository.insert(toInsert);
@@ -120,7 +120,7 @@ class VitalSignsRepositoryTest extends IntegrationTestSupport {
     private VitalSigns insertVitalSigns(UUID encounterId, Instant occurredAt) {
         return repository.insert(new VitalSigns(
                 null, encounterId, VitalSignsContext.TRIAGE, UUID.randomUUID(),
-                List.of(), 65.0, 170.0, null, null, null,
+                List.of(), 65.0, 170.0, null, null, null, null, null, null,
                 bootstrapAdminId(), null, occurredAt));
     }
 

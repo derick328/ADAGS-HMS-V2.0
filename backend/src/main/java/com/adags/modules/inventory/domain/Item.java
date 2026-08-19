@@ -19,19 +19,27 @@ public record Item(
         RegulatorySchedule regulatorySchedule,
         int reorderLevel,
         boolean active,
+        // 17-ward-nurse.md §5.3: two-person check for a defined class — IV
+        // drugs, insulin, anticoagulants, paediatric doses, and anything
+        // the clinical lead adds. Read at the application layer
+        // (MedicationAdministration's witness requirement), not enforced
+        // by a DB trigger — same treatment as regulatorySchedule's
+        // assertDispensable().
+        boolean requiresAdministrationWitness,
         UUID createdBy,
         Instant createdAt
 ) {
 
-    // Starts UNCLASSIFIED (the legal default, 14-*.md §5) and inactive —
-    // classification and activation are separate, later actions.
+    // Starts UNCLASSIFIED (the legal default, 14-*.md §5), inactive, and not
+    // witness-required — classification, activation, and the witness flag
+    // are separate, later actions.
     public static Item create(String code, String name, String classification, String form, String strength,
                                String unit, int reorderLevel, UUID createdBy) {
         if (reorderLevel < 0) {
             throw new IllegalArgumentException("reorderLevel must be >= 0.");
         }
         return new Item(null, code, name, classification, form, strength, unit,
-                RegulatorySchedule.UNCLASSIFIED, reorderLevel, false, createdBy, null);
+                RegulatorySchedule.UNCLASSIFIED, reorderLevel, false, false, createdBy, null);
     }
 
     // 13-controlled-medicines-policy.md §3.1's PharmacyRepository.assertDispensable

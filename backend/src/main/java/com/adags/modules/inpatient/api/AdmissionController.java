@@ -13,6 +13,8 @@ import com.adags.modules.inpatient.application.OrderDischargeCommand;
 import com.adags.modules.inpatient.application.OrderDischargeService;
 import com.adags.modules.inpatient.application.ReverseDischargeOrderCommand;
 import com.adags.modules.inpatient.application.ReverseDischargeOrderService;
+import com.adags.modules.inpatient.application.UpdateWardStatusCommand;
+import com.adags.modules.inpatient.application.UpdateWardStatusService;
 import com.adags.modules.inpatient.domain.Admission;
 import com.adags.modules.inpatient.domain.AdmissionRepository;
 import com.adags.modules.inpatient.domain.Bed;
@@ -50,6 +52,7 @@ public class AdmissionController {
     private final OrderDischargeService orderDischargeService;
     private final ReverseDischargeOrderService reverseDischargeOrderService;
     private final CompleteDischargeService completeDischargeService;
+    private final UpdateWardStatusService updateWardStatusService;
     private final AdmissionRepository admissionRepository;
     private final BedRepository bedRepository;
     private final BedAssignmentRepository bedAssignmentRepository;
@@ -63,6 +66,7 @@ public class AdmissionController {
             OrderDischargeService orderDischargeService,
             ReverseDischargeOrderService reverseDischargeOrderService,
             CompleteDischargeService completeDischargeService,
+            UpdateWardStatusService updateWardStatusService,
             AdmissionRepository admissionRepository,
             BedRepository bedRepository,
             BedAssignmentRepository bedAssignmentRepository,
@@ -75,6 +79,7 @@ public class AdmissionController {
         this.orderDischargeService = orderDischargeService;
         this.reverseDischargeOrderService = reverseDischargeOrderService;
         this.completeDischargeService = completeDischargeService;
+        this.updateWardStatusService = updateWardStatusService;
         this.admissionRepository = admissionRepository;
         this.bedRepository = bedRepository;
         this.bedAssignmentRepository = bedAssignmentRepository;
@@ -177,6 +182,20 @@ public class AdmissionController {
         requirePermission(actor, "DISCHARGE_ORDER", ScopeType.WARD, currentWardId(id));
         Admission admission = completeDischargeService.complete(
                 new CompleteDischargeCommand(id, request.actualDepartureAt(), actor.userId()));
+        return AdmissionResponse.from(admission);
+    }
+
+    // 17-ward-nurse.md §9: ADMITTED/STABLE/CRITICAL only — DISCHARGED
+    // belongs to the discharge flow above, TRANSFERRED to §8.3 ward
+    // transfer (not in this item's scope). UpdateWardStatusService rejects
+    // anything else with WardStatusNotSettableException.
+    @PostMapping("/{id}/ward-status")
+    public AdmissionResponse updateWardStatus(
+            @PathVariable UUID id, @Valid @RequestBody UpdateWardStatusRequest request, @AuthenticationPrincipal Actor actor
+    ) {
+        requirePermission(actor, "WARD_STATUS_UPDATE", ScopeType.WARD, currentWardId(id));
+        Admission admission = updateWardStatusService.update(
+                new UpdateWardStatusCommand(id, request.wardStatus(), actor.userId()));
         return AdmissionResponse.from(admission);
     }
 

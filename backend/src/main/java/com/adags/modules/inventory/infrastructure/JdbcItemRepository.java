@@ -19,7 +19,7 @@ public class JdbcItemRepository implements ItemRepository {
 
     private static final String SELECT_COLUMNS = """
             SELECT id, code, name, classification, form, strength, unit, regulatory_schedule,
-                   reorder_level, active, created_by, created_at
+                   reorder_level, active, requires_administration_witness, created_by, created_at
             FROM item
             """;
 
@@ -33,9 +33,9 @@ public class JdbcItemRepository implements ItemRepository {
     public Item insert(Item item) {
         String sql = """
                 INSERT INTO item (id, code, name, classification, form, strength, unit, regulatory_schedule,
-                                   reorder_level, active, created_by)
+                                   reorder_level, active, requires_administration_witness, created_by)
                 VALUES (COALESCE(:id, gen_random_uuid()), :code, :name, :classification, :form, :strength, :unit,
-                        :regulatorySchedule, :reorderLevel, :active, :createdBy)
+                        :regulatorySchedule, :reorderLevel, :active, :requiresAdministrationWitness, :createdBy)
                 RETURNING id, created_at
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -49,12 +49,13 @@ public class JdbcItemRepository implements ItemRepository {
                 .addValue("regulatorySchedule", item.regulatorySchedule().name())
                 .addValue("reorderLevel", item.reorderLevel())
                 .addValue("active", item.active())
+                .addValue("requiresAdministrationWitness", item.requiresAdministrationWitness())
                 .addValue("createdBy", item.createdBy());
 
         return jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> new Item(
                 (UUID) rs.getObject("id"), item.code(), item.name(), item.classification(), item.form(),
                 item.strength(), item.unit(), item.regulatorySchedule(), item.reorderLevel(), item.active(),
-                item.createdBy(), rs.getTimestamp("created_at").toInstant()));
+                item.requiresAdministrationWitness(), item.createdBy(), rs.getTimestamp("created_at").toInstant()));
     }
 
     @Override
@@ -80,7 +81,7 @@ public class JdbcItemRepository implements ItemRepository {
         // condition this repository is meant to present nicely.
         String sql = "UPDATE item SET active = TRUE WHERE id = :id RETURNING "
                 + "id, code, name, classification, form, strength, unit, regulatory_schedule, "
-                + "reorder_level, active, created_by, created_at";
+                + "reorder_level, active, requires_administration_witness, created_by, created_at";
         return jdbcTemplate.queryForObject(sql, new MapSqlParameterSource("id", itemId), this::mapRow);
     }
 
@@ -96,10 +97,21 @@ public class JdbcItemRepository implements ItemRepository {
         String sql = "UPDATE item SET regulatory_schedule = :schedule, "
                 + "active = (active AND :schedule <> 'CONTROLLED') WHERE id = :id RETURNING "
                 + "id, code, name, classification, form, strength, unit, regulatory_schedule, "
-                + "reorder_level, active, created_by, created_at";
+                + "reorder_level, active, requires_administration_witness, created_by, created_at";
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", itemId)
                 .addValue("schedule", newSchedule.name());
+        return jdbcTemplate.queryForObject(sql, params, this::mapRow);
+    }
+
+    @Override
+    public Item updateAdministrationWitness(UUID itemId, boolean requiresWitness) {
+        String sql = "UPDATE item SET requires_administration_witness = :requiresWitness WHERE id = :id RETURNING "
+                + "id, code, name, classification, form, strength, unit, regulatory_schedule, "
+                + "reorder_level, active, requires_administration_witness, created_by, created_at";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", itemId)
+                .addValue("requiresWitness", requiresWitness);
         return jdbcTemplate.queryForObject(sql, params, this::mapRow);
     }
 
@@ -124,6 +136,7 @@ public class JdbcItemRepository implements ItemRepository {
                 RegulatorySchedule.valueOf(rs.getString("regulatory_schedule")),
                 rs.getInt("reorder_level"),
                 rs.getBoolean("active"),
+                rs.getBoolean("requires_administration_witness"),
                 (UUID) rs.getObject("created_by"),
                 rs.getTimestamp("created_at").toInstant());
     }

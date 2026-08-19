@@ -24,6 +24,9 @@ public record RecordVitalSignsCommand(
         double heightCm,
         Avpu avpu,
         Double bloodGlucoseMmol,
+        Integer painScore,
+        Integer intakeMl,
+        Integer outputMl,
         UUID recordedBy,
         Instant occurredAt
 ) {

@@ -24,7 +24,8 @@ public class JdbcVitalSignsRepository implements VitalSignsRepository {
 
     private static final String SELECT_VITAL_SIGNS_COLUMNS = """
             SELECT id, encounter_id, context, context_ref_id, weight_kg, height_cm, bmi,
-                   avpu, blood_glucose_mmol, recorded_by, recorded_at, occurred_at
+                   avpu, blood_glucose_mmol, pain_score, intake_ml, output_ml,
+                   recorded_by, recorded_at, occurred_at
             FROM vital_signs
             """;
 
@@ -44,9 +45,11 @@ public class JdbcVitalSignsRepository implements VitalSignsRepository {
     public VitalSigns insert(VitalSigns vitalSigns) {
         String sql = """
                 INSERT INTO vital_signs (encounter_id, context, context_ref_id, weight_kg, height_cm,
-                                          avpu, blood_glucose_mmol, recorded_by, occurred_at)
+                                          avpu, blood_glucose_mmol, pain_score, intake_ml, output_ml,
+                                          recorded_by, occurred_at)
                 VALUES (:encounterId, :context, :contextRefId, :weightKg, :heightCm,
-                        :avpu, :bloodGlucoseMmol, :recordedBy, :occurredAt)
+                        :avpu, :bloodGlucoseMmol, :painScore, :intakeMl, :outputMl,
+                        :recordedBy, :occurredAt)
                 RETURNING id, bmi, recorded_at
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -57,6 +60,9 @@ public class JdbcVitalSignsRepository implements VitalSignsRepository {
                 .addValue("heightCm", vitalSigns.heightCm())
                 .addValue("avpu", vitalSigns.avpu() == null ? null : vitalSigns.avpu().name(), Types.VARCHAR)
                 .addValue("bloodGlucoseMmol", vitalSigns.bloodGlucoseMmol(), Types.NUMERIC)
+                .addValue("painScore", vitalSigns.painScore(), Types.INTEGER)
+                .addValue("intakeMl", vitalSigns.intakeMl(), Types.INTEGER)
+                .addValue("outputMl", vitalSigns.outputMl(), Types.INTEGER)
                 .addValue("recordedBy", vitalSigns.recordedBy())
                 .addValue("occurredAt", java.sql.Timestamp.from(vitalSigns.occurredAt()));
 
@@ -77,6 +83,9 @@ public class JdbcVitalSignsRepository implements VitalSignsRepository {
                 bmi,
                 vitalSigns.avpu(),
                 vitalSigns.bloodGlucoseMmol(),
+                vitalSigns.painScore(),
+                vitalSigns.intakeMl(),
+                vitalSigns.outputMl(),
                 vitalSigns.recordedBy(),
                 ((java.sql.Timestamp) row.get("recorded_at")).toInstant(),
                 vitalSigns.occurredAt());
@@ -127,6 +136,7 @@ public class JdbcVitalSignsRepository implements VitalSignsRepository {
                 withoutReadings.id(), withoutReadings.encounterId(), withoutReadings.context(),
                 withoutReadings.contextRefId(), readings, withoutReadings.weightKg(), withoutReadings.heightCm(),
                 withoutReadings.bmi(), withoutReadings.avpu(), withoutReadings.bloodGlucoseMmol(),
+                withoutReadings.painScore(), withoutReadings.intakeMl(), withoutReadings.outputMl(),
                 withoutReadings.recordedBy(), withoutReadings.recordedAt(), withoutReadings.occurredAt());
     }
 
@@ -154,6 +164,9 @@ public class JdbcVitalSignsRepository implements VitalSignsRepository {
                 rs.getDouble("bmi"),
                 avpu == null ? null : Avpu.valueOf(avpu),
                 bloodGlucose,
+                getNullableInteger(rs, "pain_score"),
+                getNullableInteger(rs, "intake_ml"),
+                getNullableInteger(rs, "output_ml"),
                 (UUID) rs.getObject("recorded_by"),
                 rs.getTimestamp("recorded_at").toInstant(),
                 rs.getTimestamp("occurred_at").toInstant());
@@ -161,6 +174,11 @@ public class JdbcVitalSignsRepository implements VitalSignsRepository {
 
     private Double getNullableDouble(ResultSet rs, String column) throws SQLException {
         double value = rs.getDouble(column);
+        return rs.wasNull() ? null : value;
+    }
+
+    private Integer getNullableInteger(ResultSet rs, String column) throws SQLException {
+        int value = rs.getInt(column);
         return rs.wasNull() ? null : value;
     }
 }

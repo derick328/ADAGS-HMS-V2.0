@@ -15,7 +15,7 @@ class ItemSearchResultResponseTest {
     @Test
     void aControlledItemIsVisibleButUnselectableWithAReason() {
         Item item = new Item(UUID.randomUUID(), "MOR10", "Morphine sulfate 10mg tablet", "OPIOID", "TABLET", "10mg",
-                "TABLET", RegulatorySchedule.CONTROLLED, 0, false, UUID.randomUUID(), null);
+                "TABLET", RegulatorySchedule.CONTROLLED, 0, false, false, UUID.randomUUID(), null);
 
         ItemSearchResultResponse response = ItemSearchResultResponse.from(item);
 
@@ -26,7 +26,7 @@ class ItemSearchResultResponseTest {
     @Test
     void anActiveDispensableItemIsSelectable() {
         Item item = new Item(UUID.randomUUID(), "AMX500", "Amoxicillin 500mg capsule", "ANTIBIOTIC", "CAPSULE",
-                "500mg", "CAPSULE", RegulatorySchedule.PHARMACY_ONLY_OTC, 100, true, UUID.randomUUID(), null);
+                "500mg", "CAPSULE", RegulatorySchedule.PHARMACY_ONLY_OTC, 100, true, false, UUID.randomUUID(), null);
 
         ItemSearchResultResponse response = ItemSearchResultResponse.from(item);
 
@@ -37,7 +37,7 @@ class ItemSearchResultResponseTest {
     @Test
     void anInactiveNonControlledItemIsUnselectableWithADifferentReason() {
         Item item = new Item(UUID.randomUUID(), "AMX500", "Amoxicillin 500mg capsule", "ANTIBIOTIC", "CAPSULE",
-                "500mg", "CAPSULE", RegulatorySchedule.PHARMACY_ONLY_OTC, 100, false, UUID.randomUUID(), null);
+                "500mg", "CAPSULE", RegulatorySchedule.PHARMACY_ONLY_OTC, 100, false, false, UUID.randomUUID(), null);
 
         ItemSearchResultResponse response = ItemSearchResultResponse.from(item);
 

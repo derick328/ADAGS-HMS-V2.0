@@ -287,7 +287,8 @@ class EndToEndSubstitutionAndUnavailableTest extends IntegrationTestSupport {
         Encounter encounter = openEncounterService.checkIn(
                 new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
         return placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
-                encounter.id(), itemId, quantity, "TAKE ONE TABLET THREE TIMES A DAY", substitutionAllowed, admin));
+                encounter.id(), itemId, quantity, "TAKE ONE TABLET THREE TIMES A DAY", substitutionAllowed, admin,
+                null, null, null, null, null));
     }
 
     private UUID patientIdFor(PrescriptionLine line) {
@@ -310,7 +311,8 @@ class EndToEndSubstitutionAndUnavailableTest extends IntegrationTestSupport {
                         """,
                 new MapSqlParameterSource("id", id),
                 (rs, rowNum) -> new PrescriptionLine(id, null, null, 0, rs.getInt("quantity_dispensed"), null, null,
-                        PrescriptionLineStatus.valueOf(rs.getString("status")), false, null, null));
+                        PrescriptionLineStatus.valueOf(rs.getString("status")), false, null,
+                        null, null, null, null, null, null));
     }
 
     private void payLine(UUID invoiceLineId, UUID patientId, UUID admin) {

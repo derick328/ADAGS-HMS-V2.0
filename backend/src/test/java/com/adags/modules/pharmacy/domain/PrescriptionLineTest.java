@@ -12,7 +12,8 @@ class PrescriptionLineTest {
 
     private PrescriptionLine fixture(int quantityPrescribed) {
         return PrescriptionLine.create(UUID.randomUUID(), UUID.randomUUID(), quantityPrescribed,
-                "TAKE ONE TABLET THREE TIMES A DAY", UUID.randomUUID(), false);
+                "TAKE ONE TABLET THREE TIMES A DAY", UUID.randomUUID(), false,
+                null, null, null, null, null);
     }
 
     @Test

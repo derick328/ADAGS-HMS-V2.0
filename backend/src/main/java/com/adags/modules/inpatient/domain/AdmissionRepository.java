@@ -39,4 +39,16 @@ public interface AdmissionRepository {
      * @throws StaleAdmissionException if the row's version does not match expectedVersion.
      */
     Admission recordActualDeparture(UUID admissionId, Instant actualDepartureAt, int expectedVersion);
+
+    /**
+     * 17-ward-nurse.md §9: the nurse's own confirming action — sets
+     * ward_status and clears any pending CRITICAL suggestion, whether she
+     * agrees with it or not. Not version-guarded: ward status is a
+     * frequently-updated nursing observation, not a financial or clinical
+     * record needing optimistic-lock protection.
+     */
+    Admission updateWardStatus(UUID admissionId, WardStatus wardStatus, Instant updatedAt, UUID updatedBy);
+
+    /** §4.3: a breaching vital proposes CRITICAL — this alone never changes ward_status. */
+    Admission suggestCriticalStatus(UUID admissionId, Instant suggestedAt);
 }
