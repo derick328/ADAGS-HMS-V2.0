@@ -8045,7 +8045,7 @@ components:
         createdAt:
           type: string
           format: date-time
-        acknowledged:
-          type: boolean
         escalated:
+          type: boolean
+        acknowledged:
           type: boolean
