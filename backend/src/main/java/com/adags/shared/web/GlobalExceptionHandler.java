@@ -17,14 +17,23 @@ import com.adags.modules.billing.domain.PaymentAllocationNotSettledException;
 import com.adags.modules.billing.domain.RefundAlreadyDecidedException;
 import com.adags.modules.billing.domain.RefundExceedsAllocationException;
 import com.adags.modules.billing.domain.RefundSelfApprovalNotAllowedException;
+import com.adags.modules.clinical.domain.ImplausibleVitalException;
+import com.adags.modules.clinical.domain.VitalReferenceRangeNotConfiguredException;
 import com.adags.modules.encounters.application.InvalidEncounterTransitionException;
 import com.adags.modules.encounters.application.MissingCloseReasonException;
+import com.adags.modules.encounters.application.MissingReferralException;
+import com.adags.modules.encounters.domain.InvalidTriageAssessmentException;
+import com.adags.modules.encounters.domain.StaleEncounterException;
 import com.adags.modules.finance.domain.BatchSelfDisbursementNotAllowedException;
 import com.adags.modules.finance.domain.DuplicateBatchException;
 import com.adags.modules.finance.domain.DuplicateSalaryRecordException;
 import com.adags.modules.finance.domain.ExpenseSelfApprovalNotAllowedException;
 import com.adags.modules.finance.domain.InvalidBatchTransitionException;
 import com.adags.modules.finance.domain.InvalidExpenseTransitionException;
+import com.adags.modules.identity.domain.DuplicateUsernameException;
+import com.adags.modules.identity.domain.IncorrectCurrentPasswordException;
+import com.adags.modules.identity.domain.RoleAssignmentAlreadyEndedException;
+import com.adags.modules.identity.domain.SelfRoleGrantNotAllowedException;
 import com.adags.modules.inventory.domain.BatchExpiredException;
 import com.adags.modules.inventory.domain.ControlledItemBlockedException;
 import com.adags.modules.inventory.domain.DuplicateItemCodeException;
@@ -52,6 +61,23 @@ import com.adags.modules.pharmacy.domain.SubstitutionNotAllowedException;
 import com.adags.modules.pharmacy.domain.SubstitutionSelfReviewNotAllowedException;
 import com.adags.modules.referencedata.application.SynonymAlreadyReviewedException;
 import com.adags.modules.referencedata.domain.SelfReviewNotAllowedException;
+import com.adags.modules.surgery.domain.AnaesthesiaNotRecordedException;
+import com.adags.modules.surgery.domain.ChecklistNotSatisfiedException;
+import com.adags.modules.surgery.domain.ConsentNotObtainedException;
+import com.adags.modules.surgery.domain.DispositionAlreadyRecordedException;
+import com.adags.modules.surgery.domain.EmergencyReductionNotAllowedException;
+import com.adags.modules.surgery.domain.InvalidSurgeryOrderTransitionException;
+import com.adags.modules.surgery.domain.MissingCountDiscrepancyNoteException;
+import com.adags.modules.surgery.domain.SurgeryOrderNotCompletedException;
+import com.adags.modules.surgery.domain.MissingWastageReasonException;
+import com.adags.modules.surgery.domain.ProcedureItemAlreadyAttestedException;
+import com.adags.modules.surgery.domain.ProcedureItemAlreadyReconciledException;
+import com.adags.modules.surgery.domain.ProcedureItemNotBalancedException;
+import com.adags.modules.surgery.domain.ProcedureItemNotReconciledException;
+import com.adags.modules.surgery.domain.ProcedureItemSelfReconciliationNotAllowedException;
+import com.adags.modules.surgery.domain.SurgeryOrderNotOpenException;
+import com.adags.modules.surgery.domain.SurgeryReconciliationIncompleteException;
+import com.adags.modules.surgery.domain.TheatreSlotNotAvailableException;
 import com.adags.shared.security.InvalidCredentialsException;
 import com.adags.shared.security.InvalidTokenException;
 import org.springframework.http.HttpStatus;
@@ -96,9 +122,14 @@ public class GlobalExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    // 05-receptionist.md §4.1: "warn, show candidates" needs the candidates
+    // themselves, not just a count buried in a message string — the
+    // receptionist has to see who they might be duplicating.
     @ExceptionHandler(DuplicatePatientException.class)
     public ProblemDetail handleDuplicatePatient(DuplicatePatientException ex) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("candidates", ex.candidates());
+        return problem;
     }
 
     @ExceptionHandler(MissingCloseReasonException.class)
@@ -414,6 +445,186 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateSalaryRecordException.class)
     public ProblemDetail handleDuplicateSalaryRecord(DuplicateSalaryRecordException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // Phase 8 item 1: "Consent blocks SCHEDULING, not billing. No signed
+    // document, no theatre slot." Well-formed request, missing precondition
+    // — same treatment as MissingCloseReasonException.
+    @ExceptionHandler(ConsentNotObtainedException.class)
+    public ProblemDetail handleConsentNotObtained(ConsentNotObtainedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // root CLAUDE.md "Concurrency": idx_theatre_slot_not_cancelled is the
+    // real guard against two procedures in one theatre slot — the loser of
+    // the race gets this, not a 500. Same treatment as BedNotAvailableException.
+    @ExceptionHandler(TheatreSlotNotAvailableException.class)
+    public ProblemDetail handleTheatreSlotNotAvailable(TheatreSlotNotAvailableException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("theatreId", ex.theatreId());
+        return problem;
+    }
+
+    // Phase 8 item 2: a well-formed prepare request against a surgery
+    // order that has already reached COMPLETED/CANCELLED — same treatment
+    // as PrescriptionLineNotOpenException.
+    @ExceptionHandler(SurgeryOrderNotOpenException.class)
+    public ProblemDetail handleSurgeryOrderNotOpen(SurgeryOrderNotOpenException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("surgeryOrderId", ex.surgeryOrderId());
+        return problem;
+    }
+
+    // Phase 8 item 3: repository's WHERE-guarded status UPDATE is the
+    // real guard — same treatment as InvalidEncounterTransitionException.
+    @ExceptionHandler(InvalidSurgeryOrderTransitionException.class)
+    public ProblemDetail handleInvalidSurgeryOrderTransition(InvalidSurgeryOrderTransitionException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(MissingWastageReasonException.class)
+    public ProblemDetail handleMissingWastageReason(MissingWastageReasonException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // 04-procedure-bedday-rules.md §2.3: "prepared == used + returned +
+    // wasted" — a reconciliation entry that doesn't add up.
+    @ExceptionHandler(ProcedureItemNotBalancedException.class)
+    public ProblemDetail handleProcedureItemNotBalanced(ProcedureItemNotBalancedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(ProcedureItemAlreadyReconciledException.class)
+    public ProblemDetail handleProcedureItemAlreadyReconciled(ProcedureItemAlreadyReconciledException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(ProcedureItemNotReconciledException.class)
+    public ProblemDetail handleProcedureItemNotReconciled(ProcedureItemNotReconciledException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(ProcedureItemAlreadyAttestedException.class)
+    public ProblemDetail handleProcedureItemAlreadyAttested(ProcedureItemAlreadyAttestedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // root CLAUDE.md "Authorisation": the circulating nurse and the
+    // attesting surgeon must be different people.
+    @ExceptionHandler(ProcedureItemSelfReconciliationNotAllowedException.class)
+    public ProblemDetail handleProcedureItemSelfReconciliationNotAllowed(ProcedureItemSelfReconciliationNotAllowedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // Phase 8 item 4: WHO-checklist pauses. "Each pause BLOCKS the next
+    // stage" — well-formed request, blocked by state, not input.
+    @ExceptionHandler(ChecklistNotSatisfiedException.class)
+    public ProblemDetail handleChecklistNotSatisfied(ChecklistNotSatisfiedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(MissingCountDiscrepancyNoteException.class)
+    public ProblemDetail handleMissingCountDiscrepancyNote(MissingCountDiscrepancyNoteException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(EmergencyReductionNotAllowedException.class)
+    public ProblemDetail handleEmergencyReductionNotAllowed(EmergencyReductionNotAllowedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // Phase 8 item 7: "A procedure requiring anaesthesia cannot reach
+    // COMPLETED without either this pointer or an explicit no_anaesthesia
+    // flag."
+    @ExceptionHandler(AnaesthesiaNotRecordedException.class)
+    public ProblemDetail handleAnaesthesiaNotRecorded(AnaesthesiaNotRecordedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(SurgeryReconciliationIncompleteException.class)
+    public ProblemDetail handleSurgeryReconciliationIncomplete(SurgeryReconciliationIncompleteException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // Phase 8 item 5: disposition only meaningful once COMPLETED.
+    @ExceptionHandler(SurgeryOrderNotCompletedException.class)
+    public ProblemDetail handleSurgeryOrderNotCompleted(SurgeryOrderNotCompletedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(DispositionAlreadyRecordedException.class)
+    public ProblemDetail handleDispositionAlreadyRecorded(DispositionAlreadyRecordedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // 18-admin.md §4: username uniqueness is a UNIQUE constraint on
+    // app_user — the request is well-formed, the value collides.
+    @ExceptionHandler(DuplicateUsernameException.class)
+    public ProblemDetail handleDuplicateUsername(DuplicateUsernameException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // 18-admin.md §11: "Admin cannot silently elevate themselves." The
+    // friendly half of the V57 DB CHECK backstop.
+    @ExceptionHandler(SelfRoleGrantNotAllowedException.class)
+    public ProblemDetail handleSelfRoleGrantNotAllowed(SelfRoleGrantNotAllowedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(RoleAssignmentAlreadyEndedException.class)
+    public ProblemDetail handleRoleAssignmentAlreadyEnded(RoleAssignmentAlreadyEndedException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // Not InvalidCredentialsException/401 — this is a signed-in user changing
+    // their own password, not a login attempt, and 401 on an authenticated
+    // request risks the frontend treating it as session expiry.
+    @ExceptionHandler(IncorrectCurrentPasswordException.class)
+    public ProblemDetail handleIncorrectCurrentPassword(IncorrectCurrentPasswordException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // 06-triage.md §5: "referral can never be blank" — rejected outright,
+    // never defaulted to a fallback doctor.
+    @ExceptionHandler(MissingReferralException.class)
+    public ProblemDetail handleMissingReferral(MissingReferralException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // TriageAssessment.create()'s single catch-all for a malformed
+    // submission — missing required field, a conditional field violating
+    // its has_pain/fall_risk/IMMEDIATE gate, an out-of-range score.
+    @ExceptionHandler(InvalidTriageAssessmentException.class)
+    public ProblemDetail handleInvalidTriageAssessment(InvalidTriageAssessmentException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // 06-triage.md §2.2: "Implausible values are rejected with a message
+    // naming the bound, never silently clamped." The exception message
+    // already names the bound — nothing further to attach.
+    @ExceptionHandler(ImplausibleVitalException.class)
+    public ProblemDetail handleImplausibleVital(ImplausibleVitalException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // A configuration gap (no VitalReferenceRange for this age band), not
+    // a bad submission — 409, same "well-formed request blocked by
+    // non-input state" treatment as ControlledItemBlockedException.
+    @ExceptionHandler(VitalReferenceRangeNotConfiguredException.class)
+    public ProblemDetail handleVitalReferenceRangeNotConfigured(VitalReferenceRangeNotConfiguredException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // backend/CLAUDE.md "API": "409 Conflict on optimistic lock failure,
+    // with the current version." The exception carries expectedVersion —
+    // the version the submitting client read; the UI's job is "reload and
+    // resubmit" against whatever the row's real current version now is.
+    @ExceptionHandler(StaleEncounterException.class)
+    public ProblemDetail handleStaleEncounter(StaleEncounterException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("encounterId", ex.encounterId());
+        problem.setProperty("expectedVersion", ex.expectedVersion());
+        return problem;
     }
 
     @ExceptionHandler(BillingGateRejectedException.class)

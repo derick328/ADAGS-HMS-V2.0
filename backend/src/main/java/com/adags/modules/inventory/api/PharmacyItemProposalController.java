@@ -6,12 +6,14 @@ import com.adags.modules.inventory.application.ProposePriceChangeCommand;
 import com.adags.modules.inventory.application.ReviewPharmacyItemProposalCommand;
 import com.adags.modules.inventory.application.ReviewPharmacyItemProposalService;
 import com.adags.modules.inventory.domain.PharmacyItemProposal;
+import com.adags.modules.inventory.domain.PharmacyItemProposalRepository;
 import com.adags.shared.authz.Actor;
 import com.adags.shared.authz.AuthorizationService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 // 12-pharmacist.md §9.2: new items and price changes through one approval
@@ -30,16 +33,28 @@ public class PharmacyItemProposalController {
 
     private final ProposePharmacyItemService proposePharmacyItemService;
     private final ReviewPharmacyItemProposalService reviewPharmacyItemProposalService;
+    private final PharmacyItemProposalRepository pharmacyItemProposalRepository;
     private final AuthorizationService authorizationService;
 
     public PharmacyItemProposalController(
             ProposePharmacyItemService proposePharmacyItemService,
             ReviewPharmacyItemProposalService reviewPharmacyItemProposalService,
+            PharmacyItemProposalRepository pharmacyItemProposalRepository,
             AuthorizationService authorizationService
     ) {
         this.proposePharmacyItemService = proposePharmacyItemService;
         this.reviewPharmacyItemProposalService = reviewPharmacyItemProposalService;
+        this.pharmacyItemProposalRepository = pharmacyItemProposalRepository;
         this.authorizationService = authorizationService;
+    }
+
+    // 18-admin.md §2/§7: the admin's "Pricing / price proposals" review
+    // queue — every PROPOSED new-item and price-change request awaiting a
+    // decision, oldest first.
+    @GetMapping("/pending")
+    public List<PharmacyItemProposalResponse> pending(@AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "PHARMACY_ITEM_APPROVE");
+        return pharmacyItemProposalRepository.findPending().stream().map(PharmacyItemProposalResponse::from).toList();
     }
 
     @PostMapping("/new-item")

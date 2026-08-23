@@ -105,4 +105,37 @@ public class InventoryFacadeImpl implements InventoryFacade {
 
         return batch.unitCost();
     }
+
+    @Override
+    @Transactional
+    public Money decrementForProcedureItem(UUID itemId, UUID batchId, int quantity, UUID referenceId, UUID actorUserId) {
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new NoSuchElementException("Item not found: " + itemId));
+        item.assertDispensable();
+
+        StockBatch batch = stockBatchRepository.findById(batchId)
+                .orElseThrow(() -> new NoSuchElementException("Batch not found: " + batchId));
+        if (batch.status() != StockBatchStatus.ACTIVE || batch.isExpiredAsOf(LocalDate.now())) {
+            throw new BatchExpiredException(batchId);
+        }
+
+        stockBalanceRepository.applyDelta(itemId, batchId, batch.storeId(), -quantity);
+
+        stockMovementRepository.insert(StockMovement.record(itemId, batchId, batch.storeId(), -quantity,
+                MovementType.DISPENSE, "PROCEDURE_ITEM", referenceId, actorUserId));
+
+        return batch.unitCost();
+    }
+
+    @Override
+    @Transactional
+    public void incrementForReturn(UUID itemId, UUID batchId, int quantity, UUID referenceId, UUID actorUserId) {
+        StockBatch batch = stockBatchRepository.findById(batchId)
+                .orElseThrow(() -> new NoSuchElementException("Batch not found: " + batchId));
+
+        stockBalanceRepository.applyDelta(itemId, batchId, batch.storeId(), quantity);
+
+        stockMovementRepository.insert(StockMovement.record(itemId, batchId, batch.storeId(), quantity,
+                MovementType.RETURN, "PROCEDURE_ITEM_RETURN", referenceId, actorUserId));
+    }
 }

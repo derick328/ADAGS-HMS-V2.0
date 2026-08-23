@@ -106,6 +106,17 @@ public class JdbcPatientRepository implements PatientRepository {
     }
 
     @Override
+    public long countCreatedBetween(Instant from, Instant to) {
+        Long count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM patient WHERE created_at >= :from AND created_at < :to",
+                new MapSqlParameterSource()
+                        .addValue("from", Timestamp.from(from))
+                        .addValue("to", Timestamp.from(to)),
+                Long.class);
+        return count == null ? 0 : count;
+    }
+
+    @Override
     public List<InsurancePolicy> findInsurancePoliciesByPatientId(UUID patientId) {
         String sql = """
                 SELECT id, patient_id, scheme_id, policy_number, member_number, is_principal,

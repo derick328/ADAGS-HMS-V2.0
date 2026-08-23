@@ -48,4 +48,20 @@ public interface EncounterFacade {
      * where an unpaid balance blocks this call.
      */
     void completeDischarge(UUID encounterId, UUID actorUserId);
+
+    /**
+     * Phase 8 item 5: IN_CONSULT -> CONSULT_COMPLETE for the surgery
+     * module's RECOVERY_THEN_DISCHARGE disposition. Deliberately narrow —
+     * unlike FinalizeConsultationService (the doctor's own disposition
+     * flow), this does not touch ClinicalFacade/ConsultationRecord; a
+     * surgical episode's documentation is the SurgeryOrder/ProcedureItem/
+     * checklist chain, not a consultation note.
+     */
+    void moveToConsultComplete(UUID encounterId, UUID actorUserId);
+
+    /** Phase 8 item 5: IN_CONSULT -> REFERRED_OUT (terminal) for TRANSFER_OUT disposition. */
+    void referOut(UUID encounterId, UUID actorUserId);
+
+    /** Phase 8 item 5: IN_CONSULT -> DECEASED (terminal) for DECEASED disposition. */
+    void markDeceased(UUID encounterId, UUID actorUserId);
 }

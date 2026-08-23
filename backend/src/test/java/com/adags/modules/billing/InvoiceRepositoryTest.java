@@ -189,6 +189,47 @@ class InvoiceRepositoryTest extends IntegrationTestSupport {
                 .isInstanceOf(InvoiceWriteOffExceedsOutstandingException.class);
     }
 
+    // 05-receptionist.md §7.2/§8 and the admin dashboard's "Unpaid at desk"
+    // tile: outstandingOnly must exclude a DRAFT (outstanding is always
+    // zero pre-issue) and an ISSUED-but-fully-unlined invoice, and include
+    // only an ISSUED invoice actually carrying a patient portion.
+    @Test
+    void searchWithOutstandingOnlyExcludesDraftsAndZeroBalanceInvoices() {
+        UUID patientId = insertFixturePatient();
+        UUID encounterId = insertFixtureEncounter(patientId);
+        UUID serviceItemId = insertFixtureServiceItem();
+
+        Invoice draft = invoiceRepository.insertDraft(Invoice.draft(encounterId, patientId, BOOTSTRAP_FACILITY_ID,
+                PayerCategory.CASH, null, bootstrapAdminId()));
+
+        Invoice toIssue = invoiceRepository.insertDraft(Invoice.draft(encounterId, patientId, BOOTSTRAP_FACILITY_ID,
+                PayerCategory.CASH, null, bootstrapAdminId()));
+        invoiceLineRepository.insert(InvoiceLine.unauthorized(toIssue.id(), serviceItemId, 1,
+                new Money(10_000, "TZS"), new Money(0, "TZS"), new Money(10_000, "TZS"),
+                "TriageCompleted", encounterId));
+        Invoice issuedWithBalance = invoiceRepository.issue(toIssue.id(), "FAC-2026-SEARCH-1", toIssue.version());
+
+        var results = invoiceRepository.search(patientId, null, null, null, null, true);
+
+        assertThat(results).extracting(Invoice::id).containsExactly(issuedWithBalance.id());
+        assertThat(results).extracting(Invoice::id).doesNotContain(draft.id());
+    }
+
+    @Test
+    void searchFiltersByCreatedRange() {
+        UUID patientId = insertFixturePatient();
+        Invoice draft = invoiceRepository.insertDraft(
+                Invoice.draft(null, patientId, BOOTSTRAP_FACILITY_ID, PayerCategory.CASH, null, bootstrapAdminId()));
+
+        var withinRange = invoiceRepository.search(patientId, null, null,
+                draft.createdAt().minusSeconds(60), draft.createdAt().plusSeconds(60), false);
+        var outsideRange = invoiceRepository.search(patientId, null, null,
+                draft.createdAt().plusSeconds(3600), draft.createdAt().plusSeconds(7200), false);
+
+        assertThat(withinRange).extracting(Invoice::id).contains(draft.id());
+        assertThat(outsideRange).extracting(Invoice::id).doesNotContain(draft.id());
+    }
+
     private UUID insertFixtureServiceItem() {
         return jdbcTemplate.queryForObject("""
                         INSERT INTO service_item (code, name, category)

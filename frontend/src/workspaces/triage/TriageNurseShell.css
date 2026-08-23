@@ -1,0 +1,113 @@
+.triage-shell-outer {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.triage-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.triage-sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--bg-sidebar);
+  color: var(--green-200);
+  display: flex;
+  flex-direction: column;
+  padding: 1.2rem 0.8rem;
+}
+
+.triage-sidebar-brand {
+  color: var(--text-on-dark);
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  padding: 0.4rem 0.6rem 1.4rem;
+}
+
+.triage-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.nav-item {
+  display: block;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius);
+  color: var(--green-200);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Left bar, not a full tint — same inset-shadow technique tokens.css uses
+   for row-critical/row-warning, applied here with the signal colour. */
+.nav-item-active {
+  box-shadow: inset 3px 0 0 var(--green-signal);
+  background: rgba(127, 255, 0, 0.08);
+  color: var(--green-signal);
+  font-weight: 600;
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--green-signal);
+  outline-offset: 2px;
+}
+
+/* Patient Queue's live count sits at the far end of the label, not after
+   it inline — a clickable number (frontend/CLAUDE.md "every count badge is
+   clickable"), which this already is: the whole row is the NavLink. */
+.nav-item-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.nav-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin: 0.6rem 0.2rem;
+}
+
+.triage-sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.triage-user {
+  font-size: 0.85rem;
+  color: var(--text-on-dark);
+  padding: 0 0.6rem;
+}
+
+.triage-logout {
+  background: none;
+  border: 1px solid var(--green-200);
+  color: var(--green-200);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.triage-logout:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.triage-content {
+  flex: 1;
+  padding: 2rem;
+  background: var(--bg-page);
+}

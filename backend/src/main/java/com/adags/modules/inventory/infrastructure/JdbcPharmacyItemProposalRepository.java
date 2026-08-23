@@ -73,6 +73,13 @@ public class JdbcPharmacyItemProposalRepository implements PharmacyItemProposalR
     }
 
     @Override
+    public List<PharmacyItemProposal> findPending() {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE status = 'PROPOSED' ORDER BY proposed_at",
+                this::mapRow);
+    }
+
+    @Override
     public PharmacyItemProposal update(PharmacyItemProposal proposal) {
         String sql = """
                 UPDATE pharmacy_item_proposal

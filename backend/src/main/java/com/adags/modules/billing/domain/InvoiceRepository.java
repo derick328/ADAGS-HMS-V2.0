@@ -2,6 +2,7 @@ package com.adags.modules.billing.domain;
 
 import com.adags.shared.kernel.Money;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,6 +15,19 @@ public interface InvoiceRepository {
     Optional<Invoice> findById(UUID id);
 
     List<Invoice> findByEncounterId(UUID encounterId);
+
+    /**
+     * The receptionist's invoice list (05-receptionist.md §5.1/§7.2) and the
+     * dashboard's "Unpaid at desk" tile. Every parameter except
+     * {@code outstandingOnly} is an optional filter — null/empty means no
+     * restriction on that dimension. {@code createdFrom}/{@code createdTo}
+     * filter on created_at, which is also, in practice, the issue moment —
+     * this table carries no separate issued_at, and DRAFT->ISSUED happens in
+     * the same sitting today (draft auto-expiry, the only way the two could
+     * drift, isn't built yet).
+     */
+    List<Invoice> search(UUID patientId, UUID encounterId, List<InvoiceState> states,
+                          Instant createdFrom, Instant createdTo, boolean outstandingOnly);
 
     /**
      * DRAFT -> ISSUED: assigns invoiceNumber (from the gapless sequence,

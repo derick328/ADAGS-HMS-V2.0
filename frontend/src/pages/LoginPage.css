@@ -46,17 +46,6 @@
   outline-offset: 1px;
 }
 
-.field-error {
-  color: var(--critical);
-  font-size: 0.8rem;
-}
-
-.form-error {
-  margin-top: 0.8rem;
-  color: var(--critical);
-  font-size: 0.9rem;
-}
-
 .login-card button {
   margin-top: 1.4rem;
   padding: 0.7rem;

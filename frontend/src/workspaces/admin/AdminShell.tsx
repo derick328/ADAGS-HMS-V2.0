@@ -8,34 +8,48 @@ interface NavLeaf {
   to: string;
   label: string;
   /** Omitted where docs/spec/18-admin.md §2 names a screen whose module
-   *  (pricing, revenue, expenses, patients-financial) hasn't shipped a
-   *  permission code yet — see the Phase 0 permission catalogue audit.
+   *  (audit log, facility settings) hasn't shipped a backend endpoint yet.
    *  Those items render unguarded rather than behind a code that doesn't
-   *  exist, which would just hide them forever. */
+   *  exist, which would just hide them forever. Revenue/expenses/analytics/
+   *  patients/pricing/users now have real backends (InvoiceCancellationController,
+   *  ExpenseController, ReportingController, PatientController,
+   *  PharmacyItemProposalController, UserController) and gate on the
+   *  permission each one actually requires server-side — this is visibility
+   *  only, not the check (usePermission's own contract). */
   permission?: string;
 }
 
 // docs/spec/18-admin.md §2. Badge counts ("● 7 pending", "3", "1" in the
-// spec) are left off — there is no pricing/revenue/expenses module behind
-// them yet in Phase 0, and a fabricated number is worse than none.
+// spec) are left off — a fabricated number is worse than none.
+//
+// Pricing is scoped to the pharmacy item/price-change approval queue
+// (12-pharmacist.md §9.2, PharmacyItemProposalController) — the only
+// pricing-adjacent backend that exists. 18-admin.md §7's fuller catalogue
+// (payer-aware PriceListEntry versioning, bulk import) has no backend yet.
 const MAIN_NAV: NavLeaf[] = [
-  { to: '/admin/pricing', label: 'Pricing / price proposals' },
-  { to: '/admin/revenue', label: 'Revenue / invoice cancellations' },
-  { to: '/admin/patients', label: 'Patients' },
+  { to: '/admin/pricing', label: 'Pricing / price proposals', permission: 'PHARMACY_ITEM_APPROVE' },
+  { to: '/admin/revenue', label: 'Revenue / invoice cancellations', permission: 'INVOICE_CANCEL_APPROVE' },
+  { to: '/admin/payment-bypass-waivers', label: 'Payment bypass waivers', permission: 'PAYMENT_BYPASS_WAIVE' },
+  { to: '/admin/patients', label: 'Patients', permission: 'PATIENT_SEARCH' },
   { to: '/admin/users', label: 'Users / add nurse / staff', permission: 'USER_MANAGE' },
 ];
 
+// EXPENSE_CREATE and EXPENSE_APPROVE are granted together to every role
+// that holds either (ADMIN, ACCOUNTANT) — gating on EXPENSE_CREATE alone
+// is enough to decide link visibility for both.
 const EXPENSE_CATEGORIES: NavLeaf[] = [
-  { to: '/admin/expenses/medication-pharmacy', label: 'Medication & pharmacy' },
-  { to: '/admin/expenses/medications', label: 'Medications' },
-  { to: '/admin/expenses/salaries', label: 'Salaries' },
-  { to: '/admin/expenses/utilities', label: 'Utilities' },
-  { to: '/admin/expenses/maintenance', label: 'Maintenance' },
-  { to: '/admin/expenses/equipment', label: 'Equipment' },
-  { to: '/admin/expenses/other', label: 'Other' },
+  { to: '/admin/expenses/medication-pharmacy', label: 'Medication & pharmacy', permission: 'EXPENSE_CREATE' },
+  { to: '/admin/expenses/medications', label: 'Medications', permission: 'EXPENSE_CREATE' },
+  { to: '/admin/expenses/salaries', label: 'Salaries', permission: 'EXPENSE_CREATE' },
+  { to: '/admin/expenses/utilities', label: 'Utilities', permission: 'EXPENSE_CREATE' },
+  { to: '/admin/expenses/maintenance', label: 'Maintenance', permission: 'EXPENSE_CREATE' },
+  { to: '/admin/expenses/equipment', label: 'Equipment', permission: 'EXPENSE_CREATE' },
+  { to: '/admin/expenses/other', label: 'Other', permission: 'EXPENSE_CREATE' },
 ];
 
-const AFTER_EXPENSES_NAV: NavLeaf[] = [{ to: '/admin/expense-analytics', label: 'Expense analytics' }];
+const AFTER_EXPENSES_NAV: NavLeaf[] = [
+  { to: '/admin/expense-analytics', label: 'Expense analytics', permission: 'FINANCIAL_REPORT_READ' },
+];
 
 // §2's divider — Audit log and Facility & settings are called out as
 // "added — no other role can hold it".

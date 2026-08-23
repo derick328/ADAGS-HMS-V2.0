@@ -6,6 +6,11 @@ import com.adags.modules.encounters.domain.Encounter;
 import com.adags.modules.encounters.domain.EncounterRepository;
 import com.adags.modules.encounters.domain.EncounterState;
 import com.adags.modules.encounters.domain.EncounterType;
+import com.adags.modules.scheduling.application.CreateFollowUpAppointmentCommand;
+import com.adags.modules.scheduling.application.CreateFollowUpAppointmentService;
+import com.adags.modules.scheduling.domain.Appointment;
+import com.adags.modules.scheduling.domain.AppointmentRepository;
+import com.adags.modules.scheduling.domain.AppointmentStatus;
 import com.adags.shared.kernel.PayerType;
 import com.adags.support.IntegrationTestSupport;
 import org.junit.jupiter.api.AfterEach;
@@ -39,11 +44,44 @@ class OpenEncounterServiceTest extends IntegrationTestSupport {
     private EncounterRepository encounterRepository;
 
     @Autowired
+    private CreateFollowUpAppointmentService createFollowUpAppointmentService;
+
+    @Autowired
+    private AppointmentRepository appointmentRepository;
+
+    @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
 
     @AfterEach
     void cleanUp() {
-        jdbcTemplate.update("TRUNCATE encounter, patient CASCADE", new MapSqlParameterSource());
+        jdbcTemplate.update("TRUNCATE appointment, encounter, patient CASCADE", new MapSqlParameterSource());
+    }
+
+    // 05a-receptionist-decisions.md §3.3: arriving against a booked
+    // follow-up marks it ATTENDED and records the new encounter, in the
+    // same transaction as opening it (OpenEncounterTransaction).
+    @Test
+    void checkInAgainstABookedFollowUpMarksItAttended() {
+        UUID patientId = insertFixturePatient();
+        UUID departmentId = insertFixtureDepartment();
+        UUID actor = bootstrapAdminId();
+        UUID sourceEncounterId = openEncounterService.checkIn(
+                new OpenEncounterCommand(patientId, departmentId, null, actor)).id();
+        // Close the first encounter out of the way so the follow-up
+        // check-in below doesn't just return it via the one-open-encounter
+        // guard — the two-open-encounters-for-one-patient scenario proper
+        // is a doctor/closure concern this test isn't exercising.
+        encounterRepository.updateState(sourceEncounterId, EncounterState.CLOSED);
+        Appointment appointment = createFollowUpAppointmentService.create(new CreateFollowUpAppointmentCommand(
+                patientId, sourceEncounterId, java.time.Instant.now().plusSeconds(3600), null, actor));
+
+        Encounter followUpEncounter = openEncounterService.checkIn(
+                new OpenEncounterCommand(patientId, departmentId, appointment.id(), actor));
+
+        assertThat(followUpEncounter.appointmentId()).isEqualTo(appointment.id());
+        Appointment reloaded = appointmentRepository.findById(appointment.id()).orElseThrow();
+        assertThat(reloaded.status()).isEqualTo(AppointmentStatus.ATTENDED);
+        assertThat(reloaded.attendedEncounterId()).isEqualTo(followUpEncounter.id());
     }
 
     @Test

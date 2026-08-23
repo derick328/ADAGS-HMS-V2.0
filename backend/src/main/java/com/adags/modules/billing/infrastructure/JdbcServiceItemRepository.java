@@ -56,6 +56,18 @@ public class JdbcServiceItemRepository implements ServiceItemRepository {
         return new ServiceItem(id, item.code(), item.name(), item.category(), item.isActive());
     }
 
+    @Override
+    public List<ServiceItem> search(String query) {
+        return jdbcTemplate.query(
+                """
+                SELECT id, code, name, category, is_active FROM service_item
+                WHERE is_active = true AND (name ILIKE :pattern OR code ILIKE :pattern)
+                ORDER BY name
+                """,
+                new MapSqlParameterSource("pattern", "%" + query + "%"),
+                this::mapRow);
+    }
+
     private ServiceItem mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new ServiceItem(
                 (UUID) rs.getObject("id"),

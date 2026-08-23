@@ -1,5 +1,6 @@
 package com.adags.modules.patients.domain;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +18,9 @@ public interface PatientRepository {
 
     /** Hospital number, name, phone, or national ID — 05-receptionist.md §5.1. */
     List<PatientSearchResult> search(String query, int limit);
+
+    /** The dashboard's "Registered today" tile — a count, not a browsable list (18-admin.md's "no browse-all" applies here too). */
+    long countCreatedBetween(Instant from, Instant to);
 
     List<InsurancePolicy> findInsurancePoliciesByPatientId(UUID patientId);
 

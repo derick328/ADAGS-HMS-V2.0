@@ -12,7 +12,9 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -109,6 +111,21 @@ public class JdbcTriageAssessmentRepository implements TriageAssessmentRepositor
         return jdbcTemplate.query(
                 SELECT_COLUMNS + " WHERE encounter_id = :encounterId ORDER BY assessed_at DESC",
                 new MapSqlParameterSource("encounterId", encounterId),
+                this::mapRow);
+    }
+
+    @Override
+    public List<TriageAssessment> search(UUID assessedBy, Instant assessedFrom, Instant assessedTo) {
+        String sql = SELECT_COLUMNS + """
+                 WHERE assessed_at >= :assessedFrom AND assessed_at < :assessedTo
+                   AND (CAST(:assessedBy AS UUID) IS NULL OR assessed_by = CAST(:assessedBy AS UUID))
+                   AND id NOT IN (SELECT supersedes_id FROM triage_assessment WHERE supersedes_id IS NOT NULL)
+                 ORDER BY assessed_at DESC
+                """;
+        return jdbcTemplate.query(sql, new MapSqlParameterSource()
+                .addValue("assessedFrom", Timestamp.from(assessedFrom))
+                .addValue("assessedTo", Timestamp.from(assessedTo))
+                .addValue("assessedBy", assessedBy, Types.OTHER),
                 this::mapRow);
     }
 

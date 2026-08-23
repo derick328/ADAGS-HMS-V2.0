@@ -5,8 +5,12 @@ import com.adags.modules.inpatient.application.GenerateMedicationScheduleCommand
 import com.adags.modules.inpatient.application.GenerateMedicationScheduleService;
 import com.adags.modules.inpatient.domain.Admission;
 import com.adags.modules.inpatient.domain.AdmissionRepository;
+import com.adags.modules.inpatient.domain.WardClass;
+import com.adags.modules.inpatient.domain.WardStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,13 +20,16 @@ public class InpatientFacadeImpl implements InpatientFacade {
 
     private final AdmissionRepository admissionRepository;
     private final GenerateMedicationScheduleService generateMedicationScheduleService;
+    private final Clock clock;
 
     public InpatientFacadeImpl(
             AdmissionRepository admissionRepository,
-            GenerateMedicationScheduleService generateMedicationScheduleService
+            GenerateMedicationScheduleService generateMedicationScheduleService,
+            Clock clock
     ) {
         this.admissionRepository = admissionRepository;
         this.generateMedicationScheduleService = generateMedicationScheduleService;
+        this.clock = clock;
     }
 
     @Override
@@ -38,5 +45,15 @@ public class InpatientFacadeImpl implements InpatientFacade {
     ) {
         generateMedicationScheduleService.generate(new GenerateMedicationScheduleCommand(
                 admissionId, prescriptionLineId, frequency, durationDays, startAt));
+    }
+
+    @Override
+    @Transactional
+    public UUID admitFromProcedure(UUID encounterId, UUID patientId, UUID facilityId, UUID admittingDoctorId,
+                                    String orderedWardClass, UUID actorUserId) {
+        Admission toInsert = new Admission(null, encounterId, patientId, facilityId, admittingDoctorId,
+                WardClass.valueOf(orderedWardClass), Instant.now(clock), null, null, null, null,
+                WardStatus.ADMITTED, null, null, null, 0, null);
+        return admissionRepository.insert(toInsert).id();
     }
 }

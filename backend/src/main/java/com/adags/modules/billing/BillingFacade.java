@@ -24,6 +24,26 @@ public interface BillingFacade {
     UUID createImmediateTriagePaymentBypass(UUID encounterId, String reason, UUID grantedBy);
 
     /**
+     * Phase 8 item 1, root CLAUDE.md "Safety": IMMEDIATE surgery urgency
+     * bypasses the payment gate for the whole encounter, the same
+     * mechanism and scope as {@link #createImmediateTriagePaymentBypass}
+     * with source PaymentBypassSource.SURGERY_IMMEDIATE instead of
+     * TRIAGE_IMMEDIATE. Persists a PaymentBypass row. Returns its id.
+     */
+    UUID createImmediateSurgeryPaymentBypass(UUID encounterId, String reason, UUID grantedBy);
+
+    /**
+     * 02-billing-architecture.md §8: "charity, staff benefit, ministry
+     * directive" — an admin grants this directly, no second actor
+     * (unlike CLINICIAN_AUTHORISED, which needs a clinician to complete
+     * a receptionist-initiated request — not built yet, no Doctor
+     * workspace exists to receive one). Same mechanics as the two
+     * IMMEDIATE bypass grants: an active, encounter-scoped bypass row.
+     * Persists a PaymentBypass row. Returns its id.
+     */
+    UUID createAdminWaiverPaymentBypass(UUID encounterId, String reason, UUID grantedBy);
+
+    /**
      * 02-billing-architecture.md §4.1/§4.2: posts the consultation charge.
      * The service item resolves from the assigned provider's actual role
      * — DOCTOR -&gt; CONSULT_GENERAL, SPECIALIST_DOCTOR -&gt; CONSULT_SPECIALIST
@@ -37,6 +57,19 @@ public interface BillingFacade {
      */
     void postConsultationCharge(UUID encounterId, UUID patientId, UUID facilityId, PayerType payerType,
                                  UUID triageAssessmentId, UUID assignedProviderId, UUID actorUserId);
+
+    /**
+     * Preview-only: the consultation fee a given provider would be charged
+     * at, for 06-triage.md §5.1's referral picker ("the fee is visible
+     * BEFORE selection — the nurse is choosing between 10,000/= and
+     * 40,000/= and must be told"). Resolves the same
+     * role -&gt; service-item -&gt; price path postConsultationCharge uses,
+     * but posts nothing. Throws (unchecked) if the provider holds no role
+     * mapped to a consultation price, or no current price is configured —
+     * the same failures postConsultationCharge itself can throw, just
+     * surfaced before commit rather than during it.
+     */
+    Money previewConsultationFee(UUID providerId, PayerType payerType);
 
     /**
      * 02-billing-architecture.md §2.1/§3: the one deliberate payment gate
@@ -112,6 +145,18 @@ public interface BillingFacade {
 
     /** The current CASH price for a service item code, if one has ever been set — 12-pharmacist.md §9.2's current_price_minor snapshot at proposal time. */
     Optional<Money> findCurrentPharmacyItemPrice(String itemCode);
+
+    /**
+     * Phase 8 item 1: resolves and returns the catalogue name for an
+     * active PROCEDURE-category service item code, for the caller to
+     * snapshot at scheduling time — same pattern and same reasoning as
+     * ReferenceDataFacade.resolveBillableIcd10Title (AddDiagnosisService):
+     * resolved server-side from the live catalogue, never trusted from the
+     * client, then copied so a later catalogue rename doesn't rewrite
+     * history. Empty if no such active, PROCEDURE-category service item
+     * exists.
+     */
+    Optional<String> findActiveProcedureName(String serviceItemCode);
 
     /**
      * 04-procedure-bedday-rules.md §3.5: posts a single retrospective

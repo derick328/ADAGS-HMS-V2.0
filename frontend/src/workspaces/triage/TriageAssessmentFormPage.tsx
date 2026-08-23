@@ -1,0 +1,715 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router-dom';
+import { z } from 'zod';
+import { ApiError } from '../../shared/api/client';
+import { fetchEncounterById } from '../../shared/api/encounters';
+import { fetchPatientById } from '../../shared/api/patients';
+import {
+  fetchOwnTriageDraft,
+  fetchReferralCandidates,
+  fetchVitalReferenceRanges,
+  saveTriageDraft,
+  submitTriageAssessment,
+  type ImmediateReason,
+  type ModeOfAmbulation,
+  type ReferralCandidateResponse,
+  type SubmitTriageAssessmentRequest,
+  type TriageFormState,
+  type TriagePriority,
+  type VitalReferenceRangeResponse,
+} from '../../shared/api/triage';
+import { useAuth } from '../../shared/auth/AuthProvider';
+import { usePermission } from '../../shared/auth/usePermission';
+import { formatMoney } from '../../shared/format/money';
+
+// 06-triage.md §2/§4/§5/§6 — Screen 2, the Triage Assessment Form. Two
+// deliberate departures from the brief's field list, both because the
+// real backend (SubmitTriageAssessmentCommand, TriageAssessment.create())
+// doesn't carry the field at all — following docs/spec/06-triage.md v0.3
+// (root CLAUDE.md: "read the relevant spec"), not the brief's paraphrase,
+// where the two disagree:
+//   - No separate `onset` / `arrival_mode` fields under presenting
+//     complaint. v0.3 §2.1 only has chief_complaint/current_symptoms;
+//     "how did they arrive" lives once, as §2.4's mode_of_ambulation
+//     (WALKING/INFANT_IN_MOTHERS_LAP/WHEELCHAIR_ASSISTED/STRETCHER_ASSISTED)
+//     — the exact same enum the brief lists twice under two names.
+//   - No `infection_type` enum and no isolation_required auto-set.
+//     infectionRisk is a bare boolean server-side; §7.5 of the real spec
+//     flags this explicitly as "decoration... no downstream effect" and
+//     unresolved, not a built feature this form can wire into.
+// Similarly no "reason for choosing a specialist" field — no such column
+// exists on SubmitTriageAssessmentCommand either.
+//
+// Danger signs (brief's "checklist, any tick forces IMMEDIATE") has no
+// backend field of its own — there's nothing to submit it as. It's
+// implemented here as checkboxes over the same ImmediateReason enum §4.1's
+// confirmation dialog already uses: ticking one sets priority=IMMEDIATE
+// and opens that exact confirmation, pre-selecting the reason when exactly
+// one sign is ticked. One enum, two entry points, not a phantom field.
+export function TriageAssessmentFormPage() {
+  const { encounterId } = useParams<{ encounterId: string }>();
+  const { accessToken } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const canAssess = usePermission('TRIAGE_ASSESS');
+
+  const { data: encounter, isLoading: encounterLoading } = useQuery({
+    queryKey: ['encounter', encounterId],
+    queryFn: () => fetchEncounterById(encounterId as string, accessToken as string),
+    enabled: accessToken != null && encounterId != null,
+  });
+
+  const { data: patient, isLoading: patientLoading } = useQuery({
+    queryKey: ['patient', encounter?.patientId],
+    queryFn: () => fetchPatientById(encounter?.patientId as string, accessToken as string),
+    enabled: accessToken != null && encounter?.patientId != null,
+  });
+
+  const { data: ranges } = useQuery({
+    queryKey: ['vital-reference-ranges', encounter?.patientId],
+    queryFn: () => fetchVitalReferenceRanges(encounter?.patientId as string, accessToken as string),
+    enabled: accessToken != null && encounter?.patientId != null,
+  });
+
+  const { data: referralCandidates, isLoading: candidatesLoading } = useQuery({
+    queryKey: ['referral-candidates', encounterId],
+    queryFn: () => fetchReferralCandidates(encounterId as string, accessToken as string),
+    enabled: accessToken != null && encounterId != null,
+  });
+
+  const { data: ownDraft } = useQuery({
+    queryKey: ['triage-draft', 'own', encounterId],
+    queryFn: () => fetchOwnTriageDraft(encounterId as string, accessToken as string),
+    enabled: accessToken != null && encounterId != null,
+    staleTime: Infinity,
+  });
+
+  const patientAge = ageFromDob(patient?.dateOfBirth);
+  const suppressBmi = patientAge != null && patientAge < 18;
+  // Age bounds are configuration in the real system (protocol_setting,
+  // V11's seeded triage.pregnancy_prompt.min_age_years/max_age_years) —
+  // no endpoint exposes that setting today, so this mirrors the seeded
+  // defaults (12/50) rather than the live value an admin may have retuned.
+  const pregnancyApplicable = patient?.gender === 'FEMALE' && patientAge != null && patientAge >= 12 && patientAge <= 50;
+
+  const schema = useMemo(() => buildSchema(pregnancyApplicable ?? false), [pregnancyApplicable]);
+  type Values = z.infer<typeof schema>;
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    getValues,
+    reset,
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm<Values>({
+    resolver: zodResolver(schema),
+    defaultValues: { hasPain: false, fallRisk: false, infectionRisk: false, dangerSigns: [] },
+  });
+
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (hydrated) return;
+    if (ownDraft?.formState && Object.keys(ownDraft.formState).length > 0) {
+      reset(ownDraft.formState as unknown as Values);
+      setHydrated(true);
+    } else if (ownDraft === null) {
+      setHydrated(true);
+    }
+  }, [ownDraft, hydrated, reset]);
+
+  const priority = watch('priority');
+  const hasPain = watch('hasPain');
+  const fallRisk = watch('fallRisk');
+  const immediateReason = watch('immediateReason');
+  const dangerSigns = watch('dangerSigns') ?? [];
+  const weightKg = watch('weightKg');
+  const heightCm = watch('heightCm');
+
+  const [immediateConfirmed, setImmediateConfirmed] = useState(false);
+  useEffect(() => {
+    if (priority !== 'IMMEDIATE') {
+      setImmediateConfirmed(false);
+    }
+  }, [priority]);
+  const showImmediateModal = priority === 'IMMEDIATE' && !immediateConfirmed;
+
+  const dangerSignsCount = dangerSigns.length;
+  useEffect(() => {
+    if (dangerSignsCount > 0 && priority !== 'IMMEDIATE') {
+      setValue('priority', 'IMMEDIATE', { shouldValidate: true });
+    }
+  }, [dangerSignsCount, priority, setValue]);
+
+  const [abnormalVitals, setAbnormalVitals] = useState<Record<string, boolean>>({});
+
+  const saveDraft = useMutation({
+    mutationFn: (payload: { priority?: TriagePriority; modeOfAmbulation?: ModeOfAmbulation; formState: TriageFormState }) =>
+      saveTriageDraft(encounterId as string, payload, accessToken as string),
+  });
+
+  const triggerAutosave = useCallback(() => {
+    if (!encounterId || accessToken == null) return;
+    const values = getValues();
+    saveDraft.mutate({
+      priority: values.priority || undefined,
+      modeOfAmbulation: values.modeOfAmbulation || undefined,
+      formState: values as unknown as TriageFormState,
+    });
+  }, [encounterId, accessToken, getValues, saveDraft]);
+
+  // 06-triage.md §1/§3: autosave every 20s, keyed server-side to
+  // (encounter_id, author_id) — so a device failure resumes elsewhere with
+  // the draft intact, and the queue's "being assessed by" line stays live.
+  useEffect(() => {
+    if (!hydrated) return;
+    const interval = setInterval(triggerAutosave, 20_000);
+    return () => clearInterval(interval);
+  }, [hydrated, triggerAutosave]);
+
+  const submit = useMutation({
+    mutationFn: (payload: SubmitTriageAssessmentRequest) =>
+      submitTriageAssessment(encounterId as string, payload, accessToken as string),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['triage-queue'] });
+      navigate('/triage');
+    },
+  });
+
+  function handleVitalBlur(field: keyof Values, vitalType: VitalReferenceRangeResponse['vitalType'], label: string) {
+    const value = getValues(field) as unknown as number;
+    if (value == null || Number.isNaN(value)) return;
+    const range = (ranges ?? []).find((r) => r.vitalType === vitalType);
+    if (!range) {
+      setAbnormalVitals((prev) => ({ ...prev, [field]: false }));
+      return;
+    }
+    if (range.implausibleLow != null && value < range.implausibleLow) {
+      setError(field as never, { type: 'manual', message: `${label} must be at least ${range.implausibleLow}` });
+      return;
+    }
+    if (range.implausibleHigh != null && value > range.implausibleHigh) {
+      setError(field as never, { type: 'manual', message: `${label} must be at most ${range.implausibleHigh}` });
+      return;
+    }
+    clearErrors(field as never);
+    const abnormal =
+      (range.abnormalLow != null && value < range.abnormalLow) || (range.abnormalHigh != null && value > range.abnormalHigh);
+    setAbnormalVitals((prev) => ({ ...prev, [field]: abnormal }));
+  }
+
+  function handleConfirmImmediate(reason: ImmediateReason, otherText: string) {
+    setValue('immediateReason', reason, { shouldValidate: true });
+    setValue('immediateReasonOtherText', reason === 'OTHER' ? otherText : '');
+    setImmediateConfirmed(true);
+    triggerAutosave();
+  }
+
+  function handleCancelImmediate() {
+    setValue('dangerSigns', []);
+    setValue('priority', '' as never);
+    setValue('immediateReason', undefined);
+    setValue('immediateReasonOtherText', '');
+  }
+
+  const onSubmit = handleSubmit((values) => {
+    if (encounter?.version == null) return;
+    const payload: SubmitTriageAssessmentRequest = {
+      expectedEncounterVersion: encounter.version,
+      assignedProviderId: values.assignedProviderId,
+      chiefComplaint: values.chiefComplaint,
+      currentSymptoms: values.currentSymptoms,
+      allergies: values.allergies,
+      comorbidities: values.comorbidities,
+      modeOfAmbulation: values.modeOfAmbulation,
+      hasPain: values.hasPain,
+      painScore: values.hasPain ? values.painScore : undefined,
+      painLocation: values.hasPain ? values.painLocation : undefined,
+      fallRisk: values.fallRisk,
+      fallScore: values.fallRisk ? values.fallScore : undefined,
+      infectionRisk: values.infectionRisk,
+      pregnancyStatus: pregnancyApplicable ? values.pregnancyStatus : undefined,
+      priority: values.priority,
+      immediateReason: values.priority === 'IMMEDIATE' ? values.immediateReason : undefined,
+      immediateReasonOtherText: values.immediateReason === 'OTHER' ? values.immediateReasonOtherText : undefined,
+      notes: values.notes || undefined,
+      temperatureC: values.temperatureC,
+      systolicMmHg: values.systolicMmHg,
+      diastolicMmHg: values.diastolicMmHg,
+      pulseBpm: values.pulseBpm,
+      respiratoryRate: values.respiratoryRate,
+      spo2Pct: values.spo2Pct,
+      weightKg: values.weightKg,
+      heightCm: values.heightCm,
+    };
+    submit.mutate(payload);
+  });
+
+  if (!canAssess) {
+    return <p style={{ color: 'var(--text-muted)' }}>You don't hold TRIAGE_ASSESS.</p>;
+  }
+  if (encounterLoading || patientLoading || candidatesLoading || !hydrated) {
+    return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
+  }
+
+  const bmi = weightKg && heightCm ? weightKg / Math.pow(heightCm / 100, 2) : undefined;
+
+  return (
+    <div>
+      <header style={{ marginBottom: 'var(--space-4)' }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Triage assessment</h1>
+        <p style={{ color: 'var(--text-secondary)', margin: 'var(--space-1) 0 0' }}>
+          {patient?.fullName} · {patient?.hospitalNo} · {patientAge != null ? `${patientAge}y` : '—'}
+        </p>
+      </header>
+
+      <form onSubmit={onSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', maxWidth: 720 }}>
+        <fieldset style={{ ...fieldsetStyle, borderColor: 'var(--critical)' }}>
+          <legend style={legendStyle}>Danger signs — any tick escalates to IMMEDIATE</legend>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+            {immediateReasonOptions.map((opt) => (
+              <label key={opt.value} style={checkboxLabelStyle}>
+                <input
+                  type="checkbox"
+                  checked={dangerSigns.includes(opt.value)}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...dangerSigns, opt.value]
+                      : dangerSigns.filter((v) => v !== opt.value);
+                    setValue('dangerSigns', next);
+                  }}
+                />
+                {opt.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset style={fieldsetStyle}>
+          <legend style={legendStyle}>Presenting complaint</legend>
+          <FormRow label="Chief complaint" error={errors.chiefComplaint?.message}>
+            <textarea rows={2} {...register('chiefComplaint')} style={fieldStyle} />
+          </FormRow>
+          <FormRow label="Current symptoms" error={errors.currentSymptoms?.message}>
+            <textarea rows={2} {...register('currentSymptoms')} style={fieldStyle} />
+          </FormRow>
+        </fieldset>
+
+        <fieldset style={fieldsetStyle}>
+          <legend style={legendStyle}>Vital signs</legend>
+          {VITAL_FIELDS.map((v) => (
+            <FormRow key={v.key} label={`${v.label} (${v.unit})`} error={errors[v.key]?.message as string | undefined}>
+              <input
+                type="number"
+                step="any"
+                {...register(v.key, { valueAsNumber: true, onBlur: () => handleVitalBlur(v.key, v.vitalType, v.label) })}
+                style={fieldStyle}
+              />
+              {abnormalVitals[v.key] && !errors[v.key] && (
+                <span style={{ color: 'var(--warning)', fontSize: 'var(--text-sm)' }}>Abnormal — verify and proceed if correct.</span>
+              )}
+            </FormRow>
+          ))}
+        </fieldset>
+
+        <fieldset style={fieldsetStyle}>
+          <legend style={legendStyle}>Anthropometric</legend>
+          <FormRow label="Weight (kg)" error={errors.weightKg?.message}>
+            <input type="number" step="any" {...register('weightKg', { valueAsNumber: true })} style={fieldStyle} />
+          </FormRow>
+          <FormRow label="Height (cm)" error={errors.heightCm?.message}>
+            <input type="number" step="any" {...register('heightCm', { valueAsNumber: true })} style={fieldStyle} />
+          </FormRow>
+          {!suppressBmi && bmi != null && !Number.isNaN(bmi) && (
+            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>BMI: {bmi.toFixed(1)} (computed, not enterable)</p>
+          )}
+        </fieldset>
+
+        <fieldset style={fieldsetStyle}>
+          <legend style={legendStyle}>Medical history</legend>
+          <FormRow label="Allergies" error={errors.allergies?.message}>
+            <textarea
+              rows={2}
+              {...register('allergies')}
+              style={{ ...fieldStyle, background: 'var(--warning-bg)', borderColor: 'var(--warning)' }}
+              placeholder='Free text — enter "none known" if there are none'
+            />
+          </FormRow>
+          <FormRow label="Comorbidities" error={errors.comorbidities?.message}>
+            <textarea rows={2} {...register('comorbidities')} style={fieldStyle} placeholder='Free text — enter "none known" if there are none' />
+          </FormRow>
+          <FormRow label="Mode of ambulation" error={errors.modeOfAmbulation?.message}>
+            <select {...register('modeOfAmbulation')} style={fieldStyle} defaultValue="">
+              <option value="" disabled>
+                Choose…
+              </option>
+              {modeOfAmbulationOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </FormRow>
+        </fieldset>
+
+        <fieldset style={fieldsetStyle}>
+          <legend style={legendStyle}>Pain assessment</legend>
+          <label style={checkboxLabelStyle}>
+            <input type="checkbox" {...register('hasPain')} /> Patient has pain
+          </label>
+          {hasPain && (
+            <>
+              <FormRow label="Pain score (0–10)" error={errors.painScore?.message}>
+                <input type="number" min={0} max={10} {...register('painScore', { valueAsNumber: true })} style={fieldStyle} />
+              </FormRow>
+              <FormRow label="Pain location" error={errors.painLocation?.message}>
+                <input {...register('painLocation')} style={fieldStyle} />
+              </FormRow>
+            </>
+          )}
+        </fieldset>
+
+        <fieldset style={fieldsetStyle}>
+          <legend style={legendStyle}>Risk assessment</legend>
+          <label style={checkboxLabelStyle}>
+            <input type="checkbox" {...register('fallRisk')} /> Fall risk
+          </label>
+          {fallRisk && (
+            <FormRow label="Fall risk score" error={errors.fallScore?.message}>
+              <input type="number" {...register('fallScore', { valueAsNumber: true })} style={fieldStyle} />
+            </FormRow>
+          )}
+          <label style={checkboxLabelStyle}>
+            <input type="checkbox" {...register('infectionRisk')} /> Infection risk
+          </label>
+        </fieldset>
+
+        {pregnancyApplicable && (
+          <fieldset style={fieldsetStyle}>
+            <legend style={legendStyle}>Pregnancy status</legend>
+            <FormRow label="Pregnancy status" error={errors.pregnancyStatus?.message}>
+              <select {...register('pregnancyStatus')} style={fieldStyle} defaultValue="">
+                <option value="" disabled>
+                  Choose…
+                </option>
+                {(['YES', 'NO', 'UNKNOWN'] as const).map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </FormRow>
+          </fieldset>
+        )}
+
+        <fieldset style={fieldsetStyle}>
+          <legend style={legendStyle}>Triage priority</legend>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+            {(['IMMEDIATE', 'URGENT', 'LESS_URGENT', 'NON_URGENT'] as const).map((p) => (
+              <label key={p} style={checkboxLabelStyle}>
+                <input type="radio" value={p} {...register('priority')} /> {p.replaceAll('_', ' ').toLowerCase()}
+              </label>
+            ))}
+          </div>
+          {errors.priority && <span className="field-error">{errors.priority.message}</span>}
+          {priority === 'IMMEDIATE' && immediateConfirmed && (
+            <p style={{ color: 'var(--critical)', fontSize: 'var(--text-sm)' }}>
+              Reason: {immediateReason ? immediateReasonOptions.find((o) => o.value === immediateReason)?.label : '—'}
+            </p>
+          )}
+        </fieldset>
+
+        <fieldset style={fieldsetStyle}>
+          <legend style={legendStyle}>Referral (required)</legend>
+          {errors.assignedProviderId && <span className="field-error">{errors.assignedProviderId.message}</span>}
+          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginTop: 0 }}>
+            On-duty status isn't tracked yet — every provider below is shown without one.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            {(referralCandidates ?? []).map((candidate) => (
+              <ReferralCard
+                key={candidate.providerId}
+                candidate={candidate}
+                selected={watch('assignedProviderId') === candidate.providerId}
+                onSelect={() => setValue('assignedProviderId', candidate.providerId as string, { shouldValidate: true })}
+              />
+            ))}
+            {(referralCandidates ?? []).length === 0 && <p style={{ color: 'var(--text-muted)' }}>No providers available.</p>}
+          </div>
+        </fieldset>
+
+        <fieldset style={fieldsetStyle}>
+          <legend style={legendStyle}>Notes (optional)</legend>
+          <textarea rows={3} {...register('notes')} style={fieldStyle} />
+        </fieldset>
+
+        {submit.error && <div className="form-error">{submitErrorMessage(submit.error)}</div>}
+
+        <button type="submit" className="btn btn-primary" disabled={submit.isPending} style={{ alignSelf: 'flex-start' }}>
+          {submit.isPending ? 'Submitting…' : 'Submit assessment'}
+        </button>
+      </form>
+
+      {showImmediateModal && (
+        <ImmediateConfirmationModal
+          preselected={dangerSigns.length === 1 ? (dangerSigns[0] as ImmediateReason) : undefined}
+          onConfirm={handleConfirmImmediate}
+          onCancel={handleCancelImmediate}
+        />
+      )}
+    </div>
+  );
+}
+
+function ReferralCard({
+  candidate,
+  selected,
+  onSelect,
+}: {
+  candidate: ReferralCandidateResponse;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 'var(--space-3)',
+        border: selected ? '2px solid var(--green-600)' : '1px solid var(--border)',
+        borderRadius: 'var(--radius)',
+        background: 'var(--bg-surface)',
+        cursor: 'pointer',
+        textAlign: 'left',
+        font: 'inherit',
+      }}
+    >
+      <span>
+        <strong>{candidate.username}</strong>
+        <span className="badge badge-neutral" style={{ marginLeft: 'var(--space-2)' }}>
+          {candidate.roleLabel}
+        </span>
+        <br />
+        <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+          {candidate.queueDepth} waiting
+        </span>
+      </span>
+      <span style={{ fontWeight: 'var(--weight-medium)' }} className="tabular">
+        {candidate.feeAmountMinor != null ? formatMoney(candidate.feeAmountMinor, candidate.currencyCode) : 'Fee unavailable'}
+      </span>
+    </button>
+  );
+}
+
+// 06-triage.md §4.1: "requires a REASON SELECTION, not an OK." Cancelling
+// reverts priority entirely (and any danger signs that triggered it) —
+// there is no partial-escalation state.
+function ImmediateConfirmationModal({
+  preselected,
+  onConfirm,
+  onCancel,
+}: {
+  preselected?: ImmediateReason;
+  onConfirm: (reason: ImmediateReason, otherText: string) => void;
+  onCancel: () => void;
+}) {
+  const [reason, setReason] = useState<ImmediateReason | undefined>(preselected);
+  const [otherText, setOtherText] = useState('');
+
+  const canConfirm = reason != null && (reason !== 'OTHER' || otherText.trim() !== '');
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 100,
+      }}
+    >
+      <div
+        style={{
+          background: 'var(--bg-surface)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-lg)',
+          padding: 'var(--space-4)',
+          maxWidth: 480,
+          width: '90%',
+        }}
+      >
+        <h2 style={{ marginTop: 0, fontSize: 'var(--text-lg)', color: 'var(--critical)' }}>Classifying as IMMEDIATE</h2>
+        <p style={{ color: 'var(--text-secondary)' }}>
+          This patient will be given top priority everywhere and will not be blocked by payment. Choose the reason.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', marginBottom: 'var(--space-3)' }}>
+          {immediateReasonOptions.map((opt) => (
+            <label key={opt.value} style={checkboxLabelStyle}>
+              <input type="radio" checked={reason === opt.value} onChange={() => setReason(opt.value)} /> {opt.label}
+            </label>
+          ))}
+        </div>
+        {reason === 'OTHER' && (
+          <FormRow label="Describe the reason">
+            <input value={otherText} onChange={(e) => setOtherText(e.target.value)} style={fieldStyle} />
+          </FormRow>
+        )}
+        <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+          <button type="button" className="btn btn-ghost" onClick={onCancel}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={!canConfirm}
+            onClick={() => reason && onConfirm(reason, otherText)}
+          >
+            Confirm IMMEDIATE
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormRow({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 'var(--space-2)' }}>
+      <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>{label}</label>
+      {children}
+      {error && <span className="field-error">{error}</span>}
+    </div>
+  );
+}
+
+function submitErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 409) {
+      return `${error.message} Reload the queue and try again.`;
+    }
+    return error.message;
+  }
+  return 'Something went wrong. Check the values and try again.';
+}
+
+function ageFromDob(dob: string | undefined | null): number | null {
+  if (!dob) return null;
+  return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+}
+
+const immediateReasonOptions: { value: ImmediateReason; label: string }[] = [
+  { value: 'THREATENED_OR_OBSTRUCTED_AIRWAY', label: 'Threatened or obstructed airway' },
+  { value: 'SEVERE_RESPIRATORY_DISTRESS', label: 'Severe respiratory distress' },
+  { value: 'SHOCK_OR_CIRCULATORY_COLLAPSE', label: 'Shock / circulatory collapse' },
+  { value: 'UNRESPONSIVE_OR_RESPONDING_TO_PAIN_ONLY', label: 'Unresponsive or responding only to pain' },
+  { value: 'ACTIVE_UNCONTROLLED_BLEEDING', label: 'Active uncontrolled bleeding' },
+  { value: 'ACTIVE_CONVULSION', label: 'Active convulsion' },
+  { value: 'OBSTETRIC_EMERGENCY', label: 'Obstetric emergency' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+const modeOfAmbulationOptions: { value: ModeOfAmbulation; label: string }[] = [
+  { value: 'WALKING', label: 'Walking' },
+  { value: 'INFANT_IN_MOTHERS_LAP', label: "Infant in mother's lap" },
+  { value: 'WHEELCHAIR_ASSISTED', label: 'Wheelchair-assisted' },
+  { value: 'STRETCHER_ASSISTED', label: 'Stretcher-assisted' },
+];
+
+const VITAL_FIELDS = [
+  { key: 'temperatureC' as const, label: 'Temperature', unit: '°C', vitalType: 'TEMPERATURE' as const },
+  { key: 'systolicMmHg' as const, label: 'Systolic BP', unit: 'mmHg', vitalType: 'SYSTOLIC_BP' as const },
+  { key: 'diastolicMmHg' as const, label: 'Diastolic BP', unit: 'mmHg', vitalType: 'DIASTOLIC_BP' as const },
+  { key: 'pulseBpm' as const, label: 'Pulse', unit: 'bpm', vitalType: 'PULSE' as const },
+  { key: 'respiratoryRate' as const, label: 'Respiratory rate', unit: '/min', vitalType: 'RESPIRATORY_RATE' as const },
+  { key: 'spo2Pct' as const, label: 'SpO₂', unit: '%', vitalType: 'SPO2' as const },
+];
+
+function buildSchema(pregnancyApplicable: boolean) {
+  return z
+    .object({
+      chiefComplaint: z.string().min(3, 'Enter the chief complaint (at least 3 characters)').max(500),
+      currentSymptoms: z.string().min(1, 'Describe the current symptoms'),
+      temperatureC: z.number({ invalid_type_error: 'Enter the temperature' }),
+      systolicMmHg: z.number({ invalid_type_error: 'Enter the systolic BP' }),
+      diastolicMmHg: z.number({ invalid_type_error: 'Enter the diastolic BP' }),
+      pulseBpm: z.number({ invalid_type_error: 'Enter the pulse' }),
+      respiratoryRate: z.number({ invalid_type_error: 'Enter the respiratory rate' }),
+      spo2Pct: z.number({ invalid_type_error: 'Enter the SpO2' }),
+      weightKg: z.number({ invalid_type_error: 'Enter the weight' }).positive('Enter a weight greater than 0'),
+      heightCm: z.number({ invalid_type_error: 'Enter the height' }).positive('Enter a height greater than 0'),
+      allergies: z.string().min(1, 'Enter allergies, or "none known"'),
+      comorbidities: z.string().min(1, 'Enter comorbidities, or "none known"'),
+      modeOfAmbulation: z.enum(['WALKING', 'INFANT_IN_MOTHERS_LAP', 'WHEELCHAIR_ASSISTED', 'STRETCHER_ASSISTED'], {
+        errorMap: () => ({ message: 'Choose how the patient is getting around' }),
+      }),
+      hasPain: z.boolean(),
+      painScore: z.number().optional(),
+      painLocation: z.string().optional(),
+      fallRisk: z.boolean(),
+      fallScore: z.number().optional(),
+      infectionRisk: z.boolean(),
+      pregnancyStatus: z.enum(['YES', 'NO', 'UNKNOWN']).optional(),
+      priority: z.enum(['IMMEDIATE', 'URGENT', 'LESS_URGENT', 'NON_URGENT'], {
+        errorMap: () => ({ message: 'Choose a triage priority' }),
+      }),
+      immediateReason: z
+        .enum([
+          'THREATENED_OR_OBSTRUCTED_AIRWAY', 'SEVERE_RESPIRATORY_DISTRESS', 'SHOCK_OR_CIRCULATORY_COLLAPSE',
+          'UNRESPONSIVE_OR_RESPONDING_TO_PAIN_ONLY', 'ACTIVE_UNCONTROLLED_BLEEDING', 'ACTIVE_CONVULSION',
+          'OBSTETRIC_EMERGENCY', 'OTHER',
+        ])
+        .optional(),
+      immediateReasonOtherText: z.string().optional(),
+      notes: z.string().max(2000).optional(),
+      assignedProviderId: z.string().min(1, 'Choose a referral'),
+      dangerSigns: z.array(z.string()).optional(),
+    })
+    .superRefine((v, ctx) => {
+      if (v.hasPain) {
+        if (v.painScore == null || Number.isNaN(v.painScore) || v.painScore < 0 || v.painScore > 10) {
+          ctx.addIssue({ path: ['painScore'], code: z.ZodIssueCode.custom, message: 'Enter a pain score from 0 to 10' });
+        }
+        if (!v.painLocation || v.painLocation.trim() === '') {
+          ctx.addIssue({ path: ['painLocation'], code: z.ZodIssueCode.custom, message: 'Enter where the pain is' });
+        }
+      }
+      if (v.fallRisk && (v.fallScore == null || Number.isNaN(v.fallScore))) {
+        ctx.addIssue({ path: ['fallScore'], code: z.ZodIssueCode.custom, message: 'Enter a fall risk score' });
+      }
+      if (v.priority === 'IMMEDIATE') {
+        if (!v.immediateReason) {
+          ctx.addIssue({ path: ['immediateReason'], code: z.ZodIssueCode.custom, message: 'Choose a reason' });
+        } else if (v.immediateReason === 'OTHER' && (!v.immediateReasonOtherText || v.immediateReasonOtherText.trim() === '')) {
+          ctx.addIssue({ path: ['immediateReasonOtherText'], code: z.ZodIssueCode.custom, message: 'Describe the reason' });
+        }
+      }
+      if (pregnancyApplicable && !v.pregnancyStatus) {
+        ctx.addIssue({ path: ['pregnancyStatus'], code: z.ZodIssueCode.custom, message: 'Choose a pregnancy status' });
+      }
+    });
+}
+
+const fieldsetStyle: CSSProperties = { border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 'var(--space-3)' };
+const legendStyle: CSSProperties = { fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', padding: '0 var(--space-2)' };
+const checkboxLabelStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', padding: '2px 0' };
+const fieldStyle: CSSProperties = {
+  width: '100%',
+  marginTop: 'var(--space-1)',
+  padding: 'var(--space-2)',
+  border: '1px solid var(--border-strong)',
+  borderRadius: 'var(--radius)',
+  font: 'inherit',
+};

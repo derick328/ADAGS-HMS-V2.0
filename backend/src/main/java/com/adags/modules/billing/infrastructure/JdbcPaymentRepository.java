@@ -83,6 +83,12 @@ public class JdbcPaymentRepository implements PaymentRepository {
         return results.stream().findFirst();
     }
 
+    @Override
+    public List<Payment> findByCashierShiftId(UUID cashierShiftId) {
+        return jdbcTemplate.query(SELECT_COLUMNS + " WHERE cashier_shift_id = :cashierShiftId ORDER BY received_at",
+                new MapSqlParameterSource("cashierShiftId", cashierShiftId), this::mapRow);
+    }
+
     private Payment mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Payment(
                 (UUID) rs.getObject("id"),

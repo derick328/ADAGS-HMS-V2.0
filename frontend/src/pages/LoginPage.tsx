@@ -3,9 +3,19 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { ApiError } from '../shared/api/client';
+import { ApiError, fetchMe } from '../shared/api/client';
 import { useAuth } from '../shared/auth/AuthProvider';
 import './LoginPage.css';
+
+// Only /admin and /receptionist shells exist today. A user's active role
+// assignments decide which one they land in; everyone else defaults to
+// /admin until their own shell ships.
+function landingRouteFor(roleCodes: string[]): string {
+  if (roleCodes.includes('RECEPTIONIST') && !roleCodes.includes('ADMIN')) {
+    return '/receptionist';
+  }
+  return '/admin';
+}
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Enter your username'),
@@ -28,8 +38,10 @@ export function LoginPage() {
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
     try {
-      await login(values.username, values.password);
-      navigate('/admin', { replace: true });
+      const accessToken = await login(values.username, values.password);
+      const me = accessToken ? await fetchMe(accessToken) : null;
+      const roleCodes = me?.scopes?.map((scope) => scope.roleCode).filter((code): code is string => Boolean(code)) ?? [];
+      navigate(landingRouteFor(roleCodes), { replace: true });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setFormError('Incorrect username or password.');

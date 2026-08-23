@@ -6,7 +6,7 @@ type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 interface AuthContextValue {
   accessToken: string | null;
   status: AuthStatus;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<string | null>;
   logout: () => Promise<void>;
 }
 
@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await api.login({ username, password });
     setAccessToken(response.accessToken ?? null);
     setStatus('authenticated');
+    return response.accessToken ?? null;
   }, []);
 
   const logout = useCallback(async () => {

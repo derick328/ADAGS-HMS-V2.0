@@ -1,5 +1,6 @@
 package com.adags.modules.billing.domain;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,4 +17,7 @@ public interface PaymentRepository {
     Optional<Payment> findByIdempotencyKey(String idempotencyKey);
 
     Optional<Payment> findById(UUID id);
+
+    /** The dashboard's "My shift total" tile and the cashier shift screen's running total by method. */
+    List<Payment> findByCashierShiftId(UUID cashierShiftId);
 }

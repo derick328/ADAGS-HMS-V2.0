@@ -58,6 +58,24 @@ public class EncounterFacadeImpl implements EncounterFacade {
         transition(encounterId, EncounterState.DISCHARGED, actorUserId, null);
     }
 
+    @Override
+    @Transactional
+    public void moveToConsultComplete(UUID encounterId, UUID actorUserId) {
+        transition(encounterId, EncounterState.CONSULT_COMPLETE, actorUserId, null);
+    }
+
+    @Override
+    @Transactional
+    public void referOut(UUID encounterId, UUID actorUserId) {
+        transition(encounterId, EncounterState.REFERRED_OUT, actorUserId, null);
+    }
+
+    @Override
+    @Transactional
+    public void markDeceased(UUID encounterId, UUID actorUserId) {
+        transition(encounterId, EncounterState.DECEASED, actorUserId, null);
+    }
+
     private void transition(UUID encounterId, EncounterState targetState, UUID actorUserId, String reason) {
         Encounter encounter = encounterRepository.findById(encounterId)
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + encounterId));

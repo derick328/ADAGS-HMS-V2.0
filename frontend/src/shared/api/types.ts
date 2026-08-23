@@ -4,6 +4,38 @@
  */
 
 export interface paths {
+    "/api/encounters/{encounterId}/triage-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["findOwn"];
+        put: operations["upsert"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/refresh": {
         parameters: {
             query?: never;
@@ -94,6 +126,214 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list"];
+        put?: never;
+        post: operations["create_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{id}/role-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["roleAssignments"];
+        put?: never;
+        post: operations["grantRoleAssignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{id}/role-assignments/{assignmentId}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["endRoleAssignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/theatres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listByFacility"];
+        put?: never;
+        post: operations["create_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/surgical-checklists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listBySurgeryOrder"];
+        put?: never;
+        post: operations["complete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/surgery-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["schedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/surgery-orders/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/surgery-orders/{id}/revoke-consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["revokeConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/surgery-orders/{id}/reconcile-emergency-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reconcileEmergencyDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/surgery-orders/{id}/disposition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["recordDisposition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/surgery-orders/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["complete_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/surgery-orders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/surgery-orders/emergency-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createEmergencyDraft"];
         delete?: never;
         options?: never;
         head?: never;
@@ -244,6 +484,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/procedure-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listBySurgeryOrder_1"];
+        put?: never;
+        post: operations["prepare"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/procedure-items/{id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reconcile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/procedure-items/{id}/attest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["attest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/prescriptions": {
         parameters: {
             query?: never;
@@ -340,6 +628,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/payment-bypasses/admin-waiver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["grantAdminWaiver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/patients": {
         parameters: {
             query?: never;
@@ -363,7 +683,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list"];
+        get: operations["list_2"];
         put?: never;
         post: operations["add"];
         delete?: never;
@@ -381,7 +701,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["create_2"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -445,7 +765,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["record"];
+        post: operations["record_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -509,7 +829,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["create_3"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -558,6 +878,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["search_5"];
+        put?: never;
+        post: operations["create_6"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invoices/{id}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["issue"];
         delete?: never;
         options?: never;
         head?: never;
@@ -621,7 +973,7 @@ export interface paths {
         };
         get: operations["findByStatus"];
         put?: never;
-        post: operations["record_1"];
+        post: operations["record_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -715,9 +1067,25 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["search_6"];
         put?: never;
         post: operations["open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resume"];
         delete?: never;
         options?: never;
         head?: never;
@@ -734,6 +1102,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["close_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{encounterId}/triage-assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -766,6 +1150,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["acknowledge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cashier-shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["open_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cashier-shifts/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["close_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -845,7 +1261,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["issue"];
+        post: operations["issue_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -894,6 +1310,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["review_5"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/appointments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["scheduledBetween"];
+        put?: never;
+        post: operations["create_7"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/anaesthesia-paper-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listBySurgeryOrder_2"];
+        put?: never;
+        post: operations["record_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1019,9 +1467,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["list_6"];
         put?: never;
-        post: operations["record_2"];
+        post: operations["record_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1037,7 +1485,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["record_3"];
+        post: operations["record_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1051,9 +1499,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_7"];
         put?: never;
-        post: operations["record_4"];
+        post: operations["record_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1140,6 +1588,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/triage-assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/triage-assessment-drafts/active-summaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["activeSummaries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/surgery-orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock-reports/valuation": {
         parameters: {
             query?: never;
@@ -1196,6 +1692,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["currentStock"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1307,7 +1819,23 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["search"];
+        get: operations["search_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/price-catalog/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["search_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1323,7 +1851,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById"];
+        get: operations["getById_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1348,6 +1876,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pharmacy-item-proposals/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pending"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/payment-bypasses/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["active"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/patients/{id}": {
         parameters: {
             query?: never;
@@ -1355,7 +1915,23 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById_1"];
+        get: operations["getById_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/patients/{id}/visit-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["visitHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1371,7 +1947,23 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["search_1"];
+        get: operations["search_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/patients/registered-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["registeredCount"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1419,7 +2011,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["search_2"];
+        get: operations["search_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1436,6 +2028,54 @@ export interface paths {
             cookie?: never;
         };
         get: operations["get_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invoices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getById_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/invoices/{id}/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["lines"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/insurance-schemes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1515,7 +2155,39 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById_2"];
+        get: operations["getById_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{encounterId}/referral-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["forEncounter"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/open-for-patient/{patientId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["openForPatient"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1532,6 +2204,70 @@ export interface paths {
             cookie?: never;
         };
         get: operations["label"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/departments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/clinical/vital-reference-ranges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["forPatient"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cashier-shifts/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["payments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cashier-shifts/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["current"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1563,7 +2299,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending"];
+        get: operations["pending_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1595,7 +2331,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending_1"];
+        get: operations["pending_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1611,7 +2347,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1659,7 +2395,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending_2"];
+        get: operations["pending_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1691,7 +2427,39 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending_3"];
+        get: operations["pending_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/appointments/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["recent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/appointments/expected-returns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["expectedReturns"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1707,7 +2475,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById_3"];
+        get: operations["getById_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1723,7 +2491,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1755,7 +2523,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1768,6 +2536,34 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        TriageAssessmentDraftRequest: {
+            /** @enum {string} */
+            priority?: "IMMEDIATE" | "URGENT" | "LESS_URGENT" | "NON_URGENT";
+            /** @enum {string} */
+            modeOfAmbulation?: "WALKING" | "INFANT_IN_MOTHERS_LAP" | "WHEELCHAIR_ASSISTED" | "STRETCHER_ASSISTED";
+            formState?: {
+                [key: string]: Record<string, never>;
+            };
+        };
+        TriageAssessmentDraftResponse: {
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            authorId?: string;
+            /** @enum {string} */
+            priority?: "IMMEDIATE" | "URGENT" | "LESS_URGENT" | "NON_URGENT";
+            /** @enum {string} */
+            modeOfAmbulation?: "WALKING" | "INFANT_IN_MOTHERS_LAP" | "WHEELCHAIR_ASSISTED" | "STRETCHER_ASSISTED";
+            formState?: {
+                [key: string]: Record<string, never>;
+            };
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        ChangePasswordRequest: {
+            currentPassword: string;
+            newPassword: string;
+        };
         TokenResponse: {
             /** Format: uuid */
             userId?: string;
@@ -1870,6 +2666,179 @@ export interface components {
             status?: "AVAILABLE" | "OUT_OF_SERVICE";
             /** Format: date-time */
             createdAt?: string;
+        };
+        CreateUserRequest: {
+            username: string;
+            temporaryPassword: string;
+        };
+        UserResponse: {
+            /** Format: uuid */
+            id?: string;
+            username?: string;
+            status?: string;
+            mustChangePassword?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        GrantRoleAssignmentRequest: {
+            roleCode: string;
+            /** @enum {string} */
+            scopeType: "GLOBAL" | "FACILITY" | "DEPARTMENT" | "WARD" | "CLINIC" | "STORE";
+            /** Format: uuid */
+            scopeId?: string;
+            /** Format: date-time */
+            validFrom?: string;
+            /** Format: date-time */
+            validTo?: string;
+        };
+        RoleAssignmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            userId?: string;
+            roleCode?: string;
+            /** @enum {string} */
+            scopeType?: "GLOBAL" | "FACILITY" | "DEPARTMENT" | "WARD" | "CLINIC" | "STORE";
+            /** Format: uuid */
+            scopeId?: string;
+            /** Format: date-time */
+            validFrom?: string;
+            /** Format: date-time */
+            validTo?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+        };
+        CreateTheatreRequest: {
+            /** Format: uuid */
+            facilityId: string;
+            name: string;
+        };
+        TheatreResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            facilityId?: string;
+            name?: string;
+            active?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        CompleteChecklistRequest: {
+            /** Format: uuid */
+            surgeryOrderId: string;
+            /** @enum {string} */
+            phase: "SIGN_IN" | "TIME_OUT" | "SIGN_OUT";
+            items?: string[];
+            countCorrect?: boolean;
+            countDiscrepancyNote?: string;
+            isEmergencyReduced?: boolean;
+        };
+        SurgicalChecklistResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            surgeryOrderId?: string;
+            /** @enum {string} */
+            phase?: "SIGN_IN" | "TIME_OUT" | "SIGN_OUT";
+            items?: string[];
+            /** Format: uuid */
+            completedBy?: string;
+            /** Format: date-time */
+            completedAt?: string;
+            countCorrect?: boolean;
+            countDiscrepancyNote?: string;
+            isEmergencyReduced?: boolean;
+        };
+        ScheduleSurgeryRequest: {
+            /** Format: uuid */
+            encounterId: string;
+            procedureServiceItemCode: string;
+            surgeryType: string;
+            /** @enum {string} */
+            urgency: "ELECTIVE" | "URGENT" | "IMMEDIATE";
+            anesthesiaType: string;
+            /** Format: date */
+            scheduledDate: string;
+            timeSlot: string;
+            /** Format: uuid */
+            theatreId: string;
+            /** Format: int32 */
+            estimatedDurationMinutes?: number;
+            assignedNurses?: string[];
+            preOpNotes?: string;
+            consentObtained?: boolean;
+            consentDocumentKey?: string;
+        };
+        SurgeryOrderResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            procedureServiceItemCode?: string;
+            procedureName?: string;
+            surgeryType?: string;
+            /** @enum {string} */
+            urgency?: "ELECTIVE" | "URGENT" | "IMMEDIATE";
+            anesthesiaType?: string;
+            /** Format: date */
+            scheduledDate?: string;
+            timeSlot?: string;
+            /** Format: uuid */
+            theatreId?: string;
+            /** Format: int32 */
+            estimatedDurationMinutes?: number;
+            assignedNurses?: string[];
+            preOpNotes?: string;
+            consentObtained?: boolean;
+            consentDocumentKey?: string;
+            /** @enum {string} */
+            status?: "DRAFT_EMERGENCY" | "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+            /** Format: uuid */
+            invoiceLineId?: string;
+            /** Format: uuid */
+            scheduledBy?: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** @enum {string} */
+            disposition?: "RECOVERY_THEN_DISCHARGE" | "ADMIT_TO_WARD" | "TRANSFER_OUT" | "DECEASED";
+            /** Format: uuid */
+            dispositionRecordedBy?: string;
+            /** Format: date-time */
+            dispositionRecordedAt?: string;
+            /** @enum {string} */
+            cancellationReason?: "PATIENT_REQUEST" | "PATIENT_UNFIT" | "NO_SHOW" | "SURGEON_UNAVAILABLE" | "THEATRE_UNAVAILABLE" | "EQUIPMENT_FAILURE" | "STAFF_UNAVAILABLE" | "CLINICAL_DECISION";
+            /** Format: uuid */
+            cancelledBy?: string;
+            /** Format: date-time */
+            cancelledAt?: string;
+        };
+        ReconcileEmergencyDraftProcedureNameRequest: {
+            procedureServiceItemCode: string;
+        };
+        RecordSurgeryDispositionRequest: {
+            /** @enum {string} */
+            disposition: "RECOVERY_THEN_DISCHARGE" | "ADMIT_TO_WARD" | "TRANSFER_OUT" | "DECEASED";
+            orderedWardClass?: string;
+        };
+        CancelSurgeryOrderRequest: {
+            /** @enum {string} */
+            reason: "PATIENT_REQUEST" | "PATIENT_UNFIT" | "NO_SHOW" | "SURGEON_UNAVAILABLE" | "THEATRE_UNAVAILABLE" | "EQUIPMENT_FAILURE" | "STAFF_UNAVAILABLE" | "CLINICAL_DECISION";
+        };
+        CreateEmergencyDraftSurgeryOrderRequest: {
+            /** Format: uuid */
+            encounterId: string;
+            procedureName: string;
+            surgeryType: string;
+            anesthesiaType: string;
+            /** Format: date */
+            scheduledDate: string;
+            timeSlot: string;
+            /** Format: uuid */
+            theatreId: string;
+            /** Format: int32 */
+            estimatedDurationMinutes?: number;
+            assignedNurses?: string[];
+            preOpNotes?: string;
         };
         ReviewSubstitutionRequest: {
             /** @enum {string} */
@@ -2065,6 +3034,59 @@ export interface components {
             /** Format: int32 */
             updated?: number;
         };
+        PrepareProcedureItemRequest: {
+            /** Format: uuid */
+            surgeryOrderId: string;
+            /** Format: uuid */
+            itemId: string;
+            /** @enum {string} */
+            phase: "PRE_OP" | "INTRA_OP" | "POST_OP";
+            /** Format: int32 */
+            quantityPrepared?: number;
+            /** Format: uuid */
+            batchId: string;
+        };
+        ProcedureItemResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            surgeryOrderId?: string;
+            /** Format: uuid */
+            itemId?: string;
+            /** @enum {string} */
+            phase?: "PRE_OP" | "INTRA_OP" | "POST_OP";
+            /** Format: int32 */
+            quantityPrepared?: number;
+            /** Format: int32 */
+            quantityUsed?: number;
+            /** Format: int32 */
+            quantityReturned?: number;
+            /** Format: int32 */
+            quantityWasted?: number;
+            wastageReason?: string;
+            /** Format: uuid */
+            batchId?: string;
+            /** Format: uuid */
+            preparedBy?: string;
+            /** Format: date-time */
+            preparedAt?: string;
+            /** Format: uuid */
+            reconciledBy?: string;
+            /** Format: uuid */
+            attestedBy?: string;
+            /** Format: date-time */
+            reconciledAt?: string;
+            deferred?: boolean;
+        };
+        ReconcileProcedureItemRequest: {
+            /** Format: int32 */
+            quantityUsed?: number;
+            /** Format: int32 */
+            quantityReturned?: number;
+            /** Format: int32 */
+            quantityWasted?: number;
+            wastageReason?: string;
+        };
         PlacePrescriptionRequest: {
             /** Format: uuid */
             encounterId: string;
@@ -2104,11 +3126,19 @@ export interface components {
             /** Format: uuid */
             itemId?: string;
             proposedName?: string;
+            proposedClassification?: string;
+            proposedForm?: string;
+            proposedUnit?: string;
             /** Format: int64 */
             proposedPriceAmountMinor?: number;
             /** Format: int64 */
             currentPriceAmountMinor?: number;
+            currencyCode?: string;
             justification?: string;
+            /** Format: uuid */
+            proposedBy?: string;
+            /** Format: date-time */
+            proposedAt?: string;
             /** @enum {string} */
             status?: "PROPOSED" | "APPROVED" | "REJECTED";
             reviewNote?: string;
@@ -2130,6 +3160,48 @@ export interface components {
             /** Format: int64 */
             proposedPriceMinor?: number;
             justification?: string;
+        };
+        PaymentLineAllocationRequest: {
+            /** Format: uuid */
+            invoiceLineId: string;
+            /** Format: int64 */
+            amountMinor?: number;
+        };
+        RecordPaymentRequest: {
+            /** Format: uuid */
+            patientId: string;
+            /** @enum {string} */
+            method: "CASH" | "DEBIT_CARD" | "CREDIT_CARD" | "MOBILE_MONEY" | "BANK_TRANSFER" | "CHEQUE";
+            reference?: string;
+            idempotencyKey: string;
+            allocations: components["schemas"]["PaymentLineAllocationRequest"][];
+        };
+        PaymentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            patientId?: string;
+            /** Format: uuid */
+            cashierShiftId?: string;
+            /** Format: int64 */
+            amountMinor?: number;
+            currencyCode?: string;
+            /** @enum {string} */
+            method?: "CASH" | "DEBIT_CARD" | "CREDIT_CARD" | "MOBILE_MONEY" | "BANK_TRANSFER" | "CHEQUE";
+            reference?: string;
+            /** @enum {string} */
+            status?: "SETTLED" | "PENDING_CLEARANCE";
+            /** Format: date-time */
+            receivedAt?: string;
+        };
+        GrantAdminWaiverRequest: {
+            /** Format: uuid */
+            encounterId: string;
+            reason: string;
+        };
+        GrantAdminWaiverResponse: {
+            /** Format: uuid */
+            paymentBypassId?: string;
         };
         InsurancePolicyRequest: {
             /** Format: uuid */
@@ -2379,6 +3451,53 @@ export interface components {
         SetAdministrationWitnessRequest: {
             requiresWitness?: boolean;
         };
+        CreateInvoiceLineRequest: {
+            serviceItemCode: string;
+            /** Format: int32 */
+            quantity?: number;
+        };
+        CreateInvoiceRequest: {
+            /** Format: uuid */
+            patientId: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            facilityId: string;
+            /** Format: date */
+            dueDate: string;
+            notes?: string;
+            lines: components["schemas"]["CreateInvoiceLineRequest"][];
+        };
+        InvoiceResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            /** @enum {string} */
+            state?: "DRAFT" | "ISSUED" | "PATIENT_PORTION_SETTLED" | "CLOSED" | "CANCELLATION_PENDING" | "VOID" | "RECEIVABLE_POST_DISCHARGE";
+            /** @enum {string} */
+            payerCategory?: "CASH" | "NHIF" | "PRIVATE_SCHEME" | "CORPORATE" | "STAFF";
+            invoiceNumber?: string;
+            /** Format: int64 */
+            grossTotalMinor?: number;
+            /** Format: int64 */
+            insurancePortionTotalMinor?: number;
+            /** Format: int64 */
+            patientPortionTotalMinor?: number;
+            /** Format: int64 */
+            outstandingTotalMinor?: number;
+            currencyCode?: string;
+            /** Format: int32 */
+            version?: number;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        IssueInvoiceRequest: {
+            /** Format: int32 */
+            expectedVersion: number;
+        };
         GeneratePayrollBatchRequest: {
             /** Format: int32 */
             month?: number;
@@ -2557,6 +3676,93 @@ export interface components {
             outcome: "AWAITING_TRIAGE" | "AWAITING_PAYMENT" | "AWAITING_CONSULT" | "IN_CONSULT" | "AWAITING_RESULTS" | "CONSULT_COMPLETE" | "PENDING_SETTLEMENT" | "ADMITTED" | "IN_WARD" | "DISCHARGE_ORDERED" | "LEFT_WITHOUT_BEING_SEEN" | "ABANDONED_UNPAID" | "CANCELLED_IN_ERROR" | "REFERRED_OUT" | "DECEASED" | "CLOSED" | "DISCHARGED";
             reason?: string;
         };
+        SubmitTriageAssessmentRequest: {
+            /** Format: int32 */
+            expectedEncounterVersion: number;
+            /** Format: uuid */
+            assignedProviderId: string;
+            chiefComplaint?: string;
+            currentSymptoms?: string;
+            allergies?: string;
+            comorbidities?: string;
+            /** @enum {string} */
+            modeOfAmbulation?: "WALKING" | "INFANT_IN_MOTHERS_LAP" | "WHEELCHAIR_ASSISTED" | "STRETCHER_ASSISTED";
+            hasPain?: boolean;
+            /** Format: int32 */
+            painScore?: number;
+            painLocation?: string;
+            fallRisk?: boolean;
+            /** Format: int32 */
+            fallScore?: number;
+            infectionRisk?: boolean;
+            /** @enum {string} */
+            pregnancyStatus?: "YES" | "NO" | "UNKNOWN";
+            /** Format: int32 */
+            gestationalWeeks?: number;
+            /** @enum {string} */
+            priority?: "IMMEDIATE" | "URGENT" | "LESS_URGENT" | "NON_URGENT";
+            /** @enum {string} */
+            immediateReason?: "THREATENED_OR_OBSTRUCTED_AIRWAY" | "SEVERE_RESPIRATORY_DISTRESS" | "SHOCK_OR_CIRCULATORY_COLLAPSE" | "UNRESPONSIVE_OR_RESPONDING_TO_PAIN_ONLY" | "ACTIVE_UNCONTROLLED_BLEEDING" | "ACTIVE_CONVULSION" | "OBSTETRIC_EMERGENCY" | "OTHER";
+            immediateReasonOtherText?: string;
+            notes?: string;
+            /** Format: uuid */
+            supersedesId?: string;
+            /** Format: double */
+            temperatureC?: number;
+            /** Format: double */
+            systolicMmHg?: number;
+            /** Format: double */
+            diastolicMmHg?: number;
+            /** Format: double */
+            pulseBpm?: number;
+            /** Format: double */
+            respiratoryRate?: number;
+            /** Format: double */
+            spo2Pct?: number;
+            /** Format: double */
+            weightKg?: number;
+            /** Format: double */
+            heightCm?: number;
+            avpu?: string;
+            /** Format: double */
+            bloodGlucoseMmol?: number;
+        };
+        TriageAssessmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            chiefComplaint?: string;
+            currentSymptoms?: string;
+            allergies?: string;
+            comorbidities?: string;
+            /** @enum {string} */
+            modeOfAmbulation?: "WALKING" | "INFANT_IN_MOTHERS_LAP" | "WHEELCHAIR_ASSISTED" | "STRETCHER_ASSISTED";
+            hasPain?: boolean;
+            /** Format: int32 */
+            painScore?: number;
+            painLocation?: string;
+            fallRisk?: boolean;
+            /** Format: int32 */
+            fallScore?: number;
+            infectionRisk?: boolean;
+            /** @enum {string} */
+            pregnancyStatus?: "YES" | "NO" | "UNKNOWN";
+            /** Format: int32 */
+            gestationalWeeks?: number;
+            /** @enum {string} */
+            priority?: "IMMEDIATE" | "URGENT" | "LESS_URGENT" | "NON_URGENT";
+            /** @enum {string} */
+            immediateReason?: "THREATENED_OR_OBSTRUCTED_AIRWAY" | "SEVERE_RESPIRATORY_DISTRESS" | "SHOCK_OR_CIRCULATORY_COLLAPSE" | "UNRESPONSIVE_OR_RESPONDING_TO_PAIN_ONLY" | "ACTIVE_UNCONTROLLED_BLEEDING" | "ACTIVE_CONVULSION" | "OBSTETRIC_EMERGENCY" | "OTHER";
+            immediateReasonOtherText?: string;
+            notes?: string;
+            /** Format: uuid */
+            supersedesId?: string;
+            /** Format: uuid */
+            assessedBy?: string;
+            /** Format: date-time */
+            assessedAt?: string;
+        };
         DispenseLineRequest: {
             /** Format: uuid */
             batchId: string;
@@ -2597,6 +3803,35 @@ export interface components {
             quantityDispensed?: number;
             lines?: components["schemas"]["DispenseLineResponse"][];
             prescriptionLine?: components["schemas"]["PrescriptionLineResponse"];
+        };
+        OpenCashierShiftRequest: {
+            /** Format: uuid */
+            facilityId: string;
+        };
+        CashierShiftResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            facilityId?: string;
+            /** Format: uuid */
+            openedBy?: string;
+            /** Format: date-time */
+            openedAt?: string;
+            /** @enum {string} */
+            status?: "OPEN" | "CLOSED" | "RECONCILED";
+            /** Format: date-time */
+            closedAt?: string;
+            /** Format: int64 */
+            countedCashMinor?: number;
+            /** Format: int64 */
+            expectedCashMinor?: number;
+            /** Format: int64 */
+            varianceMinor?: number;
+            currencyCode?: string;
+        };
+        CloseCashierShiftRequest: {
+            /** Format: int64 */
+            countedCashMinor: number;
         };
         ReviewInvoiceWriteOffRequest: {
             /** @enum {string} */
@@ -2725,6 +3960,57 @@ export interface components {
             /** @enum {string} */
             decision: "PENDING" | "APPROVED" | "REJECTED";
             reviewNote?: string;
+        };
+        CreateFollowUpAppointmentRequest: {
+            /** Format: uuid */
+            patientId: string;
+            /** Format: uuid */
+            sourceEncounterId: string;
+            /** Format: date-time */
+            scheduledAt: string;
+            notes?: string;
+        };
+        AppointmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            patientId?: string;
+            /** Format: uuid */
+            providerId?: string;
+            /** Format: uuid */
+            sourceEncounterId?: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+            /** @enum {string} */
+            status?: "SCHEDULED" | "ATTENDED" | "CANCELLED" | "NO_SHOW";
+            /** Format: uuid */
+            attendedEncounterId?: string;
+            notes?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        RecordAnaesthesiaRequest: {
+            /** Format: uuid */
+            surgeryOrderId: string;
+            noAnaesthesia?: boolean;
+            anaesthetistNameText?: string;
+            anaesthesiaTypeText?: string;
+            paperRecordReference?: string;
+        };
+        AnaesthesiaPaperRecordResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            surgeryOrderId?: string;
+            label?: string;
+            noAnaesthesia?: boolean;
+            anaesthetistNameText?: string;
+            anaesthesiaTypeText?: string;
+            paperRecordReference?: string;
+            /** Format: uuid */
+            recordedBy?: string;
+            /** Format: date-time */
+            recordedAt?: string;
         };
         AdmitPatientRequest: {
             /** Format: uuid */
@@ -2973,6 +4259,58 @@ export interface components {
             /** Format: date-time */
             validTo?: string;
         };
+        CompletedTriageAssessmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            chiefComplaint?: string;
+            currentSymptoms?: string;
+            allergies?: string;
+            comorbidities?: string;
+            /** @enum {string} */
+            modeOfAmbulation?: "WALKING" | "INFANT_IN_MOTHERS_LAP" | "WHEELCHAIR_ASSISTED" | "STRETCHER_ASSISTED";
+            hasPain?: boolean;
+            /** Format: int32 */
+            painScore?: number;
+            painLocation?: string;
+            fallRisk?: boolean;
+            /** Format: int32 */
+            fallScore?: number;
+            infectionRisk?: boolean;
+            /** @enum {string} */
+            pregnancyStatus?: "YES" | "NO" | "UNKNOWN";
+            /** Format: int32 */
+            gestationalWeeks?: number;
+            /** @enum {string} */
+            priority?: "IMMEDIATE" | "URGENT" | "LESS_URGENT" | "NON_URGENT";
+            /** @enum {string} */
+            immediateReason?: "THREATENED_OR_OBSTRUCTED_AIRWAY" | "SEVERE_RESPIRATORY_DISTRESS" | "SHOCK_OR_CIRCULATORY_COLLAPSE" | "UNRESPONSIVE_OR_RESPONDING_TO_PAIN_ONLY" | "ACTIVE_UNCONTROLLED_BLEEDING" | "ACTIVE_CONVULSION" | "OBSTETRIC_EMERGENCY" | "OTHER";
+            immediateReasonOtherText?: string;
+            notes?: string;
+            /** Format: uuid */
+            supersedesId?: string;
+            /** Format: uuid */
+            assessedBy?: string;
+            assessedByUsername?: string;
+            /** Format: date-time */
+            assessedAt?: string;
+        };
+        TriageAssessmentDraftSummaryResponse: {
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            authorId?: string;
+            authorUsername?: string;
+            /** @enum {string} */
+            priority?: "IMMEDIATE" | "URGENT" | "LESS_URGENT" | "NON_URGENT";
+            /** @enum {string} */
+            modeOfAmbulation?: "WALKING" | "INFANT_IN_MOTHERS_LAP" | "WHEELCHAIR_ASSISTED" | "STRETCHER_ASSISTED";
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         StockValuationResponse: {
             /** Format: uuid */
             storeId?: string;
@@ -3019,6 +4357,12 @@ export interface components {
             storeName?: string;
             /** Format: int32 */
             quantity?: number;
+        };
+        RoleResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
         };
         RevenueReport: {
             /** Format: date */
@@ -3097,6 +4441,17 @@ export interface components {
             /** Format: double */
             score?: number;
         };
+        PriceCatalogItemResponse: {
+            /** Format: uuid */
+            serviceItemId?: string;
+            code?: string;
+            name?: string;
+            /** @enum {string} */
+            category?: "CONSULTATION" | "LAB" | "PROCEDURE" | "PHARMACY" | "WARD";
+            /** Format: int64 */
+            priceMinor?: number;
+            currencyCode?: string;
+        };
         AllergyResponse: {
             description?: string;
             reaction?: string;
@@ -3131,6 +4486,38 @@ export interface components {
             code?: string;
             name?: string;
             unit?: string;
+        };
+        EmergencyBypassResponse: {
+            /** Format: uuid */
+            paymentBypassId?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            patientName?: string;
+            hospitalNumber?: string;
+            /** Format: date-time */
+            grantedAt?: string;
+            reason?: string;
+            /** Format: int64 */
+            outstandingTotalMinor?: number;
+            currencyCode?: string;
+        };
+        VisitHistoryResponse: {
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: date-time */
+            encounterDate?: string;
+            encounterType?: string;
+            encounterState?: string;
+            departmentName?: string;
+            attendingProviderName?: string;
+            /** Format: uuid */
+            invoiceId?: string;
+            invoiceState?: string;
+            /** Format: int64 */
+            outstandingTotalMinor?: number;
+            currencyCode?: string;
         };
         PatientSearchResult: {
             /** Format: uuid */
@@ -3182,6 +4569,32 @@ export interface components {
             candidates?: components["schemas"]["MisclassificationCandidateResponse"][];
             controlledReleases?: components["schemas"]["ControlledReleaseResponse"][];
         };
+        InvoiceLineResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            serviceItemId?: string;
+            serviceItemName?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: int64 */
+            grossAmountMinor?: number;
+            /** Format: int64 */
+            insurancePortionMinor?: number;
+            /** Format: int64 */
+            patientPortionMinor?: number;
+            /** Format: int64 */
+            remainingMinor?: number;
+            currencyCode?: string;
+            /** Format: uuid */
+            authorizationId?: string;
+        };
+        InsuranceSchemeResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+        };
         PayrollBatchPreviewResponse: {
             /** Format: int32 */
             month?: number;
@@ -3209,6 +4622,18 @@ export interface components {
             /** Format: int64 */
             netMinor?: number;
         };
+        ReferralCandidateResponse: {
+            /** Format: uuid */
+            providerId?: string;
+            username?: string;
+            roleLabel?: string;
+            /** Format: int64 */
+            feeAmountMinor?: number;
+            currencyCode?: string;
+            /** Format: int32 */
+            queueDepth?: number;
+            onDuty?: boolean;
+        };
         DispenseLabelResponse: {
             patientName?: string;
             hospitalNumber?: string;
@@ -3222,6 +4647,28 @@ export interface components {
             batchNumber?: string;
             /** Format: date */
             expiryDate?: string;
+        };
+        DepartmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+        };
+        VitalReferenceRangeResponse: {
+            /** @enum {string} */
+            vitalType?: "TEMPERATURE" | "SYSTOLIC_BP" | "DIASTOLIC_BP" | "PULSE" | "RESPIRATORY_RATE" | "SPO2";
+            /** @enum {string} */
+            ageBand?: "NEONATE" | "INFANT" | "TODDLER" | "CHILD" | "ADOLESCENT" | "ADULT" | "ELDERLY";
+            /** @enum {string} */
+            sex?: "MALE" | "FEMALE" | "ANY";
+            /** Format: double */
+            implausibleLow?: number;
+            /** Format: double */
+            implausibleHigh?: number;
+            /** Format: double */
+            abnormalLow?: number;
+            /** Format: double */
+            abnormalHigh?: number;
         };
         ReceivableInvoiceResponse: {
             /** Format: uuid */
@@ -3290,6 +4737,76 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    findOwn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TriageAssessmentDraftResponse"];
+                };
+            };
+        };
+    };
+    upsert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TriageAssessmentDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TriageAssessmentDraftResponse"];
+                };
+            };
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     refresh: {
         parameters: {
             query?: never;
@@ -3448,6 +4965,401 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["BedResponse"];
+                };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"][];
+                };
+            };
+        };
+    };
+    create_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    roleAssignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleAssignmentResponse"][];
+                };
+            };
+        };
+    };
+    grantRoleAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantRoleAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleAssignmentResponse"];
+                };
+            };
+        };
+    };
+    endRoleAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listByFacility: {
+        parameters: {
+            query: {
+                facilityId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TheatreResponse"][];
+                };
+            };
+        };
+    };
+    create_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTheatreRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TheatreResponse"];
+                };
+            };
+        };
+    };
+    listBySurgeryOrder: {
+        parameters: {
+            query: {
+                surgeryOrderId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SurgicalChecklistResponse"][];
+                };
+            };
+        };
+    };
+    complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteChecklistRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SurgicalChecklistResponse"];
+                };
+            };
+        };
+    };
+    schedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleSurgeryRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SurgeryOrderResponse"];
+                };
+            };
+        };
+    };
+    start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SurgeryOrderResponse"];
+                };
+            };
+        };
+    };
+    revokeConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reconcileEmergencyDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReconcileEmergencyDraftProcedureNameRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SurgeryOrderResponse"];
+                };
+            };
+        };
+    };
+    recordDisposition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordSurgeryDispositionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SurgeryOrderResponse"];
+                };
+            };
+        };
+    };
+    complete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SurgeryOrderResponse"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelSurgeryOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SurgeryOrderResponse"];
+                };
+            };
+        };
+    };
+    createEmergencyDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEmergencyDraftSurgeryOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SurgeryOrderResponse"];
                 };
             };
         };
@@ -3674,6 +5586,100 @@ export interface operations {
             };
         };
     };
+    listBySurgeryOrder_1: {
+        parameters: {
+            query: {
+                surgeryOrderId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProcedureItemResponse"][];
+                };
+            };
+        };
+    };
+    prepare: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepareProcedureItemRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProcedureItemResponse"];
+                };
+            };
+        };
+    };
+    reconcile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReconcileProcedureItemRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProcedureItemResponse"];
+                };
+            };
+        };
+    };
+    attest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProcedureItemResponse"];
+                };
+            };
+        };
+    };
     place: {
         parameters: {
             query?: never;
@@ -3824,6 +5830,54 @@ export interface operations {
             };
         };
     };
+    record: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordPaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PaymentResponse"];
+                };
+            };
+        };
+    };
+    grantAdminWaiver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantAdminWaiverRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GrantAdminWaiverResponse"];
+                };
+            };
+        };
+    };
     register: {
         parameters: {
             query?: never;
@@ -3848,7 +5902,7 @@ export interface operations {
             };
         };
     };
-    list: {
+    list_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3892,7 +5946,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -3994,7 +6048,7 @@ export interface operations {
             };
         };
     };
-    record: {
+    record_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4092,7 +6146,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -4186,6 +6240,83 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ItemResponse"];
+                };
+            };
+        };
+    };
+    search_5: {
+        parameters: {
+            query?: {
+                patientId?: string;
+                encounterId?: string;
+                states?: ("DRAFT" | "ISSUED" | "PATIENT_PORTION_SETTLED" | "CLOSED" | "CANCELLATION_PENDING" | "VOID" | "RECEIVABLE_POST_DISCHARGE")[];
+                createdFrom?: string;
+                createdTo?: string;
+                outstandingOnly?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"][];
+                };
+            };
+        };
+    };
+    create_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"];
+                };
+            };
+        };
+    };
+    issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueInvoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"];
                 };
             };
         };
@@ -4288,7 +6419,7 @@ export interface operations {
             };
         };
     };
-    record_1: {
+    record_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4432,6 +6563,31 @@ export interface operations {
             };
         };
     };
+    search_6: {
+        parameters: {
+            query?: {
+                states?: ("AWAITING_TRIAGE" | "AWAITING_PAYMENT" | "AWAITING_CONSULT" | "IN_CONSULT" | "AWAITING_RESULTS" | "CONSULT_COMPLETE" | "PENDING_SETTLEMENT" | "ADMITTED" | "IN_WARD" | "DISCHARGE_ORDERED" | "LEFT_WITHOUT_BEING_SEEN" | "ABANDONED_UNPAID" | "CANCELLED_IN_ERROR" | "REFERRED_OUT" | "DECEASED" | "CLOSED" | "DISCHARGED")[];
+                excludeTerminal?: boolean;
+                createdFrom?: string;
+                createdTo?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EncounterResponse"][];
+                };
+            };
+        };
+    };
     open: {
         parameters: {
             query?: never;
@@ -4447,6 +6603,28 @@ export interface operations {
         responses: {
             /** @description Created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EncounterResponse"];
+                };
+            };
+        };
+    };
+    resume: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4478,6 +6656,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EncounterResponse"];
+                };
+            };
+        };
+    };
+    submit_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitTriageAssessmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TriageAssessmentResponse"];
                 };
             };
         };
@@ -4523,6 +6727,56 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    open_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenCashierShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CashierShiftResponse"];
+                };
+            };
+        };
+    };
+    close_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseCashierShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CashierShiftResponse"];
+                };
             };
         };
     };
@@ -4630,7 +6884,7 @@ export interface operations {
             };
         };
     };
-    issue: {
+    issue_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4730,6 +6984,99 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvoiceCancellationRequestResponse"];
+                };
+            };
+        };
+    };
+    scheduledBetween: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"][];
+                };
+            };
+        };
+    };
+    create_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateFollowUpAppointmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"];
+                };
+            };
+        };
+    };
+    listBySurgeryOrder_2: {
+        parameters: {
+            query: {
+                surgeryOrderId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AnaesthesiaPaperRecordResponse"][];
+                };
+            };
+        };
+    };
+    record_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordAnaesthesiaRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AnaesthesiaPaperRecordResponse"];
                 };
             };
         };
@@ -4910,7 +7257,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -4932,7 +7279,7 @@ export interface operations {
             };
         };
     };
-    record_2: {
+    record_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -4958,7 +7305,7 @@ export interface operations {
             };
         };
     };
-    record_3: {
+    record_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -4984,7 +7331,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -5006,7 +7353,7 @@ export interface operations {
             };
         };
     };
-    record_4: {
+    record_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -5143,6 +7490,74 @@ export interface operations {
             };
         };
     };
+    search: {
+        parameters: {
+            query: {
+                ownOnly?: boolean;
+                assessedFrom: string;
+                assessedTo: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CompletedTriageAssessmentResponse"][];
+                };
+            };
+        };
+    };
+    activeSummaries: {
+        parameters: {
+            query: {
+                encounterIds: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TriageAssessmentDraftSummaryResponse"][];
+                };
+            };
+        };
+    };
+    getById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SurgeryOrderResponse"];
+                };
+            };
+        };
+    };
     valuation: {
         parameters: {
             query?: never;
@@ -5219,6 +7634,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CurrentStockResponse"][];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleResponse"][];
                 };
             };
         };
@@ -5363,7 +7798,7 @@ export interface operations {
             };
         };
     };
-    search: {
+    search_1: {
         parameters: {
             query: {
                 q: string;
@@ -5386,7 +7821,30 @@ export interface operations {
             };
         };
     };
-    getById: {
+    search_2: {
+        parameters: {
+            query: {
+                q: string;
+                encounterId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PriceCatalogItemResponse"][];
+                };
+            };
+        };
+    };
+    getById_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -5430,7 +7888,47 @@ export interface operations {
             };
         };
     };
-    getById_1: {
+    pending: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PharmacyItemProposalResponse"][];
+                };
+            };
+        };
+    };
+    active: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EmergencyBypassResponse"][];
+                };
+            };
+        };
+    };
+    getById_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -5452,7 +7950,29 @@ export interface operations {
             };
         };
     };
-    search_1: {
+    visitHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VisitHistoryResponse"][];
+                };
+            };
+        };
+    };
+    search_3: {
         parameters: {
             query: {
                 q: string;
@@ -5471,6 +7991,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PatientSearchResult"][];
+                };
+            };
+        };
+    };
+    registeredCount: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": number;
                 };
             };
         };
@@ -5519,7 +8062,7 @@ export interface operations {
             };
         };
     };
-    search_2: {
+    search_4: {
         parameters: {
             query: {
                 q: string;
@@ -5557,6 +8100,70 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MisclassificationReportResponse"];
+                };
+            };
+        };
+    };
+    getById_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceResponse"];
+                };
+            };
+        };
+    };
+    lines: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceLineResponse"][];
+                };
+            };
+        };
+    };
+    list_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InsuranceSchemeResponse"][];
                 };
             };
         };
@@ -5651,12 +8258,56 @@ export interface operations {
             };
         };
     };
-    getById_2: {
+    getById_4: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EncounterResponse"];
+                };
+            };
+        };
+    };
+    forEncounter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReferralCandidateResponse"][];
+                };
+            };
+        };
+    };
+    openForPatient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patientId: string;
             };
             cookie?: never;
         };
@@ -5695,6 +8346,90 @@ export interface operations {
             };
         };
     };
+    list_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DepartmentResponse"][];
+                };
+            };
+        };
+    };
+    forPatient: {
+        parameters: {
+            query: {
+                patientId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VitalReferenceRangeResponse"][];
+                };
+            };
+        };
+    };
+    payments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PaymentResponse"][];
+                };
+            };
+        };
+    };
+    current: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CashierShiftResponse"];
+                };
+            };
+        };
+    };
     findById_2: {
         parameters: {
             query?: never;
@@ -5717,7 +8452,7 @@ export interface operations {
             };
         };
     };
-    pending: {
+    pending_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -5759,7 +8494,7 @@ export interface operations {
             };
         };
     };
-    pending_1: {
+    pending_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -5779,7 +8514,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_5: {
         parameters: {
             query?: {
                 payerCategory?: "CASH" | "NHIF" | "PRIVATE_SCHEME" | "CORPORATE" | "STAFF";
@@ -5844,7 +8579,7 @@ export interface operations {
             };
         };
     };
-    pending_2: {
+    pending_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -5886,7 +8621,7 @@ export interface operations {
             };
         };
     };
-    pending_3: {
+    pending_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -5906,7 +8641,49 @@ export interface operations {
             };
         };
     };
-    getById_3: {
+    recent: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"][];
+                };
+            };
+        };
+    };
+    expectedReturns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"][];
+                };
+            };
+        };
+    };
+    getById_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -5928,7 +8705,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -5972,7 +8749,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_9: {
         parameters: {
             query?: never;
             header?: never;

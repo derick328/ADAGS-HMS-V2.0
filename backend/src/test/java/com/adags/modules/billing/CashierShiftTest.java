@@ -7,6 +7,8 @@ import com.adags.modules.billing.domain.CashierShift;
 import com.adags.modules.billing.domain.CashierShiftAlreadyOpenException;
 import com.adags.modules.billing.domain.CashierShiftNotClosedException;
 import com.adags.modules.billing.domain.CashierShiftStatus;
+import com.adags.modules.billing.domain.Payment;
+import com.adags.modules.billing.domain.PaymentRepository;
 import com.adags.modules.billing.domain.SelfReconciliationNotAllowedException;
 import com.adags.shared.kernel.Money;
 import com.adags.support.IntegrationTestSupport;
@@ -36,6 +38,9 @@ class CashierShiftTest extends IntegrationTestSupport {
 
     @Autowired
     private ReconcileCashierShiftService reconcileCashierShiftService;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
@@ -134,6 +139,36 @@ class CashierShiftTest extends IntegrationTestSupport {
 
         assertThatThrownBy(() -> reconcileCashierShiftService.reconcile(shift.id(), accountant))
                 .isInstanceOf(CashierShiftNotClosedException.class);
+    }
+
+    // The dashboard's "My shift total" tile and the cashier shift screen's
+    // running total by method.
+    @Test
+    void findByCashierShiftIdReturnsOnlyThatShiftsPayments() {
+        UUID admin = bootstrapAdminId();
+        CashierShift shift = openCashierShiftService.open(BOOTSTRAP_FACILITY_ID, admin);
+        CashierShift otherShift = openCashierShiftService.open(BOOTSTRAP_FACILITY_ID, insertFixtureUser());
+        UUID patientId = insertFixturePatient();
+        paymentRepository.insert(Payment.receive(patientId, shift.id(), new Money(10_000, "TZS"),
+                com.adags.modules.billing.domain.PaymentMethod.CASH, null,
+                com.adags.modules.billing.domain.PaymentStatus.SETTLED, "idem-" + UUID.randomUUID(), admin));
+        paymentRepository.insert(Payment.receive(patientId, otherShift.id(), new Money(5_000, "TZS"),
+                com.adags.modules.billing.domain.PaymentMethod.CASH, null,
+                com.adags.modules.billing.domain.PaymentStatus.SETTLED, "idem-" + UUID.randomUUID(), admin));
+
+        var payments = paymentRepository.findByCashierShiftId(shift.id());
+
+        assertThat(payments).hasSize(1);
+        assertThat(payments.get(0).amount()).isEqualTo(new Money(10_000, "TZS"));
+    }
+
+    private UUID insertFixturePatient() {
+        return jdbcTemplate.queryForObject("""
+                        INSERT INTO patient (hospital_no, given_name, family_name, date_of_birth, gender, phone)
+                        VALUES (:hospitalNo, 'Test', 'Patient', DATE '1990-01-01', 'MALE', '+255700000000')
+                        RETURNING id
+                        """,
+                new MapSqlParameterSource("hospitalNo", "TEST-" + UUID.randomUUID()), UUID.class);
     }
 
     private UUID insertFixtureUser() {

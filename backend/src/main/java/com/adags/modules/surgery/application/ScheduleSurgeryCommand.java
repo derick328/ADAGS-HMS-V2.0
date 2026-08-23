@@ -1,0 +1,25 @@
+package com.adags.modules.surgery.application;
+
+import com.adags.modules.surgery.domain.SurgeryUrgency;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
+public record ScheduleSurgeryCommand(
+        UUID encounterId,
+        String procedureServiceItemCode,
+        String surgeryType,
+        SurgeryUrgency urgency,
+        String anesthesiaType,
+        LocalDate scheduledDate,
+        String timeSlot,
+        UUID theatreId,
+        int estimatedDurationMinutes,
+        List<UUID> assignedNurses,
+        String preOpNotes,
+        boolean consentObtained,
+        String consentDocumentKey,
+        UUID actorUserId
+) {
+}

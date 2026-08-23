@@ -5,6 +5,7 @@ import com.adags.modules.billing.application.ChargePostingCommand;
 import com.adags.modules.billing.application.ChargePostingResult;
 import com.adags.modules.billing.application.ChargePostingService;
 import com.adags.modules.billing.application.FixedAmountChargePostingCommand;
+import com.adags.modules.billing.application.PriceResolutionService;
 import com.adags.modules.billing.application.SetPharmacyItemPriceCommand;
 import com.adags.modules.billing.application.SetPharmacyItemPriceService;
 import com.adags.modules.billing.domain.BillingGate;
@@ -22,6 +23,9 @@ import com.adags.modules.billing.domain.PaymentBypassSource;
 import com.adags.modules.billing.domain.PriceNotConfiguredException;
 import com.adags.modules.billing.domain.ProviderBillingCategory;
 import com.adags.modules.billing.domain.ProviderBillingCategoryRepository;
+import com.adags.modules.billing.domain.ServiceItem;
+import com.adags.modules.billing.domain.ServiceItemCategory;
+import com.adags.modules.billing.domain.ServiceItemRepository;
 import com.adags.shared.authz.Actor;
 import com.adags.shared.authz.AuthorizationService;
 import com.adags.shared.authz.RoleAssignmentView;
@@ -48,6 +52,8 @@ public class BillingFacadeImpl implements BillingFacade {
     private final AuthorizationService authorizationService;
     private final ProviderBillingCategoryRepository providerBillingCategoryRepository;
     private final SetPharmacyItemPriceService setPharmacyItemPriceService;
+    private final ServiceItemRepository serviceItemRepository;
+    private final PriceResolutionService priceResolutionService;
 
     public BillingFacadeImpl(
             PaymentBypassRepository paymentBypassRepository,
@@ -57,7 +63,9 @@ public class BillingFacadeImpl implements BillingFacade {
             BillingGate billingGate,
             AuthorizationService authorizationService,
             ProviderBillingCategoryRepository providerBillingCategoryRepository,
-            SetPharmacyItemPriceService setPharmacyItemPriceService
+            SetPharmacyItemPriceService setPharmacyItemPriceService,
+            ServiceItemRepository serviceItemRepository,
+            PriceResolutionService priceResolutionService
     ) {
         this.paymentBypassRepository = paymentBypassRepository;
         this.chargePostingService = chargePostingService;
@@ -67,12 +75,28 @@ public class BillingFacadeImpl implements BillingFacade {
         this.authorizationService = authorizationService;
         this.providerBillingCategoryRepository = providerBillingCategoryRepository;
         this.setPharmacyItemPriceService = setPharmacyItemPriceService;
+        this.serviceItemRepository = serviceItemRepository;
+        this.priceResolutionService = priceResolutionService;
     }
 
     @Override
     public UUID createImmediateTriagePaymentBypass(UUID encounterId, String reason, UUID grantedBy) {
         PaymentBypass saved = paymentBypassRepository.insert(
                 PaymentBypass.grant(encounterId, PaymentBypassSource.TRIAGE_IMMEDIATE, reason, grantedBy));
+        return saved.id();
+    }
+
+    @Override
+    public UUID createImmediateSurgeryPaymentBypass(UUID encounterId, String reason, UUID grantedBy) {
+        PaymentBypass saved = paymentBypassRepository.insert(
+                PaymentBypass.grant(encounterId, PaymentBypassSource.SURGERY_IMMEDIATE, reason, grantedBy));
+        return saved.id();
+    }
+
+    @Override
+    public UUID createAdminWaiverPaymentBypass(UUID encounterId, String reason, UUID grantedBy) {
+        PaymentBypass saved = paymentBypassRepository.insert(
+                PaymentBypass.grant(encounterId, PaymentBypassSource.ADMIN_WAIVER, reason, grantedBy));
         return saved.id();
     }
 
@@ -89,6 +113,12 @@ public class BillingFacadeImpl implements BillingFacade {
         chargePostingService.postCharge(new ChargePostingCommand(
                 encounterId, patientId, facilityId, payerCategory, null,
                 serviceItemCode, 1, TRIAGE_COMPLETED_EVENT, triageAssessmentId, actorUserId));
+    }
+
+    @Override
+    public Money previewConsultationFee(UUID providerId, PayerType payerType) {
+        String serviceItemCode = resolveConsultationServiceItemCode(providerId);
+        return priceResolutionService.resolvePrice(serviceItemCode, toPayerCategory(payerType));
     }
 
     @Override
@@ -130,6 +160,14 @@ public class BillingFacadeImpl implements BillingFacade {
     @Override
     public Optional<Money> findCurrentPharmacyItemPrice(String itemCode) {
         return setPharmacyItemPriceService.findCurrentPrice(itemCode);
+    }
+
+    @Override
+    public Optional<String> findActiveProcedureName(String serviceItemCode) {
+        return serviceItemRepository.findByCode(serviceItemCode)
+                .filter(ServiceItem::isActive)
+                .filter(item -> item.category() == ServiceItemCategory.PROCEDURE)
+                .map(ServiceItem::name);
     }
 
     @Override

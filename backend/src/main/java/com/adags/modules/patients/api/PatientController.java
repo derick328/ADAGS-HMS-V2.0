@@ -14,11 +14,13 @@ import com.adags.shared.authz.AuthorizationService;
 import com.adags.shared.authz.ScopeRef;
 import com.adags.shared.authz.ScopeType;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -84,6 +86,21 @@ public class PatientController {
             throw new AccessDeniedException("Missing permission: PATIENT_SEARCH");
         }
         return searchPatientsService.search(query, limit, actor.userId());
+    }
+
+    // 05-receptionist.md §3's "Registered today" dashboard tile — a count,
+    // not a list. 18-admin.md's "no browse-all-patients" reasoning applies
+    // here too: this deliberately returns a number, never rows.
+    @GetMapping("/registered-count")
+    public long registeredCount(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @AuthenticationPrincipal Actor actor
+    ) {
+        if (!authorizationService.hasPermission(actor, "PATIENT_SEARCH")) {
+            throw new AccessDeniedException("Missing permission: PATIENT_SEARCH");
+        }
+        return patientRepository.countCreatedBetween(from, to);
     }
 
     @GetMapping("/{id}")

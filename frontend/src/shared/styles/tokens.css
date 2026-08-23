@@ -206,3 +206,10 @@ body {
 .row-critical { box-shadow: inset 3px 0 0 var(--critical); background: var(--critical-bg); }
 .row-warning  { box-shadow: inset 3px 0 0 var(--warning); }
 .row-selected { background: var(--green-100); }
+
+/* --------------------------------------------------------------------------
+ * Forms — validation messages, used by every react-hook-form + zod screen
+ * -------------------------------------------------------------------------- */
+
+.field-error { color: var(--critical); font-size: var(--text-sm); }
+.form-error  { margin-top: var(--space-2); color: var(--critical); font-size: var(--text-base); }

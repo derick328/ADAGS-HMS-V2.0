@@ -50,4 +50,33 @@ public interface InventoryFacade {
      * prescribing (evaluated live, same discipline as the billing gate).
      */
     Money decrementForDispense(UUID itemId, UUID batchId, int quantity, UUID referenceId, UUID actorUserId);
+
+    /**
+     * Phase 8 item 2 (surgery module): same mechanics as
+     * {@link #decrementForDispense} — decrements the materialised balance
+     * (throwing {@link com.adags.modules.inventory.domain.InsufficientStockException}
+     * if it would go negative), checks {@link com.adags.modules.inventory.domain.Item#assertDispensable()}
+     * so a CONTROLLED item is blocked here the same as every other
+     * consuming path (root CLAUDE.md "Safety": "Enforce in the repository
+     * layer so new endpoints inherit it"), and checks batch expiry/status
+     * — but tags the StockMovement {@code PROCEDURE_ITEM} rather than
+     * {@code DISPENSE_LINE}, so the ledger traces a suture pulled for
+     * surgery back to its ProcedureItem row, not a pharmacy dispense.
+     * {@code referenceId} is the caller's pre-generated ProcedureItem id,
+     * same pre-generated-id pattern as {@code decrementForDispense}.
+     */
+    Money decrementForProcedureItem(UUID itemId, UUID batchId, int quantity, UUID referenceId, UUID actorUserId);
+
+    /**
+     * Phase 8 item 3 (surgery module): "Returned items write a positive
+     * StockMovement back to the source batch, or they are lost from the
+     * ledger" (04-procedure-bedday-rules.md §2.2). Credits the
+     * materialised balance and records a RETURN StockMovement tagged
+     * {@code PROCEDURE_ITEM_RETURN}, against the same batch the item was
+     * originally prepared from — no dispensability/expiry check, since
+     * crediting stock back is never itself the blocked action (root
+     * CLAUDE.md "Safety" blocks CONTROLLED from consumption, not from
+     * being accounted for).
+     */
+    void incrementForReturn(UUID itemId, UUID batchId, int quantity, UUID referenceId, UUID actorUserId);
 }

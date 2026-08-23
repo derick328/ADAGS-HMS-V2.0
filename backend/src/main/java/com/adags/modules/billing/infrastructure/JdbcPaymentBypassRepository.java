@@ -61,6 +61,13 @@ public class JdbcPaymentBypassRepository implements PaymentBypassRepository {
                 this::mapRow);
     }
 
+    @Override
+    public List<PaymentBypass> findAllActive() {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE status = 'ACTIVE' ORDER BY granted_at",
+                this::mapRow);
+    }
+
     private PaymentBypass mapRow(ResultSet rs, int rowNum) throws SQLException {
         java.sql.Timestamp revokedAt = rs.getTimestamp("revoked_at");
         return new PaymentBypass(

@@ -18,9 +18,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class JdbcInvoiceRepository implements InvoiceRepository {
@@ -76,6 +78,40 @@ public class JdbcInvoiceRepository implements InvoiceRepository {
     public List<Invoice> findByEncounterId(UUID encounterId) {
         return jdbcTemplate.query(SELECT_COLUMNS + " WHERE encounter_id = :encounterId",
                 new MapSqlParameterSource("encounterId", encounterId), this::mapRow);
+    }
+
+    @Override
+    public List<Invoice> search(UUID patientId, UUID encounterId, List<InvoiceState> states,
+                                 Instant createdFrom, Instant createdTo, boolean outstandingOnly) {
+        StringBuilder sql = new StringBuilder(SELECT_COLUMNS).append(" WHERE 1 = 1");
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        if (patientId != null) {
+            sql.append(" AND patient_id = :patientId");
+            params.addValue("patientId", patientId);
+        }
+        if (encounterId != null) {
+            sql.append(" AND encounter_id = :encounterId");
+            params.addValue("encounterId", encounterId);
+        }
+        if (states != null && !states.isEmpty()) {
+            sql.append(" AND state IN (:states)");
+            params.addValue("states", states.stream().map(Enum::name).collect(Collectors.toList()));
+        }
+        if (createdFrom != null) {
+            sql.append(" AND created_at >= :createdFrom");
+            params.addValue("createdFrom", Timestamp.from(createdFrom));
+        }
+        if (createdTo != null) {
+            sql.append(" AND created_at < :createdTo");
+            params.addValue("createdTo", Timestamp.from(createdTo));
+        }
+        if (outstandingOnly) {
+            sql.append(" AND outstanding_total_minor > 0");
+        }
+        sql.append(" ORDER BY created_at DESC");
+
+        return jdbcTemplate.query(sql.toString(), params, this::mapRow);
     }
 
     @Override

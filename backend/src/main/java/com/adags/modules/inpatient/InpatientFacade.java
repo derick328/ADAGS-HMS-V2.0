@@ -23,4 +23,24 @@ public interface InpatientFacade {
      */
     void generateMedicationAdministrationSchedule(
             UUID admissionId, UUID prescriptionLineId, String frequency, int durationDays, Instant startAt);
+
+    /**
+     * Phase 8 item 5: the surgery module's ADMIT_TO_WARD disposition.
+     * Deliberately separate from AdmitPatientService (the doctor's own
+     * IN_CONSULT admit path) — that service also finalises a
+     * ConsultationRecord via ClinicalFacade, which doesn't apply to a
+     * post-surgical admission. Creates the Admission row only
+     * (WardStatus.ADMITTED, admittedAt = now — "bed-day accrual begins at
+     * sent-to-admission timestamp, NOT procedure end," which this
+     * satisfies simply by being called after COMPLETED, not at IN_PROGRESS
+     * start). Does not assign a specific bed — that stays AssignBedService's
+     * job, same as every other admission. orderedWardClass is the raw
+     * WardClass enum name (GENERAL/PRIVATE); caller does not need to
+     * import inpatient.domain (root CLAUDE.md "Modules"). Encounter
+     * transition (IN_CONSULT -> ADMITTED) is the caller's own
+     * responsibility via EncounterFacade.admit — this method only creates
+     * the Admission row.
+     */
+    UUID admitFromProcedure(UUID encounterId, UUID patientId, UUID facilityId, UUID admittingDoctorId,
+                             String orderedWardClass, UUID actorUserId);
 }

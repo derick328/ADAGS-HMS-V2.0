@@ -13,10 +13,13 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class JdbcEncounterRepository implements EncounterRepository {
@@ -58,6 +61,42 @@ public class JdbcEncounterRepository implements EncounterRepository {
                 new MapSqlParameterSource("patientId", patientId),
                 this::mapRow);
         return results.stream().findFirst();
+    }
+
+    @Override
+    public List<Encounter> search(List<EncounterState> states, boolean excludeTerminal, Instant createdFrom, Instant createdTo) {
+        StringBuilder sql = new StringBuilder(SELECT_COLUMNS).append(" WHERE 1 = 1");
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        if (states != null && !states.isEmpty()) {
+            sql.append(" AND state IN (:states)");
+            params.addValue("states", states.stream().map(Enum::name).collect(Collectors.toList()));
+        }
+        if (excludeTerminal) {
+            sql.append(" AND state NOT IN (").append(NON_TERMINAL_STATES).append(")");
+        }
+        if (createdFrom != null) {
+            sql.append(" AND created_at >= :createdFrom");
+            params.addValue("createdFrom", Timestamp.from(createdFrom));
+        }
+        if (createdTo != null) {
+            sql.append(" AND created_at < :createdTo");
+            params.addValue("createdTo", Timestamp.from(createdTo));
+        }
+        sql.append(" ORDER BY created_at");
+
+        return jdbcTemplate.query(sql.toString(), params, this::mapRow);
+    }
+
+    @Override
+    public int countByAssignedProviderAndState(UUID assignedProviderId, EncounterState state) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM encounter WHERE assigned_provider_id = :assignedProviderId AND state = :state",
+                new MapSqlParameterSource()
+                        .addValue("assignedProviderId", assignedProviderId)
+                        .addValue("state", state.name()),
+                Integer.class);
+        return count == null ? 0 : count;
     }
 
     @Override

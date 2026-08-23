@@ -9,6 +9,7 @@ import com.adags.modules.inventory.application.ReviewPharmacyItemProposalService
 import com.adags.modules.inventory.domain.Item;
 import com.adags.modules.inventory.domain.PharmacyItemProposal;
 import com.adags.modules.inventory.domain.PharmacyItemProposalAlreadyReviewedException;
+import com.adags.modules.inventory.domain.PharmacyItemProposalRepository;
 import com.adags.modules.inventory.domain.PharmacyItemProposalSelfReviewNotAllowedException;
 import com.adags.modules.inventory.domain.ProposalStatus;
 import com.adags.modules.inventory.domain.RegulatorySchedule;
@@ -34,6 +35,8 @@ class PharmacyItemProposalTest extends IntegrationTestSupport {
     private ReviewPharmacyItemProposalService reviewPharmacyItemProposalService;
     @Autowired
     private BillingFacade billingFacade;
+    @Autowired
+    private PharmacyItemProposalRepository pharmacyItemProposalRepository;
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -161,6 +164,25 @@ class PharmacyItemProposalTest extends IntegrationTestSupport {
         assertThatThrownBy(() -> reviewPharmacyItemProposalService.review(
                 new ReviewPharmacyItemProposalCommand(proposal.id(), ProposalStatus.APPROVED, doctor, null)))
                 .isInstanceOf(PharmacyItemProposalAlreadyReviewedException.class);
+    }
+
+    // 18-admin.md §2/§7: the admin's "Pricing / price proposals" review queue
+    // — reviewed proposals (approved or rejected) must drop out of it.
+    @Test
+    void pendingListsOnlyUnreviewedProposals() {
+        UUID admin = bootstrapAdminId();
+        UUID doctor = insertFixtureUser();
+        PharmacyItemProposal stillPending = proposePharmacyItemService.proposeNewItem(new ProposeNewItemCommand(
+                "Amoxicillin 250mg capsule", "ANTIBIOTIC", "CAPSULE", "CAPSULE", 2_000, null, admin));
+        PharmacyItemProposal willBeRejected = proposePharmacyItemService.proposeNewItem(new ProposeNewItemCommand(
+                "Vitamin C 100mg tablet", "SUPPLEMENT", "TABLET", "TABLET", 300, null, admin));
+        reviewPharmacyItemProposalService.review(
+                new ReviewPharmacyItemProposalCommand(willBeRejected.id(), ProposalStatus.REJECTED, doctor, "not stocked"));
+
+        var pending = pharmacyItemProposalRepository.findPending();
+
+        assertThat(pending).extracting(PharmacyItemProposal::id).contains(stillPending.id());
+        assertThat(pending).extracting(PharmacyItemProposal::id).doesNotContain(willBeRejected.id());
     }
 
     private UUID insertFixtureUser() {
