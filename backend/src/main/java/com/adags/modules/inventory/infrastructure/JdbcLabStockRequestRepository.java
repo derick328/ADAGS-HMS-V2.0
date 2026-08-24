@@ -66,6 +66,13 @@ public class JdbcLabStockRequestRepository implements LabStockRequestRepository 
     }
 
     @Override
+    public List<LabStockRequest> findOpen() {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE status IN ('PENDING', 'PARTIALLY_RELEASED') ORDER BY requested_at ASC",
+                this::mapRow);
+    }
+
+    @Override
     public LabStockRequest update(LabStockRequest request) {
         String sql = """
                 UPDATE lab_stock_request

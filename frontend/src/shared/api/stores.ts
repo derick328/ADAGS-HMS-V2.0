@@ -7,3 +7,8 @@ export type StoreResponse = components['schemas']['StoreResponse'];
 export function fetchMyStore(accessToken: string): Promise<StoreResponse> {
   return authFetch('/api/stores/mine', accessToken);
 }
+
+/** Resolves (and lazily provisions) this pharmacist's main dispensing store — the restock form's storeId, with no store picker needed. */
+export function fetchMyPharmacyStore(accessToken: string): Promise<StoreResponse> {
+  return authFetch('/api/stores/mine-pharmacy', accessToken);
+}

@@ -2,7 +2,9 @@ package com.adags.modules.pharmacy.api;
 
 import com.adags.modules.billing.BillingFacade;
 import com.adags.modules.encounters.EncounterFacade;
+import com.adags.modules.inpatient.InpatientFacade;
 import com.adags.modules.inventory.InventoryFacade;
+import com.adags.modules.patients.PatientFacade;
 import com.adags.modules.pharmacy.application.PlacePrescriptionCommand;
 import com.adags.modules.pharmacy.application.PlacePrescriptionService;
 import com.adags.modules.pharmacy.domain.PrescriptionLine;
@@ -15,6 +17,7 @@ import com.adags.shared.authz.ScopeRef;
 import com.adags.shared.authz.ScopeType;
 import com.adags.shared.kernel.EncounterContext;
 import com.adags.shared.kernel.ItemSummary;
+import com.adags.shared.kernel.PatientIdentity;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -27,7 +30,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -45,6 +50,8 @@ public class PrescriptionController {
     private final InventoryFacade inventoryFacade;
     private final BillingFacade billingFacade;
     private final EncounterFacade encounterFacade;
+    private final InpatientFacade inpatientFacade;
+    private final PatientFacade patientFacade;
     private final AuthorizationService authorizationService;
 
     public PrescriptionController(
@@ -54,6 +61,8 @@ public class PrescriptionController {
             InventoryFacade inventoryFacade,
             BillingFacade billingFacade,
             EncounterFacade encounterFacade,
+            InpatientFacade inpatientFacade,
+            PatientFacade patientFacade,
             AuthorizationService authorizationService
     ) {
         this.placePrescriptionService = placePrescriptionService;
@@ -62,6 +71,8 @@ public class PrescriptionController {
         this.inventoryFacade = inventoryFacade;
         this.billingFacade = billingFacade;
         this.encounterFacade = encounterFacade;
+        this.inpatientFacade = inpatientFacade;
+        this.patientFacade = patientFacade;
         this.authorizationService = authorizationService;
     }
 
@@ -80,6 +91,45 @@ public class PrescriptionController {
                 request.substitutionAllowed(), actor.userId(), request.route(), request.doseAmount(),
                 request.doseUnit(), request.frequency(), request.durationDays()));
         return PrescriptionLineResponse.from(line);
+    }
+
+    // 12-pharmacist.md §4: the Dashboard's / Dispense Queue's single source
+    // list. One flat row per open line; the frontend buckets into the six
+    // queues (ready / partially payable / awaiting payment / emergency /
+    // inpatient — surgery items deferred with the surgery module) and
+    // sorts, same "server returns the data, client owns the tab split"
+    // pattern LabOrderController's /queue documents. Unscoped by facility,
+    // same reasoning as LabOrderController#queue (no multi-facility
+    // pharmacist role exists yet to distinguish).
+    @GetMapping("/queue")
+    public List<PrescriptionQueueRowResponse> queue(@AuthenticationPrincipal Actor actor) {
+        if (!authorizationService.hasPermission(actor, "PRESCRIPTION_QUEUE_READ")) {
+            throw new AccessDeniedException("Missing permission: PRESCRIPTION_QUEUE_READ");
+        }
+        List<PrescriptionLine> openLines = prescriptionLineRepository.findOpen();
+        // Batches by order so each PrescriptionOrder (and the patient
+        // identity it points at) is only resolved once, not once per line.
+        Map<UUID, PrescriptionOrder> ordersById = new HashMap<>();
+        return openLines.stream()
+                .map(line -> toQueueRow(line, ordersById.computeIfAbsent(line.prescriptionOrderId(),
+                        id -> prescriptionOrderRepository.findById(id)
+                                .orElseThrow(() -> new NoSuchElementException("Prescription order not found: " + id)))))
+                .toList();
+    }
+
+    private PrescriptionQueueRowResponse toQueueRow(PrescriptionLine line, PrescriptionOrder order) {
+        ItemSummary item = inventoryFacade.findItemSummary(line.itemId()).orElse(null);
+        PatientIdentity identity = patientFacade.findIdentity(order.patientId()).orElse(null);
+        boolean gateSatisfied = billingFacade.isLineAuthorized(line.invoiceLineId());
+        boolean emergencyBypass = billingFacade.hasActivePaymentBypass(order.encounterId());
+        boolean isInpatient = inpatientFacade.findActiveAdmissionId(order.encounterId()).isPresent();
+
+        return new PrescriptionQueueRowResponse(
+                line.id(), order.id(), order.encounterId(), order.patientId(),
+                identity == null ? null : identity.fullName(), identity == null ? null : identity.hospitalNumber(),
+                line.itemId(), item == null ? null : item.code(), item == null ? "Unknown item" : item.name(),
+                line.quantityPrescribed(), line.quantityDispensed(), line.remaining(), line.dosageInstructions(),
+                line.status(), order.prescribedAt(), gateSatisfied, emergencyBypass, isInpatient);
     }
 
     // 08-doctor-navigation.md §5: "Request History" — every prescription

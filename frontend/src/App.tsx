@@ -40,6 +40,14 @@ import { ResultEntryPage } from './workspaces/lab/ResultEntryPage';
 import { StockRequestsPage } from './workspaces/lab/StockRequestsPage';
 import { TestQueuePage } from './workspaces/lab/TestQueuePage';
 import { ProfilePage as LabProfilePage } from './workspaces/triage/ProfilePage';
+import { DashboardPage as PharmacyDashboardPage } from './workspaces/pharmacy/DashboardPage';
+import { DispensePage } from './workspaces/pharmacy/DispensePage';
+import { HistoryPage as PharmacyHistoryPage } from './workspaces/pharmacy/HistoryPage';
+import { LabStockRequestsPage as PharmacyLabStockRequestsPage } from './workspaces/pharmacy/LabStockRequestsPage';
+import { PharmacyItemsPage } from './workspaces/pharmacy/PharmacyItemsPage';
+import { PharmacyShell } from './workspaces/pharmacy/PharmacyShell';
+import { StockPage as PharmacyStockPage } from './workspaces/pharmacy/StockPage';
+import { ProfilePage as PharmacyProfilePage } from './workspaces/triage/ProfilePage';
 
 export function App() {
   return (
@@ -133,6 +141,22 @@ export function App() {
         <Route path="catalogue" element={<LabCataloguePage />} />
         <Route path="stock-requests" element={<StockRequestsPage />} />
         <Route path="profile" element={<LabProfilePage />} />
+      </Route>
+      <Route
+        path="/pharmacy"
+        element={
+          <RequireAuth>
+            <PharmacyShell />
+          </RequireAuth>
+        }
+      >
+        <Route index element={<PharmacyDashboardPage />} />
+        <Route path="dispense/:prescriptionLineId" element={<DispensePage />} />
+        <Route path="history" element={<PharmacyHistoryPage />} />
+        <Route path="stock" element={<PharmacyStockPage />} />
+        <Route path="items" element={<PharmacyItemsPage />} />
+        <Route path="lab-stock-requests" element={<PharmacyLabStockRequestsPage />} />
+        <Route path="profile" element={<PharmacyProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>

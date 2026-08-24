@@ -25,6 +25,8 @@ public class StoreController {
 
     private static final String LAB_STORE_TYPE = "LAB";
     private static final String LAB_STORE_NAME = "Laboratory store";
+    private static final String PHARMACY_STORE_TYPE = "MAIN_PHARMACY";
+    private static final String PHARMACY_STORE_NAME = "Main Pharmacy";
 
     private final StoreRepository storeRepository;
     private final AuthorizationService authorizationService;
@@ -39,32 +41,48 @@ public class StoreController {
         if (!authorizationService.hasPermission(actor, "LAB_STOCK_REQUEST_CREATE")) {
             throw new AccessDeniedException("Missing permission: LAB_STOCK_REQUEST_CREATE");
         }
-        UUID facilityId = resolveFacilityId(actor);
+        UUID facilityId = resolveFacilityId(actor, "LAB_STOCK_REQUEST_CREATE");
         Store store = storeRepository.findByFacilityIdAndType(facilityId, LAB_STORE_TYPE)
-                .orElseGet(() -> createLabStore(facilityId));
+                .orElseGet(() -> createStore(LAB_STORE_NAME, LAB_STORE_TYPE, facilityId));
+        return StoreResponse.from(store);
+    }
+
+    // 12-pharmacist.md §7.2: resolves "this pharmacist's main dispensing
+    // store" so the restock form has a storeId without a store-management
+    // screen (18-admin.md doesn't cover store provisioning yet) — same
+    // lazy-create-on-first-use treatment as mine() above, MAIN_PHARMACY
+    // instead of LAB.
+    @GetMapping("/mine-pharmacy")
+    public StoreResponse minePharmacy(@AuthenticationPrincipal Actor actor) {
+        if (!authorizationService.hasPermission(actor, "STOCK_RESTOCK")) {
+            throw new AccessDeniedException("Missing permission: STOCK_RESTOCK");
+        }
+        UUID facilityId = resolveFacilityId(actor, "STOCK_RESTOCK");
+        Store store = storeRepository.findByFacilityIdAndType(facilityId, PHARMACY_STORE_TYPE)
+                .orElseGet(() -> createStore(PHARMACY_STORE_NAME, PHARMACY_STORE_TYPE, facilityId));
         return StoreResponse.from(store);
     }
 
     // LabOrderController's own comment: "a lab serves a whole facility, not
     // one ward or department... a facility-scoped assignment is the right
-    // granularity here" — a correctly provisioned LAB_TECHNICIAN assignment
-    // is FACILITY-scoped, so this is expected to always resolve.
-    private UUID resolveFacilityId(Actor actor) {
+    // granularity here" — a correctly provisioned LAB_TECHNICIAN/PHARMACIST
+    // assignment is FACILITY-scoped, so this is expected to always resolve.
+    private UUID resolveFacilityId(Actor actor, String permissionCode) {
         return authorizationService.activeAssignments(actor).stream()
-                .filter(assignment -> assignment.permissionCodes().contains("LAB_STOCK_REQUEST_CREATE"))
+                .filter(assignment -> assignment.permissionCodes().contains(permissionCode))
                 .filter(assignment -> assignment.scope().type() == ScopeType.FACILITY)
                 .map(assignment -> assignment.scope().id())
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
-                        "No facility-scoped LAB_STOCK_REQUEST_CREATE assignment for user " + actor.userId()));
+                        "No facility-scoped " + permissionCode + " assignment for user " + actor.userId()));
     }
 
-    private Store createLabStore(UUID facilityId) {
+    private Store createStore(String name, String type, UUID facilityId) {
         try {
-            return storeRepository.insert(Store.create(LAB_STORE_NAME, LAB_STORE_TYPE, facilityId));
+            return storeRepository.insert(Store.create(name, type, facilityId));
         } catch (DataIntegrityViolationException raceLost) {
             // idx_store_facility_type (V64): another request created it first.
-            return storeRepository.findByFacilityIdAndType(facilityId, LAB_STORE_TYPE).orElseThrow(() -> raceLost);
+            return storeRepository.findByFacilityIdAndType(facilityId, type).orElseThrow(() -> raceLost);
         }
     }
 }

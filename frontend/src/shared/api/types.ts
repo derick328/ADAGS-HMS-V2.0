@@ -715,7 +715,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         post: operations["add"];
         delete?: never;
@@ -1611,7 +1611,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post: operations["record_4"];
         delete?: never;
@@ -1643,7 +1643,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post: operations["record_6"];
         delete?: never;
@@ -1780,6 +1780,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/suppliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stores/mine": {
         parameters: {
             query?: never;
@@ -1788,6 +1804,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["mine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stores/mine-pharmacy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["minePharmacy"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1867,7 +1899,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1996,6 +2028,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["search_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prescriptions/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["queue"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2171,7 +2219,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2204,6 +2252,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["get_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-stock-requests/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pending_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2315,7 +2379,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["queue"];
+        get: operations["queue_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2443,7 +2507,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2644,6 +2708,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dispenses/patient-search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["patientSearch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dispenses/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mine_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/departments": {
         parameters: {
             query?: never;
@@ -2651,7 +2747,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2763,7 +2859,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending_1"];
+        get: operations["pending_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2795,7 +2891,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending_2"];
+        get: operations["pending_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2811,7 +2907,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2859,7 +2955,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending_3"];
+        get: operations["pending_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2891,7 +2987,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending_4"];
+        get: operations["pending_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2955,7 +3051,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2987,7 +3083,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4932,6 +5028,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        SupplierResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+        };
         StoreResponse: {
             /** Format: uuid */
             id?: string;
@@ -5081,6 +5183,36 @@ export interface components {
             priceMinor?: number;
             currencyCode?: string;
         };
+        PrescriptionQueueRowResponse: {
+            /** Format: uuid */
+            prescriptionLineId?: string;
+            /** Format: uuid */
+            prescriptionOrderId?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            patientName?: string;
+            hospitalNumber?: string;
+            /** Format: uuid */
+            itemId?: string;
+            itemCode?: string;
+            itemName?: string;
+            /** Format: int32 */
+            quantityPrescribed?: number;
+            /** Format: int32 */
+            quantityDispensed?: number;
+            /** Format: int32 */
+            remaining?: number;
+            dosageInstructions?: string;
+            /** @enum {string} */
+            status?: "AWAITING_DISPENSE" | "PARTIALLY_DISPENSED" | "COMPLETED" | "CANCELLED" | "UNAVAILABLE";
+            /** Format: date-time */
+            prescribedAt?: string;
+            gateSatisfied?: boolean;
+            isEmergencyBypass?: boolean;
+            isInpatient?: boolean;
+        };
         PrescriptionHistoryResponse: {
             /** Format: uuid */
             prescriptionLineId?: string;
@@ -5127,6 +5259,8 @@ export interface components {
             allergies?: components["schemas"]["AllergyResponse"][];
             availableBatches?: components["schemas"]["BatchAvailabilityResponse"][];
             fefoSuggestion?: components["schemas"]["BatchAllocationResponse"][];
+            /** Format: double */
+            weightKg?: number;
         };
         ItemSummaryResponse: {
             /** Format: uuid */
@@ -5206,6 +5340,30 @@ export interface components {
             producesMachineOutput?: boolean;
             active?: boolean;
             parameters?: components["schemas"]["LabTestParameterResponse"][];
+        };
+        LabStockRequestQueueRowResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            itemId?: string;
+            itemCode?: string;
+            itemName?: string;
+            /** Format: int32 */
+            requestedQuantity?: number;
+            /** Format: int32 */
+            releasedQuantity?: number;
+            /** Format: int32 */
+            remaining?: number;
+            /** Format: uuid */
+            requestingStoreId?: string;
+            /** Format: uuid */
+            requestedBy?: string;
+            requestedByUsername?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "PARTIALLY_RELEASED" | "RELEASED" | "REJECTED" | "CLOSED";
+            requestNotes?: string;
         };
         DetailParameterValueResponse: {
             /** Format: uuid */
@@ -5496,6 +5654,31 @@ export interface components {
             batchNumber?: string;
             /** Format: date */
             expiryDate?: string;
+        };
+        DispenseHistoryResponse: {
+            /** Format: uuid */
+            dispenseId?: string;
+            /** Format: uuid */
+            prescriptionLineId?: string;
+            /** Format: uuid */
+            prescriptionOrderId?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            patientName?: string;
+            hospitalNumber?: string;
+            itemCode?: string;
+            itemName?: string;
+            /** Format: int32 */
+            quantityDispensed?: number;
+            /** Format: date-time */
+            dispensedAt?: string;
+            /** Format: uuid */
+            dispensedBy?: string;
+            dispensedByUsername?: string;
+            counsellingNotes?: string;
+            dispensingNotes?: string;
         };
         DepartmentResponse: {
             /** Format: uuid */
@@ -6841,7 +7024,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -8369,7 +8552,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -8443,7 +8626,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -8670,7 +8853,47 @@ export interface operations {
             };
         };
     };
+    list_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupplierResponse"][];
+                };
+            };
+        };
+    };
     mine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StoreResponse"];
+                };
+            };
+        };
+    };
+    minePharmacy: {
         parameters: {
             query?: never;
             header?: never;
@@ -8770,7 +8993,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -8972,6 +9195,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PriceCatalogItemResponse"][];
+                };
+            };
+        };
+    };
+    queue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PrescriptionQueueRowResponse"][];
                 };
             };
         };
@@ -9192,7 +9435,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -9252,6 +9495,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LabStockRequestResponse"];
+                };
+            };
+        };
+    };
+    pending_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabStockRequestQueueRowResponse"][];
                 };
             };
         };
@@ -9385,7 +9648,7 @@ export interface operations {
             };
         };
     };
-    queue: {
+    queue_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9555,7 +9818,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -9841,7 +10104,49 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    patientSearch: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DispenseHistoryResponse"][];
+                };
+            };
+        };
+    };
+    mine_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DispenseHistoryResponse"][];
+                };
+            };
+        };
+    };
+    list_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -9989,7 +10294,7 @@ export interface operations {
             };
         };
     };
-    pending_1: {
+    pending_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -10031,7 +10336,7 @@ export interface operations {
             };
         };
     };
-    pending_2: {
+    pending_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -10051,7 +10356,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: {
                 payerCategory?: "CASH" | "NHIF" | "PRIVATE_SCHEME" | "CORPORATE" | "STAFF";
@@ -10116,7 +10421,7 @@ export interface operations {
             };
         };
     };
-    pending_3: {
+    pending_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -10158,7 +10463,7 @@ export interface operations {
             };
         };
     };
-    pending_4: {
+    pending_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -10242,7 +10547,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -10286,7 +10591,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query?: never;
             header?: never;

@@ -5,6 +5,7 @@ import com.adags.shared.kernel.WardVitalsResult;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 // The one public surface other modules may depend on (root CLAUDE.md
@@ -110,4 +111,13 @@ public interface ClinicalFacade {
      * design.
      */
     List<AllergySummary> findAllergies(UUID patientId);
+
+    /**
+     * 12-pharmacist.md §5.2: "patient weight, for paediatric verification" —
+     * the most recently recorded weight for this encounter, from whichever
+     * VitalSigns context recorded it (TRIAGE, CONSULTATION, ...). Empty if
+     * no vitals have been recorded on this encounter at all — the caller
+     * shows nothing rather than a stale figure from a different visit.
+     */
+    Optional<Double> findLatestWeightKg(UUID encounterId);
 }

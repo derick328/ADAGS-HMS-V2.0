@@ -72,6 +72,39 @@ public class JdbcDispenseRepository implements DispenseRepository {
                 new MapSqlParameterSource("prescriptionLineId", prescriptionLineId), this::mapRow);
     }
 
+    @Override
+    public List<Dispense> findByDispensedBy(UUID dispensedBy) {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE dispensed_by = :dispensedBy ORDER BY dispensed_at DESC",
+                new MapSqlParameterSource("dispensedBy", dispensedBy), this::mapRow);
+    }
+
+    private static final String SELECT_BY_PATIENT = """
+            SELECT d.id, d.prescription_line_id, d.dispensed_by, d.dispensed_at, d.idempotency_key,
+                   d.quantity_dispensed, d.counselling_notes, d.dispensing_notes
+            FROM dispense d
+            JOIN prescription_line pl ON pl.id = d.prescription_line_id
+            JOIN prescription_order po ON po.id = pl.prescription_order_id
+            """;
+
+    @Override
+    public List<Dispense> findByPatientId(UUID patientId) {
+        return jdbcTemplate.query(
+                SELECT_BY_PATIENT + " WHERE po.patient_id = :patientId ORDER BY d.dispensed_at DESC",
+                new MapSqlParameterSource("patientId", patientId), this::mapRow);
+    }
+
+    @Override
+    public List<UUID> findDistinctDispensedPatientIds() {
+        String sql = """
+                SELECT DISTINCT po.patient_id
+                FROM dispense d
+                JOIN prescription_line pl ON pl.id = d.prescription_line_id
+                JOIN prescription_order po ON po.id = pl.prescription_order_id
+                """;
+        return jdbcTemplate.query(sql, (rs, rowNum) -> (UUID) rs.getObject("patient_id"));
+    }
+
     private Dispense mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Dispense(
                 (UUID) rs.getObject("id"),

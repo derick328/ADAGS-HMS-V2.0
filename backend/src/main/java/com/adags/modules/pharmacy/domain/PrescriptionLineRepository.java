@@ -13,6 +13,9 @@ public interface PrescriptionLineRepository {
     /** Every line under one prescription order — Request History and the patient timeline both need the order's line items, not just its header. */
     List<PrescriptionLine> findByPrescriptionOrderId(UUID prescriptionOrderId);
 
+    /** 12-pharmacist.md §4: every line still AWAITING_DISPENSE or PARTIALLY_DISPENSED, across the whole facility — the Dispense Queue's single source list, oldest first. */
+    List<PrescriptionLine> findOpen();
+
     /**
      * Persists quantityDispensed/status/statusReason from {@code line} —
      * called once per Dispense (materialised total, root CLAUDE.md "Data"),

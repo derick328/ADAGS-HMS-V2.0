@@ -79,6 +79,13 @@ public class JdbcPrescriptionLineRepository implements PrescriptionLineRepositor
     }
 
     @Override
+    public List<PrescriptionLine> findOpen() {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE status IN ('AWAITING_DISPENSE', 'PARTIALLY_DISPENSED') ORDER BY created_at ASC",
+                this::mapRow);
+    }
+
+    @Override
     public PrescriptionLine update(PrescriptionLine line) {
         String sql = """
                 UPDATE prescription_line

@@ -15,4 +15,7 @@ public interface LabStockRequestRepository {
 
     /** 15-lab-technician.md §5: the Stock Requests screen's own list + pending-count badge, newest first. */
     List<LabStockRequest> findByRequestedBy(UUID requestedBy);
+
+    /** 12-pharmacist.md §8: every request still PENDING or PARTIALLY_RELEASED, across every requester — the pharmacist's review queue, oldest first. */
+    List<LabStockRequest> findOpen();
 }

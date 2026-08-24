@@ -1052,7 +1052,7 @@ paths:
     get:
       tags:
       - watchlist-controller
-      operationId: list_2
+      operationId: list_3
       responses:
         "200":
           description: OK
@@ -2478,7 +2478,7 @@ paths:
     get:
       tags:
       - wound-care-controller
-      operationId: list_7
+      operationId: list_8
       parameters:
       - name: admissionId
         in: path
@@ -2549,7 +2549,7 @@ paths:
     get:
       tags:
       - shift-handover-controller
-      operationId: list_8
+      operationId: list_9
       parameters:
       - name: admissionId
         in: path
@@ -2770,11 +2770,37 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SurgeryOrderResponse"
+  /api/suppliers:
+    get:
+      tags:
+      - supplier-controller
+      operationId: list_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupplierResponse"
   /api/stores/mine:
     get:
       tags:
       - store-controller
       operationId: mine
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StoreResponse"
+  /api/stores/mine-pharmacy:
+    get:
+      tags:
+      - store-controller
+      operationId: minePharmacy
       responses:
         "200":
           description: OK
@@ -2842,7 +2868,7 @@ paths:
     get:
       tags:
       - role-controller
-      operationId: list_1
+      operationId: list_2
       responses:
         "200":
           description: OK
@@ -3072,6 +3098,20 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PriceCatalogItemResponse"
+  /api/prescriptions/queue:
+    get:
+      tags:
+      - prescription-controller
+      operationId: queue
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PrescriptionQueueRowResponse"
   /api/prescriptions/mine:
     get:
       tags:
@@ -3270,7 +3310,7 @@ paths:
     get:
       tags:
       - lab-test-controller
-      operationId: list_3
+      operationId: list_4
       responses:
         "200":
           description: OK
@@ -3318,6 +3358,20 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/LabStockRequestResponse"
+  /api/lab-stock-requests/pending:
+    get:
+      tags:
+      - lab-stock-request-controller
+      operationId: pending_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabStockRequestQueueRowResponse"
   /api/lab-stock-requests/mine:
     get:
       tags:
@@ -3432,7 +3486,7 @@ paths:
     get:
       tags:
       - lab-order-controller
-      operationId: queue
+      operationId: queue_1
       responses:
         "200":
           description: OK
@@ -3572,7 +3626,7 @@ paths:
     get:
       tags:
       - insurance-scheme-controller
-      operationId: list_4
+      operationId: list_5
       responses:
         "200":
           description: OK
@@ -3839,11 +3893,45 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/DispenseLabelResponse"
+  /api/dispenses/patient-search:
+    get:
+      tags:
+      - dispense-controller
+      operationId: patientSearch
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DispenseHistoryResponse"
+  /api/dispenses/mine:
+    get:
+      tags:
+      - dispense-controller
+      operationId: mine_5
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DispenseHistoryResponse"
   /api/departments:
     get:
       tags:
       - department-controller
-      operationId: list_5
+      operationId: list_6
       responses:
         "200":
           description: OK
@@ -3965,7 +4053,7 @@ paths:
     get:
       tags:
       - invoice-write-off-controller
-      operationId: pending_1
+      operationId: pending_2
       responses:
         "200":
           description: OK
@@ -3998,7 +4086,7 @@ paths:
     get:
       tags:
       - refund-controller
-      operationId: pending_2
+      operationId: pending_3
       responses:
         "200":
           description: OK
@@ -4012,7 +4100,7 @@ paths:
     get:
       tags:
       - receivables-controller
-      operationId: list_6
+      operationId: list_7
       parameters:
       - name: payerCategory
         in: query
@@ -4081,7 +4169,7 @@ paths:
     get:
       tags:
       - credit-note-controller
-      operationId: pending_3
+      operationId: pending_4
       responses:
         "200":
           description: OK
@@ -4114,7 +4202,7 @@ paths:
     get:
       tags:
       - invoice-cancellation-controller
-      operationId: pending_4
+      operationId: pending_5
       responses:
         "200":
           description: OK
@@ -4183,7 +4271,7 @@ paths:
     get:
       tags:
       - medication-administration-controller
-      operationId: list_9
+      operationId: list_10
       parameters:
       - name: admissionId
         in: path
@@ -4225,7 +4313,7 @@ paths:
     get:
       tags:
       - ward-alert-notification-controller
-      operationId: list_10
+      operationId: list_11
       parameters:
       - name: admissionId
         in: path
@@ -8197,6 +8285,16 @@ components:
         updatedAt:
           type: string
           format: date-time
+    SupplierResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
     StoreResponse:
       type: object
       properties:
@@ -8444,6 +8542,60 @@ components:
           format: int64
         currencyCode:
           type: string
+    PrescriptionQueueRowResponse:
+      type: object
+      properties:
+        prescriptionLineId:
+          type: string
+          format: uuid
+        prescriptionOrderId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        patientName:
+          type: string
+        hospitalNumber:
+          type: string
+        itemId:
+          type: string
+          format: uuid
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        quantityPrescribed:
+          type: integer
+          format: int32
+        quantityDispensed:
+          type: integer
+          format: int32
+        remaining:
+          type: integer
+          format: int32
+        dosageInstructions:
+          type: string
+        status:
+          type: string
+          enum:
+          - AWAITING_DISPENSE
+          - PARTIALLY_DISPENSED
+          - COMPLETED
+          - CANCELLED
+          - UNAVAILABLE
+        prescribedAt:
+          type: string
+          format: date-time
+        gateSatisfied:
+          type: boolean
+        isEmergencyBypass:
+          type: boolean
+        isInpatient:
+          type: boolean
     PrescriptionHistoryResponse:
       type: object
       properties:
@@ -8527,6 +8679,9 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/BatchAllocationResponse"
+        weightKg:
+          type: number
+          format: double
     ItemSummaryResponse:
       type: object
       properties:
@@ -8669,6 +8824,49 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/LabTestParameterResponse"
+    LabStockRequestQueueRowResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        requestedQuantity:
+          type: integer
+          format: int32
+        releasedQuantity:
+          type: integer
+          format: int32
+        remaining:
+          type: integer
+          format: int32
+        requestingStoreId:
+          type: string
+          format: uuid
+        requestedBy:
+          type: string
+          format: uuid
+        requestedByUsername:
+          type: string
+        requestedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - PENDING
+          - PARTIALLY_RELEASED
+          - RELEASED
+          - REJECTED
+          - CLOSED
+        requestNotes:
+          type: string
     DetailParameterValueResponse:
       type: object
       properties:
@@ -9213,6 +9411,47 @@ components:
         expiryDate:
           type: string
           format: date
+    DispenseHistoryResponse:
+      type: object
+      properties:
+        dispenseId:
+          type: string
+          format: uuid
+        prescriptionLineId:
+          type: string
+          format: uuid
+        prescriptionOrderId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        patientName:
+          type: string
+        hospitalNumber:
+          type: string
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        quantityDispensed:
+          type: integer
+          format: int32
+        dispensedAt:
+          type: string
+          format: date-time
+        dispensedBy:
+          type: string
+          format: uuid
+        dispensedByUsername:
+          type: string
+        counsellingNotes:
+          type: string
+        dispensingNotes:
+          type: string
     DepartmentResponse:
       type: object
       properties:
