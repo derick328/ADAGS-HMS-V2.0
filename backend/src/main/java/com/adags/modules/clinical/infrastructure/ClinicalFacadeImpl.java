@@ -89,6 +89,24 @@ public class ClinicalFacadeImpl implements ClinicalFacade {
     }
 
     @Override
+    public UUID recordPostOpVitalSigns(
+            UUID encounterId, UUID patientId, UUID surgeryOrderId,
+            double temperatureC, double systolicMmHg, double diastolicMmHg,
+            double pulseBpm, double respiratoryRate, double spo2Pct,
+            double weightKg, double heightCm,
+            String avpu, Double bloodGlucoseMmol,
+            UUID recordedBy, Instant occurredAt
+    ) {
+        RecordVitalSignsCommand command = new RecordVitalSignsCommand(
+                encounterId, patientId, VitalSignsContext.POST_OP, surgeryOrderId,
+                temperatureC, systolicMmHg, diastolicMmHg, pulseBpm, respiratoryRate, spo2Pct,
+                weightKg, heightCm, avpu == null ? null : Avpu.valueOf(avpu), bloodGlucoseMmol,
+                null, null, null, recordedBy, occurredAt);
+        VitalSigns saved = recordVitalSignsService.record(command);
+        return saved.id();
+    }
+
+    @Override
     public UUID appendAllergyRecord(UUID patientId, UUID encounterId, String description, UUID recordedBy, String source) {
         AllergyRecord saved = allergyRecordRepository.insert(
                 AllergyRecord.record(patientId, encounterId, description, null, null,

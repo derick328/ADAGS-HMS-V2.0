@@ -55,6 +55,14 @@ public class BedController {
         return bedRepository.findFreeByWardId(wardId).stream().map(BedResponse::from).toList();
     }
 
+    // Screen 3's bed map — every bed in the ward, occupied or not, so the
+    // nurse can see the whole ward's layout, not just what's free.
+    @GetMapping
+    public List<BedResponse> list(@PathVariable UUID wardId, @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "WARD_PATIENT_READ", ScopeType.WARD, wardId);
+        return bedRepository.findByWardId(wardId).stream().map(BedResponse::from).toList();
+    }
+
     private void requirePermission(Actor actor, String permissionCode, ScopeType scopeType, UUID scopeId) {
         if (!authorizationService.hasPermission(actor, permissionCode, ScopeRef.of(scopeType, scopeId))) {
             throw new AccessDeniedException("Missing permission: " + permissionCode);

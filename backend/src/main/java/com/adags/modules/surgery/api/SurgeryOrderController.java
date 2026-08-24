@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -100,6 +101,20 @@ public class SurgeryOrderController {
                 request.consentObtained(), request.consentDocumentKey(), actor.userId());
         SurgeryOrder order = scheduleSurgeryService.schedule(command);
         return SurgeryOrderResponse.from(order);
+    }
+
+    // 17-ward-nurse.md §10: the Surgery Queue's source list — unscoped, like
+    // LabOrderController#queue: SURGERY_EPISODE_DOCUMENT is granted at
+    // DEPARTMENT scope, but a facility runs one theatre list shared across
+    // departments, so the permission alone gates the browse and the client
+    // buckets/highlights (e.g. orders carrying this nurse in assignedNurses)
+    // the same way every other QueueShell screen does.
+    @GetMapping
+    public List<SurgeryOrderResponse> listActive(@AuthenticationPrincipal Actor actor) {
+        if (!authorizationService.hasPermission(actor, "SURGERY_EPISODE_DOCUMENT")) {
+            throw new AccessDeniedException("Missing permission: SURGERY_EPISODE_DOCUMENT");
+        }
+        return surgeryOrderRepository.findActive().stream().map(SurgeryOrderResponse::from).toList();
     }
 
     // SURGERY_EPISODE_DOCUMENT (V5): granted to both SPECIALIST_DOCTOR

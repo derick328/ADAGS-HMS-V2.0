@@ -17,6 +17,15 @@ public interface AdmissionRepository {
     List<Admission> findAllWithActiveBedAssignment();
 
     /**
+     * 17-ward-nurse.md §3: "Scope the ward patient list" — admissions whose
+     * currently active BedAssignment sits in wardId. Includes an admission
+     * with discharge_ordered_at set but not yet actually_departure_at (the
+     * bed is still occupied until the bed assignment is released), same as
+     * findAllWithActiveBedAssignment's join.
+     */
+    List<Admission> findByCurrentWardId(UUID wardId);
+
+    /**
      * 04-procedure-bedday-rules.md §3.6: sets discharge_ordered_at/by/role.
      * @throws StaleAdmissionException if the row's version does not match expectedVersion.
      */

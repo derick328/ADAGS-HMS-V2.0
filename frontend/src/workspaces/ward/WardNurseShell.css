@@ -1,0 +1,132 @@
+.ward-shell-outer {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.ward-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.ward-sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--bg-sidebar);
+  color: var(--green-200);
+  display: flex;
+  flex-direction: column;
+  padding: 1.2rem 0.8rem;
+}
+
+.ward-sidebar-brand {
+  color: var(--text-on-dark);
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  padding: 0.4rem 0.6rem 0.6rem;
+}
+
+.ward-sidebar-ward {
+  padding: 0 0.6rem 1rem;
+}
+
+.ward-sidebar-ward select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-on-dark);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.4rem;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.ward-sidebar-ward-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--green-200);
+  margin-bottom: 0.3rem;
+}
+
+.ward-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.nav-item {
+  display: block;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius);
+  color: var(--green-200);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-item-active {
+  box-shadow: inset 3px 0 0 var(--green-signal);
+  background: rgba(127, 255, 0, 0.08);
+  color: var(--green-signal);
+  font-weight: 600;
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--green-signal);
+  outline-offset: 2px;
+}
+
+.nav-item-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.nav-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin: 0.6rem 0.2rem;
+}
+
+.ward-sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ward-user {
+  font-size: 0.85rem;
+  color: var(--text-on-dark);
+  padding: 0 0.6rem;
+}
+
+.ward-logout {
+  background: none;
+  border: 1px solid var(--green-200);
+  color: var(--green-200);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.ward-logout:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ward-content {
+  flex: 1;
+  padding: 2rem;
+  background: var(--bg-page);
+  min-width: 0;
+}

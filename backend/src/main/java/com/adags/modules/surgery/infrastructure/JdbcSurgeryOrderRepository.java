@@ -102,6 +102,13 @@ public class JdbcSurgeryOrderRepository implements SurgeryOrderRepository {
     }
 
     @Override
+    public List<SurgeryOrder> findActive() {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE status NOT IN ('COMPLETED', 'CANCELLED') ORDER BY scheduled_date, time_slot",
+                new MapSqlParameterSource(), this::mapRow);
+    }
+
+    @Override
     public boolean transitionStatus(UUID id, SurgeryOrderStatus from, SurgeryOrderStatus to) {
         int updated = jdbcTemplate.update(
                 "UPDATE surgery_order SET status = :to, version = version + 1 WHERE id = :id AND status = :from",

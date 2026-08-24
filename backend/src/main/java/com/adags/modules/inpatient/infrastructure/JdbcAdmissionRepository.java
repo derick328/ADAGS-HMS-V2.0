@@ -85,6 +85,18 @@ public class JdbcAdmissionRepository implements AdmissionRepository {
     }
 
     @Override
+    public List<Admission> findByCurrentWardId(UUID wardId) {
+        String sql = SELECT_COLUMNS + """
+                 WHERE EXISTS (
+                     SELECT 1 FROM bed_assignment ba JOIN bed b ON b.id = ba.bed_id
+                      WHERE ba.admission_id = admission.id AND ba.released_at IS NULL AND b.ward_id = :wardId
+                 )
+                 ORDER BY admitted_at
+                """;
+        return jdbcTemplate.query(sql, new MapSqlParameterSource("wardId", wardId), this::mapRow);
+    }
+
+    @Override
     public Admission orderDischarge(UUID admissionId, Instant dischargeOrderedAt, UUID dischargeOrderedBy,
                                      DischargeOrdererRole dischargeOrdererRole, int expectedVersion) {
         String sql = """

@@ -193,6 +193,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/WardResponse"
   /api/wards/{wardId}/beds:
+    get:
+      tags:
+      - bed-controller
+      operationId: list
+      parameters:
+      - name: wardId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BedResponse"
     post:
       tags:
       - bed-controller
@@ -221,7 +241,7 @@ paths:
     get:
       tags:
       - user-controller
-      operationId: list
+      operationId: list_1
       responses:
         "200":
           description: OK
@@ -391,6 +411,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/SurgicalChecklistResponse"
   /api/surgery-orders:
+    get:
+      tags:
+      - surgery-order-controller
+      operationId: listActive_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SurgeryOrderResponse"
     post:
       tags:
       - surgery-order-controller
@@ -408,6 +441,32 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SurgeryOrderResponse"
+  /api/surgery-orders/{id}/vitals:
+    post:
+      tags:
+      - surgery-vitals-controller
+      operationId: record
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordSurgeryVitalsRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: uuid
   /api/surgery-orders/{id}/start:
     post:
       tags:
@@ -616,6 +675,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/SpecimenResponse"
   /api/shift-assignments:
+    get:
+      tags:
+      - shift-assignment-controller
+      operationId: listByWardAndDate
+      parameters:
+      - name: wardId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: shiftDate
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShiftAssignmentResponse"
     post:
       tags:
       - shift-assignment-controller
@@ -953,7 +1038,7 @@ paths:
     post:
       tags:
       - payment-controller
-      operationId: record
+      operationId: record_1
       requestBody:
         content:
           application/json:
@@ -1052,7 +1137,7 @@ paths:
     get:
       tags:
       - watchlist-controller
-      operationId: list_3
+      operationId: list_4
       responses:
         "200":
           description: OK
@@ -1174,7 +1259,7 @@ paths:
     post:
       tags:
       - lab-result-controller
-      operationId: record_1
+      operationId: record_2
       requestBody:
         content:
           application/json:
@@ -1577,7 +1662,7 @@ paths:
     post:
       tags:
       - expense-controller
-      operationId: record_2
+      operationId: record_3
       requestBody:
         content:
           application/json:
@@ -2273,7 +2358,7 @@ paths:
     post:
       tags:
       - anaesthesia-paper-record-controller
-      operationId: record_3
+      operationId: record_4
       requestBody:
         content:
           application/json:
@@ -2313,6 +2398,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/AllergyRecordResponse"
   /api/admissions:
+    get:
+      tags:
+      - admission-controller
+      operationId: listByWard
+      parameters:
+      - name: wardId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WardPatientRowResponse"
     post:
       tags:
       - admission-controller
@@ -2478,7 +2583,7 @@ paths:
     get:
       tags:
       - wound-care-controller
-      operationId: list_8
+      operationId: list_9
       parameters:
       - name: admissionId
         in: path
@@ -2498,7 +2603,7 @@ paths:
     post:
       tags:
       - wound-care-controller
-      operationId: record_4
+      operationId: record_5
       parameters:
       - name: admissionId
         in: path
@@ -2523,7 +2628,7 @@ paths:
     post:
       tags:
       - ward-vitals-controller
-      operationId: record_5
+      operationId: record_6
       parameters:
       - name: admissionId
         in: path
@@ -2549,7 +2654,7 @@ paths:
     get:
       tags:
       - shift-handover-controller
-      operationId: list_9
+      operationId: list_10
       parameters:
       - name: admissionId
         in: path
@@ -2569,7 +2674,7 @@ paths:
     post:
       tags:
       - shift-handover-controller
-      operationId: record_6
+      operationId: record_7
       parameters:
       - name: admissionId
         in: path
@@ -2696,6 +2801,25 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/BedResponse"
+  /api/wards/{id}:
+    get:
+      tags:
+      - ward-controller
+      operationId: getById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WardResponse"
   /api/triage-assessments:
     get:
       tags:
@@ -2755,7 +2879,7 @@ paths:
     get:
       tags:
       - surgery-order-controller
-      operationId: getById
+      operationId: getById_1
       parameters:
       - name: id
         in: path
@@ -2774,7 +2898,7 @@ paths:
     get:
       tags:
       - supplier-controller
-      operationId: list_1
+      operationId: list_2
       responses:
         "200":
           description: OK
@@ -2868,7 +2992,7 @@ paths:
     get:
       tags:
       - role-controller
-      operationId: list_2
+      operationId: list_3
       responses:
         "200":
           description: OK
@@ -3151,7 +3275,7 @@ paths:
     get:
       tags:
       - prescription-line-controller
-      operationId: getById_1
+      operationId: getById_2
       parameters:
       - name: id
         in: path
@@ -3217,7 +3341,7 @@ paths:
     get:
       tags:
       - patient-controller
-      operationId: getById_2
+      operationId: getById_3
       parameters:
       - name: id
         in: path
@@ -3306,11 +3430,25 @@ paths:
               schema:
                 type: integer
                 format: int64
+  /api/nursing-assignments/mine:
+    get:
+      tags:
+      - nursing-assignment-controller
+      operationId: mine_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NursingAssignmentHistoryRowResponse"
   /api/lab-tests:
     get:
       tags:
       - lab-test-controller
-      operationId: list_4
+      operationId: list_5
       responses:
         "200":
           description: OK
@@ -3376,7 +3514,7 @@ paths:
     get:
       tags:
       - lab-stock-request-controller
-      operationId: mine_2
+      operationId: mine_3
       responses:
         "200":
           description: OK
@@ -3435,7 +3573,7 @@ paths:
     get:
       tags:
       - lab-result-controller
-      operationId: mine_3
+      operationId: mine_4
       responses:
         "200":
           description: OK
@@ -3500,7 +3638,7 @@ paths:
     get:
       tags:
       - lab-order-controller
-      operationId: mine_4
+      operationId: mine_5
       responses:
         "200":
           description: OK
@@ -3586,7 +3724,7 @@ paths:
     get:
       tags:
       - invoice-controller
-      operationId: getById_3
+      operationId: getById_4
       parameters:
       - name: id
         in: path
@@ -3626,7 +3764,7 @@ paths:
     get:
       tags:
       - insurance-scheme-controller
-      operationId: list_5
+      operationId: list_6
       responses:
         "200":
           description: OK
@@ -3735,7 +3873,7 @@ paths:
     get:
       tags:
       - encounter-controller
-      operationId: getById_4
+      operationId: getById_5
       parameters:
       - name: id
         in: path
@@ -3917,7 +4055,7 @@ paths:
     get:
       tags:
       - dispense-controller
-      operationId: mine_5
+      operationId: mine_6
       responses:
         "200":
           description: OK
@@ -3931,7 +4069,7 @@ paths:
     get:
       tags:
       - department-controller
-      operationId: list_6
+      operationId: list_7
       responses:
         "200":
           description: OK
@@ -4100,7 +4238,7 @@ paths:
     get:
       tags:
       - receivables-controller
-      operationId: list_7
+      operationId: list_8
       parameters:
       - name: payerCategory
         in: query
@@ -4252,7 +4390,7 @@ paths:
     get:
       tags:
       - admission-controller
-      operationId: getById_5
+      operationId: getById_6
       parameters:
       - name: id
         in: path
@@ -4271,7 +4409,7 @@ paths:
     get:
       tags:
       - medication-administration-controller
-      operationId: list_10
+      operationId: list_11
       parameters:
       - name: admissionId
         in: path
@@ -4313,7 +4451,7 @@ paths:
     get:
       tags:
       - ward-alert-notification-controller
-      operationId: list_11
+      operationId: list_12
       parameters:
       - name: admissionId
         in: path
@@ -4956,6 +5094,51 @@ components:
           type: string
           format: uuid
         cancelledAt:
+          type: string
+          format: date-time
+    RecordSurgeryVitalsRequest:
+      required:
+      - diastolicMmHg
+      - heightCm
+      - occurredAt
+      - pulseBpm
+      - respiratoryRate
+      - spo2Pct
+      - systolicMmHg
+      - temperatureC
+      - weightKg
+      type: object
+      properties:
+        temperatureC:
+          type: number
+          format: double
+        systolicMmHg:
+          type: number
+          format: double
+        diastolicMmHg:
+          type: number
+          format: double
+        pulseBpm:
+          type: number
+          format: double
+        respiratoryRate:
+          type: number
+          format: double
+        spo2Pct:
+          type: number
+          format: double
+        weightKg:
+          type: number
+          format: double
+        heightCm:
+          type: number
+          format: double
+        avpu:
+          type: string
+        bloodGlucoseMmol:
+          type: number
+          format: double
+        occurredAt:
           type: string
           format: date-time
     ReconcileEmergencyDraftProcedureNameRequest:
@@ -8764,6 +8947,37 @@ components:
           type: boolean
         phone:
           type: string
+    NursingAssignmentHistoryRowResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        admissionId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        patientName:
+          type: string
+        hospitalNumber:
+          type: string
+        shift:
+          type: string
+          enum:
+          - MORNING
+          - AFTERNOON
+          - NIGHT
+        assignmentDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
     WatchlistListResponse:
       type: object
       properties:
@@ -9592,6 +9806,49 @@ components:
           format: int64
         currencyCode:
           type: string
+    WardPatientRowResponse:
+      type: object
+      properties:
+        admissionId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        patientName:
+          type: string
+        hospitalNumber:
+          type: string
+        bedId:
+          type: string
+          format: uuid
+        bedLabel:
+          type: string
+        orderedWardClass:
+          type: string
+          enum:
+          - GENERAL
+          - PRIVATE
+        wardStatus:
+          type: string
+          enum:
+          - ADMITTED
+          - STABLE
+          - CRITICAL
+          - DISCHARGED
+          - TRANSFERRED
+        admittedAt:
+          type: string
+          format: date-time
+        dischargeOrderedAt:
+          type: string
+          format: date-time
+        wardStatusSuggestedCriticalAt:
+          type: string
+          format: date-time
     WardAlertNotification:
       type: object
       properties:
@@ -9633,7 +9890,7 @@ components:
         createdAt:
           type: string
           format: date-time
-        acknowledged:
-          type: boolean
         escalated:
+          type: boolean
+        acknowledged:
           type: boolean

@@ -139,7 +139,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["list"];
         put?: never;
         post: operations["create_1"];
         delete?: never;
@@ -155,7 +155,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
         post: operations["create_2"];
         delete?: never;
@@ -235,9 +235,25 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["listActive_1"];
         put?: never;
         post: operations["schedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/surgery-orders/{id}/vitals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["record"];
         delete?: never;
         options?: never;
         head?: never;
@@ -411,7 +427,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["listByWardAndDate"];
         put?: never;
         post: operations["assign"];
         delete?: never;
@@ -653,7 +669,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["record"];
+        post: operations["record_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -715,7 +731,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         post: operations["add"];
         delete?: never;
@@ -797,7 +813,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["record_1"];
+        post: operations["record_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1037,7 +1053,7 @@ export interface paths {
         };
         get: operations["findByStatus"];
         put?: never;
-        post: operations["record_2"];
+        post: operations["record_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1469,7 +1485,7 @@ export interface paths {
         };
         get: operations["listBySurgeryOrder_2"];
         put?: never;
-        post: operations["record_3"];
+        post: operations["record_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1499,7 +1515,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["listByWard"];
         put?: never;
         post: operations["admit"];
         delete?: never;
@@ -1611,9 +1627,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
-        post: operations["record_4"];
+        post: operations["record_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1629,7 +1645,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["record_5"];
+        post: operations["record_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1643,9 +1659,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
-        post: operations["record_6"];
+        post: operations["record_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1732,6 +1748,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/wards/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/triage-assessments": {
         parameters: {
             query?: never;
@@ -1771,7 +1803,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById"];
+        get: operations["getById_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1787,7 +1819,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1899,7 +1931,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2091,7 +2123,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById_1"];
+        get: operations["getById_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2155,7 +2187,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById_2"];
+        get: operations["getById_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2212,6 +2244,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/nursing-assignments/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mine_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lab-tests": {
         parameters: {
             query?: never;
@@ -2219,7 +2267,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2283,7 +2331,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["mine_2"];
+        get: operations["mine_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2331,7 +2379,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["mine_3"];
+        get: operations["mine_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2395,7 +2443,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["mine_4"];
+        get: operations["mine_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2475,7 +2523,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById_3"];
+        get: operations["getById_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2507,7 +2555,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2587,7 +2635,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById_4"];
+        get: operations["getById_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2731,7 +2779,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["mine_5"];
+        get: operations["mine_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2747,7 +2795,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2907,7 +2955,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3035,7 +3083,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["getById_5"];
+        get: operations["getById_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3051,7 +3099,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3083,7 +3131,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3405,6 +3453,29 @@ export interface components {
             cancelledBy?: string;
             /** Format: date-time */
             cancelledAt?: string;
+        };
+        RecordSurgeryVitalsRequest: {
+            /** Format: double */
+            temperatureC: number;
+            /** Format: double */
+            systolicMmHg: number;
+            /** Format: double */
+            diastolicMmHg: number;
+            /** Format: double */
+            pulseBpm: number;
+            /** Format: double */
+            respiratoryRate: number;
+            /** Format: double */
+            spo2Pct: number;
+            /** Format: double */
+            weightKg: number;
+            /** Format: double */
+            heightCm: number;
+            avpu?: string;
+            /** Format: double */
+            bloodGlucoseMmol?: number;
+            /** Format: date-time */
+            occurredAt: string;
         };
         ReconcileEmergencyDraftProcedureNameRequest: {
             procedureServiceItemCode: string;
@@ -5311,6 +5382,24 @@ export interface components {
             dobIsEstimated?: boolean;
             phone?: string;
         };
+        NursingAssignmentHistoryRowResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            admissionId?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            patientName?: string;
+            hospitalNumber?: string;
+            /** @enum {string} */
+            shift?: "MORNING" | "AFTERNOON" | "NIGHT";
+            /** Format: date */
+            assignmentDate?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
         WatchlistListResponse: {
             curationGuidance?: string;
             entries?: components["schemas"]["WatchlistEntryResponse"][];
@@ -5749,6 +5838,29 @@ export interface components {
             totalOutstandingMinor?: number;
             currencyCode?: string;
         };
+        WardPatientRowResponse: {
+            /** Format: uuid */
+            admissionId?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            patientName?: string;
+            hospitalNumber?: string;
+            /** Format: uuid */
+            bedId?: string;
+            bedLabel?: string;
+            /** @enum {string} */
+            orderedWardClass?: "GENERAL" | "PRIVATE";
+            /** @enum {string} */
+            wardStatus?: "ADMITTED" | "STABLE" | "CRITICAL" | "DISCHARGED" | "TRANSFERRED";
+            /** Format: date-time */
+            admittedAt?: string;
+            /** Format: date-time */
+            dischargeOrderedAt?: string;
+            /** Format: date-time */
+            wardStatusSuggestedCriticalAt?: string;
+        };
         WardAlertNotification: {
             /** Format: uuid */
             id?: string;
@@ -5773,8 +5885,8 @@ export interface components {
             escalatedToUserId?: string;
             /** Format: date-time */
             createdAt?: string;
-            acknowledged?: boolean;
             escalated?: boolean;
+            acknowledged?: boolean;
         };
     };
     responses: never;
@@ -6017,6 +6129,28 @@ export interface operations {
             };
         };
     };
+    list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BedResponse"][];
+                };
+            };
+        };
+    };
     create_1: {
         parameters: {
             query?: never;
@@ -6043,7 +6177,7 @@ export interface operations {
             };
         };
     };
-    list: {
+    list_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -6248,6 +6382,26 @@ export interface operations {
             };
         };
     };
+    listActive_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SurgeryOrderResponse"][];
+                };
+            };
+        };
+    };
     schedule: {
         parameters: {
             query?: never;
@@ -6268,6 +6422,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SurgeryOrderResponse"];
+                };
+            };
+        };
+    };
+    record: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordSurgeryVitalsRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
                 };
             };
         };
@@ -6508,6 +6688,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SpecimenResponse"];
+                };
+            };
+        };
+    };
+    listByWardAndDate: {
+        parameters: {
+            query: {
+                wardId: string;
+                shiftDate: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ShiftAssignmentResponse"][];
                 };
             };
         };
@@ -6904,7 +7107,7 @@ export interface operations {
             };
         };
     };
-    record: {
+    record_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -7024,7 +7227,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -7170,7 +7373,7 @@ export interface operations {
             };
         };
     };
-    record_1: {
+    record_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -7592,7 +7795,7 @@ export interface operations {
             };
         };
     };
-    record_2: {
+    record_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -8326,7 +8529,7 @@ export interface operations {
             };
         };
     };
-    record_3: {
+    record_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -8372,6 +8575,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AllergyRecordResponse"];
+                };
+            };
+        };
+    };
+    listByWard: {
+        parameters: {
+            query: {
+                wardId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WardPatientRowResponse"][];
                 };
             };
         };
@@ -8552,7 +8777,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -8574,7 +8799,7 @@ export interface operations {
             };
         };
     };
-    record_4: {
+    record_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -8600,7 +8825,7 @@ export interface operations {
             };
         };
     };
-    record_5: {
+    record_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -8626,7 +8851,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -8648,7 +8873,7 @@ export interface operations {
             };
         };
     };
-    record_6: {
+    record_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -8785,6 +9010,28 @@ export interface operations {
             };
         };
     };
+    getById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WardResponse"];
+                };
+            };
+        };
+    };
     search: {
         parameters: {
             query: {
@@ -8831,7 +9078,7 @@ export interface operations {
             };
         };
     };
-    getById: {
+    getById_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -8853,7 +9100,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -8993,7 +9240,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -9261,7 +9508,7 @@ export interface operations {
             };
         };
     };
-    getById_1: {
+    getById_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -9345,7 +9592,7 @@ export interface operations {
             };
         };
     };
-    getById_2: {
+    getById_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -9435,7 +9682,27 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    mine_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NursingAssignmentHistoryRowResponse"][];
+                };
+            };
+        };
+    };
+    list_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -9519,7 +9786,7 @@ export interface operations {
             };
         };
     };
-    mine_2: {
+    mine_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -9584,7 +9851,7 @@ export interface operations {
             };
         };
     };
-    mine_3: {
+    mine_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -9668,7 +9935,7 @@ export interface operations {
             };
         };
     };
-    mine_4: {
+    mine_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -9774,7 +10041,7 @@ export interface operations {
             };
         };
     };
-    getById_3: {
+    getById_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -9818,7 +10085,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -9928,7 +10195,7 @@ export interface operations {
             };
         };
     };
-    getById_4: {
+    getById_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -10126,7 +10393,7 @@ export interface operations {
             };
         };
     };
-    mine_5: {
+    mine_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -10146,7 +10413,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -10356,7 +10623,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: {
                 payerCategory?: "CASH" | "NHIF" | "PRIVATE_SCHEME" | "CORPORATE" | "STAFF";
@@ -10525,7 +10792,7 @@ export interface operations {
             };
         };
     };
-    getById_5: {
+    getById_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -10547,7 +10814,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -10591,7 +10858,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query?: never;
             header?: never;

@@ -48,6 +48,17 @@ import { PharmacyItemsPage } from './workspaces/pharmacy/PharmacyItemsPage';
 import { PharmacyShell } from './workspaces/pharmacy/PharmacyShell';
 import { StockPage as PharmacyStockPage } from './workspaces/pharmacy/StockPage';
 import { ProfilePage as PharmacyProfilePage } from './workspaces/triage/ProfilePage';
+import { DashboardPage as WardDashboardPage } from './workspaces/ward/DashboardPage';
+import { MyHistoryPage as WardMyHistoryPage } from './workspaces/ward/MyHistoryPage';
+import { PatientCareHubPage } from './workspaces/ward/PatientCareHubPage';
+import { ShiftHandoverPage } from './workspaces/ward/ShiftHandoverPage';
+import { SurgeryBillsPage } from './workspaces/ward/SurgeryBillsPage';
+import { SurgeryEpisodePage } from './workspaces/ward/SurgeryEpisodePage';
+import { SurgeryQueuePage } from './workspaces/ward/SurgeryQueuePage';
+import { WardBillsPage } from './workspaces/ward/WardBillsPage';
+import { WardNurseShell } from './workspaces/ward/WardNurseShell';
+import { WardPatientsPage } from './workspaces/ward/WardPatientsPage';
+import { ProfilePage as WardProfilePage } from './workspaces/triage/ProfilePage';
 
 export function App() {
   return (
@@ -157,6 +168,25 @@ export function App() {
         <Route path="items" element={<PharmacyItemsPage />} />
         <Route path="lab-stock-requests" element={<PharmacyLabStockRequestsPage />} />
         <Route path="profile" element={<PharmacyProfilePage />} />
+      </Route>
+      <Route
+        path="/ward-nurse"
+        element={
+          <RequireAuth>
+            <WardNurseShell />
+          </RequireAuth>
+        }
+      >
+        <Route index element={<WardDashboardPage />} />
+        <Route path="patients" element={<WardPatientsPage />} />
+        <Route path="patients/:admissionId" element={<PatientCareHubPage />} />
+        <Route path="surgery" element={<SurgeryQueuePage />} />
+        <Route path="surgery/:surgeryOrderId" element={<SurgeryEpisodePage />} />
+        <Route path="handover" element={<ShiftHandoverPage />} />
+        <Route path="history" element={<WardMyHistoryPage />} />
+        <Route path="ward-bills" element={<WardBillsPage />} />
+        <Route path="surgery-bills" element={<SurgeryBillsPage />} />
+        <Route path="profile" element={<WardProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>

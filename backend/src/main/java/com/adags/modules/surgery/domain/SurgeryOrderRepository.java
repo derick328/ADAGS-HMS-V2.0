@@ -15,6 +15,15 @@ public interface SurgeryOrderRepository {
     List<SurgeryOrder> findByEncounterId(UUID encounterId);
 
     /**
+     * 17-ward-nurse.md §10: the Surgery Queue's source list — every order
+     * still open (not yet COMPLETED/CANCELLED), same "server returns the
+     * data, client owns the tab split" pattern as LabOrderRepository's
+     * findOpenOrders. DRAFT_EMERGENCY is included: an unreconciled
+     * emergency draft still needs a circulating nurse's attention.
+     */
+    List<SurgeryOrder> findActive();
+
+    /**
      * WHERE-guarded on {@code status = :from} — "the repository's
      * WHERE-guarded UPDATE is the real guard" (same idiom as
      * InvoiceWriteOffRepository et al.). Returns false if the order was
