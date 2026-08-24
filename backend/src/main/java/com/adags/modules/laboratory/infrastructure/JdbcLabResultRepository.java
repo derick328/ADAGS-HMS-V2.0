@@ -86,6 +86,30 @@ public class JdbcLabResultRepository implements LabResultRepository {
     }
 
     @Override
+    public List<LabResult> findByEnteredBy(UUID enteredBy) {
+        String sql = SELECT_COLUMNS + " WHERE entered_by = :enteredBy ORDER BY entered_at DESC";
+        return jdbcTemplate.query(sql, new MapSqlParameterSource("enteredBy", enteredBy), this::mapRow);
+    }
+
+    @Override
+    public List<LabResult> findByAccessionNo(String accessionNo) {
+        String sql = SELECT_COLUMNS + """
+                 WHERE specimen_id IN (SELECT id FROM specimen WHERE accession_no = :accessionNo)
+                 ORDER BY entered_at DESC
+                """;
+        return jdbcTemplate.query(sql, new MapSqlParameterSource("accessionNo", accessionNo), this::mapRow);
+    }
+
+    @Override
+    public List<LabResult> findByPatientId(UUID patientId) {
+        String sql = SELECT_COLUMNS + """
+                 WHERE lab_order_id IN (SELECT id FROM lab_order WHERE patient_id = :patientId)
+                 ORDER BY entered_at DESC
+                """;
+        return jdbcTemplate.query(sql, new MapSqlParameterSource("patientId", patientId), this::mapRow);
+    }
+
+    @Override
     public boolean verify(UUID resultId, UUID verifiedBy, String verificationComment, String resultVersionHash) {
         int updated = jdbcTemplate.update("""
                         UPDATE lab_result

@@ -14,6 +14,9 @@ public interface ConsultationRecordRepository {
     /** The autosave key (encounter_id, author_id) — at most one OPEN row per pair. */
     Optional<ConsultationRecord> findOpenByEncounterAndAuthor(UUID encounterId, UUID authorId);
 
+    /** 08-doctor-navigation.md §3.3: every author's record for this encounter, newest first — "other clinicians' notes visible." */
+    List<ConsultationRecord> findByEncounterId(UUID encounterId);
+
     /** Overwrites the free-text fields in place — only valid while status is OPEN. */
     void autosave(UUID id, String historyOfPresentingIllness, String pastMedicalHistory, String pastSurgicalHistory,
                    String familySocialHistory, String physicalExamination, String clinicalNotes, String treatmentPlan);

@@ -34,7 +34,20 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  servlet:
+    multipart:
+      # 15-lab-technician.md §5.4: machine output (an analyser PDF/print
+      # capture), not a general upload surface — generous enough for a
+      # scanned instrument printout without accepting arbitrary large files.
+      max-file-size: 20MB
+      max-request-size: 20MB
+
 adags:
+  minio:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:adags}
+    secret-key: ${MINIO_SECRET_KEY:adags-minio-secret}
+    lab-machine-output-bucket: ${MINIO_LAB_MACHINE_OUTPUT_BUCKET:lab-machine-output}
   bootstrap:
     admin-username: ${ADAGS_BOOTSTRAP_ADMIN_USERNAME:admin}
     # ADAGS_BOOTSTRAP_ADMIN_PASSWORD is required by the V3 bootstrap-admin

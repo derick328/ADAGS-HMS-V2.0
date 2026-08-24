@@ -198,6 +198,21 @@ public class BillingFacadeImpl implements BillingFacade {
     }
 
     @Override
+    public boolean isLineAuthorized(UUID invoiceLineId) {
+        if (invoiceLineId == null) {
+            return false;
+        }
+        return invoiceLineRepository.findById(invoiceLineId)
+                .map(line -> line.authorizationId() != null)
+                .orElse(false);
+    }
+
+    @Override
+    public boolean hasActivePaymentBypass(UUID encounterId) {
+        return !paymentBypassRepository.findActiveByEncounterId(encounterId).isEmpty();
+    }
+
+    @Override
     public Money createReceivablesForOutstandingBalance(UUID encounterId) {
         long totalMinor = 0;
         String currencyCode = "TZS";

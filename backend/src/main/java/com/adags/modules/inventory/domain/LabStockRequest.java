@@ -18,15 +18,19 @@ public record LabStockRequest(
         LabStockRequestStatus status,
         String responseNotes,
         UUID reviewedBy,
-        Instant reviewedAt
+        Instant reviewedAt,
+        // 15-lab-technician.md §11: "request_notes | Optional, max 500 chars"
+        // — the requester's own note, distinct from responseNotes (the
+        // pharmacist's reject/close note). Length enforced by V63's CHECK.
+        String requestNotes
 ) {
 
-    public static LabStockRequest request(UUID itemId, int requestedQuantity, UUID requestingStoreId, UUID requestedBy) {
+    public static LabStockRequest request(UUID itemId, int requestedQuantity, UUID requestingStoreId, UUID requestedBy, String requestNotes) {
         if (requestedQuantity <= 0) {
             throw new IllegalArgumentException("requestedQuantity must be > 0.");
         }
         return new LabStockRequest(null, itemId, requestedQuantity, 0, requestingStoreId, requestedBy, null,
-                LabStockRequestStatus.PENDING, null, null, null);
+                LabStockRequestStatus.PENDING, null, null, null, requestNotes);
     }
 
     public int remaining() {
@@ -46,7 +50,7 @@ public record LabStockRequest(
         LabStockRequestStatus newStatus = newReleased == requestedQuantity
                 ? LabStockRequestStatus.RELEASED : LabStockRequestStatus.PARTIALLY_RELEASED;
         return new LabStockRequest(id, itemId, requestedQuantity, newReleased, requestingStoreId, requestedBy,
-                requestedAt, newStatus, responseNotes, reviewedBy, Instant.now());
+                requestedAt, newStatus, responseNotes, reviewedBy, Instant.now(), requestNotes);
     }
 
     /** §7: "Reject requires a note." Only from PENDING — a request with any release already made must be closed, not rejected. */
@@ -56,7 +60,7 @@ public record LabStockRequest(
         }
         requireNote(responseNotes);
         return new LabStockRequest(id, itemId, requestedQuantity, releasedQuantity, requestingStoreId, requestedBy,
-                requestedAt, LabStockRequestStatus.REJECTED, responseNotes, reviewedBy, Instant.now());
+                requestedAt, LabStockRequestStatus.REJECTED, responseNotes, reviewedBy, Instant.now(), requestNotes);
     }
 
     /** §7: "the remainder stays open or closes with a note" — the pharmacist saying no more will come. */
@@ -64,7 +68,7 @@ public record LabStockRequest(
         requireOpen();
         requireNote(responseNotes);
         return new LabStockRequest(id, itemId, requestedQuantity, releasedQuantity, requestingStoreId, requestedBy,
-                requestedAt, LabStockRequestStatus.CLOSED, responseNotes, reviewedBy, Instant.now());
+                requestedAt, LabStockRequestStatus.CLOSED, responseNotes, reviewedBy, Instant.now(), requestNotes);
     }
 
     private void requireOpen() {
@@ -81,6 +85,6 @@ public record LabStockRequest(
 
     public LabStockRequest withId(UUID id) {
         return new LabStockRequest(id, itemId, requestedQuantity, releasedQuantity, requestingStoreId, requestedBy,
-                requestedAt, status, responseNotes, reviewedBy, reviewedAt);
+                requestedAt, status, responseNotes, reviewedBy, reviewedAt, requestNotes);
     }
 }

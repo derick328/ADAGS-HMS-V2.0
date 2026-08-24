@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/consultation-records/{id}/autosave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["autosave"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/change-password": {
         parameters: {
             query?: never;
@@ -676,6 +692,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/patients/{patientId}/allergies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["byPatient"];
+        put?: never;
+        post: operations["create_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/narcotic-watchlist": {
         parameters: {
             query?: never;
@@ -701,7 +733,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["create_4"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -804,6 +836,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lab-results/machine-output": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lab-orders": {
         parameters: {
             query?: never;
@@ -820,6 +868,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lab-item-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["propose_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/items": {
         parameters: {
             query?: never;
@@ -829,7 +893,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["create_5"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -891,9 +955,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["search_5"];
+        get: operations["search_6"];
         put?: never;
-        post: operations["create_6"];
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1067,7 +1131,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["search_6"];
+        get: operations["search_7"];
         put?: never;
         post: operations["open"];
         delete?: never;
@@ -1086,6 +1150,54 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{id}/consultation/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["open_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{id}/consultation/mark-awaiting-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markAwaitingResults"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{id}/consultation/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["finalize"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1156,6 +1268,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/consultation-records/{id}/diagnoses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addDiagnosis"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cashier-shifts": {
         parameters: {
             query?: never;
@@ -1165,7 +1293,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["open_1"];
+        post: operations["open_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1325,7 +1453,7 @@ export interface paths {
         };
         get: operations["scheduledBetween"];
         put?: never;
-        post: operations["create_7"];
+        post: operations["create_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1342,6 +1470,22 @@ export interface paths {
         get: operations["listBySurgeryOrder_2"];
         put?: never;
         post: operations["record_3"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/allergy-records/{id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reconcile_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1467,7 +1611,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post: operations["record_4"];
         delete?: never;
@@ -1499,7 +1643,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post: operations["record_6"];
         delete?: never;
@@ -1628,6 +1772,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stores/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mine"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1844,6 +2004,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/prescriptions/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mine_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/prescriptions/by-encounter/{encounterId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["byEncounter"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/prescription-lines/{id}": {
         parameters: {
             query?: never;
@@ -1972,7 +2164,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/lab-stock-requests/{id}": {
+    "/api/lab-tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-tests/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1988,7 +2196,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/items/{id}": {
+    "/api/lab-stock-requests/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2004,7 +2212,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/items/search": {
+    "/api/lab-stock-requests/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mine_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-results/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-results/search": {
         parameters: {
             query?: never;
             header?: never;
@@ -2020,6 +2260,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lab-results/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mine_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-results/machine-output/{objectKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["url"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-orders/{id}/result-entry-form": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["resultEntryForm"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-orders/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-orders/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mine_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-orders/by-encounter/{encounterId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["byEncounter_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["search_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/items/misclassification-report": {
         parameters: {
             query?: never;
@@ -2027,7 +2395,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_2"];
+        get: operations["get_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2075,7 +2443,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2164,6 +2532,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/encounters/{encounterId}/vital-signs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["byEncounter_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/encounters/{encounterId}/referral-candidates": {
         parameters: {
             query?: never;
@@ -2180,6 +2564,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/encounters/{encounterId}/diagnoses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["diagnoses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{encounterId}/consultation-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["byEncounter_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/encounters/open-for-patient/{patientId}": {
         parameters: {
             query?: never;
@@ -2188,6 +2604,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["openForPatient"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/by-patient/{patientId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["byPatient_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2219,7 +2651,39 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/critical-result-notifications/by-result/{resultId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["byResult"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/consultation-records/incomplete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["incomplete"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2347,7 +2811,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2491,7 +2955,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2523,7 +2987,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2557,6 +3021,40 @@ export interface components {
             formState?: {
                 [key: string]: Record<string, never>;
             };
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        AutosaveConsultationRecordRequest: {
+            historyOfPresentingIllness?: string;
+            pastMedicalHistory?: string;
+            pastSurgicalHistory?: string;
+            familySocialHistory?: string;
+            physicalExamination?: string;
+            clinicalNotes?: string;
+            treatmentPlan?: string;
+        };
+        ConsultationRecordResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            authorId?: string;
+            /** @enum {string} */
+            status?: "OPEN" | "FINALIZED" | "ABANDONED";
+            historyOfPresentingIllness?: string;
+            pastMedicalHistory?: string;
+            pastSurgicalHistory?: string;
+            familySocialHistory?: string;
+            physicalExamination?: string;
+            clinicalNotes?: string;
+            treatmentPlan?: string;
+            retrospectiveCompletion?: boolean;
+            retrospectiveNote?: string;
+            /** Format: date-time */
+            completedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
         };
@@ -3267,6 +3765,42 @@ export interface components {
             email?: string;
             active?: boolean;
         };
+        CreateAllergyRequest: {
+            /** Format: uuid */
+            encounterId?: string;
+            description: string;
+            reaction?: string;
+            severity?: string;
+            /** Format: uuid */
+            supersedesId?: string;
+        };
+        AllergyRecordResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            patientId?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            description?: string;
+            reaction?: string;
+            severity?: string;
+            /** @enum {string} */
+            source?: "TRIAGE" | "DOCTOR" | "PHARMACIST" | "PATIENT_REPORTED";
+            /** Format: uuid */
+            recordedBy?: string;
+            recordedByName?: string;
+            /** Format: date-time */
+            recordedAt?: string;
+            /** @enum {string} */
+            confirmationStatus?: "UNCONFIRMED" | "CONFIRMED" | "REFUTED";
+            /** Format: uuid */
+            confirmedBy?: string;
+            /** Format: date-time */
+            confirmedAt?: string;
+            confirmationNote?: string;
+            /** Format: uuid */
+            supersedesId?: string;
+        };
         AddWatchlistEntryRequest: {
             innName: string;
             atcPrefix?: string;
@@ -3290,6 +3824,7 @@ export interface components {
             requestedQuantity?: number;
             /** Format: uuid */
             requestingStoreId: string;
+            requestNotes?: string;
         };
         LabStockRequestResponse: {
             /** Format: uuid */
@@ -3307,6 +3842,7 @@ export interface components {
             /** @enum {string} */
             status?: "PENDING" | "PARTIALLY_RELEASED" | "RELEASED" | "REJECTED" | "CLOSED";
             responseNotes?: string;
+            requestNotes?: string;
         };
         ReleaseLabStockRequestRequest: {
             /** Format: uuid */
@@ -3392,6 +3928,9 @@ export interface components {
             parameterValues: components["schemas"]["ParameterValueRequest"][];
             reagents?: components["schemas"]["ReagentRequest"][];
         };
+        UploadMachineOutputResponse: {
+            objectKey?: string;
+        };
         PlaceLabOrderRequest: {
             /** Format: uuid */
             encounterId: string;
@@ -3416,6 +3955,47 @@ export interface components {
             invoiceLineId?: string;
             /** Format: date-time */
             orderedAt?: string;
+        };
+        ProposeLabItemRequest: {
+            proposedName: string;
+            proposedClassification: string;
+            /** Format: int64 */
+            proposedPriceMinor: number;
+            notes?: string;
+            specimenType: string;
+            containerType: string;
+            /** Format: int32 */
+            expectedTatHours: number;
+            justification: string;
+            parameters?: components["schemas"]["ProposedParameterRequest"][];
+        };
+        ProposedParameterRequest: {
+            name: string;
+            unit?: string;
+            method?: string;
+        };
+        LabItemProposalResponse: {
+            /** Format: uuid */
+            id?: string;
+            proposedName?: string;
+            proposedClassification?: string;
+            /** Format: int64 */
+            proposedPriceMinor?: number;
+            currencyCode?: string;
+            notes?: string;
+            specimenType?: string;
+            containerType?: string;
+            /** Format: int32 */
+            expectedTatHours?: number;
+            justification?: string;
+            /** @enum {string} */
+            status?: "PROPOSED" | "APPROVED" | "REJECTED";
+            parameters?: components["schemas"]["ProposedParameterResponse"][];
+        };
+        ProposedParameterResponse: {
+            name?: string;
+            unit?: string;
+            method?: string;
         };
         CreateItemRequest: {
             code: string;
@@ -3671,6 +4251,17 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        OpenConsultationResponse: {
+            /** Format: uuid */
+            consultationRecordId?: string;
+            encounter?: components["schemas"]["EncounterResponse"];
+        };
+        FinalizeConsultationRequest: {
+            /** @enum {string} */
+            disposition: "CONSULT_COMPLETE" | "REFERRED_OUT" | "DECEASED";
+            retrospectiveCompletion?: boolean;
+            retrospectiveNote?: string;
+        };
         CloseEncounterRequest: {
             /** @enum {string} */
             outcome: "AWAITING_TRIAGE" | "AWAITING_PAYMENT" | "AWAITING_CONSULT" | "IN_CONSULT" | "AWAITING_RESULTS" | "CONSULT_COMPLETE" | "PENDING_SETTLEMENT" | "ADMITTED" | "IN_WARD" | "DISCHARGE_ORDERED" | "LEFT_WITHOUT_BEING_SEEN" | "ABANDONED_UNPAID" | "CANCELLED_IN_ERROR" | "REFERRED_OUT" | "DECEASED" | "CLOSED" | "DISCHARGED";
@@ -3803,6 +4394,31 @@ export interface components {
             quantityDispensed?: number;
             lines?: components["schemas"]["DispenseLineResponse"][];
             prescriptionLine?: components["schemas"]["PrescriptionLineResponse"];
+        };
+        AddDiagnosisRequest: {
+            icd10Code: string;
+            freeTextClarifier?: string;
+            /** @enum {string} */
+            certainty: "PROVISIONAL" | "CONFIRMED" | "RULED_OUT";
+            isPrimary?: boolean;
+        };
+        DiagnosisResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            consultationRecordId?: string;
+            icd10Code?: string;
+            icd10TitleSnapshot?: string;
+            freeTextClarifier?: string;
+            /** @enum {string} */
+            certainty?: "PROVISIONAL" | "CONFIRMED" | "RULED_OUT";
+            isPrimary?: boolean;
+            /** Format: uuid */
+            diagnosedBy?: string;
+            /** Format: date-time */
+            diagnosedAt?: string;
         };
         OpenCashierShiftRequest: {
             /** Format: uuid */
@@ -4011,6 +4627,11 @@ export interface components {
             recordedBy?: string;
             /** Format: date-time */
             recordedAt?: string;
+        };
+        ReconcileAllergyRequest: {
+            /** @enum {string} */
+            decision: "UNCONFIRMED" | "CONFIRMED" | "REFUTED";
+            confirmationNote?: string;
         };
         AdmitPatientRequest: {
             /** Format: uuid */
@@ -4311,6 +4932,14 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        StoreResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            type?: string;
+            /** Format: uuid */
+            facilityId?: string;
+        };
         StockValuationResponse: {
             /** Format: uuid */
             storeId?: string;
@@ -4452,6 +5081,25 @@ export interface components {
             priceMinor?: number;
             currencyCode?: string;
         };
+        PrescriptionHistoryResponse: {
+            /** Format: uuid */
+            prescriptionLineId?: string;
+            /** Format: uuid */
+            prescriptionOrderId?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            itemCode?: string;
+            itemName?: string;
+            /** Format: int32 */
+            quantityPrescribed?: number;
+            /** Format: uuid */
+            prescribedBy?: string;
+            /** Format: date-time */
+            prescribedAt?: string;
+            status?: string;
+        };
         AllergyResponse: {
             description?: string;
             reaction?: string;
@@ -4532,6 +5180,182 @@ export interface components {
         WatchlistListResponse: {
             curationGuidance?: string;
             entries?: components["schemas"]["WatchlistEntryResponse"][];
+        };
+        LabTestParameterResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            unit?: string;
+            /** Format: int32 */
+            sortOrder?: number;
+            method?: string;
+            loincCode?: string;
+        };
+        LabTestResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            specimenType?: string;
+            containerType?: string;
+            /** Format: int32 */
+            expectedTatHours?: number;
+            /** @enum {string} */
+            verificationLevel?: "NONE" | "SELF" | "SECOND_PERSON" | "SPECIALIST";
+            producesMachineOutput?: boolean;
+            active?: boolean;
+            parameters?: components["schemas"]["LabTestParameterResponse"][];
+        };
+        DetailParameterValueResponse: {
+            /** Format: uuid */
+            parameterId?: string;
+            parameterName?: string;
+            unit?: string;
+            method?: string;
+            /** Format: double */
+            resultValue?: number;
+            flag?: string;
+            flagOverridden?: boolean;
+            overrideReason?: string;
+            /** Format: double */
+            normalLow?: number;
+            /** Format: double */
+            normalHigh?: number;
+            /** Format: double */
+            criticalLow?: number;
+            /** Format: double */
+            criticalHigh?: number;
+        };
+        LabResultDetailResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            labOrderId?: string;
+            /** Format: uuid */
+            specimenId?: string;
+            accessionNo?: string;
+            specimenType?: string;
+            patientName?: string;
+            hospitalNumber?: string;
+            labTestCode?: string;
+            labTestName?: string;
+            clinicalIndication?: string;
+            methodology?: string;
+            reagentsUsedNote?: string;
+            findings?: string;
+            interpretation?: string;
+            referenceRangeNote?: string;
+            conclusion?: string;
+            machineOutputObjectKey?: string;
+            enteredByName?: string;
+            /** Format: date-time */
+            enteredAt?: string;
+            /** Format: date-time */
+            releasedAt?: string;
+            /** @enum {string} */
+            verificationState?: "NOT_REQUIRED" | "PENDING" | "VERIFIED" | "AMENDED" | "LAPSED";
+            /** @enum {string} */
+            verificationLevelApplied?: "NONE" | "SELF" | "SECOND_PERSON" | "SPECIALIST";
+            verifiedByName?: string;
+            /** Format: date-time */
+            verifiedAt?: string;
+            /** Format: uuid */
+            amendsId?: string;
+            /** Format: date-time */
+            amendsOriginalEnteredAt?: string;
+            amendmentReason?: string;
+            parameterValues?: components["schemas"]["DetailParameterValueResponse"][];
+        };
+        MachineOutputUrlResponse: {
+            url?: string;
+        };
+        ParameterFieldResponse: {
+            /** Format: uuid */
+            parameterId?: string;
+            code?: string;
+            name?: string;
+            unit?: string;
+            /** Format: int32 */
+            sortOrder?: number;
+            method?: string;
+            /** Format: double */
+            normalLow?: number;
+            /** Format: double */
+            normalHigh?: number;
+            /** Format: double */
+            criticalLow?: number;
+            /** Format: double */
+            criticalHigh?: number;
+        };
+        ResultEntryFormResponse: {
+            /** Format: uuid */
+            labOrderId?: string;
+            /** Format: uuid */
+            specimenId?: string;
+            accessionNo?: string;
+            /** @enum {string} */
+            specimenQuality?: "ADEQUATE" | "HAEMOLYSED" | "CLOTTED" | "INSUFFICIENT_VOLUME" | "WRONG_CONTAINER" | "MISLABELLED" | "DELAYED_TRANSPORT";
+            specimenQualityNote?: string;
+            patientName?: string;
+            hospitalNumber?: string;
+            /** Format: int32 */
+            patientAgeYears?: number;
+            patientSex?: string;
+            labTestCode?: string;
+            labTestName?: string;
+            clinicalIndication?: string;
+            producesMachineOutput?: boolean;
+            parameters?: components["schemas"]["ParameterFieldResponse"][];
+        };
+        LabOrderQueueRowResponse: {
+            /** Format: uuid */
+            labOrderId?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            patientName?: string;
+            hospitalNumber?: string;
+            labTestCode?: string;
+            labTestName?: string;
+            specimenType?: string;
+            containerType?: string;
+            /** Format: int32 */
+            expectedTatHours?: number;
+            /** @enum {string} */
+            urgency?: "STAT" | "URGENT" | "ROUTINE";
+            /** Format: date-time */
+            orderedAt?: string;
+            gateSatisfied?: boolean;
+            isEmergencyBypass?: boolean;
+            /** Format: uuid */
+            specimenId?: string;
+            accessionNo?: string;
+            /** @enum {string} */
+            specimenStatus?: "COLLECTED" | "IN_PROGRESS" | "REJECTED";
+            /** @enum {string} */
+            specimenQuality?: "ADEQUATE" | "HAEMOLYSED" | "CLOTTED" | "INSUFFICIENT_VOLUME" | "WRONG_CONTAINER" | "MISLABELLED" | "DELAYED_TRANSPORT";
+            /** Format: date-time */
+            acceptedAt?: string;
+            overdue?: boolean;
+        };
+        LabOrderHistoryResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            labTestCode?: string;
+            labTestName?: string;
+            /** Format: uuid */
+            orderedBy?: string;
+            /** Format: date-time */
+            orderedAt?: string;
+            /** @enum {string} */
+            urgency?: "STAT" | "URGENT" | "ROUTINE";
+            status?: string;
         };
         ItemSearchResultResponse: {
             /** Format: uuid */
@@ -4622,6 +5446,31 @@ export interface components {
             /** Format: int64 */
             netMinor?: number;
         };
+        VitalSignsResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            /** @enum {string} */
+            context?: "TRIAGE" | "CONSULTATION" | "WARD_ROUNDS" | "POST_OP";
+            readings?: {
+                [key: string]: number;
+            };
+            /** Format: double */
+            weightKg?: number;
+            /** Format: double */
+            heightCm?: number;
+            /** Format: double */
+            bmi?: number;
+            /** @enum {string} */
+            avpu?: "ALERT" | "VOICE" | "PAIN" | "UNRESPONSIVE";
+            /** Format: double */
+            bloodGlucoseMmol?: number;
+            /** Format: date-time */
+            recordedAt?: string;
+            /** Format: date-time */
+            occurredAt?: string;
+        };
         ReferralCandidateResponse: {
             /** Format: uuid */
             providerId?: string;
@@ -4653,6 +5502,22 @@ export interface components {
             id?: string;
             code?: string;
             name?: string;
+        };
+        CriticalResultNotificationResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            parameterId?: string;
+            /** Format: double */
+            value?: number;
+            /** Format: uuid */
+            notifiedUserId?: string;
+            /** Format: date-time */
+            notifiedAt?: string;
+            /** Format: date-time */
+            acknowledgedAt?: string;
+            /** Format: date-time */
+            escalatedAt?: string;
         };
         VitalReferenceRangeResponse: {
             /** @enum {string} */
@@ -4781,6 +5646,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TriageAssessmentDraftResponse"];
+                };
+            };
+        };
+    };
+    autosave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutosaveConsultationRecordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ConsultationRecordResponse"];
                 };
             };
         };
@@ -5902,6 +6793,54 @@ export interface operations {
             };
         };
     };
+    byPatient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AllergyRecordResponse"][];
+                };
+            };
+        };
+    };
+    create_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAllergyRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AllergyRecordResponse"];
+                };
+            };
+        };
+    };
     list_2: {
         parameters: {
             query?: never;
@@ -5946,7 +6885,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -6122,6 +7061,33 @@ export interface operations {
             };
         };
     };
+    upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UploadMachineOutputResponse"];
+                };
+            };
+        };
+    };
     place_1: {
         parameters: {
             query?: never;
@@ -6146,7 +7112,31 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    propose_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposeLabItemRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabItemProposalResponse"];
+                };
+            };
+        };
+    };
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -6244,7 +7234,7 @@ export interface operations {
             };
         };
     };
-    search_5: {
+    search_6: {
         parameters: {
             query?: {
                 patientId?: string;
@@ -6271,7 +7261,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -6563,7 +7553,7 @@ export interface operations {
             };
         };
     };
-    search_6: {
+    search_7: {
         parameters: {
             query?: {
                 states?: ("AWAITING_TRIAGE" | "AWAITING_PAYMENT" | "AWAITING_CONSULT" | "IN_CONSULT" | "AWAITING_RESULTS" | "CONSULT_COMPLETE" | "PENDING_SETTLEMENT" | "ADMITTED" | "IN_WARD" | "DISCHARGE_ORDERED" | "LEFT_WITHOUT_BEING_SEEN" | "ABANDONED_UNPAID" | "CANCELLED_IN_ERROR" | "REFERRED_OUT" | "DECEASED" | "CLOSED" | "DISCHARGED")[];
@@ -6622,6 +7612,76 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EncounterResponse"];
+                };
+            };
+        };
+    };
+    open_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OpenConsultationResponse"];
+                };
+            };
+        };
+    };
+    markAwaitingResults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EncounterResponse"];
+                };
+            };
+        };
+    };
+    finalize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinalizeConsultationRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -6730,7 +7790,33 @@ export interface operations {
             };
         };
     };
-    open_1: {
+    addDiagnosis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddDiagnosisRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiagnosisResponse"];
+                };
+            };
+        };
+    };
+    open_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -7011,7 +8097,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -7077,6 +8163,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AnaesthesiaPaperRecordResponse"];
+                };
+            };
+        };
+    };
+    reconcile_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReconcileAllergyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AllergyRecordResponse"];
                 };
             };
         };
@@ -7257,7 +8369,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -7331,7 +8443,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -7554,6 +8666,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SurgeryOrderResponse"];
+                };
+            };
+        };
+    };
+    mine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StoreResponse"];
                 };
             };
         };
@@ -7844,6 +8976,48 @@ export interface operations {
             };
         };
     };
+    mine_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PrescriptionHistoryResponse"][];
+                };
+            };
+        };
+    };
+    byEncounter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PrescriptionHistoryResponse"][];
+                };
+            };
+        };
+    };
     getById_1: {
         parameters: {
             query?: never;
@@ -8018,6 +9192,26 @@ export interface operations {
             };
         };
     };
+    list_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabTestResponse"][];
+                };
+            };
+        };
+    };
     get: {
         parameters: {
             query?: never;
@@ -8035,7 +9229,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["LabStockRequestResponse"];
+                    "*/*": components["schemas"]["LabTestResponse"];
                 };
             };
         };
@@ -8057,12 +9251,225 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ItemResponse"];
+                    "*/*": components["schemas"]["LabStockRequestResponse"];
+                };
+            };
+        };
+    };
+    mine_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabStockRequestResponse"][];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabResultDetailResponse"];
                 };
             };
         };
     };
     search_4: {
+        parameters: {
+            query?: {
+                patientId?: string;
+                accessionNo?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabResultDetailResponse"][];
+                };
+            };
+        };
+    };
+    mine_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabResultDetailResponse"][];
+                };
+            };
+        };
+    };
+    url: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                objectKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MachineOutputUrlResponse"];
+                };
+            };
+        };
+    };
+    resultEntryForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ResultEntryFormResponse"];
+                };
+            };
+        };
+    };
+    queue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabOrderQueueRowResponse"][];
+                };
+            };
+        };
+    };
+    mine_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabOrderHistoryResponse"][];
+                };
+            };
+        };
+    };
+    byEncounter_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabOrderHistoryResponse"][];
+                };
+            };
+        };
+    };
+    get_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ItemResponse"];
+                };
+            };
+        };
+    };
+    search_5: {
         parameters: {
             query: {
                 q: string;
@@ -8084,7 +9491,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -8148,7 +9555,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -8280,6 +9687,28 @@ export interface operations {
             };
         };
     };
+    byEncounter_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VitalSignsResponse"][];
+                };
+            };
+        };
+    };
     forEncounter: {
         parameters: {
             query?: never;
@@ -8298,6 +9727,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ReferralCandidateResponse"][];
+                };
+            };
+        };
+    };
+    diagnoses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiagnosisResponse"][];
+                };
+            };
+        };
+    };
+    byEncounter_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ConsultationRecordResponse"][];
                 };
             };
         };
@@ -8324,6 +9797,28 @@ export interface operations {
             };
         };
     };
+    byPatient_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EncounterResponse"][];
+                };
+            };
+        };
+    };
     label: {
         parameters: {
             query?: never;
@@ -8346,7 +9841,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -8362,6 +9857,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["DepartmentResponse"][];
+                };
+            };
+        };
+    };
+    byResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resultId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CriticalResultNotificationResponse"][];
+                };
+            };
+        };
+    };
+    incomplete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ConsultationRecordResponse"][];
                 };
             };
         };
@@ -8514,7 +10051,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: {
                 payerCategory?: "CASH" | "NHIF" | "PRIVATE_SCHEME" | "CORPORATE" | "STAFF";
@@ -8705,7 +10242,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -8749,7 +10286,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: never;
             header?: never;

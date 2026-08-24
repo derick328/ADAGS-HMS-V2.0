@@ -13,11 +13,13 @@ import com.adags.shared.authz.ScopeRef;
 import com.adags.shared.authz.ScopeType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -47,6 +49,25 @@ public class CriticalResultNotificationController {
         this.labResultRepository = labResultRepository;
         this.labOrderRepository = labOrderRepository;
         this.authorizationService = authorizationService;
+    }
+
+    // 15-lab-technician.md §7: "tech's screen shows acknowledgement status
+    // so they know it landed" — polled right after a result carrying a
+    // critical value is submitted. Gated the same as byEncounter/other
+    // read paths in this module — LAB_RESULT_READ at the order's facility.
+    @GetMapping("/by-result/{resultId}")
+    public List<CriticalResultNotificationResponse> byResult(@PathVariable UUID resultId, @AuthenticationPrincipal Actor actor) {
+        LabResult result = labResultRepository.findById(resultId)
+                .orElseThrow(() -> new NoSuchElementException("Lab result not found: " + resultId));
+        LabOrder order = labOrderRepository.findById(result.labOrderId())
+                .orElseThrow(() -> new NoSuchElementException("Lab order not found: " + result.labOrderId()));
+        if (!authorizationService.hasPermission(
+                actor, "LAB_RESULT_READ", ScopeRef.of(ScopeType.FACILITY, order.facilityId()))) {
+            throw new AccessDeniedException("Missing permission: LAB_RESULT_READ");
+        }
+        return criticalResultNotificationRepository.findByResultId(resultId).stream()
+                .map(CriticalResultNotificationResponse::from)
+                .toList();
     }
 
     @PostMapping("/{id}/acknowledge")

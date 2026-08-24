@@ -87,6 +87,14 @@ public class JdbcConsultationRecordRepository implements ConsultationRecordRepos
     }
 
     @Override
+    public List<ConsultationRecord> findByEncounterId(UUID encounterId) {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE encounter_id = :encounterId ORDER BY created_at DESC",
+                new MapSqlParameterSource("encounterId", encounterId),
+                this::mapRow);
+    }
+
+    @Override
     public void autosave(UUID id, String historyOfPresentingIllness, String pastMedicalHistory, String pastSurgicalHistory,
                           String familySocialHistory, String physicalExamination, String clinicalNotes, String treatmentPlan) {
         jdbcTemplate.update("""

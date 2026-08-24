@@ -13,6 +13,15 @@ public interface LabResultRepository {
     /** Every row for this specimen, including superseded ones — an amendment appends, never replaces. */
     List<LabResult> findBySpecimenId(UUID specimenId);
 
+    /** 15-lab-technician.md §9: "My results" — this technician's own entered-by results, newest first. */
+    List<LabResult> findByEnteredBy(UUID enteredBy);
+
+    /** §9's patient-lookup tab, by accession — one specimen has at most one non-superseded result per amendment chain, but every version is returned, newest first. */
+    List<LabResult> findByAccessionNo(String accessionNo);
+
+    /** §9's patient-lookup tab, by patient — across every order/specimen/technician, newest first. */
+    List<LabResult> findByPatientId(UUID patientId);
+
     /**
      * Sets verification fields — only while verification_state is PENDING.
      * Returns false (a no-op) if the row wasn't PENDING, e.g. a second

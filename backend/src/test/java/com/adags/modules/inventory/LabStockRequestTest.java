@@ -74,7 +74,7 @@ class LabStockRequestTest extends IntegrationTestSupport {
                 LocalDate.now().plusYears(1), 50, new Money(1000, "TZS"), supplierId, "DN-1", null, admin));
 
         LabStockRequest request = createLabStockRequestService.create(
-                new CreateLabStockRequestCommand(itemId, 20, labStoreId, admin));
+                new CreateLabStockRequestCommand(itemId, 20, labStoreId, admin, null));
 
         LabStockRequest released = releaseLabStockRequestService.release(
                 new ReleaseLabStockRequestCommand(request.id(), batch.id(), 20, admin));
@@ -109,7 +109,7 @@ class LabStockRequestTest extends IntegrationTestSupport {
         StockBatch batch = restockService.restock(new RestockCommand(itemId, pharmacyStoreId, "REAGENT-LOT-1",
                 LocalDate.now().plusYears(1), 50, new Money(1000, "TZS"), supplierId, "DN-1", null, admin));
         LabStockRequest request = createLabStockRequestService.create(
-                new CreateLabStockRequestCommand(itemId, 20, labStoreId, admin));
+                new CreateLabStockRequestCommand(itemId, 20, labStoreId, admin, null));
 
         LabStockRequest firstRelease = releaseLabStockRequestService.release(
                 new ReleaseLabStockRequestCommand(request.id(), batch.id(), 12, admin));
@@ -131,7 +131,7 @@ class LabStockRequestTest extends IntegrationTestSupport {
         StockBatch batch = restockService.restock(new RestockCommand(itemId, pharmacyStoreId, "REAGENT-LOT-1",
                 LocalDate.now().plusYears(1), 50, new Money(1000, "TZS"), supplierId, "DN-1", null, admin));
         LabStockRequest request = createLabStockRequestService.create(
-                new CreateLabStockRequestCommand(itemId, 20, labStoreId, admin));
+                new CreateLabStockRequestCommand(itemId, 20, labStoreId, admin, null));
 
         assertThatThrownBy(() -> releaseLabStockRequestService.release(
                 new ReleaseLabStockRequestCommand(request.id(), batch.id(), 21, admin)))
@@ -144,7 +144,7 @@ class LabStockRequestTest extends IntegrationTestSupport {
         UUID itemId = createFixtureItem(admin);
         UUID labStoreId = insertFixtureStore("LAB_SUBSTORE");
         LabStockRequest request = createLabStockRequestService.create(
-                new CreateLabStockRequestCommand(itemId, 20, labStoreId, admin));
+                new CreateLabStockRequestCommand(itemId, 20, labStoreId, admin, null));
 
         assertThatThrownBy(() -> reviewLabStockRequestService.reject(request.id(), "", admin))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -163,7 +163,7 @@ class LabStockRequestTest extends IntegrationTestSupport {
         StockBatch batch = restockService.restock(new RestockCommand(itemId, pharmacyStoreId, "REAGENT-LOT-1",
                 LocalDate.now().plusYears(1), 50, new Money(1000, "TZS"), supplierId, "DN-1", null, admin));
         LabStockRequest request = createLabStockRequestService.create(
-                new CreateLabStockRequestCommand(itemId, 20, labStoreId, admin));
+                new CreateLabStockRequestCommand(itemId, 20, labStoreId, admin, null));
         releaseLabStockRequestService.release(new ReleaseLabStockRequestCommand(request.id(), batch.id(), 5, admin));
 
         LabStockRequest closed = reviewLabStockRequestService.close(request.id(), "no more reagent this month", admin);
@@ -183,7 +183,7 @@ class LabStockRequestTest extends IntegrationTestSupport {
         UUID supplierId = insertFixtureSupplier();
         UUID batchId = insertExpiredFixtureBatch(itemId, pharmacyStoreId, supplierId, admin);
         LabStockRequest request = createLabStockRequestService.create(
-                new CreateLabStockRequestCommand(itemId, 20, labStoreId, admin));
+                new CreateLabStockRequestCommand(itemId, 20, labStoreId, admin, null));
 
         assertThatThrownBy(() -> releaseLabStockRequestService.release(
                 new ReleaseLabStockRequestCommand(request.id(), batchId, 5, admin)))
@@ -202,7 +202,7 @@ class LabStockRequestTest extends IntegrationTestSupport {
         classifyItemService.classify(new ClassifyItemCommand(item.id(), RegulatorySchedule.CONTROLLED,
                 "on First Schedule narcotic list", admin));
         LabStockRequest request = createLabStockRequestService.create(
-                new CreateLabStockRequestCommand(item.id(), 5, labStoreId, admin));
+                new CreateLabStockRequestCommand(item.id(), 5, labStoreId, admin, null));
 
         assertThatThrownBy(() -> releaseLabStockRequestService.release(
                 new ReleaseLabStockRequestCommand(request.id(), batchId, 5, admin)))

@@ -172,6 +172,31 @@ public interface BillingFacade {
                                 UUID actorUserId);
 
     /**
+     * 08-doctor-navigation.md §5.1: "PENDING_PAYMENT — charge posted, gate
+     * not satisfied" is exactly {@code authorization_id IS NULL} on the
+     * line (root CLAUDE.md "Billing": the gate is durably satisfied the
+     * moment it's authorized, never re-checked). Request History's status
+     * derivation is the first caller — a lab/prescription read model that
+     * needs to know payment state without duplicating BillingGate logic.
+     * Null-safe: an order/line with no invoice line yet (or none at all)
+     * is unauthorized, not an error — callers pass invoiceLineId() straight
+     * through without their own null guard.
+     */
+    boolean isLineAuthorized(UUID invoiceLineId);
+
+    /**
+     * 15-lab-technician.md §3.1: the lab queue's "Emergency" sub-tab —
+     * an ACTIVE PaymentBypass exists for this encounter right now. Distinct
+     * from {@link #isLineAuthorized}, which stays true forever once a line
+     * clears the gate (root CLAUDE.md: "satisfies the gate permanently —
+     * an order placed under a bypass still fulfils after that bypass is
+     * revoked") and so cannot tell a queue whether the bypass is still
+     * live. Backed by the same PaymentBypassRepository query
+     * {@code /api/payment-bypasses/active} already reads.
+     */
+    boolean hasActivePaymentBypass(UUID encounterId);
+
+    /**
      * 02-billing-architecture.md §8 / root CLAUDE.md "Billing": "if
      * balance &gt; 0: create receivable" — never a blocker. For every
      * ISSUED invoice on this encounter still carrying an outstanding

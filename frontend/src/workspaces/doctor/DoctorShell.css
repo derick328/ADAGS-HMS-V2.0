@@ -1,0 +1,127 @@
+.doctor-shell-outer {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.doctor-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.doctor-sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--bg-sidebar);
+  color: var(--green-200);
+  display: flex;
+  flex-direction: column;
+  padding: 1.2rem 0.8rem;
+}
+
+.doctor-sidebar-brand {
+  color: var(--text-on-dark);
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  padding: 0.4rem 0.6rem 1.4rem;
+}
+
+.doctor-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+/* Same rules as TriageNurseShell.css's .nav-item family — duplicated here
+   (not imported cross-file) so this shell's CSS is self-contained rather
+   than relying on another workspace's stylesheet having already loaded. */
+.nav-item {
+  display: block;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius);
+  color: var(--green-200);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-item-active {
+  box-shadow: inset 3px 0 0 var(--green-signal);
+  background: rgba(127, 255, 0, 0.08);
+  color: var(--green-signal);
+  font-weight: 600;
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--green-signal);
+  outline-offset: 2px;
+}
+
+.nav-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin: 0.6rem 0.2rem;
+}
+
+.nav-item-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.nav-item-label-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Never colour alone — the dot is paired with an aria-label/title, and the
+   count badge next to it already carries the number regardless. */
+.nav-emergency-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--critical);
+}
+
+.doctor-sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.doctor-user {
+  font-size: 0.85rem;
+  color: var(--text-on-dark);
+  padding: 0 0.6rem;
+}
+
+.doctor-logout {
+  background: none;
+  border: 1px solid var(--green-200);
+  color: var(--green-200);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.doctor-logout:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.doctor-content {
+  flex: 1;
+  padding: 2rem;
+  background: var(--bg-page);
+}

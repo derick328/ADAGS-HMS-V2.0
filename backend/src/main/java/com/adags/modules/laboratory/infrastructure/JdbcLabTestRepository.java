@@ -67,6 +67,12 @@ public class JdbcLabTestRepository implements LabTestRepository {
         return results.stream().findFirst();
     }
 
+    @Override
+    public List<LabTest> findAllActive() {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE is_active = TRUE ORDER BY name", this::mapRow);
+    }
+
     private LabTest mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new LabTest(
                 (UUID) rs.getObject("id"),

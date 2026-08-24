@@ -7,12 +7,21 @@ import { ApiError, fetchMe } from '../shared/api/client';
 import { useAuth } from '../shared/auth/AuthProvider';
 import './LoginPage.css';
 
-// Only /admin and /receptionist shells exist today. A user's active role
-// assignments decide which one they land in; everyone else defaults to
-// /admin until their own shell ships.
+// A user's active role assignments decide which shell they land in;
+// everyone else defaults to /admin. This was stale for TRIAGE_NURSE (never
+// updated when that shell shipped — fixed here alongside adding DOCTOR/
+// SPECIALIST_DOCTOR for this build) and still doesn't handle every role
+// this catalogue defines (pharmacy, lab, ward, accounts) until their own
+// shells exist.
 function landingRouteFor(roleCodes: string[]): string {
   if (roleCodes.includes('RECEPTIONIST') && !roleCodes.includes('ADMIN')) {
     return '/receptionist';
+  }
+  if (roleCodes.includes('TRIAGE_NURSE') && !roleCodes.includes('ADMIN')) {
+    return '/triage';
+  }
+  if ((roleCodes.includes('DOCTOR') || roleCodes.includes('SPECIALIST_DOCTOR')) && !roleCodes.includes('ADMIN')) {
+    return '/doctor';
   }
   return '/admin';
 }

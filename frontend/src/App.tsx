@@ -25,6 +25,21 @@ import { PatientQueuePage } from './workspaces/triage/PatientQueuePage';
 import { ProfilePage as TriageProfilePage } from './workspaces/triage/ProfilePage';
 import { TriageAssessmentFormPage } from './workspaces/triage/TriageAssessmentFormPage';
 import { TriageNurseShell } from './workspaces/triage/TriageNurseShell';
+import { ConsultationPage } from './workspaces/doctor/ConsultationPage';
+import { DoctorShell } from './workspaces/doctor/DoctorShell';
+import { HospitalCataloguePage } from './workspaces/doctor/HospitalCataloguePage';
+import { MyPatientsPage } from './workspaces/doctor/MyPatientsPage';
+import { MyQueuePage } from './workspaces/doctor/MyQueuePage';
+import { ProfilePage as DoctorProfilePage } from './workspaces/triage/ProfilePage';
+import { RequestHistoryPage } from './workspaces/doctor/RequestHistoryPage';
+import { AcceptSamplePage } from './workspaces/lab/AcceptSamplePage';
+import { LabCataloguePage } from './workspaces/lab/LabCataloguePage';
+import { LabTechShell } from './workspaces/lab/LabTechShell';
+import { MyHistoryPage } from './workspaces/lab/MyHistoryPage';
+import { ResultEntryPage } from './workspaces/lab/ResultEntryPage';
+import { StockRequestsPage } from './workspaces/lab/StockRequestsPage';
+import { TestQueuePage } from './workspaces/lab/TestQueuePage';
+import { ProfilePage as LabProfilePage } from './workspaces/triage/ProfilePage';
 
 export function App() {
   return (
@@ -87,6 +102,37 @@ export function App() {
         <Route path="assess/:encounterId" element={<TriageAssessmentFormPage />} />
         <Route path="completed-assessments" element={<CompletedAssessmentsPage />} />
         <Route path="profile" element={<TriageProfilePage />} />
+      </Route>
+      <Route
+        path="/doctor"
+        element={
+          <RequireAuth>
+            <DoctorShell />
+          </RequireAuth>
+        }
+      >
+        <Route index element={<MyQueuePage />} />
+        <Route path="consultation/:encounterId" element={<ConsultationPage />} />
+        <Route path="patients" element={<MyPatientsPage />} />
+        <Route path="catalogue" element={<HospitalCataloguePage />} />
+        <Route path="request-history" element={<RequestHistoryPage />} />
+        <Route path="profile" element={<DoctorProfilePage />} />
+      </Route>
+      <Route
+        path="/lab"
+        element={
+          <RequireAuth>
+            <LabTechShell />
+          </RequireAuth>
+        }
+      >
+        <Route index element={<TestQueuePage />} />
+        <Route path="accept/:labOrderId" element={<AcceptSamplePage />} />
+        <Route path="result-entry/:labOrderId" element={<ResultEntryPage />} />
+        <Route path="history" element={<MyHistoryPage />} />
+        <Route path="catalogue" element={<LabCataloguePage />} />
+        <Route path="stock-requests" element={<StockRequestsPage />} />
+        <Route path="profile" element={<LabProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>

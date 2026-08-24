@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -56,8 +57,19 @@ public class LabStockRequestController {
     public LabStockRequestResponse create(@Valid @RequestBody CreateLabStockRequestRequest request, @AuthenticationPrincipal Actor actor) {
         requirePermission(actor, "LAB_STOCK_REQUEST_CREATE");
         LabStockRequest created = createLabStockRequestService.create(new CreateLabStockRequestCommand(
-                request.itemId(), request.requestedQuantity(), request.requestingStoreId(), actor.userId()));
+                request.itemId(), request.requestedQuantity(), request.requestingStoreId(), actor.userId(),
+                request.requestNotes()));
         return LabStockRequestResponse.from(created);
+    }
+
+    // 15-lab-technician.md §5: the Stock Requests screen's own list —
+    // status, response notes, pending count for the sidebar badge.
+    @GetMapping("/mine")
+    public List<LabStockRequestResponse> mine(@AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "LAB_STOCK_REQUEST_CREATE");
+        return labStockRequestRepository.findByRequestedBy(actor.userId()).stream()
+                .map(LabStockRequestResponse::from)
+                .toList();
     }
 
     @GetMapping("/{id}")
