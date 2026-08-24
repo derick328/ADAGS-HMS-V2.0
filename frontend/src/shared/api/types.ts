@@ -5861,7 +5861,7 @@ export interface components {
             /** Format: date-time */
             wardStatusSuggestedCriticalAt?: string;
         };
-        WardAlertNotification: {
+        WardAlertNotificationResponse: {
             /** Format: uuid */
             id?: string;
             /** Format: uuid */
@@ -5885,8 +5885,8 @@ export interface components {
             escalatedToUserId?: string;
             /** Format: date-time */
             createdAt?: string;
-            escalated?: boolean;
             acknowledged?: boolean;
+            escalated?: boolean;
         };
     };
     responses: never;
@@ -10875,7 +10875,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["WardAlertNotification"][];
+                    "*/*": components["schemas"]["WardAlertNotificationResponse"][];
                 };
             };
         };

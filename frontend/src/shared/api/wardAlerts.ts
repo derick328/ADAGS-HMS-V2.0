@@ -1,7 +1,7 @@
 import { authFetch, authFetchVoid } from './client';
 import type { components } from './types';
 
-export type WardAlertNotification = components['schemas']['WardAlertNotification'];
+export type WardAlertNotification = components['schemas']['WardAlertNotificationResponse'];
 export type WardAlertSourceType = NonNullable<WardAlertNotification['sourceType']>;
 
 // 17-ward-nurse.md §4.3: "An alert must reach someone" — vital breaches,

@@ -4467,7 +4467,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/WardAlertNotification"
+                  $ref: "#/components/schemas/WardAlertNotificationResponse"
 components:
   schemas:
     TriageAssessmentDraftRequest:
@@ -9849,7 +9849,7 @@ components:
         wardStatusSuggestedCriticalAt:
           type: string
           format: date-time
-    WardAlertNotification:
+    WardAlertNotificationResponse:
       type: object
       properties:
         id:
@@ -9890,7 +9890,7 @@ components:
         createdAt:
           type: string
           format: date-time
-        escalated:
-          type: boolean
         acknowledged:
+          type: boolean
+        escalated:
           type: boolean
