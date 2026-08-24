@@ -95,7 +95,7 @@ class EndToEndSurgeryTest extends IntegrationTestSupport {
         jdbcTemplate.update("""
                 TRUNCATE anaesthesia_paper_record, surgical_checklist, procedure_item, surgery_order, theatre,
                          payment_bypass, invoice_line, invoice, stock_movement, stock_balance, stock_batch, item,
-                         encounter, patient CASCADE
+                         store, encounter, patient CASCADE
                 """, new MapSqlParameterSource());
         jdbcTemplate.update("DELETE FROM price_list_entry WHERE service_item_id IN "
                 + "(SELECT id FROM service_item WHERE code = :code)", new MapSqlParameterSource("code", PROCEDURE_CODE));
