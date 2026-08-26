@@ -1,4 +1,6 @@
+import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
+import { searchInvoices } from '../../shared/api/invoices';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { useMe } from '../../shared/auth/useMe';
 import { usePermission } from '../../shared/auth/usePermission';
@@ -37,7 +39,7 @@ const AFTER_DIVIDER_NAV: NavLeaf[] = [
   { to: '/receptionist/profile', label: 'Profile' },
 ];
 
-function NavItemLink({ item }: { item: NavLeaf }) {
+function NavItemLink({ item, showDot }: { item: NavLeaf; showDot?: boolean }) {
   // Called unconditionally to satisfy the rules of hooks; the result is only
   // consulted when the item actually names a permission to check.
   const canSee = usePermission(item.permission ?? '__NONE__');
@@ -47,13 +49,24 @@ function NavItemLink({ item }: { item: NavLeaf }) {
   return (
     <NavLink to={item.to} className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
       {item.label}
+      {showDot && <span className="nav-dot" role="status" aria-label="Pending bills waiting" title="Pending bills waiting" />}
     </NavLink>
   );
 }
 
 export function ReceptionistShell() {
-  const { logout } = useAuth();
+  const { accessToken, logout } = useAuth();
   const { data: me } = useMe();
+  const canReadInvoices = usePermission('INVOICE_READ');
+
+  // Drives the red dot on the Billing item — any outstanding invoice.
+  const { data: pendingInvoices } = useQuery({
+    queryKey: ['invoices', 'pending-count'],
+    queryFn: () => searchInvoices({ outstandingOnly: true }, accessToken as string),
+    enabled: accessToken != null && canReadInvoices,
+    refetchInterval: 30_000,
+  });
+  const hasPendingBills = (pendingInvoices?.length ?? 0) > 0;
 
   return (
     <div className="receptionist-shell-outer">
@@ -67,7 +80,11 @@ export function ReceptionistShell() {
             </NavLink>
 
             {MAIN_NAV.map((item) => (
-              <NavItemLink key={item.to} item={item} />
+              <NavItemLink
+                key={item.to}
+                item={item}
+                showDot={item.to === '/receptionist/billing' && hasPendingBills}
+              />
             ))}
 
             <div className="nav-divider" role="separator" />

@@ -48,6 +48,18 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* Pending-bills indicator on the Billing item — same 8px critical dot the
+   pharmacy shell uses for waiting emergencies. */
+.nav-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: var(--space-2);
+  border-radius: 50%;
+  background: var(--critical);
+  vertical-align: middle;
+}
+
 /* Left bar, not a full tint — same inset-shadow technique tokens.css uses
    for row-critical/row-warning, applied here with the signal colour. */
 .nav-item-active {

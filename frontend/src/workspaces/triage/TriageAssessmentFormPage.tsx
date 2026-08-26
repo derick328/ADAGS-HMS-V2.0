@@ -216,11 +216,23 @@ export function TriageAssessmentFormPage() {
     setValue('priority', '' as never);
     setValue('immediateReason', undefined);
     setValue('immediateReasonOtherText', '');
+    // Persist the cleared state now, not on the next 20s tick — otherwise
+    // navigating away leaves a stale draft with danger signs still set, and
+    // on the next visit the "any danger sign -> IMMEDIATE" effect re-forces
+    // the modal the nurse just dismissed.
+    triggerAutosave();
   }
 
-  const onSubmit = handleSubmit((values) => {
-    if (encounter?.version == null) return;
-    const payload: SubmitTriageAssessmentRequest = {
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const onSubmit = handleSubmit(
+    (values) => {
+      setFormError(null);
+      if (encounter?.version == null) {
+        setFormError('This encounter is still loading. Wait a moment and submit again.');
+        return;
+      }
+      const payload: SubmitTriageAssessmentRequest = {
       expectedEncounterVersion: encounter.version,
       assignedProviderId: values.assignedProviderId,
       chiefComplaint: values.chiefComplaint,
@@ -248,8 +260,27 @@ export function TriageAssessmentFormPage() {
       weightKg: values.weightKg,
       heightCm: values.heightCm,
     };
-    submit.mutate(payload);
-  });
+      submit.mutate(payload);
+    },
+    (fieldErrors) => {
+      // handleSubmit swallows an invalid form silently — no callback, no
+      // network. Name every field that's blocking it (some are far down the
+      // form; the referral picker and a forced-IMMEDIATE reason have no
+      // ordinary inline error of their own), then jump to the first.
+      const keys = Object.keys(fieldErrors);
+      const names = keys.map((k) => FIELD_LABELS[k] ?? k);
+      setFormError(
+        names.length > 0
+          ? `Can't submit yet — check: ${names.join(', ')}.`
+          : "Can't submit yet — one or more fields are invalid.",
+      );
+      const firstKey = keys[0];
+      const named = firstKey ? document.querySelector<HTMLElement>(`[name="${firstKey}"]`) : null;
+      const target = named ?? document.querySelector<HTMLElement>('.field-error');
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      named?.focus?.({ preventScroll: true });
+    },
+  );
 
   if (!canAssess) {
     return <p style={{ color: 'var(--text-muted)' }}>You don't hold TRIAGE_ASSESS.</p>;
@@ -418,6 +449,12 @@ export function TriageAssessmentFormPage() {
             ))}
           </div>
           {errors.priority && <span className="field-error">{errors.priority.message}</span>}
+          {errors.immediateReason && (
+            <span className="field-error">Reopen the IMMEDIATE confirmation and choose a reason.</span>
+          )}
+          {errors.immediateReasonOtherText && (
+            <span className="field-error">{errors.immediateReasonOtherText.message}</span>
+          )}
           {priority === 'IMMEDIATE' && immediateConfirmed && (
             <p style={{ color: 'var(--critical)', fontSize: 'var(--text-sm)' }}>
               Reason: {immediateReason ? immediateReasonOptions.find((o) => o.value === immediateReason)?.label : '—'}
@@ -449,6 +486,7 @@ export function TriageAssessmentFormPage() {
           <textarea rows={3} {...register('notes')} style={fieldStyle} />
         </fieldset>
 
+        {formError && <div className="form-error">{formError}</div>}
         {submit.error && <div className="form-error">{submitErrorMessage(submit.error)}</div>}
 
         <button type="submit" className="btn btn-primary" disabled={submit.isPending} style={{ alignSelf: 'flex-start' }}>
@@ -569,7 +607,7 @@ function ImmediateConfirmationModal({
         )}
         <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
           <button type="button" className="btn btn-ghost" onClick={onCancel}>
-            Cancel
+            Not immediate — clear
           </button>
           <button
             type="button"
@@ -609,6 +647,31 @@ function ageFromDob(dob: string | undefined | null): number | null {
   if (!dob) return null;
   return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
 }
+
+// Field-key -> human label for the "can't submit yet" summary.
+const FIELD_LABELS: Record<string, string> = {
+  chiefComplaint: 'Chief complaint',
+  currentSymptoms: 'Current symptoms',
+  temperatureC: 'Temperature',
+  systolicMmHg: 'Systolic BP',
+  diastolicMmHg: 'Diastolic BP',
+  pulseBpm: 'Pulse',
+  respiratoryRate: 'Respiratory rate',
+  spo2Pct: 'SpO₂',
+  weightKg: 'Weight',
+  heightCm: 'Height',
+  allergies: 'Allergies',
+  comorbidities: 'Comorbidities',
+  modeOfAmbulation: 'Mode of ambulation',
+  painScore: 'Pain score',
+  painLocation: 'Pain location',
+  fallScore: 'Fall risk score',
+  pregnancyStatus: 'Pregnancy status',
+  priority: 'Triage priority',
+  immediateReason: 'IMMEDIATE reason',
+  immediateReasonOtherText: 'IMMEDIATE reason description',
+  assignedProviderId: 'Referral — click a doctor card',
+};
 
 const immediateReasonOptions: { value: ImmediateReason; label: string }[] = [
   { value: 'THREATENED_OR_OBSTRUCTED_AIRWAY', label: 'Threatened or obstructed airway' },

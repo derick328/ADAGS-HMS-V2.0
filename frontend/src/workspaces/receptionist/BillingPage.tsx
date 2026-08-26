@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { ApiError } from '../../shared/api/client';
 import { requestInvoiceCancellation } from '../../shared/api/billing';
 import { fetchOpenEncounterForPatient } from '../../shared/api/encounters';
 import {
@@ -12,7 +13,7 @@ import {
 import { fetchActivePaymentBypasses } from '../../shared/api/paymentBypasses';
 import { recordPayment, type PaymentMethod } from '../../shared/api/payments';
 import { searchPriceCatalog, type PriceCatalogItemResponse } from '../../shared/api/priceCatalog';
-import { searchPatients, type PatientSearchResult } from '../../shared/api/patients';
+import { fetchPatientById, searchPatients, type PatientSearchResult } from '../../shared/api/patients';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
 import { formatDateTime } from '../../shared/format/date';
@@ -28,6 +29,12 @@ export function BillingPage() {
   const [patientQuery, setPatientQuery] = useState('');
   const [submittedPatientQuery, setSubmittedPatientQuery] = useState('');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  // Pending bills first: the list shows outstanding invoices with no search
+  // needed; untick to see settled/void too.
+  const [outstandingOnly, setOutstandingOnly] = useState(true);
+  // Set when "Record payment" is pressed on an invoice — hands the patient
+  // straight to the payment panel so the cashier doesn't search again.
+  const [paymentPatientId, setPaymentPatientId] = useState<string | null>(null);
 
   const { data: patientMatches } = useQuery({
     queryKey: ['patients', 'search', submittedPatientQuery],
@@ -37,9 +44,10 @@ export function BillingPage() {
   const filterPatientId = patientMatches?.[0]?.id;
 
   const { data: invoices, isLoading } = useQuery({
-    queryKey: ['invoices', filterPatientId],
-    queryFn: () => searchInvoices({ patientId: filterPatientId }, accessToken as string),
+    queryKey: ['invoices', filterPatientId, outstandingOnly],
+    queryFn: () => searchInvoices({ patientId: filterPatientId, outstandingOnly }, accessToken as string),
     enabled: accessToken != null && canRead,
+    refetchInterval: 15_000,
   });
 
   return (
@@ -48,7 +56,7 @@ export function BillingPage() {
         <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Billing</h1>
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <button type="button" className={tab === 'invoices' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('invoices')}>
-            Invoices
+            {outstandingOnly ? 'Pending bills' : 'Invoices'}
           </button>
           <button type="button" className={tab === 'create' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('create')}>
             Create invoice
@@ -82,13 +90,25 @@ export function BillingPage() {
                 Clear
               </button>
             )}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginLeft: 'auto' }}>
+              <input type="checkbox" checked={outstandingOnly} onChange={(e) => setOutstandingOnly(e.target.checked)} />
+              Outstanding only
+            </label>
           </form>
 
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
             {isLoading ? (
               <EmptyState message="Loading…" />
             ) : !invoices || invoices.length === 0 ? (
-              <EmptyState message={submittedPatientQuery ? 'No invoices for this patient.' : 'No invoices yet.'} />
+              <EmptyState
+                message={
+                  submittedPatientQuery
+                    ? 'No matching invoices for this patient.'
+                    : outstandingOnly
+                      ? 'No pending bills — every invoice is settled.'
+                      : 'No invoices yet.'
+                }
+              />
             ) : (
               <table className="table">
                 <caption className="sr-only">Invoices</caption>
@@ -116,12 +136,20 @@ export function BillingPage() {
             )}
           </div>
 
-          {selectedInvoiceId && <InvoiceDetailPanel invoiceId={selectedInvoiceId} />}
+          {selectedInvoiceId && (
+            <InvoiceDetailPanel
+              invoiceId={selectedInvoiceId}
+              onRecordPayment={(patientId) => {
+                setPaymentPatientId(patientId);
+                setTab('payment');
+              }}
+            />
+          )}
         </>
       )}
 
       {tab === 'create' && <CreateInvoiceForm onCreated={() => setTab('invoices')} />}
-      {tab === 'payment' && <RecordPaymentPanel />}
+      {tab === 'payment' && <RecordPaymentPanel initialPatientId={paymentPatientId} />}
     </div>
   );
 }
@@ -139,7 +167,13 @@ function InvoiceStateBadge({ state }: { state: InvoiceResponse['state'] }) {
   return <span className={`badge ${map[state ?? ''] ?? 'badge-neutral'}`}>{(state ?? '').replaceAll('_', ' ').toLowerCase()}</span>;
 }
 
-function InvoiceDetailPanel({ invoiceId }: { invoiceId: string }) {
+function InvoiceDetailPanel({
+  invoiceId,
+  onRecordPayment,
+}: {
+  invoiceId: string;
+  onRecordPayment: (patientId: string) => void;
+}) {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
   const canCreate = usePermission('INVOICE_CREATE');
@@ -199,6 +233,14 @@ function InvoiceDetailPanel({ invoiceId }: { invoiceId: string }) {
             Issue invoice
           </button>
         )}
+        {invoice?.state !== 'DRAFT' &&
+          invoice?.state !== 'VOID' &&
+          (invoice?.outstandingTotalMinor ?? 0) > 0 &&
+          invoice?.patientId && (
+            <button type="button" className="btn btn-primary" onClick={() => onRecordPayment(invoice.patientId as string)}>
+              Record payment
+            </button>
+          )}
         {invoice?.state !== 'DRAFT' && invoice?.state !== 'VOID' && invoice?.state !== 'CANCELLATION_PENDING' && canCancel && (
           <button type="button" className="btn btn-danger" onClick={() => setShowCancelForm((v) => !v)}>
             {showCancelForm ? 'Cancel' : 'Request cancellation'}
@@ -387,7 +429,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-function RecordPaymentPanel() {
+function RecordPaymentPanel({ initialPatientId }: { initialPatientId?: string | null }) {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
   const [patientQuery, setPatientQuery] = useState('');
@@ -396,6 +438,20 @@ function RecordPaymentPanel() {
   const [ticked, setTicked] = useState<Record<string, boolean>>({});
   const [method, setMethod] = useState<PaymentMethod>('CASH');
   const [reference, setReference] = useState('');
+
+  // Seeded when the cashier pressed "Record payment" on an invoice — skips
+  // the patient search entirely.
+  const { data: seedPatient } = useQuery({
+    queryKey: ['patient', 'payment-seed', initialPatientId],
+    queryFn: () => fetchPatientById(initialPatientId as string, accessToken as string),
+    enabled: accessToken != null && initialPatientId != null,
+  });
+  useEffect(() => {
+    if (seedPatient?.id && seedPatient.id !== selectedPatient?.id) {
+      setSelectedPatient(seedPatient);
+      setTicked({});
+    }
+  }, [seedPatient, selectedPatient?.id]);
 
   const { data: invoices } = useQuery({
     queryKey: ['invoices', 'payable', selectedPatient?.id],
@@ -543,7 +599,7 @@ function RecordPaymentPanel() {
             </div>
           </div>
 
-          {submit.error && <div className="form-error">The cashier shift may not be open, or a line no longer matches — try again.</div>}
+          {submit.error && <div className="form-error">{paymentErrorMessage(submit.error)}</div>}
 
           <button
             type="button"
@@ -563,6 +619,22 @@ function EmptyState({ message }: { message: string }) {
   return (
     <div style={{ padding: 'var(--space-10) var(--space-4)', textAlign: 'center', color: 'var(--text-muted)' }}>{message}</div>
   );
+}
+
+// Surface the real server reason instead of a catch-all. The most common
+// cause is the cashier not having opened their shift (PostPaymentService
+// requires an open CashierShift for the acting user).
+function paymentErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (/cashier shift/i.test(error.message)) {
+      return `${error.message} Open your shift from the "Shift" page, then take the payment again.`;
+    }
+    if (error.status === 409) {
+      return `${error.message} Reload the pending bills and try again — a line may have changed.`;
+    }
+    return error.message;
+  }
+  return 'The payment could not be recorded. Reload the pending bills and try again.';
 }
 
 const cardStyle: CSSProperties = {
