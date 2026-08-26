@@ -1,0 +1,136 @@
+/* EmptyState — the panel shown in place of absent content.
+ *
+ * Transparent by design: no background, no border, no shadow, no radius — it
+ * composes inside whatever container already draws an edge (a Card, a table
+ * container, a panel). Every colour comes from a semantic text token; every
+ * gap and pad from the spacing scale. The only non-token values are the text
+ * measure (`ch`, a font-relative unit for readable line length) and the two
+ * line-heights STYLE_GUIDE §3 says to set locally. No animation lives here —
+ * the action Buttons own their own motion. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
+
+/* ---- variants ----------------------------------------------------------
+ * default → a list/queue empty state inside a panel
+ * compact → denser, for a small results area or an inline sub-list
+ * full    → a first-run / workspace-splash state that occupies the region */
+
+.default {
+  gap: var(--space-4);
+  padding: var(--space-8);
+}
+
+.compact {
+  gap: var(--space-3);
+  padding: var(--space-6);
+}
+
+.full {
+  gap: var(--space-5);
+  padding: var(--space-10);
+  /* Token-derived so it stays on the scale — the "full" state should fill a
+     region, not hug its content. Override via className for a taller area. */
+  min-height: calc(var(--space-10) * 10);
+}
+
+/* ---- media (icon or illustration) ----------------------------------------
+ * The icon is decorative and low-attention: muted, never a status colour. */
+
+.media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.media :global(svg),
+.media img {
+  max-width: 100%;
+  height: auto;
+}
+
+.icon {
+  color: var(--text-muted);
+}
+
+/* ---- text --------------------------------------------------------------
+ * A capped measure keeps the copy readable when the container is wide;
+ * `ch` is font-relative, so it also narrows gracefully on small screens. */
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 48ch;
+}
+
+.title {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.description {
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* default + full: the title is a real heading (§3 — bold at --text-xl and up) */
+.default .title,
+.full .title {
+  font-weight: var(--weight-bold);
+}
+
+.default .title {
+  font-size: var(--text-xl);
+}
+
+.full .title {
+  font-size: var(--text-2xl);
+}
+
+.default .description,
+.full .description {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+
+/* compact: below --text-xl, so medium weight not bold (§3); muted supporting text */
+.compact .title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+}
+
+.compact .description {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* ---- actions ---------------------------------------------------------------
+ * Layout only — the Buttons carry every visual detail. Wraps to stacked rows
+ * on a narrow container without needing a breakpoint. */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  max-width: 100%;
+}
+
+.default .actions {
+  margin-top: var(--space-2);
+}
+
+.full .actions {
+  margin-top: var(--space-3);
+}

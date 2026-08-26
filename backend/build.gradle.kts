@@ -49,6 +49,12 @@ dependencies {
 
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
 
+    // 16-lab-verification-model.md v0.2 §4 / 15-lab-technician.md §5.4:
+    // machine output goes to object storage, never a database blob. MinIO
+    // is already provisioned in docker-compose.yml; this is the first
+    // module to actually talk to it.
+    implementation("io.minio:minio:8.5.12")
+
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 

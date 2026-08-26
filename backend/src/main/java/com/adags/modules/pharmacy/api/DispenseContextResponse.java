@@ -9,7 +9,8 @@ public record DispenseContextResponse(
         ItemSummaryResponse item,
         List<AllergyResponse> allergies,
         List<BatchAvailabilityResponse> availableBatches,
-        List<BatchAllocationResponse> fefoSuggestion
+        List<BatchAllocationResponse> fefoSuggestion,
+        Double weightKg
 ) {
 
     public static DispenseContextResponse from(DispenseContext context) {
@@ -18,6 +19,7 @@ public record DispenseContextResponse(
                 ItemSummaryResponse.from(context.item()),
                 context.allergies().stream().map(AllergyResponse::from).toList(),
                 context.availableBatches().stream().map(BatchAvailabilityResponse::from).toList(),
-                context.fefoSuggestion().stream().map(BatchAllocationResponse::from).toList());
+                context.fefoSuggestion().stream().map(BatchAllocationResponse::from).toList(),
+                context.weightKg());
     }
 }

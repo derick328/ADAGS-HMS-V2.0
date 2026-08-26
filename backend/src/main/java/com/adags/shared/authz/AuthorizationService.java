@@ -42,6 +42,34 @@ public class AuthorizationService {
                 .anyMatch(assignment -> withinScope(assignment.scope(), targetScope));
     }
 
+    /**
+     * True if the actor holds ANY of the given codes, unscoped — several
+     * screens (a doctor's queue, request history) are shared by roles that
+     * each hold a different one of a short list of codes rather than all of
+     * them (see EncounterController#search's own comment for why). Kept
+     * here rather than duplicated per-controller as a private loop — this
+     * was previously a copy-pasted `for (code : codes) if (hasPermission)`
+     * in several REST controllers.
+     */
+    public boolean hasAnyPermission(Actor actor, String... permissionCodes) {
+        for (String code : permissionCodes) {
+            if (hasPermission(actor, code)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Scoped counterpart of {@link #hasAnyPermission(Actor, String...)} — any of the codes, checked against one target scope. */
+    public boolean hasAnyPermission(Actor actor, ScopeRef targetScope, String... permissionCodes) {
+        for (String code : permissionCodes) {
+            if (hasPermission(actor, code, targetScope)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public PolicyResult checkPatientAccess(Actor actor, String permissionCode, UUID patientId, ScopeRef targetScope) {
         if (!hasPermission(actor, permissionCode, targetScope)) {
             return PolicyResult.DENIED;

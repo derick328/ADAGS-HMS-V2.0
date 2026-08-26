@@ -12,6 +12,9 @@ public interface EncounterRepository {
     /** The patient's open encounter, if any — state not in the terminal set (root CLAUDE.md "Concurrency"). */
     Optional<Encounter> findOpenByPatientId(UUID patientId);
 
+    /** 08-doctor-navigation.md §3.3: every encounter for this patient, across every clinician, newest first. */
+    List<Encounter> findByPatientId(UUID patientId);
+
     /**
      * 05-receptionist.md §8's "here now" panel / dashboard tiles. {@code states}
      * null or empty means any state; {@code excludeTerminal} adds

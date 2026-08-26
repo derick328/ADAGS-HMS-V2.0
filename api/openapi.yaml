@@ -49,6 +49,31 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/TriageAssessmentDraftResponse"
+  /api/consultation-records/{id}/autosave:
+    put:
+      tags:
+      - consultation-record-controller
+      operationId: autosave
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AutosaveConsultationRecordRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ConsultationRecordResponse"
   /me/change-password:
     post:
       tags:
@@ -168,6 +193,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/WardResponse"
   /api/wards/{wardId}/beds:
+    get:
+      tags:
+      - bed-controller
+      operationId: list
+      parameters:
+      - name: wardId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BedResponse"
     post:
       tags:
       - bed-controller
@@ -196,7 +241,7 @@ paths:
     get:
       tags:
       - user-controller
-      operationId: list
+      operationId: list_1
       responses:
         "200":
           description: OK
@@ -366,6 +411,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/SurgicalChecklistResponse"
   /api/surgery-orders:
+    get:
+      tags:
+      - surgery-order-controller
+      operationId: listActive_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SurgeryOrderResponse"
     post:
       tags:
       - surgery-order-controller
@@ -383,6 +441,32 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SurgeryOrderResponse"
+  /api/surgery-orders/{id}/vitals:
+    post:
+      tags:
+      - surgery-vitals-controller
+      operationId: record
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordSurgeryVitalsRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: uuid
   /api/surgery-orders/{id}/start:
     post:
       tags:
@@ -591,6 +675,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/SpecimenResponse"
   /api/shift-assignments:
+    get:
+      tags:
+      - shift-assignment-controller
+      operationId: listByWardAndDate
+      parameters:
+      - name: wardId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: shiftDate
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShiftAssignmentResponse"
     post:
       tags:
       - shift-assignment-controller
@@ -928,7 +1038,7 @@ paths:
     post:
       tags:
       - payment-controller
-      operationId: record
+      operationId: record_1
       requestBody:
         content:
           application/json:
@@ -978,11 +1088,56 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/PatientResponse"
+  /api/patients/{patientId}/allergies:
+    get:
+      tags:
+      - allergy-controller
+      operationId: byPatient
+      parameters:
+      - name: patientId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AllergyRecordResponse"
+    post:
+      tags:
+      - allergy-controller
+      operationId: create_4
+      parameters:
+      - name: patientId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAllergyRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AllergyRecordResponse"
   /api/narcotic-watchlist:
     get:
       tags:
       - watchlist-controller
-      operationId: list_2
+      operationId: list_4
       responses:
         "200":
           description: OK
@@ -1011,7 +1166,7 @@ paths:
     post:
       tags:
       - lab-stock-request-controller
-      operationId: create_4
+      operationId: create_5
       requestBody:
         content:
           application/json:
@@ -1104,7 +1259,7 @@ paths:
     post:
       tags:
       - lab-result-controller
-      operationId: record_1
+      operationId: record_2
       requestBody:
         content:
           application/json:
@@ -1163,6 +1318,29 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/LabResultResponse"
+  /api/lab-results/machine-output:
+    post:
+      tags:
+      - machine-output-controller
+      operationId: upload
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - file
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UploadMachineOutputResponse"
   /api/lab-orders:
     post:
       tags:
@@ -1181,11 +1359,29 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/LabOrderResponse"
+  /api/lab-item-proposals:
+    post:
+      tags:
+      - lab-item-proposal-controller
+      operationId: propose_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposeLabItemRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LabItemProposalResponse"
   /api/items:
     post:
       tags:
       - item-controller
-      operationId: create_5
+      operationId: create_6
       requestBody:
         content:
           application/json:
@@ -1272,7 +1468,7 @@ paths:
     get:
       tags:
       - invoice-controller
-      operationId: search_5
+      operationId: search_6
       parameters:
       - name: patientId
         in: query
@@ -1331,7 +1527,7 @@ paths:
     post:
       tags:
       - invoice-controller
-      operationId: create_6
+      operationId: create_7
       requestBody:
         content:
           application/json:
@@ -1466,7 +1662,7 @@ paths:
     post:
       tags:
       - expense-controller
-      operationId: record_2
+      operationId: record_3
       requestBody:
         content:
           application/json:
@@ -1590,7 +1786,7 @@ paths:
     get:
       tags:
       - encounter-controller
-      operationId: search_6
+      operationId: search_7
       parameters:
       - name: states
         in: query
@@ -1673,6 +1869,69 @@ paths:
         schema:
           type: string
           format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EncounterResponse"
+  /api/encounters/{id}/consultation/open:
+    post:
+      tags:
+      - consultation-controller
+      operationId: open_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OpenConsultationResponse"
+  /api/encounters/{id}/consultation/mark-awaiting-results:
+    post:
+      tags:
+      - consultation-controller
+      operationId: markAwaitingResults
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/EncounterResponse"
+  /api/encounters/{id}/consultation/finalize:
+    post:
+      tags:
+      - consultation-controller
+      operationId: finalize
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinalizeConsultationRequest"
+        required: true
       responses:
         "200":
           description: OK
@@ -1763,11 +2022,36 @@ paths:
       responses:
         "200":
           description: OK
+  /api/consultation-records/{id}/diagnoses:
+    post:
+      tags:
+      - consultation-record-controller
+      operationId: addDiagnosis
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddDiagnosisRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DiagnosisResponse"
   /api/cashier-shifts:
     post:
       tags:
       - cashier-shift-controller
-      operationId: open_1
+      operationId: open_2
       requestBody:
         content:
           application/json:
@@ -2036,7 +2320,7 @@ paths:
     post:
       tags:
       - appointment-controller
-      operationId: create_7
+      operationId: create_8
       requestBody:
         content:
           application/json:
@@ -2074,7 +2358,7 @@ paths:
     post:
       tags:
       - anaesthesia-paper-record-controller
-      operationId: record_3
+      operationId: record_4
       requestBody:
         content:
           application/json:
@@ -2088,7 +2372,52 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/AnaesthesiaPaperRecordResponse"
+  /api/allergy-records/{id}/reconcile:
+    post:
+      tags:
+      - allergy-controller
+      operationId: reconcile_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReconcileAllergyRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AllergyRecordResponse"
   /api/admissions:
+    get:
+      tags:
+      - admission-controller
+      operationId: listByWard
+      parameters:
+      - name: wardId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WardPatientRowResponse"
     post:
       tags:
       - admission-controller
@@ -2254,7 +2583,7 @@ paths:
     get:
       tags:
       - wound-care-controller
-      operationId: list_6
+      operationId: list_9
       parameters:
       - name: admissionId
         in: path
@@ -2274,7 +2603,7 @@ paths:
     post:
       tags:
       - wound-care-controller
-      operationId: record_4
+      operationId: record_5
       parameters:
       - name: admissionId
         in: path
@@ -2299,7 +2628,7 @@ paths:
     post:
       tags:
       - ward-vitals-controller
-      operationId: record_5
+      operationId: record_6
       parameters:
       - name: admissionId
         in: path
@@ -2325,7 +2654,7 @@ paths:
     get:
       tags:
       - shift-handover-controller
-      operationId: list_7
+      operationId: list_10
       parameters:
       - name: admissionId
         in: path
@@ -2345,7 +2674,7 @@ paths:
     post:
       tags:
       - shift-handover-controller
-      operationId: record_6
+      operationId: record_7
       parameters:
       - name: admissionId
         in: path
@@ -2472,6 +2801,25 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/BedResponse"
+  /api/wards/{id}:
+    get:
+      tags:
+      - ward-controller
+      operationId: getById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WardResponse"
   /api/triage-assessments:
     get:
       tags:
@@ -2531,7 +2879,7 @@ paths:
     get:
       tags:
       - surgery-order-controller
-      operationId: getById
+      operationId: getById_1
       parameters:
       - name: id
         in: path
@@ -2546,6 +2894,44 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SurgeryOrderResponse"
+  /api/suppliers:
+    get:
+      tags:
+      - supplier-controller
+      operationId: list_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupplierResponse"
+  /api/stores/mine:
+    get:
+      tags:
+      - store-controller
+      operationId: mine
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StoreResponse"
+  /api/stores/mine-pharmacy:
+    get:
+      tags:
+      - store-controller
+      operationId: minePharmacy
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StoreResponse"
   /api/stock-reports/valuation:
     get:
       tags:
@@ -2606,7 +2992,7 @@ paths:
     get:
       tags:
       - role-controller
-      operationId: list_1
+      operationId: list_3
       responses:
         "200":
           description: OK
@@ -2836,11 +3222,60 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PriceCatalogItemResponse"
+  /api/prescriptions/queue:
+    get:
+      tags:
+      - prescription-controller
+      operationId: queue
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PrescriptionQueueRowResponse"
+  /api/prescriptions/mine:
+    get:
+      tags:
+      - prescription-controller
+      operationId: mine_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PrescriptionHistoryResponse"
+  /api/prescriptions/by-encounter/{encounterId}:
+    get:
+      tags:
+      - prescription-controller
+      operationId: byEncounter
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PrescriptionHistoryResponse"
   /api/prescription-lines/{id}:
     get:
       tags:
       - prescription-line-controller
-      operationId: getById_1
+      operationId: getById_2
       parameters:
       - name: id
         in: path
@@ -2906,7 +3341,7 @@ paths:
     get:
       tags:
       - patient-controller
-      operationId: getById_2
+      operationId: getById_3
       parameters:
       - name: id
         in: path
@@ -2995,10 +3430,38 @@ paths:
               schema:
                 type: integer
                 format: int64
-  /api/lab-stock-requests/{id}:
+  /api/nursing-assignments/mine:
     get:
       tags:
-      - lab-stock-request-controller
+      - nursing-assignment-controller
+      operationId: mine_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NursingAssignmentHistoryRowResponse"
+  /api/lab-tests:
+    get:
+      tags:
+      - lab-test-controller
+      operationId: list_5
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabTestResponse"
+  /api/lab-tests/{id}:
+    get:
+      tags:
+      - lab-test-controller
       operationId: get
       parameters:
       - name: id
@@ -3013,12 +3476,204 @@ paths:
           content:
             '*/*':
               schema:
+                $ref: "#/components/schemas/LabTestResponse"
+  /api/lab-stock-requests/{id}:
+    get:
+      tags:
+      - lab-stock-request-controller
+      operationId: get_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
                 $ref: "#/components/schemas/LabStockRequestResponse"
+  /api/lab-stock-requests/pending:
+    get:
+      tags:
+      - lab-stock-request-controller
+      operationId: pending_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabStockRequestQueueRowResponse"
+  /api/lab-stock-requests/mine:
+    get:
+      tags:
+      - lab-stock-request-controller
+      operationId: mine_3
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabStockRequestResponse"
+  /api/lab-results/{id}:
+    get:
+      tags:
+      - lab-result-controller
+      operationId: get_2
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LabResultDetailResponse"
+  /api/lab-results/search:
+    get:
+      tags:
+      - lab-result-controller
+      operationId: search_4
+      parameters:
+      - name: patientId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: accessionNo
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabResultDetailResponse"
+  /api/lab-results/mine:
+    get:
+      tags:
+      - lab-result-controller
+      operationId: mine_4
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabResultDetailResponse"
+  /api/lab-results/machine-output/{objectKey}:
+    get:
+      tags:
+      - machine-output-controller
+      operationId: url
+      parameters:
+      - name: objectKey
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MachineOutputUrlResponse"
+  /api/lab-orders/{id}/result-entry-form:
+    get:
+      tags:
+      - result-entry-form-controller
+      operationId: resultEntryForm
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ResultEntryFormResponse"
+  /api/lab-orders/queue:
+    get:
+      tags:
+      - lab-order-controller
+      operationId: queue_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabOrderQueueRowResponse"
+  /api/lab-orders/mine:
+    get:
+      tags:
+      - lab-order-controller
+      operationId: mine_5
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabOrderHistoryResponse"
+  /api/lab-orders/by-encounter/{encounterId}:
+    get:
+      tags:
+      - lab-order-controller
+      operationId: byEncounter_1
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabOrderHistoryResponse"
   /api/items/{id}:
     get:
       tags:
       - item-controller
-      operationId: get_1
+      operationId: get_3
       parameters:
       - name: id
         in: path
@@ -3037,7 +3692,7 @@ paths:
     get:
       tags:
       - item-controller
-      operationId: search_4
+      operationId: search_5
       parameters:
       - name: q
         in: query
@@ -3057,7 +3712,7 @@ paths:
     get:
       tags:
       - misclassification-report-controller
-      operationId: get_2
+      operationId: get_4
       responses:
         "200":
           description: OK
@@ -3069,7 +3724,7 @@ paths:
     get:
       tags:
       - invoice-controller
-      operationId: getById_3
+      operationId: getById_4
       parameters:
       - name: id
         in: path
@@ -3109,7 +3764,7 @@ paths:
     get:
       tags:
       - insurance-scheme-controller
-      operationId: list_3
+      operationId: list_6
       responses:
         "200":
           description: OK
@@ -3218,7 +3873,7 @@ paths:
     get:
       tags:
       - encounter-controller
-      operationId: getById_4
+      operationId: getById_5
       parameters:
       - name: id
         in: path
@@ -3233,6 +3888,27 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/EncounterResponse"
+  /api/encounters/{encounterId}/vital-signs:
+    get:
+      tags:
+      - vital-signs-controller
+      operationId: byEncounter_2
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VitalSignsResponse"
   /api/encounters/{encounterId}/referral-candidates:
     get:
       tags:
@@ -3254,6 +3930,48 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ReferralCandidateResponse"
+  /api/encounters/{encounterId}/diagnoses:
+    get:
+      tags:
+      - consultation-record-controller
+      operationId: diagnoses
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiagnosisResponse"
+  /api/encounters/{encounterId}/consultation-records:
+    get:
+      tags:
+      - consultation-record-controller
+      operationId: byEncounter_3
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConsultationRecordResponse"
   /api/encounters/open-for-patient/{patientId}:
     get:
       tags:
@@ -3273,6 +3991,27 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/EncounterResponse"
+  /api/encounters/by-patient/{patientId}:
+    get:
+      tags:
+      - encounter-controller
+      operationId: byPatient_1
+      parameters:
+      - name: patientId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EncounterResponse"
   /api/dispenses/{id}/label:
     get:
       tags:
@@ -3292,11 +4031,45 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/DispenseLabelResponse"
+  /api/dispenses/patient-search:
+    get:
+      tags:
+      - dispense-controller
+      operationId: patientSearch
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DispenseHistoryResponse"
+  /api/dispenses/mine:
+    get:
+      tags:
+      - dispense-controller
+      operationId: mine_6
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DispenseHistoryResponse"
   /api/departments:
     get:
       tags:
       - department-controller
-      operationId: list_4
+      operationId: list_7
       responses:
         "200":
           description: OK
@@ -3306,6 +4079,41 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/DepartmentResponse"
+  /api/critical-result-notifications/by-result/{resultId}:
+    get:
+      tags:
+      - critical-result-notification-controller
+      operationId: byResult
+      parameters:
+      - name: resultId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CriticalResultNotificationResponse"
+  /api/consultation-records/incomplete:
+    get:
+      tags:
+      - consultation-record-controller
+      operationId: incomplete
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConsultationRecordResponse"
   /api/clinical/vital-reference-ranges:
     get:
       tags:
@@ -3383,7 +4191,7 @@ paths:
     get:
       tags:
       - invoice-write-off-controller
-      operationId: pending_1
+      operationId: pending_2
       responses:
         "200":
           description: OK
@@ -3416,7 +4224,7 @@ paths:
     get:
       tags:
       - refund-controller
-      operationId: pending_2
+      operationId: pending_3
       responses:
         "200":
           description: OK
@@ -3430,7 +4238,7 @@ paths:
     get:
       tags:
       - receivables-controller
-      operationId: list_5
+      operationId: list_8
       parameters:
       - name: payerCategory
         in: query
@@ -3499,7 +4307,7 @@ paths:
     get:
       tags:
       - credit-note-controller
-      operationId: pending_3
+      operationId: pending_4
       responses:
         "200":
           description: OK
@@ -3532,7 +4340,7 @@ paths:
     get:
       tags:
       - invoice-cancellation-controller
-      operationId: pending_4
+      operationId: pending_5
       responses:
         "200":
           description: OK
@@ -3582,7 +4390,7 @@ paths:
     get:
       tags:
       - admission-controller
-      operationId: getById_5
+      operationId: getById_6
       parameters:
       - name: id
         in: path
@@ -3601,7 +4409,7 @@ paths:
     get:
       tags:
       - medication-administration-controller
-      operationId: list_8
+      operationId: list_11
       parameters:
       - name: admissionId
         in: path
@@ -3643,7 +4451,7 @@ paths:
     get:
       tags:
       - ward-alert-notification-controller
-      operationId: list_9
+      operationId: list_12
       parameters:
       - name: admissionId
         in: path
@@ -3659,7 +4467,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/WardAlertNotification"
+                  $ref: "#/components/schemas/WardAlertNotificationResponse"
 components:
   schemas:
     TriageAssessmentDraftRequest:
@@ -3710,6 +4518,68 @@ components:
           type: object
           additionalProperties:
             type: object
+        updatedAt:
+          type: string
+          format: date-time
+    AutosaveConsultationRecordRequest:
+      type: object
+      properties:
+        historyOfPresentingIllness:
+          type: string
+        pastMedicalHistory:
+          type: string
+        pastSurgicalHistory:
+          type: string
+        familySocialHistory:
+          type: string
+        physicalExamination:
+          type: string
+        clinicalNotes:
+          type: string
+        treatmentPlan:
+          type: string
+    ConsultationRecordResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - OPEN
+          - FINALIZED
+          - ABANDONED
+        historyOfPresentingIllness:
+          type: string
+        pastMedicalHistory:
+          type: string
+        pastSurgicalHistory:
+          type: string
+        familySocialHistory:
+          type: string
+        physicalExamination:
+          type: string
+        clinicalNotes:
+          type: string
+        treatmentPlan:
+          type: string
+        retrospectiveCompletion:
+          type: boolean
+        retrospectiveNote:
+          type: string
+        completedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
         updatedAt:
           type: string
           format: date-time
@@ -4224,6 +5094,51 @@ components:
           type: string
           format: uuid
         cancelledAt:
+          type: string
+          format: date-time
+    RecordSurgeryVitalsRequest:
+      required:
+      - diastolicMmHg
+      - heightCm
+      - occurredAt
+      - pulseBpm
+      - respiratoryRate
+      - spo2Pct
+      - systolicMmHg
+      - temperatureC
+      - weightKg
+      type: object
+      properties:
+        temperatureC:
+          type: number
+          format: double
+        systolicMmHg:
+          type: number
+          format: double
+        diastolicMmHg:
+          type: number
+          format: double
+        pulseBpm:
+          type: number
+          format: double
+        respiratoryRate:
+          type: number
+          format: double
+        spo2Pct:
+          type: number
+          format: double
+        weightKg:
+          type: number
+          format: double
+        heightCm:
+          type: number
+          format: double
+        avpu:
+          type: string
+        bloodGlucoseMmol:
+          type: number
+          format: double
+        occurredAt:
           type: string
           format: date-time
     ReconcileEmergencyDraftProcedureNameRequest:
@@ -5168,6 +6083,73 @@ components:
           type: string
         active:
           type: boolean
+    CreateAllergyRequest:
+      required:
+      - description
+      type: object
+      properties:
+        encounterId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        reaction:
+          type: string
+        severity:
+          type: string
+        supersedesId:
+          type: string
+          format: uuid
+    AllergyRecordResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        reaction:
+          type: string
+        severity:
+          type: string
+        source:
+          type: string
+          enum:
+          - TRIAGE
+          - DOCTOR
+          - PHARMACIST
+          - PATIENT_REPORTED
+        recordedBy:
+          type: string
+          format: uuid
+        recordedByName:
+          type: string
+        recordedAt:
+          type: string
+          format: date-time
+        confirmationStatus:
+          type: string
+          enum:
+          - UNCONFIRMED
+          - CONFIRMED
+          - REFUTED
+        confirmedBy:
+          type: string
+          format: uuid
+        confirmedAt:
+          type: string
+          format: date-time
+        confirmationNote:
+          type: string
+        supersedesId:
+          type: string
+          format: uuid
     AddWatchlistEntryRequest:
       required:
       - innName
@@ -5214,6 +6196,10 @@ components:
         requestingStoreId:
           type: string
           format: uuid
+        requestNotes:
+          maxLength: 500
+          minLength: 0
+          type: string
     LabStockRequestResponse:
       type: object
       properties:
@@ -5244,6 +6230,8 @@ components:
           - REJECTED
           - CLOSED
         responseNotes:
+          type: string
+        requestNotes:
           type: string
     ReleaseLabStockRequestRequest:
       required:
@@ -5428,6 +6416,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ReagentRequest"
+    UploadMachineOutputResponse:
+      type: object
+      properties:
+        objectKey:
+          type: string
     PlaceLabOrderRequest:
       required:
       - encounterId
@@ -5477,6 +6470,96 @@ components:
         orderedAt:
           type: string
           format: date-time
+    ProposeLabItemRequest:
+      required:
+      - containerType
+      - expectedTatHours
+      - justification
+      - proposedClassification
+      - proposedName
+      - proposedPriceMinor
+      - specimenType
+      type: object
+      properties:
+        proposedName:
+          type: string
+        proposedClassification:
+          type: string
+        proposedPriceMinor:
+          minimum: 0
+          type: integer
+          format: int64
+        notes:
+          type: string
+        specimenType:
+          type: string
+        containerType:
+          type: string
+        expectedTatHours:
+          type: integer
+          format: int32
+        justification:
+          type: string
+        parameters:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProposedParameterRequest"
+    ProposedParameterRequest:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+        unit:
+          type: string
+        method:
+          type: string
+    LabItemProposalResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        proposedName:
+          type: string
+        proposedClassification:
+          type: string
+        proposedPriceMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        notes:
+          type: string
+        specimenType:
+          type: string
+        containerType:
+          type: string
+        expectedTatHours:
+          type: integer
+          format: int32
+        justification:
+          type: string
+        status:
+          type: string
+          enum:
+          - PROPOSED
+          - APPROVED
+          - REJECTED
+        parameters:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProposedParameterResponse"
+    ProposedParameterResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        unit:
+          type: string
+        method:
+          type: string
     CreateItemRequest:
       required:
       - classification
@@ -6025,6 +7108,29 @@ components:
         createdAt:
           type: string
           format: date-time
+    OpenConsultationResponse:
+      type: object
+      properties:
+        consultationRecordId:
+          type: string
+          format: uuid
+        encounter:
+          $ref: "#/components/schemas/EncounterResponse"
+    FinalizeConsultationRequest:
+      required:
+      - disposition
+      type: object
+      properties:
+        disposition:
+          type: string
+          enum:
+          - CONSULT_COMPLETE
+          - REFERRED_OUT
+          - DECEASED
+        retrospectiveCompletion:
+          type: boolean
+        retrospectiveNote:
+          type: string
     CloseEncounterRequest:
       required:
       - outcome
@@ -6310,6 +7416,56 @@ components:
             $ref: "#/components/schemas/DispenseLineResponse"
         prescriptionLine:
           $ref: "#/components/schemas/PrescriptionLineResponse"
+    AddDiagnosisRequest:
+      required:
+      - certainty
+      - icd10Code
+      type: object
+      properties:
+        icd10Code:
+          type: string
+        freeTextClarifier:
+          type: string
+        certainty:
+          type: string
+          enum:
+          - PROVISIONAL
+          - CONFIRMED
+          - RULED_OUT
+        isPrimary:
+          type: boolean
+    DiagnosisResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        consultationRecordId:
+          type: string
+          format: uuid
+        icd10Code:
+          type: string
+        icd10TitleSnapshot:
+          type: string
+        freeTextClarifier:
+          type: string
+        certainty:
+          type: string
+          enum:
+          - PROVISIONAL
+          - CONFIRMED
+          - RULED_OUT
+        isPrimary:
+          type: boolean
+        diagnosedBy:
+          type: string
+          format: uuid
+        diagnosedAt:
+          type: string
+          format: date-time
     OpenCashierShiftRequest:
       required:
       - facilityId
@@ -6700,6 +7856,19 @@ components:
         recordedAt:
           type: string
           format: date-time
+    ReconcileAllergyRequest:
+      required:
+      - decision
+      type: object
+      properties:
+        decision:
+          type: string
+          enum:
+          - UNCONFIRMED
+          - CONFIRMED
+          - REFUTED
+        confirmationNote:
+          type: string
     AdmitPatientRequest:
       required:
       - encounterId
@@ -7299,6 +8468,29 @@ components:
         updatedAt:
           type: string
           format: date-time
+    SupplierResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+    StoreResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+        facilityId:
+          type: string
+          format: uuid
     StockValuationResponse:
       type: object
       properties:
@@ -7533,6 +8725,99 @@ components:
           format: int64
         currencyCode:
           type: string
+    PrescriptionQueueRowResponse:
+      type: object
+      properties:
+        prescriptionLineId:
+          type: string
+          format: uuid
+        prescriptionOrderId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        patientName:
+          type: string
+        hospitalNumber:
+          type: string
+        itemId:
+          type: string
+          format: uuid
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        quantityPrescribed:
+          type: integer
+          format: int32
+        quantityDispensed:
+          type: integer
+          format: int32
+        remaining:
+          type: integer
+          format: int32
+        dosageInstructions:
+          type: string
+        status:
+          type: string
+          enum:
+          - AWAITING_DISPENSE
+          - PARTIALLY_DISPENSED
+          - COMPLETED
+          - CANCELLED
+          - UNAVAILABLE
+        prescribedAt:
+          type: string
+          format: date-time
+        gateSatisfied:
+          type: boolean
+        isEmergencyBypass:
+          type: boolean
+        isInpatient:
+          type: boolean
+        itemClassification:
+          type: string
+        itemForm:
+          type: string
+        wardId:
+          type: string
+          format: uuid
+        wardName:
+          type: string
+    PrescriptionHistoryResponse:
+      type: object
+      properties:
+        prescriptionLineId:
+          type: string
+          format: uuid
+        prescriptionOrderId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        quantityPrescribed:
+          type: integer
+          format: int32
+        prescribedBy:
+          type: string
+          format: uuid
+        prescribedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
     AllergyResponse:
       type: object
       properties:
@@ -7586,6 +8871,9 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/BatchAllocationResponse"
+        weightKg:
+          type: number
+          format: double
     ItemSummaryResponse:
       type: object
       properties:
@@ -7668,6 +8956,37 @@ components:
           type: boolean
         phone:
           type: string
+    NursingAssignmentHistoryRowResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        admissionId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        patientName:
+          type: string
+        hospitalNumber:
+          type: string
+        shift:
+          type: string
+          enum:
+          - MORNING
+          - AFTERNOON
+          - NIGHT
+        assignmentDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
     WatchlistListResponse:
       type: object
       properties:
@@ -7677,6 +8996,387 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/WatchlistEntryResponse"
+    LabTestParameterResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        unit:
+          type: string
+        sortOrder:
+          type: integer
+          format: int32
+        method:
+          type: string
+        loincCode:
+          type: string
+    LabTestResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        specimenType:
+          type: string
+        containerType:
+          type: string
+        expectedTatHours:
+          type: integer
+          format: int32
+        verificationLevel:
+          type: string
+          enum:
+          - NONE
+          - SELF
+          - SECOND_PERSON
+          - SPECIALIST
+        producesMachineOutput:
+          type: boolean
+        active:
+          type: boolean
+        parameters:
+          type: array
+          items:
+            $ref: "#/components/schemas/LabTestParameterResponse"
+    LabStockRequestQueueRowResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        requestedQuantity:
+          type: integer
+          format: int32
+        releasedQuantity:
+          type: integer
+          format: int32
+        remaining:
+          type: integer
+          format: int32
+        requestingStoreId:
+          type: string
+          format: uuid
+        requestedBy:
+          type: string
+          format: uuid
+        requestedByUsername:
+          type: string
+        requestedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+          - PENDING
+          - PARTIALLY_RELEASED
+          - RELEASED
+          - REJECTED
+          - CLOSED
+        requestNotes:
+          type: string
+    DetailParameterValueResponse:
+      type: object
+      properties:
+        parameterId:
+          type: string
+          format: uuid
+        parameterName:
+          type: string
+        unit:
+          type: string
+        method:
+          type: string
+        resultValue:
+          type: number
+          format: double
+        flag:
+          type: string
+        flagOverridden:
+          type: boolean
+        overrideReason:
+          type: string
+        normalLow:
+          type: number
+          format: double
+        normalHigh:
+          type: number
+          format: double
+        criticalLow:
+          type: number
+          format: double
+        criticalHigh:
+          type: number
+          format: double
+    LabResultDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        labOrderId:
+          type: string
+          format: uuid
+        specimenId:
+          type: string
+          format: uuid
+        accessionNo:
+          type: string
+        specimenType:
+          type: string
+        patientName:
+          type: string
+        hospitalNumber:
+          type: string
+        labTestCode:
+          type: string
+        labTestName:
+          type: string
+        clinicalIndication:
+          type: string
+        methodology:
+          type: string
+        reagentsUsedNote:
+          type: string
+        findings:
+          type: string
+        interpretation:
+          type: string
+        referenceRangeNote:
+          type: string
+        conclusion:
+          type: string
+        machineOutputObjectKey:
+          type: string
+        enteredByName:
+          type: string
+        enteredAt:
+          type: string
+          format: date-time
+        releasedAt:
+          type: string
+          format: date-time
+        verificationState:
+          type: string
+          enum:
+          - NOT_REQUIRED
+          - PENDING
+          - VERIFIED
+          - AMENDED
+          - LAPSED
+        verificationLevelApplied:
+          type: string
+          enum:
+          - NONE
+          - SELF
+          - SECOND_PERSON
+          - SPECIALIST
+        verifiedByName:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
+        amendsId:
+          type: string
+          format: uuid
+        amendsOriginalEnteredAt:
+          type: string
+          format: date-time
+        amendmentReason:
+          type: string
+        parameterValues:
+          type: array
+          items:
+            $ref: "#/components/schemas/DetailParameterValueResponse"
+    MachineOutputUrlResponse:
+      type: object
+      properties:
+        url:
+          type: string
+    ParameterFieldResponse:
+      type: object
+      properties:
+        parameterId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        unit:
+          type: string
+        sortOrder:
+          type: integer
+          format: int32
+        method:
+          type: string
+        normalLow:
+          type: number
+          format: double
+        normalHigh:
+          type: number
+          format: double
+        criticalLow:
+          type: number
+          format: double
+        criticalHigh:
+          type: number
+          format: double
+    ResultEntryFormResponse:
+      type: object
+      properties:
+        labOrderId:
+          type: string
+          format: uuid
+        specimenId:
+          type: string
+          format: uuid
+        accessionNo:
+          type: string
+        specimenQuality:
+          type: string
+          enum:
+          - ADEQUATE
+          - HAEMOLYSED
+          - CLOTTED
+          - INSUFFICIENT_VOLUME
+          - WRONG_CONTAINER
+          - MISLABELLED
+          - DELAYED_TRANSPORT
+        specimenQualityNote:
+          type: string
+        patientName:
+          type: string
+        hospitalNumber:
+          type: string
+        patientAgeYears:
+          type: integer
+          format: int32
+        patientSex:
+          type: string
+        labTestCode:
+          type: string
+        labTestName:
+          type: string
+        clinicalIndication:
+          type: string
+        producesMachineOutput:
+          type: boolean
+        parameters:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParameterFieldResponse"
+    LabOrderQueueRowResponse:
+      type: object
+      properties:
+        labOrderId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        patientName:
+          type: string
+        hospitalNumber:
+          type: string
+        labTestCode:
+          type: string
+        labTestName:
+          type: string
+        specimenType:
+          type: string
+        containerType:
+          type: string
+        expectedTatHours:
+          type: integer
+          format: int32
+        urgency:
+          type: string
+          enum:
+          - STAT
+          - URGENT
+          - ROUTINE
+        orderedAt:
+          type: string
+          format: date-time
+        gateSatisfied:
+          type: boolean
+        isEmergencyBypass:
+          type: boolean
+        specimenId:
+          type: string
+          format: uuid
+        accessionNo:
+          type: string
+        specimenStatus:
+          type: string
+          enum:
+          - COLLECTED
+          - IN_PROGRESS
+          - REJECTED
+        specimenQuality:
+          type: string
+          enum:
+          - ADEQUATE
+          - HAEMOLYSED
+          - CLOTTED
+          - INSUFFICIENT_VOLUME
+          - WRONG_CONTAINER
+          - MISLABELLED
+          - DELAYED_TRANSPORT
+        acceptedAt:
+          type: string
+          format: date-time
+        overdue:
+          type: boolean
+    LabOrderHistoryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        labTestCode:
+          type: string
+        labTestName:
+          type: string
+        orderedBy:
+          type: string
+          format: uuid
+        orderedAt:
+          type: string
+          format: date-time
+        urgency:
+          type: string
+          enum:
+          - STAT
+          - URGENT
+          - ROUTINE
+        status:
+          type: string
     ItemSearchResultResponse:
       type: object
       properties:
@@ -7842,6 +9542,52 @@ components:
         netMinor:
           type: integer
           format: int64
+    VitalSignsResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        context:
+          type: string
+          enum:
+          - TRIAGE
+          - CONSULTATION
+          - WARD_ROUNDS
+          - POST_OP
+        readings:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+        weightKg:
+          type: number
+          format: double
+        heightCm:
+          type: number
+          format: double
+        bmi:
+          type: number
+          format: double
+        avpu:
+          type: string
+          enum:
+          - ALERT
+          - VOICE
+          - PAIN
+          - UNRESPONSIVE
+        bloodGlucoseMmol:
+          type: number
+          format: double
+        recordedAt:
+          type: string
+          format: date-time
+        occurredAt:
+          type: string
+          format: date-time
     ReferralCandidateResponse:
       type: object
       properties:
@@ -7888,6 +9634,47 @@ components:
         expiryDate:
           type: string
           format: date
+    DispenseHistoryResponse:
+      type: object
+      properties:
+        dispenseId:
+          type: string
+          format: uuid
+        prescriptionLineId:
+          type: string
+          format: uuid
+        prescriptionOrderId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        patientName:
+          type: string
+        hospitalNumber:
+          type: string
+        itemCode:
+          type: string
+        itemName:
+          type: string
+        quantityDispensed:
+          type: integer
+          format: int32
+        dispensedAt:
+          type: string
+          format: date-time
+        dispensedBy:
+          type: string
+          format: uuid
+        dispensedByUsername:
+          type: string
+        counsellingNotes:
+          type: string
+        dispensingNotes:
+          type: string
     DepartmentResponse:
       type: object
       properties:
@@ -7898,6 +9685,30 @@ components:
           type: string
         name:
           type: string
+    CriticalResultNotificationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        parameterId:
+          type: string
+          format: uuid
+        value:
+          type: number
+          format: double
+        notifiedUserId:
+          type: string
+          format: uuid
+        notifiedAt:
+          type: string
+          format: date-time
+        acknowledgedAt:
+          type: string
+          format: date-time
+        escalatedAt:
+          type: string
+          format: date-time
     VitalReferenceRangeResponse:
       type: object
       properties:
@@ -8004,7 +9815,50 @@ components:
           format: int64
         currencyCode:
           type: string
-    WardAlertNotification:
+    WardPatientRowResponse:
+      type: object
+      properties:
+        admissionId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        patientName:
+          type: string
+        hospitalNumber:
+          type: string
+        bedId:
+          type: string
+          format: uuid
+        bedLabel:
+          type: string
+        orderedWardClass:
+          type: string
+          enum:
+          - GENERAL
+          - PRIVATE
+        wardStatus:
+          type: string
+          enum:
+          - ADMITTED
+          - STABLE
+          - CRITICAL
+          - DISCHARGED
+          - TRANSFERRED
+        admittedAt:
+          type: string
+          format: date-time
+        dischargeOrderedAt:
+          type: string
+          format: date-time
+        wardStatusSuggestedCriticalAt:
+          type: string
+          format: date-time
+    WardAlertNotificationResponse:
       type: object
       properties:
         id:
@@ -8045,7 +9899,7 @@ components:
         createdAt:
           type: string
           format: date-time
-        escalated:
-          type: boolean
         acknowledged:
+          type: boolean
+        escalated:
           type: boolean

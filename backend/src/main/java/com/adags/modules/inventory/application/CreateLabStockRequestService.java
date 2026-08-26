@@ -35,7 +35,8 @@ public class CreateLabStockRequestService {
                 .orElseThrow(() -> new NoSuchElementException("Store not found: " + command.requestingStoreId()));
 
         LabStockRequest request = LabStockRequest.request(
-                item.id(), command.requestedQuantity(), command.requestingStoreId(), command.requestedBy());
+                item.id(), command.requestedQuantity(), command.requestingStoreId(), command.requestedBy(),
+                command.requestNotes());
         return labStockRequestRepository.insert(request);
     }
 }

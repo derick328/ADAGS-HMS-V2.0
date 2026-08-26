@@ -42,6 +42,7 @@ import com.adags.modules.inventory.domain.LabStockRequestExceedsRequestedExcepti
 import com.adags.modules.inventory.domain.LabStockRequestNotOpenException;
 import com.adags.modules.inventory.domain.PharmacyItemProposalAlreadyReviewedException;
 import com.adags.modules.inventory.domain.PharmacyItemProposalSelfReviewNotAllowedException;
+import com.adags.modules.laboratory.application.MachineOutputStorageException;
 import com.adags.modules.laboratory.domain.CriticalNotificationAlreadyAcknowledgedException;
 import com.adags.modules.laboratory.domain.ImplausibleResultValueException;
 import com.adags.modules.laboratory.domain.MissingAmendmentReasonException;
@@ -190,6 +191,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CriticalNotificationAlreadyAcknowledgedException.class)
     public ProblemDetail handleCriticalNotificationAlreadyAcknowledged(CriticalNotificationAlreadyAcknowledgedException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(MachineOutputStorageException.class)
+    public ProblemDetail handleMachineOutputStorage(MachineOutputStorageException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, ex.getMessage());
     }
 
     @ExceptionHandler(DuplicateItemCodeException.class)

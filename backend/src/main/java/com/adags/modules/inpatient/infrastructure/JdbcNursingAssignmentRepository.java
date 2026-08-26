@@ -37,6 +37,13 @@ public class JdbcNursingAssignmentRepository implements NursingAssignmentReposit
     }
 
     @Override
+    public List<NursingAssignment> findByNurseId(UUID nurseId) {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE nurse_id = :nurseId ORDER BY assignment_date DESC, shift",
+                new MapSqlParameterSource("nurseId", nurseId), this::mapRow);
+    }
+
+    @Override
     public boolean existsForNurseAndAdmission(UUID admissionId, UUID nurseId) {
         Boolean exists = jdbcTemplate.queryForObject(
                 "SELECT EXISTS(SELECT 1 FROM nursing_assignment WHERE admission_id = :admissionId AND nurse_id = :nurseId)",

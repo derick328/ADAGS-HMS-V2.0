@@ -73,7 +73,7 @@ class PrepareProcedureItemServiceTest extends IntegrationTestSupport {
     void cleanUp() {
         jdbcTemplate.update("""
                 TRUNCATE procedure_item, surgery_order, theatre, stock_movement, stock_balance, stock_batch,
-                         item_classification_change, item, encounter, patient CASCADE
+                         item_classification_change, item, store, encounter, patient CASCADE
                 """, new MapSqlParameterSource());
     }
 

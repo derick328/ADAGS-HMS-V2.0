@@ -1,8 +1,10 @@
 package com.adags.modules.inventory.application;
 
+import com.adags.modules.inventory.InventoryFacade;
 import com.adags.modules.inventory.domain.DuplicateItemCodeException;
 import com.adags.modules.inventory.domain.Item;
 import com.adags.modules.inventory.domain.RegulatorySchedule;
+import com.adags.shared.kernel.ItemSummary;
 import com.adags.support.IntegrationTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +26,9 @@ class CreateItemServiceTest extends IntegrationTestSupport {
     private CreateItemService createItemService;
 
     @Autowired
+    private InventoryFacade inventoryFacade;
+
+    @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
 
     @AfterEach
@@ -40,6 +45,18 @@ class CreateItemServiceTest extends IntegrationTestSupport {
         assertThat(item.id()).isNotNull();
         assertThat(item.regulatorySchedule()).isEqualTo(RegulatorySchedule.UNCLASSIFIED);
         assertThat(item.active()).isFalse();
+    }
+
+    @Test
+    void itemSummaryCarriesTheCatalogueClassificationAndForm() {
+        Item item = createItemService.create(new CreateItemCommand(
+                "PCM500", "Paracetamol 500mg tablet", "ANALGESIC", "TABLET", "500mg", "TABLET", 100,
+                bootstrapAdminId()));
+
+        ItemSummary summary = inventoryFacade.findItemSummary(item.id()).orElseThrow();
+
+        assertThat(summary.classification()).isEqualTo("ANALGESIC");
+        assertThat(summary.form()).isEqualTo("TABLET");
     }
 
     @Test

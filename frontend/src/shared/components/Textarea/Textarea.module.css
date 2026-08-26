@@ -1,0 +1,204 @@
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.requiredMark {
+  margin-left: var(--space-1);
+  color: var(--text-muted);
+}
+
+/* ---- wrapper ---------------------------------------------------------------
+ * The visible border/background live here, not on the <textarea>, so icons
+ * can sit inside the same box and hover/focus/disabled/read-only can all be
+ * driven off the real textarea state via :has() rather than JS-computed
+ * modifier classes. */
+
+.wrap {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+/* Every border-color rule below is deliberately kept at equal specificity
+   (one class + at most one pseudo-class) so plain source order — not
+   :not()/:has() gymnastics or !important — decides the winner when several
+   apply at once. Error/success are declared last so they always win. */
+
+.wrap:hover {
+  border-color: var(--text-muted);
+}
+
+.wrap:focus-within {
+  border-color: var(--green-600);
+}
+
+.wrap.error {
+  border-color: var(--critical);
+}
+
+.wrap.success {
+  border-color: var(--success);
+}
+
+.wrap:has(textarea:read-only) {
+  background: var(--gray-50);
+  cursor: default;
+}
+
+.wrap:has(textarea:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrap {
+    transition: none;
+  }
+}
+
+/* ---- sizes -------------------------------------------------------------
+ * Padding + font-size only, no raw heights. */
+
+.sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.md {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+}
+
+.lg {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-lg);
+}
+
+/* Icon clearance overrides the size's own side padding. Icons are always
+   16px per STYLE_GUIDE §5, so the offset is the same at every size. Icons
+   are top-aligned (the wrap's align-items: flex-start), matching the first
+   line rather than floating mid-box on a tall field. */
+.hasLeadingIcon {
+  padding-left: calc(var(--space-3) + 16px + var(--space-2));
+}
+
+.hasTrailingIcon {
+  padding-right: calc(var(--space-3) + 16px + var(--space-2));
+}
+
+/* ---- textarea itself --------------------------------------------------------- */
+
+.textarea {
+  flex: 1;
+  width: 100%;
+  min-height: calc(1.4em * 2);
+  border: none;
+  background: transparent;
+  font: inherit;
+  line-height: 1.4;
+  color: var(--text-primary);
+  border-radius: var(--radius);
+}
+
+.textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.textarea:focus {
+  outline: none;
+}
+
+.textarea:disabled,
+.textarea:read-only {
+  cursor: inherit;
+}
+
+.resizeNone {
+  resize: none;
+}
+
+.resizeVertical {
+  resize: vertical;
+}
+
+.resizeBoth {
+  resize: both;
+}
+
+/* ---- icons ------------------------------------------------------------- */
+
+.leadingIcon,
+.trailingIcon {
+  position: absolute;
+  color: var(--text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.leadingIcon {
+  left: var(--space-3);
+}
+
+.trailingIcon {
+  right: var(--space-3);
+}
+
+/* Status icons (the auto Check/AlertCircle fallback) pick up the status
+   colour instead of the neutral default — shape carries the meaning either
+   way, but matching colour reads as one coherent signal rather than two. */
+.leadingIcon.error,
+.trailingIcon.error {
+  color: var(--critical);
+}
+
+.leadingIcon.success,
+.trailingIcon.success {
+  color: var(--success);
+}
+
+/* ---- footer: helper/error text + character count ------------------------- */
+
+.footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.message {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.messageError {
+  color: var(--critical);
+}
+
+.messageSuccess {
+  color: var(--success);
+}
+
+.count {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.countAtLimit {
+  color: var(--critical);
+}

@@ -6,6 +6,7 @@ import com.adags.modules.inpatient.domain.DischargeOrdererRole;
 import com.adags.modules.inpatient.domain.StaleAdmissionException;
 import com.adags.modules.inpatient.domain.WardClass;
 import com.adags.modules.inpatient.domain.WardStatus;
+import com.adags.shared.kernel.WardSummary;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -82,6 +83,33 @@ public class JdbcAdmissionRepository implements AdmissionRepository {
                  )
                 """;
         return jdbcTemplate.query(sql, new MapSqlParameterSource(), this::mapRow);
+    }
+
+    @Override
+    public List<Admission> findByCurrentWardId(UUID wardId) {
+        String sql = SELECT_COLUMNS + """
+                 WHERE EXISTS (
+                     SELECT 1 FROM bed_assignment ba JOIN bed b ON b.id = ba.bed_id
+                      WHERE ba.admission_id = admission.id AND ba.released_at IS NULL AND b.ward_id = :wardId
+                 )
+                 ORDER BY admitted_at
+                """;
+        return jdbcTemplate.query(sql, new MapSqlParameterSource("wardId", wardId), this::mapRow);
+    }
+
+    @Override
+    public Optional<WardSummary> findCurrentWardByEncounterId(UUID encounterId) {
+        String sql = """
+                SELECT w.id AS ward_id, w.name AS ward_name
+                FROM admission a
+                JOIN bed_assignment ba ON ba.admission_id = a.id AND ba.released_at IS NULL
+                JOIN bed b ON b.id = ba.bed_id
+                JOIN ward w ON w.id = b.ward_id
+                WHERE a.encounter_id = :encounterId AND a.actual_departure_at IS NULL
+                """;
+        return jdbcTemplate.query(sql, new MapSqlParameterSource("encounterId", encounterId),
+                        (rs, rowNum) -> new WardSummary((UUID) rs.getObject("ward_id"), rs.getString("ward_name")))
+                .stream().findFirst();
     }
 
     @Override

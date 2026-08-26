@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type CSSProperties } from 'react';
 import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { fetchDepartments } from '../../shared/api/departments';
 import { openEncounter, searchEncounters, type EncounterResponse } from '../../shared/api/encounters';
@@ -34,7 +35,6 @@ export function PatientIntakePage() {
   const { accessToken } = useAuth();
   const canSearch = usePermission('PATIENT_SEARCH');
   const canRegister = usePermission('PATIENT_CREATE');
-  const canOpenEncounter = usePermission('ENCOUNTER_OPEN');
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [showRegisterForm, setShowRegisterForm] = useState(false);
@@ -85,13 +85,18 @@ export function PatientIntakePage() {
         ) : !results || results.length === 0 ? (
           <EmptyState message={`No patients match "${submittedQuery}"`} />
         ) : (
-          <SearchResultsTable results={results} canOpenEncounter={canOpenEncounter} />
+          <SearchResultsTable results={results} />
         )}
 
-        {/* 05-receptionist.md §4.1: the entry point is a search box —
-            "Register new patient" appears below results, after a search
-            has run, never as a blank form from the nav. */}
-        {submittedQuery !== '' && canRegister && (
+        {/* Deliberately NOT gated on submittedQuery !== '' — deviates from
+            05-receptionist.md §4.1 ("must not be reachable as a blank form
+            from the nav") on explicit product-owner instruction, prioritising
+            registration speed over the UI search-first nudge. Duplicate
+            protection is unaffected: RegisterPatientService still runs full
+            duplicate detection (exact national_id, trigram name+DOB
+            similarity) server-side on every submit, independent of whether a
+            search ran first — see the duplicateCandidates handling below. */}
+        {canRegister && (
           <div style={{ marginTop: 'var(--space-4)' }}>
             <button type="button" className="btn btn-secondary" onClick={() => setShowRegisterForm((v) => !v)}>
               {showRegisterForm ? 'Cancel' : 'Register new patient'}
@@ -191,9 +196,13 @@ function PatientNameCell({ patientId }: { patientId: string | undefined }) {
   return <span style={{ fontWeight: 'var(--weight-medium)' }}>{patient?.fullName ?? '…'}</span>;
 }
 
-function SearchResultsTable({ results, canOpenEncounter }: { results: PatientSearchResult[]; canOpenEncounter: boolean }) {
+// Shared between the search-results row action and the post-registration
+// success panel — same "open an encounter for this patient" action, same
+// auto-pick-the-sole-department / else-show-a-picker behaviour either way.
+function SendToTriageControl({ patientId, onSent }: { patientId: string; onSent?: () => void }) {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
+  const canOpenEncounter = usePermission('ENCOUNTER_OPEN');
 
   const { data: departments } = useQuery({
     queryKey: ['departments'],
@@ -201,28 +210,60 @@ function SearchResultsTable({ results, canOpenEncounter }: { results: PatientSea
     enabled: accessToken != null && canOpenEncounter,
   });
 
-  const [pickingDepartmentFor, setPickingDepartmentFor] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
 
   const sendToTriage = useMutation({
-    mutationFn: (vars: { patientId: string; departmentId: string }) =>
-      openEncounter({ patientId: vars.patientId, departmentId: vars.departmentId }, accessToken as string),
+    mutationFn: (departmentId: string) => openEncounter({ patientId, departmentId }, accessToken as string),
     onSuccess: () => {
-      setPickingDepartmentFor(null);
+      setPicking(false);
       queryClient.invalidateQueries({ queryKey: ['here-now'] });
+      onSent?.();
     },
   });
 
-  function handleSendToTriage(patientId: string) {
+  if (!canOpenEncounter) {
+    return null;
+  }
+
+  function handleClick() {
     if (!departments || departments.length === 0) {
       return;
     }
     if (departments.length === 1) {
-      sendToTriage.mutate({ patientId, departmentId: departments[0].id as string });
+      sendToTriage.mutate(departments[0].id as string);
     } else {
-      setPickingDepartmentFor(patientId);
+      setPicking(true);
     }
   }
 
+  if (picking) {
+    return (
+      <select
+        autoFocus
+        onChange={(e) => sendToTriage.mutate(e.target.value)}
+        style={{ font: 'inherit' }}
+        defaultValue=""
+      >
+        <option value="" disabled>
+          Choose department…
+        </option>
+        {departments?.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.name}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  return (
+    <button type="button" className="btn btn-primary" disabled={sendToTriage.isPending} onClick={handleClick}>
+      Send to triage
+    </button>
+  );
+}
+
+function SearchResultsTable({ results }: { results: PatientSearchResult[] }) {
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
       <table className="table">
@@ -251,33 +292,7 @@ function SearchResultsTable({ results, canOpenEncounter }: { results: PatientSea
               <td>{ageFromDob(patient.dateOfBirth)}</td>
               <td>{formatPhone(patient.phone)}</td>
               <td style={{ width: 1, whiteSpace: 'nowrap' }}>
-                {canOpenEncounter &&
-                  (pickingDepartmentFor === patient.id ? (
-                    <select
-                      autoFocus
-                      onChange={(e) => sendToTriage.mutate({ patientId: patient.id as string, departmentId: e.target.value })}
-                      style={{ font: 'inherit' }}
-                      defaultValue=""
-                    >
-                      <option value="" disabled>
-                        Choose department…
-                      </option>
-                      {departments?.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      disabled={sendToTriage.isPending}
-                      onClick={() => handleSendToTriage(patient.id as string)}
-                    >
-                      Send to triage
-                    </button>
-                  ))}
+                <SendToTriageControl patientId={patient.id as string} />
               </td>
             </tr>
           ))}
@@ -451,10 +466,14 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
           {registered.hospitalNo}
         </p>
         <p style={{ color: 'var(--text-secondary)' }}>{registered.fullName}</p>
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
           <button type="button" className="btn btn-secondary" onClick={() => window.print()}>
             Print card
           </button>
+          <SendToTriageControl patientId={registered.id as string} onSent={onRegistered} />
+          <Link to={`/receptionist/patient-records?patientId=${registered.id}`} className="btn btn-secondary">
+            View patient record
+          </Link>
           <button type="button" className="btn btn-ghost" onClick={onRegistered}>
             Done
           </button>

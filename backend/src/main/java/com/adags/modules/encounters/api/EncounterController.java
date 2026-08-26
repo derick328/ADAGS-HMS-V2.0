@@ -58,12 +58,17 @@ public class EncounterController {
         this.authorizationService = authorizationService;
     }
 
-    // Two callers share this list, each holding a different one of these
-    // permissions rather than both: the receptionist's "here now" panel
-    // (ENCOUNTER_OPEN) and the triage nurse's queue, 06-triage.md §1/§3,
-    // filtered to states=AWAITING_TRIAGE (TRIAGE_QUEUE_READ). Neither role
-    // is granted the other's permission (V5__full_permission_catalogue.sql),
-    // so this checks either rather than one.
+    // Three callers share this list, each holding a different one of these
+    // permissions rather than all three: the receptionist's "here now" panel
+    // (ENCOUNTER_OPEN), the triage nurse's queue, 06-triage.md §1/§3,
+    // filtered to states=AWAITING_TRIAGE (TRIAGE_QUEUE_READ), and the
+    // doctor's "My Queue", 07-doctor.md §2, filtered to
+    // states=AWAITING_CONSULT (CONSULTATION_CREATE — DOCTOR/
+    // SPECIALIST_DOCTOR hold this but neither ENCOUNTER_OPEN nor
+    // TRIAGE_QUEUE_READ, V5__full_permission_catalogue.sql). Filtering to
+    // "assigned to me" is the caller's own job (client-side, same as
+    // triage's queue), same reasoning as excludeTerminal/date bounds
+    // already being optional narrowing rather than mandatory scoping.
     @GetMapping
     public List<EncounterResponse> search(
             @RequestParam(required = false) List<EncounterState> states,
@@ -72,8 +77,29 @@ public class EncounterController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant createdTo,
             @AuthenticationPrincipal Actor actor
     ) {
-        requireAnyPermission(actor, "ENCOUNTER_OPEN", "TRIAGE_QUEUE_READ");
+        requireAny(actor, "ENCOUNTER_OPEN", "TRIAGE_QUEUE_READ", "CONSULTATION_CREATE");
         return encounterRepository.search(states, excludeTerminal, createdFrom, createdTo).stream()
+                .map(EncounterResponse::from)
+                .toList();
+    }
+
+    // 08-doctor-navigation.md §3.3: "My Patients" patient-detail timeline —
+    // every encounter for this patient, across every clinician (continuity
+    // requires seeing colleagues' visits too, not just this doctor's own).
+    // Unlike PatientController#getById (genuinely unscoped — Patient carries
+    // no facility_id at all), Encounter DOES carry department_id/facility_id
+    // on every row (root CLAUDE.md "Facility"), so this filters per-row to
+    // encounters the actor's own scoped assignment actually covers, rather
+    // than a single blanket permission check — a facility/global-scoped
+    // doctor still sees the full continuity-of-care timeline, a department-
+    // scoped one only sees the encounters within their own department
+    // (root CLAUDE.md "Authorisation": "a ward-scoped user must not see the
+    // same-named ward at another facility").
+    @GetMapping("/by-patient/{patientId}")
+    public List<EncounterResponse> byPatient(@PathVariable UUID patientId, @AuthenticationPrincipal Actor actor) {
+        return encounterRepository.findByPatientId(patientId).stream()
+                .filter(encounter -> authorizationService.hasAnyPermission(actor, ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId()),
+                        "PATIENT_READ_VISIT_HISTORY", "ENCOUNTER_OPEN", "CONSULTATION_CREATE"))
                 .map(EncounterResponse::from)
                 .toList();
     }
@@ -102,7 +128,15 @@ public class EncounterController {
     public EncounterResponse getById(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
         Encounter encounter = encounterRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + id));
-        requirePermission(actor, "ENCOUNTER_OPEN", ScopeType.DEPARTMENT, encounter.departmentId());
+        // TRIAGE_ASSESS added alongside ENCOUNTER_OPEN/CONSULTATION_CREATE —
+        // the Triage Assessment Form (06-triage.md Screen 2) fetches its own
+        // encounter by id the same way the doctor's consultation screen does;
+        // without it, a triage nurse holding only TRIAGE_QUEUE_READ (the
+        // queue LIST's permission, granted above in search()) could see an
+        // encounter in the queue but not open it, same DEPARTMENT scope
+        // TriageAssessmentDraftController#requireAssess already checks.
+        requireAny(actor, ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId()),
+                "ENCOUNTER_OPEN", "CONSULTATION_CREATE", "TRIAGE_ASSESS");
         return EncounterResponse.from(encounter);
     }
 
@@ -147,12 +181,15 @@ public class EncounterController {
         }
     }
 
-    private void requireAnyPermission(Actor actor, String... permissionCodes) {
-        for (String code : permissionCodes) {
-            if (authorizationService.hasPermission(actor, code)) {
-                return;
-            }
+    private void requireAny(Actor actor, String... permissionCodes) {
+        if (!authorizationService.hasAnyPermission(actor, permissionCodes)) {
+            throw new AccessDeniedException("Missing any of: " + String.join(", ", permissionCodes));
         }
-        throw new AccessDeniedException("Missing any of: " + String.join(", ", permissionCodes));
+    }
+
+    private void requireAny(Actor actor, ScopeRef targetScope, String... permissionCodes) {
+        if (!authorizationService.hasAnyPermission(actor, targetScope, permissionCodes)) {
+            throw new AccessDeniedException("Missing any of: " + String.join(", ", permissionCodes));
+        }
     }
 }

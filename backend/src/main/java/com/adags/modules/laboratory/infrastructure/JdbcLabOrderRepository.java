@@ -63,6 +63,35 @@ public class JdbcLabOrderRepository implements LabOrderRepository {
         return results.stream().findFirst();
     }
 
+    @Override
+    public List<LabOrder> findByOrderedBy(UUID orderedBy) {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE ordered_by = :orderedBy ORDER BY ordered_at DESC",
+                new MapSqlParameterSource("orderedBy", orderedBy),
+                this::mapRow);
+    }
+
+    @Override
+    public List<LabOrder> findByEncounterId(UUID encounterId) {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE encounter_id = :encounterId ORDER BY ordered_at DESC",
+                new MapSqlParameterSource("encounterId", encounterId),
+                this::mapRow);
+    }
+
+    @Override
+    public List<LabOrder> findOpenOrders() {
+        String sql = SELECT_COLUMNS + """
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM specimen sp
+                    JOIN lab_result lr ON lr.specimen_id = sp.id
+                    WHERE sp.lab_order_id = lab_order.id AND lr.released_at IS NOT NULL
+                )
+                ORDER BY ordered_at ASC
+                """;
+        return jdbcTemplate.query(sql, this::mapRow);
+    }
+
     private LabOrder mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new LabOrder(
                 (UUID) rs.getObject("id"),

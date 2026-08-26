@@ -1,10 +1,13 @@
 package com.adags.modules.inventory.api;
 
+import com.adags.modules.identity.IdentityFacade;
 import com.adags.modules.inventory.application.CreateLabStockRequestCommand;
 import com.adags.modules.inventory.application.CreateLabStockRequestService;
 import com.adags.modules.inventory.application.ReleaseLabStockRequestCommand;
 import com.adags.modules.inventory.application.ReleaseLabStockRequestService;
 import com.adags.modules.inventory.application.ReviewLabStockRequestService;
+import com.adags.modules.inventory.domain.Item;
+import com.adags.modules.inventory.domain.ItemRepository;
 import com.adags.modules.inventory.domain.LabStockRequest;
 import com.adags.modules.inventory.domain.LabStockRequestRepository;
 import com.adags.shared.authz.Actor;
@@ -21,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -35,6 +39,8 @@ public class LabStockRequestController {
     private final ReleaseLabStockRequestService releaseLabStockRequestService;
     private final ReviewLabStockRequestService reviewLabStockRequestService;
     private final LabStockRequestRepository labStockRequestRepository;
+    private final ItemRepository itemRepository;
+    private final IdentityFacade identityFacade;
     private final AuthorizationService authorizationService;
 
     public LabStockRequestController(
@@ -42,12 +48,16 @@ public class LabStockRequestController {
             ReleaseLabStockRequestService releaseLabStockRequestService,
             ReviewLabStockRequestService reviewLabStockRequestService,
             LabStockRequestRepository labStockRequestRepository,
+            ItemRepository itemRepository,
+            IdentityFacade identityFacade,
             AuthorizationService authorizationService
     ) {
         this.createLabStockRequestService = createLabStockRequestService;
         this.releaseLabStockRequestService = releaseLabStockRequestService;
         this.reviewLabStockRequestService = reviewLabStockRequestService;
         this.labStockRequestRepository = labStockRequestRepository;
+        this.itemRepository = itemRepository;
+        this.identityFacade = identityFacade;
         this.authorizationService = authorizationService;
     }
 
@@ -56,8 +66,19 @@ public class LabStockRequestController {
     public LabStockRequestResponse create(@Valid @RequestBody CreateLabStockRequestRequest request, @AuthenticationPrincipal Actor actor) {
         requirePermission(actor, "LAB_STOCK_REQUEST_CREATE");
         LabStockRequest created = createLabStockRequestService.create(new CreateLabStockRequestCommand(
-                request.itemId(), request.requestedQuantity(), request.requestingStoreId(), actor.userId()));
+                request.itemId(), request.requestedQuantity(), request.requestingStoreId(), actor.userId(),
+                request.requestNotes()));
         return LabStockRequestResponse.from(created);
+    }
+
+    // 15-lab-technician.md §5: the Stock Requests screen's own list —
+    // status, response notes, pending count for the sidebar badge.
+    @GetMapping("/mine")
+    public List<LabStockRequestResponse> mine(@AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "LAB_STOCK_REQUEST_CREATE");
+        return labStockRequestRepository.findByRequestedBy(actor.userId()).stream()
+                .map(LabStockRequestResponse::from)
+                .toList();
     }
 
     @GetMapping("/{id}")
@@ -66,6 +87,24 @@ public class LabStockRequestController {
         LabStockRequest request = labStockRequestRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Lab stock request not found: " + id));
         return LabStockRequestResponse.from(request);
+    }
+
+    // 12-pharmacist.md §8: the pharmacist's review queue — every open
+    // request across every lab technician, oldest first.
+    @GetMapping("/pending")
+    public List<LabStockRequestQueueRowResponse> pending(@AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "LAB_STOCK_REQUEST_REVIEW");
+        return labStockRequestRepository.findOpen().stream().map(this::toQueueRow).toList();
+    }
+
+    private LabStockRequestQueueRowResponse toQueueRow(LabStockRequest request) {
+        Item item = itemRepository.findById(request.itemId()).orElse(null);
+        String requestedByUsername = identityFacade.findUsername(request.requestedBy()).orElse(null);
+        return new LabStockRequestQueueRowResponse(
+                request.id(), request.itemId(), item == null ? null : item.code(),
+                item == null ? "Unknown item" : item.name(), request.requestedQuantity(), request.releasedQuantity(),
+                request.remaining(), request.requestingStoreId(), request.requestedBy(), requestedByUsername,
+                request.requestedAt(), request.status(), request.requestNotes());
     }
 
     @PostMapping("/{id}/release")

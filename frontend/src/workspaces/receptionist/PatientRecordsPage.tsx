@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { searchInvoices } from '../../shared/api/invoices';
 import { fetchPatientById, fetchVisitHistory, searchPatients, type PatientResponse } from '../../shared/api/patients';
 import { useAuth } from '../../shared/auth/AuthProvider';
@@ -18,7 +19,12 @@ export function PatientRecordsPage() {
   const canSearch = usePermission('PATIENT_SEARCH');
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  // Deep-linked from Patient Intake's "View patient record" — a direct link
+  // to one specific record the receptionist just interacted with, not a
+  // browse. Still gated behind PATIENT_READ_DEMOGRAPHIC server-side same as
+  // any other lookup here.
+  const [searchParams] = useSearchParams();
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(searchParams.get('patientId'));
   const { accessToken } = useAuth();
 
   const { data: results, isLoading } = useQuery({
@@ -65,7 +71,7 @@ export function PatientRecordsPage() {
       {!canSearch ? (
         <p style={{ color: 'var(--text-muted)' }}>You don't hold PATIENT_SEARCH.</p>
       ) : submittedQuery === '' ? (
-        <EmptyState message="Search for a patient to see their record." />
+        selectedPatientId ? null : <EmptyState message="Search for a patient to see their record." />
       ) : isLoading ? (
         <EmptyState message="Searching…" />
       ) : !results || results.length === 0 ? (

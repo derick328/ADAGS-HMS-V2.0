@@ -1,0 +1,80 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100vh;
+  padding: var(--space-6);
+  background: var(--bg-page);
+}
+
+.back {
+  color: var(--text-link);
+  font-size: var(--text-sm);
+}
+
+.devbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.devbarLabel {
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+}
+
+.shellWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* ---- detail content (layout only) ---------------------------------- */
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.detailHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.detailName {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.kv dt {
+  color: var(--text-muted);
+}
+
+.kv dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.actionNote {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}

@@ -17,6 +17,7 @@ public record DispenseContext(
         ItemSummary item,
         List<AllergySummary> allergies,
         List<BatchAvailability> availableBatches,
-        List<BatchAllocation> fefoSuggestion
+        List<BatchAllocation> fefoSuggestion,
+        Double weightKg
 ) {
 }

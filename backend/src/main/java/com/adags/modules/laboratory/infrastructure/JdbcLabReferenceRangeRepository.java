@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -64,6 +65,18 @@ public class JdbcLabReferenceRangeRepository implements LabReferenceRangeReposit
                 ORDER BY age_min_months
                 """;
         return jdbcTemplate.query(sql, new MapSqlParameterSource("parameterId", parameterId), this::mapRow);
+    }
+
+    @Override
+    public Optional<LabReferenceRange> findById(UUID id) {
+        String sql = """
+                SELECT id, parameter_id, age_min_months, age_max_months, sex,
+                       implausible_low, implausible_high, normal_low, normal_high, critical_low, critical_high,
+                       effective_from, effective_to, created_by, created_at
+                FROM lab_reference_range
+                WHERE id = :id
+                """;
+        return jdbcTemplate.query(sql, new MapSqlParameterSource("id", id), this::mapRow).stream().findFirst();
     }
 
     private LabReferenceRange mapRow(ResultSet rs, int rowNum) throws SQLException {

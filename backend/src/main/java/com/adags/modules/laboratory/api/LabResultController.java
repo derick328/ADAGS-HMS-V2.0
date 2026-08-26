@@ -11,25 +11,39 @@ import com.adags.modules.laboratory.application.VerifyLabResultCommand;
 import com.adags.modules.laboratory.application.VerifyLabResultService;
 import com.adags.modules.laboratory.domain.LabOrder;
 import com.adags.modules.laboratory.domain.LabOrderRepository;
+import com.adags.modules.laboratory.domain.LabReferenceRange;
+import com.adags.modules.laboratory.domain.LabReferenceRangeRepository;
 import com.adags.modules.laboratory.domain.LabResult;
+import com.adags.modules.laboratory.domain.LabResultParameterValue;
+import com.adags.modules.laboratory.domain.LabResultParameterValueRepository;
 import com.adags.modules.laboratory.domain.LabResultRepository;
+import com.adags.modules.laboratory.domain.LabTest;
+import com.adags.modules.laboratory.domain.LabTestParameter;
+import com.adags.modules.laboratory.domain.LabTestParameterRepository;
+import com.adags.modules.laboratory.domain.LabTestRepository;
 import com.adags.modules.laboratory.domain.Specimen;
 import com.adags.modules.laboratory.domain.SpecimenRepository;
+import com.adags.modules.identity.IdentityFacade;
+import com.adags.modules.patients.PatientFacade;
 import com.adags.shared.authz.Actor;
 import com.adags.shared.authz.AuthorizationService;
 import com.adags.shared.authz.ScopeRef;
 import com.adags.shared.authz.ScopeType;
+import com.adags.shared.kernel.PatientIdentity;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -46,6 +60,12 @@ public class LabResultController {
     private final SpecimenRepository specimenRepository;
     private final LabOrderRepository labOrderRepository;
     private final LabResultRepository labResultRepository;
+    private final LabResultParameterValueRepository labResultParameterValueRepository;
+    private final LabTestRepository labTestRepository;
+    private final LabTestParameterRepository labTestParameterRepository;
+    private final LabReferenceRangeRepository labReferenceRangeRepository;
+    private final PatientFacade patientFacade;
+    private final IdentityFacade identityFacade;
     private final AuthorizationService authorizationService;
 
     public LabResultController(
@@ -55,6 +75,12 @@ public class LabResultController {
             SpecimenRepository specimenRepository,
             LabOrderRepository labOrderRepository,
             LabResultRepository labResultRepository,
+            LabResultParameterValueRepository labResultParameterValueRepository,
+            LabTestRepository labTestRepository,
+            LabTestParameterRepository labTestParameterRepository,
+            LabReferenceRangeRepository labReferenceRangeRepository,
+            PatientFacade patientFacade,
+            IdentityFacade identityFacade,
             AuthorizationService authorizationService
     ) {
         this.recordLabResultService = recordLabResultService;
@@ -63,6 +89,12 @@ public class LabResultController {
         this.specimenRepository = specimenRepository;
         this.labOrderRepository = labOrderRepository;
         this.labResultRepository = labResultRepository;
+        this.labResultParameterValueRepository = labResultParameterValueRepository;
+        this.labTestRepository = labTestRepository;
+        this.labTestParameterRepository = labTestParameterRepository;
+        this.labReferenceRangeRepository = labReferenceRangeRepository;
+        this.patientFacade = patientFacade;
+        this.identityFacade = identityFacade;
         this.authorizationService = authorizationService;
     }
 
@@ -111,6 +143,101 @@ public class LabResultController {
 
         String comment = request == null ? null : request.verificationComment();
         verifyLabResultService.verify(new VerifyLabResultCommand(id, actor.userId(), comment));
+    }
+
+    // 15-lab-technician.md §9: the printable-report / amendment-supersession
+    // detail view. Also what an amended result's "supersedes" line reads
+    // its original from (amendsId -> another call to this same endpoint).
+    @GetMapping("/{id}")
+    public LabResultDetailResponse get(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
+        LabResult result = labResultRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Lab result not found: " + id));
+        LabOrder order = labOrderRepository.findById(result.labOrderId())
+                .orElseThrow(() -> new NoSuchElementException("Lab order not found: " + result.labOrderId()));
+        requirePermission(actor, "LAB_RESULT_READ", order.facilityId());
+        return toDetailResponse(result, order);
+    }
+
+    // §9: "My results" — this technician's own completed work.
+    @GetMapping("/mine")
+    public List<LabResultDetailResponse> mine(@AuthenticationPrincipal Actor actor) {
+        if (!authorizationService.hasPermission(actor, "LAB_RESULT_READ")) {
+            throw new AccessDeniedException("Missing permission: LAB_RESULT_READ");
+        }
+        return labResultRepository.findByEnteredBy(actor.userId()).stream()
+                .map(r -> toDetailResponse(r, requireOrder(r)))
+                .toList();
+    }
+
+    // §9: "Patient lookup" — by patient or accession, every result
+    // regardless of technician. At least one of the two params is required.
+    @GetMapping("/search")
+    public List<LabResultDetailResponse> search(
+            @RequestParam(required = false) UUID patientId,
+            @RequestParam(required = false) String accessionNo,
+            @AuthenticationPrincipal Actor actor
+    ) {
+        if (!authorizationService.hasPermission(actor, "LAB_RESULT_READ")
+                || !authorizationService.hasPermission(actor, "PATIENT_READ_DEMOGRAPHIC")) {
+            throw new AccessDeniedException("Missing permission: LAB_RESULT_READ");
+        }
+        if ((patientId == null) && (accessionNo == null || accessionNo.isBlank())) {
+            throw new IllegalArgumentException("Provide a patientId or an accessionNo to search.");
+        }
+        List<LabResult> results = accessionNo != null && !accessionNo.isBlank()
+                ? labResultRepository.findByAccessionNo(accessionNo)
+                : labResultRepository.findByPatientId(patientId);
+        return results.stream().map(r -> toDetailResponse(r, requireOrder(r))).toList();
+    }
+
+    private LabOrder requireOrder(LabResult result) {
+        return labOrderRepository.findById(result.labOrderId())
+                .orElseThrow(() -> new NoSuchElementException("Lab order not found: " + result.labOrderId()));
+    }
+
+    private LabResultDetailResponse toDetailResponse(LabResult result, LabOrder order) {
+        LabTest test = labTestRepository.findById(order.labTestId()).orElse(null);
+        Specimen specimen = specimenRepository.findById(result.specimenId()).orElse(null);
+        PatientIdentity identity = patientFacade.findIdentity(order.patientId()).orElse(null);
+        String enteredByName = identityFacade.findUsername(result.enteredBy()).orElse(null);
+        String verifiedByName = result.verifiedBy() == null
+                ? null : identityFacade.findUsername(result.verifiedBy()).orElse(null);
+        Instant amendsOriginalEnteredAt = result.amendsId() == null
+                ? null : labResultRepository.findById(result.amendsId()).map(LabResult::enteredAt).orElse(null);
+
+        List<LabTestParameter> parameterDefinitions = test == null
+                ? List.of() : labTestParameterRepository.findByTestId(test.id());
+        List<LabResultDetailResponse.DetailParameterValueResponse> parameterValues =
+                labResultParameterValueRepository.findByResultId(result.id()).stream()
+                        .map(value -> toDetailParameterValue(value, parameterDefinitions))
+                        .toList();
+
+        return new LabResultDetailResponse(
+                result.id(), result.labOrderId(), result.specimenId(),
+                specimen == null ? null : specimen.accessionNo(), specimen == null ? null : specimen.sampleType(),
+                identity == null ? null : identity.fullName(), identity == null ? null : identity.hospitalNumber(),
+                test == null ? null : test.code(), test == null ? "Unknown test" : test.name(),
+                order.clinicalIndication(),
+                result.methodology(), result.reagentsUsedNote(), result.findings(), result.interpretation(),
+                result.referenceRangeNote(), result.conclusion(), result.machineOutputObjectKey(),
+                enteredByName, result.enteredAt(), result.releasedAt(),
+                result.verificationState(), result.verificationLevelApplied(), verifiedByName, result.verifiedAt(),
+                result.amendsId(), amendsOriginalEnteredAt, result.amendmentReason(), parameterValues);
+    }
+
+    private LabResultDetailResponse.DetailParameterValueResponse toDetailParameterValue(
+            LabResultParameterValue value, List<LabTestParameter> parameterDefinitions
+    ) {
+        LabTestParameter definition = parameterDefinitions.stream()
+                .filter(p -> p.id().equals(value.parameterId())).findFirst().orElse(null);
+        LabReferenceRange range = value.appliedRangeId() == null
+                ? null : labReferenceRangeRepository.findById(value.appliedRangeId()).orElse(null);
+        return new LabResultDetailResponse.DetailParameterValueResponse(
+                value.parameterId(), definition == null ? null : definition.name(),
+                definition == null ? null : definition.unit(), definition == null ? null : definition.method(),
+                value.resultValue(), value.flag().name(), value.flagOverridden(), value.overrideReason(),
+                range == null ? null : range.normalLow(), range == null ? null : range.normalHigh(),
+                range == null ? null : range.criticalLow(), range == null ? null : range.criticalHigh());
     }
 
     private List<ParameterEntry> toParameterEntries(List<ParameterValueRequest> requests) {

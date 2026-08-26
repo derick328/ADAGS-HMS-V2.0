@@ -27,6 +27,5 @@ cd backend
 IN ANOTHER TERMINAL
 -- FRONTEND
 cd ~/ADAGS-HMS-V2.0/frontend
-npm install
-npm run generate-api-types
-npm run dev
+pnpm run generate-api-types
+pnpm run dev

@@ -1,0 +1,103 @@
+/* Tooltip — a small floating description that sits above the page.
+ *
+ * Tokens only (STYLE_GUIDE.md §1, §2, §3, §8). Flat --bg-surface fill, a
+ * hairline --border, and the "raised" elevation shadow (--shadow, the §8 tier
+ * for "dropdowns, popovers, tooltips"). --radius-sm per §1.
+ *
+ * The only non-stylesheet values are the computed position and resolved side,
+ * injected by the component as the custom properties --tt-x / --tt-y /
+ * --tt-arrow and the data-placement / data-positioned attributes — the same
+ * imperative escape hatch Modal uses for the scroll lock. Everything visual is
+ * here and token-driven. All motion is re-declared to none under
+ * prefers-reduced-motion at the foot of this file.
+ */
+
+.tooltip {
+  position: fixed;
+  left: var(--tt-x, 0);
+  top: var(--tt-y, 0);
+  z-index: 1100; /* above the Modal backdrop (1000) so tooltips inside dialogs show */
+  max-width: 40ch; /* line-length measure, not a spacing token */
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  font-family: var(--font-sans);
+  line-height: 1.4; /* §3: set locally */
+  pointer-events: none; /* never sits between the user and the trigger */
+  opacity: 0; /* hidden until updatePosition() has measured and placed it */
+}
+
+/* Revealed once measured. The layout effect runs before paint, so the entry
+   animation always starts from the correct position — no flash at 0,0. */
+.tooltip[data-positioned='true'] {
+  opacity: 1;
+  animation: tooltip-in var(--duration-fast) var(--ease-standard);
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sm {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.md {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-normal);
+}
+
+/* ---- arrow ---------------------------------------------------------------
+ * An 8px (--space-2) square rotated 45deg. z-index: -1 drops it behind the
+ * tooltip's own opaque fill, so the body hides its two inner border edges and
+ * only the two outer hairline edges show past the tooltip edge. */
+
+.arrow {
+  position: absolute;
+  z-index: -1;
+  width: var(--space-2);
+  height: var(--space-2);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  transform: rotate(45deg);
+}
+
+.tooltip[data-placement='top'] .arrow,
+.tooltip[data-placement='bottom'] .arrow {
+  left: calc(var(--tt-arrow) - var(--space-1));
+}
+.tooltip[data-placement='left'] .arrow,
+.tooltip[data-placement='right'] .arrow {
+  top: calc(var(--tt-arrow) - var(--space-1));
+}
+
+.tooltip[data-placement='top'] .arrow {
+  bottom: calc(var(--space-1) * -1);
+}
+.tooltip[data-placement='bottom'] .arrow {
+  top: calc(var(--space-1) * -1);
+}
+.tooltip[data-placement='left'] .arrow {
+  right: calc(var(--space-1) * -1);
+}
+.tooltip[data-placement='right'] .arrow {
+  left: calc(var(--space-1) * -1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip[data-positioned='true'] {
+    animation: none;
+  }
+}

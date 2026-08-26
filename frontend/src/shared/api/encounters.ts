@@ -35,6 +35,11 @@ export function fetchEncounterById(id: string, accessToken: string): Promise<Enc
   return authFetch(`/api/encounters/${id}`, accessToken);
 }
 
+/** 08-doctor-navigation.md §3.3: every encounter for this patient, across every clinician — the patient timeline's spine. */
+export function fetchEncountersByPatient(patientId: string, accessToken: string): Promise<EncounterResponse[]> {
+  return authFetch(`/api/encounters/by-patient/${patientId}`, accessToken);
+}
+
 /** 02-billing-architecture.md §11: invoice creation's "default to the open encounter when there is one" lookup. Resolves to null (not an error) when there isn't one. */
 export function fetchOpenEncounterForPatient(patientId: string, accessToken: string): Promise<EncounterResponse | null> {
   return authFetch(`/api/encounters/open-for-patient/${patientId}`, accessToken);

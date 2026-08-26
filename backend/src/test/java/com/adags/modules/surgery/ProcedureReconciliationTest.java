@@ -86,7 +86,7 @@ class ProcedureReconciliationTest extends IntegrationTestSupport {
     void cleanUp() {
         jdbcTemplate.update("""
                 TRUNCATE anaesthesia_paper_record, surgical_checklist, procedure_item, surgery_order, theatre,
-                         stock_movement, stock_balance, stock_batch, item, encounter, patient CASCADE
+                         stock_movement, stock_balance, stock_batch, item, store, encounter, patient CASCADE
                 """, new MapSqlParameterSource());
     }
 

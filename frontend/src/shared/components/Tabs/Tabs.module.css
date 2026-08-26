@@ -1,0 +1,147 @@
+/* ADAGS tabs — tokens only. See STYLE_GUIDE.md §2, §3, §6, §8. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.tablist {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-1);
+}
+
+/* ---- tab ------------------------------------------------------------- */
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-normal);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.tab:hover:not(:disabled):not([aria-selected='true']) {
+  background: var(--gray-50);
+  color: var(--text-primary);
+}
+
+.tab[aria-selected='true'] {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.label {
+  display: inline-block;
+}
+
+/* ---- sizes (spacing + type scale, no new tokens) ------------------- */
+
+.sm .tab {
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.md .tab {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+}
+
+.lg .tab {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-lg);
+}
+
+/* ---- variant: default — tinted selected state --------------------- */
+
+.default .tab[aria-selected='true'] {
+  background: var(--green-100);
+}
+
+/* ---- variant: underline ------------------------------------------- */
+
+.underline .tablist {
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.underline .tab {
+  /* transparent baseline so selecting a tab doesn't shift layout */
+  border-bottom: var(--space-1) solid transparent;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  margin-bottom: -1px;
+}
+
+.underline .tab[aria-selected='true'] {
+  border-bottom-color: var(--green-600);
+}
+
+/* ---- variant: enclosed — folder tabs sitting on the panel -------- */
+
+/* No gap: the tablist rule doubles as the panel's top edge, and the active
+   tab merges into the box below it. */
+.root.enclosed {
+  gap: 0;
+}
+
+.enclosed .tablist {
+  border-bottom: 1px solid var(--border);
+}
+
+.enclosed .tab {
+  border-radius: var(--radius) var(--radius) 0 0;
+  margin-bottom: -1px;
+}
+
+.enclosed .tab[aria-selected='true'] {
+  background: var(--bg-surface);
+  border-color: var(--border);
+  /* merge the active tab's base into the panel below it */
+  border-bottom-color: var(--bg-surface);
+}
+
+.enclosed .panel:not([hidden]) {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: var(--space-4);
+}
+
+/* ---- panel ------------------------------------------------------- */
+
+.panel {
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  line-height: 1.4;
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab {
+    transition: none;
+  }
+}

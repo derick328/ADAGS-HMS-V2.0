@@ -13,8 +13,8 @@
   --green-signal: #7FFF00;   /* dark text only  — 16:1 on #173404 */
   --green-100:    #EAF3DE;   /* tinted rows, selected states */
   --green-200:    #C0DD97;   /* muted text on dark surfaces */
-  --green-400:    #8FC23C;
-  --green-500:    #639922;   /* success, positive status */
+  --green-400:    #8FC23C;   /* unused — reserved mid-ramp step, do not assign new meaning without updating STYLE_GUIDE.md */
+  --green-500:    #639922;   /* unused — reserved mid-ramp step, do not assign new meaning without updating STYLE_GUIDE.md */
   --green-600:    #3B6D11;   /* buttons, links — white text 5.6:1 */
   --green-800:    #24460A;
   --green-900:    #173404;   /* sidebar, headers */
@@ -34,13 +34,15 @@
    * Deliberately far from brand green in hue. Green means "active" and
    * "success" in this system, so clinical severity must not compete with it.
    */
-  --critical:      #C4183C;   /* IMMEDIATE, critical results, overdue doses */
+  --critical:      #C4183C;   /* IMMEDIATE, critical results, overdue doses. This system's danger/error token — do not add a separate --danger token */
   --critical-bg:   #FCEBEE;
   --warning:       #B8690A;   /* URGENT, expiring stock, unpaid */
   --warning-bg:    #FDF4E7;
   --info:          #1B6E9E;
   --info-bg:       #EBF4F9;
   --neutral-bg:    var(--gray-100);
+  --success:       var(--green-800);  /* confirmations, positive status text — mirrors .badge-success */
+  --success-bg:    var(--green-100);  /* success badge/banner background */
 
   /* ---- surfaces ------------------------------------------------------ */
   --bg-page:      var(--gray-50);
@@ -86,9 +88,25 @@
   --radius-lg: 12px;
   --radius-full: 999px;
 
-  --shadow-sm: 0 1px 2px rgb(35 38 31 / 0.06);
-  --shadow:    0 2px 8px rgb(35 38 31 / 0.08);
-  --shadow-lg: 0 8px 24px rgb(35 38 31 / 0.12);
+  /* ---- elevation -------------------------------------------------------
+   * Exactly two shadow levels. Everything else — cards, table containers,
+   * panels — sits flush on the page and is delimited with --border, not a
+   * shadow. A shadow means "this is floating above the page," so it is
+   * reserved for content that genuinely does that.
+   */
+  --shadow:    0 2px 8px rgb(35 38 31 / 0.08);   /* raised — dropdowns, popovers, menus */
+  --shadow-lg: 0 8px 24px rgb(35 38 31 / 0.12);  /* overlay — modals, dialogs, the auth card */
+
+  /* ---- motion ----------------------------------------------------------
+   * Transitions are a hover/focus courtesy, not a personality. Keep them
+   * short and linear-feeling; nothing should call attention to itself.
+   * Every animation must be wrapped in a prefers-reduced-motion guard at
+   * the point of use — there is no blanket override here.
+   */
+  --duration-fast: 120ms;  /* colour/border transitions — hover, focus-within */
+  --duration-base: 200ms;  /* layout-adjacent transitions — tab underline, panel open */
+  --duration-slow: 800ms;  /* looping motion — spinner rotation */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ---- layout -------------------------------------------------------- */
   --sidebar-width: 216px;
@@ -179,7 +197,7 @@ body {
 .badge-warning  { background: var(--warning-bg);   color: var(--warning); }
 .badge-info     { background: var(--info-bg);      color: var(--info); }
 .badge-neutral  { background: var(--neutral-bg);   color: var(--text-secondary); }
-.badge-success  { background: var(--green-100);    color: var(--green-800); }
+.badge-success  { background: var(--success-bg);   color: var(--success); }
 
 /* --------------------------------------------------------------------------
  * Tables — used by every queue and list

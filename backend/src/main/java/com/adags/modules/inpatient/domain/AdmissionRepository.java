@@ -1,5 +1,7 @@
 package com.adags.modules.inpatient.domain;
 
+import com.adags.shared.kernel.WardSummary;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +17,26 @@ public interface AdmissionRepository {
 
     /** Admissions with a currently active (unreleased) BedAssignment — the nightly accrual job's candidate set. */
     List<Admission> findAllWithActiveBedAssignment();
+
+    /**
+     * 17-ward-nurse.md §3: "Scope the ward patient list" — admissions whose
+     * currently active BedAssignment sits in wardId. Includes an admission
+     * with discharge_ordered_at set but not yet actually_departure_at (the
+     * bed is still occupied until the bed assignment is released), same as
+     * findAllWithActiveBedAssignment's join.
+     */
+    List<Admission> findByCurrentWardId(UUID wardId);
+
+    /**
+     * The ward this encounter's active admission currently occupies — its
+     * unreleased BedAssignment's bed's ward, id and name only. Empty when
+     * the encounter has no active admission (outpatient, or discharged with
+     * actual_departure_at set) or has one that is not yet bed-assigned.
+     * The same join as {@link #findByCurrentWardId}, read from the encounter
+     * end; a read projection, not an aggregate — the one caller (pharmacy's
+     * dispensing queue via InpatientFacade) needs only these two fields.
+     */
+    Optional<WardSummary> findCurrentWardByEncounterId(UUID encounterId);
 
     /**
      * 04-procedure-bedday-rules.md §3.6: sets discharge_ordered_at/by/role.

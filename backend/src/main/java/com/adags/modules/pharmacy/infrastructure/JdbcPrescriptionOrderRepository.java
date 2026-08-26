@@ -52,6 +52,22 @@ public class JdbcPrescriptionOrderRepository implements PrescriptionOrderReposit
         return results.stream().findFirst();
     }
 
+    @Override
+    public List<PrescriptionOrder> findByPrescribedBy(UUID prescribedBy) {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE prescribed_by = :prescribedBy ORDER BY prescribed_at DESC",
+                new MapSqlParameterSource("prescribedBy", prescribedBy),
+                this::mapRow);
+    }
+
+    @Override
+    public List<PrescriptionOrder> findByEncounterId(UUID encounterId) {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE encounter_id = :encounterId ORDER BY prescribed_at DESC",
+                new MapSqlParameterSource("encounterId", encounterId),
+                this::mapRow);
+    }
+
     private PrescriptionOrder mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new PrescriptionOrder(
                 (UUID) rs.getObject("id"),

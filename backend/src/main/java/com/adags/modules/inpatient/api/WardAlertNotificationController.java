@@ -3,7 +3,6 @@ package com.adags.modules.inpatient.api;
 import com.adags.modules.inpatient.application.AcknowledgeWardAlertService;
 import com.adags.modules.inpatient.domain.Admission;
 import com.adags.modules.inpatient.domain.AdmissionRepository;
-import com.adags.modules.inpatient.domain.WardAlertNotification;
 import com.adags.modules.inpatient.domain.WardAlertNotificationRepository;
 import com.adags.shared.authz.Actor;
 import com.adags.shared.authz.AuthorizationService;
@@ -48,9 +47,10 @@ public class WardAlertNotificationController {
     }
 
     @GetMapping
-    public List<WardAlertNotification> list(@PathVariable UUID admissionId, @AuthenticationPrincipal Actor actor) {
+    public List<WardAlertNotificationResponse> list(@PathVariable UUID admissionId, @AuthenticationPrincipal Actor actor) {
         requirePermission(actor, admissionId);
-        return wardAlertNotificationRepository.findByAdmissionId(admissionId);
+        return wardAlertNotificationRepository.findByAdmissionId(admissionId).stream()
+                .map(WardAlertNotificationResponse::from).toList();
     }
 
     @PostMapping("/{id}/acknowledge")

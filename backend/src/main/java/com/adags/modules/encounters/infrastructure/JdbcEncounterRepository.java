@@ -64,6 +64,14 @@ public class JdbcEncounterRepository implements EncounterRepository {
     }
 
     @Override
+    public List<Encounter> findByPatientId(UUID patientId) {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE patient_id = :patientId ORDER BY created_at DESC",
+                new MapSqlParameterSource("patientId", patientId),
+                this::mapRow);
+    }
+
+    @Override
     public List<Encounter> search(List<EncounterState> states, boolean excludeTerminal, Instant createdFrom, Instant createdTo) {
         StringBuilder sql = new StringBuilder(SELECT_COLUMNS).append(" WHERE 1 = 1");
         MapSqlParameterSource params = new MapSqlParameterSource();

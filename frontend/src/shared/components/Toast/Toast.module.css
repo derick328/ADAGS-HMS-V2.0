@@ -1,0 +1,186 @@
+/* Toast — a transient floating status message.
+ *
+ * A banner tint (STYLE_GUIDE §2: pale -bg fill), a hairline border, a left
+ * accent bar in the variant's -fg colour (the .row-critical / .row-warning
+ * pattern), and the raised elevation shadow (§8 — a toast genuinely floats).
+ * Title and description use the neutral text tokens, not the variant -fg:
+ * --warning / --info on their pale tints only clear ~4:1, borderline for
+ * body-size text. The variant reads from icon + bar + tint together (§1).
+ *
+ * The only non-token values: the close-button hover (color-mix on
+ * currentColor — the codebase's sanctioned "derive, don't invent a hex"
+ * pattern, see Button .danger:hover), and line-height 1.4 (§3 says set it
+ * locally). All motion is re-declared as none under prefers-reduced-motion. */
+
+.root {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-3);
+  width: min(100%, calc(var(--space-10) * 10));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: opacity var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
+}
+
+/* ---- lifecycle states -------------------------------------------------- */
+
+.entering,
+.exiting {
+  opacity: 0;
+  transform: translateY(var(--space-2));
+}
+
+.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---- sizes: padding + font-size only, no raw heights ------------------- */
+
+.sm {
+  padding: var(--space-2) var(--space-3);
+}
+
+.md {
+  padding: var(--space-3) var(--space-4);
+}
+
+.lg {
+  padding: var(--space-4) var(--space-5);
+}
+
+.sm .title {
+  font-size: var(--text-sm);
+}
+
+.md .title {
+  font-size: var(--text-base);
+}
+
+.lg .title {
+  font-size: var(--text-lg);
+}
+
+.sm .description {
+  font-size: var(--text-xs);
+}
+
+.md .description {
+  font-size: var(--text-sm);
+}
+
+.lg .description {
+  font-size: var(--text-base);
+}
+
+/* ---- variants --------------------------------------------------------------
+ * box-shadow carries two things at once: the inset left accent bar in the
+ * variant colour, then the shared raised elevation. */
+
+.success {
+  background: var(--success-bg);
+  box-shadow: inset var(--space-1) 0 0 var(--success), var(--shadow);
+}
+
+.info {
+  background: var(--info-bg);
+  box-shadow: inset var(--space-1) 0 0 var(--info), var(--shadow);
+}
+
+.warning {
+  background: var(--warning-bg);
+  box-shadow: inset var(--space-1) 0 0 var(--warning), var(--shadow);
+}
+
+.danger {
+  background: var(--critical-bg);
+  box-shadow: inset var(--space-1) 0 0 var(--critical), var(--shadow);
+}
+
+.success .icon {
+  color: var(--success);
+}
+
+.info .icon {
+  color: var(--info);
+}
+
+.warning .icon {
+  color: var(--warning);
+}
+
+.danger .icon {
+  color: var(--critical);
+}
+
+/* ---- content ------------------------------------------------------------ */
+
+.icon {
+  flex-shrink: 0;
+  /* nudge the icon onto the title's optical baseline */
+  margin-top: var(--space-1);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.description {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.actionRow {
+  margin-top: var(--space-2);
+}
+
+/* ---- close button ----------------------------------------------------------
+ * A repeated, learn-once affordance (STYLE_GUIDE §5) — icon-only with an
+ * aria-label is allowed. Focus ring comes from the global :focus-visible. */
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: var(--space-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.close:hover {
+  /* No overlay token exists; derive a faint wash from the current text
+     colour rather than introduce a hex (cf. Button .danger:hover). */
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  color: var(--text-primary);
+}
+
+/* ---- reduced motion -------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    transition: none;
+  }
+
+  .entering,
+  .exiting,
+  .visible {
+    transform: none;
+  }
+}

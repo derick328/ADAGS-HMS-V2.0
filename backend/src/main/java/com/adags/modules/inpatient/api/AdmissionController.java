@@ -22,11 +22,13 @@ import com.adags.modules.inpatient.domain.BedAssignment;
 import com.adags.modules.inpatient.domain.BedAssignmentRepository;
 import com.adags.modules.inpatient.domain.BedRepository;
 import com.adags.modules.inpatient.domain.NursingAssignment;
+import com.adags.modules.patients.PatientFacade;
 import com.adags.shared.authz.Actor;
 import com.adags.shared.authz.AuthorizationService;
 import com.adags.shared.authz.ScopeRef;
 import com.adags.shared.authz.ScopeType;
 import com.adags.shared.kernel.EncounterContext;
+import com.adags.shared.kernel.PatientIdentity;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -36,9 +38,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -57,6 +61,7 @@ public class AdmissionController {
     private final BedRepository bedRepository;
     private final BedAssignmentRepository bedAssignmentRepository;
     private final EncounterFacade encounterFacade;
+    private final PatientFacade patientFacade;
     private final AuthorizationService authorizationService;
 
     public AdmissionController(
@@ -71,6 +76,7 @@ public class AdmissionController {
             BedRepository bedRepository,
             BedAssignmentRepository bedAssignmentRepository,
             EncounterFacade encounterFacade,
+            PatientFacade patientFacade,
             AuthorizationService authorizationService
     ) {
         this.admitPatientService = admitPatientService;
@@ -84,7 +90,34 @@ public class AdmissionController {
         this.bedRepository = bedRepository;
         this.bedAssignmentRepository = bedAssignmentRepository;
         this.encounterFacade = encounterFacade;
+        this.patientFacade = patientFacade;
         this.authorizationService = authorizationService;
+    }
+
+    // 17-ward-nurse.md §3: "Scope the ward patient list" — the Dashboard and
+    // Ward Patients screens' single source list, one row per patient
+    // currently on wardId. Scoped at WARD, same as BED_ASSIGN/
+    // WARD_STATUS_UPDATE elsewhere in this controller — the wardId itself
+    // is the resource, not derived from an admission the caller already
+    // knows about.
+    @GetMapping
+    public List<WardPatientRowResponse> listByWard(@RequestParam UUID wardId, @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "WARD_PATIENT_READ", ScopeType.WARD, wardId);
+        return admissionRepository.findByCurrentWardId(wardId).stream().map(this::toWardPatientRow).toList();
+    }
+
+    private WardPatientRowResponse toWardPatientRow(Admission admission) {
+        PatientIdentity identity = patientFacade.findIdentity(admission.patientId()).orElse(null);
+        BedAssignment activeBed = bedAssignmentRepository.findActiveByAdmissionId(admission.id()).orElse(null);
+        Bed bed = activeBed == null ? null : bedRepository.findById(activeBed.bedId()).orElse(null);
+        return new WardPatientRowResponse(
+                admission.id(), admission.encounterId(), admission.patientId(),
+                identity == null ? null : identity.fullName(),
+                identity == null ? null : identity.hospitalNumber(),
+                bed == null ? null : bed.id(),
+                bed == null ? null : bed.label(),
+                admission.orderedWardClass(), admission.wardStatus(), admission.admittedAt(),
+                admission.dischargeOrderedAt(), admission.wardStatusSuggestedCriticalAt());
     }
 
     // 07-doctor.md §7's ADMITTED disposition. Scoped to the encounter's

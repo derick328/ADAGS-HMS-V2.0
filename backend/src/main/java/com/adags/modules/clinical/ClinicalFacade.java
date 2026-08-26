@@ -5,6 +5,7 @@ import com.adags.shared.kernel.WardVitalsResult;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 // The one public surface other modules may depend on (root CLAUDE.md
@@ -74,6 +75,33 @@ public interface ClinicalFacade {
     );
 
     /**
+     * 17-ward-nurse.md §10: "Post-op observations write to VitalSigns, not
+     * to a fourth set of columns" — POST_OP context, contextRefId = the
+     * surgery order id. No ward-alert-equivalent escalation exists for
+     * surgery yet (WardAlertNotification is inpatient-specific), so unlike
+     * recordWardVitalSigns this returns just the id; an abnormal reading is
+     * still snapshotted (abnormal flag + range id on the reading itself),
+     * a caller just isn't notified of it today.
+     */
+    UUID recordPostOpVitalSigns(
+            UUID encounterId,
+            UUID patientId,
+            UUID surgeryOrderId,
+            double temperatureC,
+            double systolicMmHg,
+            double diastolicMmHg,
+            double pulseBpm,
+            double respiratoryRate,
+            double spo2Pct,
+            double weightKg,
+            double heightCm,
+            String avpu,
+            Double bloodGlucoseMmol,
+            UUID recordedBy,
+            Instant occurredAt
+    );
+
+    /**
      * Appends an AllergyRecord to the patient — never an update (06-triage.md
      * §2.4: "written to the patient... so they persist to future visits").
      * source is the raw AllergySource enum name (e.g. "TRIAGE"). Returns the
@@ -110,4 +138,13 @@ public interface ClinicalFacade {
      * design.
      */
     List<AllergySummary> findAllergies(UUID patientId);
+
+    /**
+     * 12-pharmacist.md §5.2: "patient weight, for paediatric verification" —
+     * the most recently recorded weight for this encounter, from whichever
+     * VitalSigns context recorded it (TRIAGE, CONSULTATION, ...). Empty if
+     * no vitals have been recorded on this encounter at all — the caller
+     * shows nothing rather than a stale figure from a different visit.
+     */
+    Optional<Double> findLatestWeightKg(UUID encounterId);
 }

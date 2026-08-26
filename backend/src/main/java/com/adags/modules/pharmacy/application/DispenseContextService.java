@@ -70,6 +70,11 @@ public class DispenseContextService {
             }
         }
 
-        return new DispenseContext(line, item, allergies, availableBatches, fefoSuggestion);
+        // §5.2: "patient weight, for paediatric verification" — resolved
+        // from the order's own encounter, same as allergies are resolved
+        // from the order's own patient.
+        Double weightKg = clinicalFacade.findLatestWeightKg(order.encounterId()).orElse(null);
+
+        return new DispenseContext(line, item, allergies, availableBatches, fefoSuggestion, weightKg);
     }
 }

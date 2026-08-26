@@ -20,7 +20,7 @@ public class JdbcLabStockRequestRepository implements LabStockRequestRepository 
 
     private static final String SELECT_COLUMNS = """
             SELECT id, item_id, requested_quantity, released_quantity, requesting_store_id, requested_by,
-                   requested_at, status, response_notes, reviewed_by, reviewed_at
+                   requested_at, status, response_notes, reviewed_by, reviewed_at, request_notes
             FROM lab_stock_request
             """;
 
@@ -33,8 +33,8 @@ public class JdbcLabStockRequestRepository implements LabStockRequestRepository 
     @Override
     public LabStockRequest insert(LabStockRequest request) {
         String sql = """
-                INSERT INTO lab_stock_request (id, item_id, requested_quantity, requesting_store_id, requested_by)
-                VALUES (COALESCE(:id, gen_random_uuid()), :itemId, :requestedQuantity, :requestingStoreId, :requestedBy)
+                INSERT INTO lab_stock_request (id, item_id, requested_quantity, requesting_store_id, requested_by, request_notes)
+                VALUES (COALESCE(:id, gen_random_uuid()), :itemId, :requestedQuantity, :requestingStoreId, :requestedBy, :requestNotes)
                 RETURNING id, requested_at
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -42,12 +42,13 @@ public class JdbcLabStockRequestRepository implements LabStockRequestRepository 
                 .addValue("itemId", request.itemId())
                 .addValue("requestedQuantity", request.requestedQuantity())
                 .addValue("requestingStoreId", request.requestingStoreId())
-                .addValue("requestedBy", request.requestedBy());
+                .addValue("requestedBy", request.requestedBy())
+                .addValue("requestNotes", request.requestNotes(), Types.VARCHAR);
 
         return jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> new LabStockRequest(
                 (UUID) rs.getObject("id"), request.itemId(), request.requestedQuantity(), 0,
                 request.requestingStoreId(), request.requestedBy(), rs.getTimestamp("requested_at").toInstant(),
-                LabStockRequestStatus.PENDING, null, null, null));
+                LabStockRequestStatus.PENDING, null, null, null, request.requestNotes()));
     }
 
     @Override
@@ -55,6 +56,20 @@ public class JdbcLabStockRequestRepository implements LabStockRequestRepository 
         List<LabStockRequest> results = jdbcTemplate.query(
                 SELECT_COLUMNS + " WHERE id = :id", new MapSqlParameterSource("id", id), this::mapRow);
         return results.stream().findFirst();
+    }
+
+    @Override
+    public List<LabStockRequest> findByRequestedBy(UUID requestedBy) {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE requested_by = :requestedBy ORDER BY requested_at DESC",
+                new MapSqlParameterSource("requestedBy", requestedBy), this::mapRow);
+    }
+
+    @Override
+    public List<LabStockRequest> findOpen() {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE status IN ('PENDING', 'PARTIALLY_RELEASED') ORDER BY requested_at ASC",
+                this::mapRow);
     }
 
     @Override
@@ -88,6 +103,7 @@ public class JdbcLabStockRequestRepository implements LabStockRequestRepository 
                 LabStockRequestStatus.valueOf(rs.getString("status")),
                 rs.getString("response_notes"),
                 (UUID) rs.getObject("reviewed_by"),
-                reviewedAt == null ? null : reviewedAt.toInstant());
+                reviewedAt == null ? null : reviewedAt.toInstant(),
+                rs.getString("request_notes"));
     }
 }

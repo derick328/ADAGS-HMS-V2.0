@@ -34,7 +34,13 @@ async function parseJsonOrThrow<T>(response: Response): Promise<T> {
   if (!response.ok) {
     throw await toApiError(response);
   }
-  return response.json() as Promise<T>;
+  // A handful of endpoints return 200 with an empty body as their documented
+  // "found nothing, not an error" outcome (fetchOwnTriageDraft, fetchOpenEncounterForPatient
+  // — see their own doc comments). response.json() throws SyntaxError on an
+  // empty body instead of resolving null, which left every one of those
+  // callers' react-query state permanently pending.
+  const text = await response.text();
+  return (text === '' ? null : JSON.parse(text)) as T;
 }
 
 /** Shared fetch wrapper for authenticated JSON endpoints — every admin data module builds on this. */

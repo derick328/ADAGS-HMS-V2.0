@@ -49,6 +49,11 @@ public class JdbcSupplierRepository implements SupplierRepository {
         return results.stream().findFirst();
     }
 
+    @Override
+    public List<Supplier> findAllActive() {
+        return jdbcTemplate.query(SELECT_COLUMNS + " WHERE active = TRUE ORDER BY name", this::mapRow);
+    }
+
     private Supplier mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Supplier((UUID) rs.getObject("id"), rs.getString("code"), rs.getString("name"),
                 rs.getBoolean("active"), rs.getTimestamp("created_at").toInstant());

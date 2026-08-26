@@ -50,6 +50,15 @@ public class JdbcStoreRepository implements StoreRepository {
         return results.stream().findFirst();
     }
 
+    @Override
+    public Optional<Store> findByFacilityIdAndType(UUID facilityId, String type) {
+        List<Store> results = jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE facility_id = :facilityId AND type = :type",
+                new MapSqlParameterSource().addValue("facilityId", facilityId).addValue("type", type),
+                this::mapRow);
+        return results.stream().findFirst();
+    }
+
     private Store mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Store((UUID) rs.getObject("id"), rs.getString("name"), rs.getString("type"),
                 (UUID) rs.getObject("facility_id"), rs.getBoolean("active"), rs.getTimestamp("created_at").toInstant());
