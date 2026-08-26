@@ -5283,6 +5283,11 @@ export interface components {
             gateSatisfied?: boolean;
             isEmergencyBypass?: boolean;
             isInpatient?: boolean;
+            itemClassification?: string;
+            itemForm?: string;
+            /** Format: uuid */
+            wardId?: string;
+            wardName?: string;
         };
         PrescriptionHistoryResponse: {
             /** Format: uuid */

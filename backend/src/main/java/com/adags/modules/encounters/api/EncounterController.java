@@ -128,7 +128,15 @@ public class EncounterController {
     public EncounterResponse getById(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
         Encounter encounter = encounterRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + id));
-        requireAny(actor, ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId()), "ENCOUNTER_OPEN", "CONSULTATION_CREATE");
+        // TRIAGE_ASSESS added alongside ENCOUNTER_OPEN/CONSULTATION_CREATE —
+        // the Triage Assessment Form (06-triage.md Screen 2) fetches its own
+        // encounter by id the same way the doctor's consultation screen does;
+        // without it, a triage nurse holding only TRIAGE_QUEUE_READ (the
+        // queue LIST's permission, granted above in search()) could see an
+        // encounter in the queue but not open it, same DEPARTMENT scope
+        // TriageAssessmentDraftController#requireAssess already checks.
+        requireAny(actor, ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId()),
+                "ENCOUNTER_OPEN", "CONSULTATION_CREATE", "TRIAGE_ASSESS");
         return EncounterResponse.from(encounter);
     }
 

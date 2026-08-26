@@ -1,0 +1,79 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-full);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* ---- sizes -------------------------------------------------------------
+ * Padding + font-size only, no raw heights — stays compact and never
+ * causes layout shift on its own. */
+
+.sm {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.md {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+}
+
+.lg {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* ---- variants ------------------------------------------------------------
+ * Flat fills only — no border, no hover treatment. Badges are
+ * non-interactive by default (STYLE_GUIDE §1), so neither applies. */
+
+.neutral {
+  background: var(--neutral-bg);
+  color: var(--text-secondary);
+}
+
+/* The one place the signal green appears as a fill — dark text, 16:1. */
+.primary {
+  background: var(--green-signal);
+  color: var(--green-900);
+}
+
+.success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.danger {
+  background: var(--critical-bg);
+  color: var(--critical);
+}
+
+.info {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+/* ---- icons + dot ----------------------------------------------------------
+ * Fixed 16px regardless of badge size — same inline-icon rule every other
+ * primitive follows (STYLE_GUIDE §5). */
+
+.icon {
+  flex-shrink: 0;
+}
+
+.dot {
+  flex-shrink: 0;
+  width: var(--space-1);
+  height: var(--space-1);
+  border-radius: var(--radius-full);
+  background: currentColor;
+}

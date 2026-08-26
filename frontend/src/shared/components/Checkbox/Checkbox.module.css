@@ -1,0 +1,152 @@
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.root:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- box -------------------------------------------------------------------
+ * appearance: none turns the native checkbox into a blank box we draw
+ * ourselves — it's still a real, focusable, keyboard-operable <input>
+ * underneath: Space toggles it, it participates in FormData, and the global
+ * :focus-visible ring applies automatically. */
+
+.box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  appearance: none;
+  margin: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.box:disabled {
+  cursor: inherit;
+}
+
+/* Every border/background rule below is deliberately kept at equal
+   specificity (one class + at most one pseudo-class) so plain source order
+   decides the winner when several apply at once. Error is declared last so
+   it always wins the border colour. */
+
+.box:hover {
+  border-color: var(--text-muted);
+}
+
+.box:checked,
+.box:indeterminate {
+  background: var(--green-600);
+  border-color: var(--green-600);
+}
+
+.box:checked:hover,
+.box:indeterminate:hover {
+  background: var(--green-800);
+  border-color: var(--green-800);
+}
+
+.box.error {
+  border-color: var(--critical);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .box {
+    transition: none;
+  }
+}
+
+/* ---- sizes ---------------------------------------------------------------
+ * Box dimensions reuse the spacing scale directly rather than new
+ * dimension tokens. Icon stays a fixed 16px (STYLE_GUIDE §5, inline-with-
+ * text context) regardless of box size. */
+
+.sm {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.md {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+.lg {
+  width: var(--space-6);
+  height: var(--space-6);
+}
+
+/* ---- check / indeterminate icon -------------------------------------------
+ * Always present in the DOM, toggled purely by the input's own pseudo-class
+ * — accurate for controlled and uncontrolled checkboxes alike, no JS state
+ * tracking needed. */
+
+.checkIcon,
+.indeterminateIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-on-dark);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.box:checked:not(:indeterminate) ~ .checkIcon {
+  opacity: 1;
+}
+
+.box:indeterminate ~ .indeterminateIcon {
+  opacity: 1;
+}
+
+/* ---- label text ------------------------------------------------------------ */
+
+.labelText {
+  color: var(--text-primary);
+}
+
+.requiredMark {
+  margin-left: var(--space-1);
+  color: var(--text-muted);
+}
+
+.root:has(.sm) .labelText {
+  font-size: var(--text-sm);
+}
+
+.root:has(.md) .labelText {
+  font-size: var(--text-base);
+}
+
+.root:has(.lg) .labelText {
+  font-size: var(--text-lg);
+}
+
+/* ---- helper / error text --------------------------------------------------- */
+
+.message {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.messageError {
+  color: var(--critical);
+}

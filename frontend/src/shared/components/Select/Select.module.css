@@ -1,0 +1,164 @@
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.requiredMark {
+  margin-left: var(--space-1);
+  color: var(--text-muted);
+}
+
+/* ---- wrapper ---------------------------------------------------------------
+ * The visible border/background live here, not on the <select>, so the
+ * leading icon and the chevron can sit inside the same box and
+ * hover/focus/disabled can all be driven off the real select state via
+ * :has() rather than JS-computed modifier classes. */
+
+.wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+/* Every border-color rule below is deliberately kept at equal specificity
+   (one class + at most one pseudo-class) so plain source order — not
+   :not()/:has() gymnastics or !important — decides the winner when several
+   apply at once. Error/success are declared last so they always win. */
+
+.wrap:hover {
+  border-color: var(--text-muted);
+}
+
+.wrap:focus-within {
+  border-color: var(--green-600);
+}
+
+.wrap.error {
+  border-color: var(--critical);
+}
+
+.wrap.success {
+  border-color: var(--success);
+}
+
+.wrap:has(select:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrap {
+    transition: none;
+  }
+}
+
+/* ---- sizes -------------------------------------------------------------
+ * Padding + font-size only, no raw heights. Right padding always clears the
+ * chevron, which is a permanent fixture (not conditional like the input
+ * primitives' optional trailing icon). */
+
+.sm {
+  padding: var(--space-1) calc(var(--space-3) + 16px + var(--space-2)) var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.md {
+  padding: var(--space-2) calc(var(--space-3) + 16px + var(--space-2)) var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+}
+
+.lg {
+  padding: var(--space-3) calc(var(--space-4) + 16px + var(--space-2)) var(--space-3) var(--space-4);
+  font-size: var(--text-lg);
+}
+
+/* Leading icon clearance overrides the size's own left padding. Icons are
+   always 16px per STYLE_GUIDE §5, so the offset is the same at every size. */
+.hasLeadingIcon {
+  padding-left: calc(var(--space-3) + 16px + var(--space-2));
+}
+
+/* ---- select itself --------------------------------------------------------
+ * appearance: none strips the OS arrow so the custom chevron can take its
+ * place — the element underneath is still a real <select>: native popup,
+ * keyboard nav, typeahead, and FormData all keep working exactly as before. */
+
+.select {
+  flex: 1;
+  width: 100%;
+  appearance: none;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: var(--text-primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+}
+
+.select:disabled {
+  cursor: inherit;
+}
+
+/* The closed box shows whichever option is selected; when that's the blank
+   placeholder option, colour it like a placeholder. No JS needed. */
+.select:has(option[value='']:checked) {
+  color: var(--text-muted);
+}
+
+/* ---- icons ------------------------------------------------------------- */
+
+.leadingIcon {
+  position: absolute;
+  left: var(--space-3);
+  color: var(--text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.chevron {
+  position: absolute;
+  right: var(--space-3);
+  color: var(--text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.chevron.error {
+  color: var(--critical);
+}
+
+.chevron.success {
+  color: var(--success);
+}
+
+/* ---- helper / error text ------------------------------------------------- */
+
+.message {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.messageError {
+  color: var(--critical);
+}
+
+.messageSuccess {
+  color: var(--success);
+}

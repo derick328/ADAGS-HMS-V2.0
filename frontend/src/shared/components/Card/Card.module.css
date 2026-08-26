@@ -1,0 +1,98 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  transition: border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root {
+    transition: none;
+  }
+}
+
+/* ---- padding sizes -------------------------------------------------------
+ * Mirrors STYLE_GUIDE §4's own rhythm rule: --space-4 for an in-workspace
+ * panel, --space-6 for a standalone card, --space-8 for a spacious one. */
+
+.sm {
+  padding: var(--space-4);
+}
+
+.md {
+  padding: var(--space-6);
+}
+
+.lg {
+  padding: var(--space-8);
+}
+
+/* ---- variants -------------------------------------------------------------- */
+
+.default {
+  border-color: var(--border);
+}
+
+.elevated {
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+.outlined {
+  border-color: var(--border-strong);
+}
+
+.interactive {
+  border-color: var(--border);
+  cursor: pointer;
+}
+
+.interactive:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+}
+
+.interactive:active {
+  background: var(--gray-25);
+  border-color: var(--border-strong);
+  box-shadow: none;
+}
+
+/* ---- composition slots ------------------------------------------------------ */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.leadingIcon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.headerContent {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--weight-medium);
+}
+
+.trailingAction {
+  flex-shrink: 0;
+}
+
+.body {
+  flex: 1;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}

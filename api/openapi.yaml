@@ -8779,6 +8779,15 @@ components:
           type: boolean
         isInpatient:
           type: boolean
+        itemClassification:
+          type: string
+        itemForm:
+          type: string
+        wardId:
+          type: string
+          format: uuid
+        wardName:
+          type: string
     PrescriptionHistoryResponse:
       type: object
       properties:

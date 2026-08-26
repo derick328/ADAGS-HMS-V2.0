@@ -1,0 +1,75 @@
+.page {
+  min-height: 100vh;
+  background: var(--bg-page);
+  padding: var(--space-8);
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: var(--space-4);
+  color: var(--text-link);
+  font-size: var(--text-sm);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+.subtitle {
+  margin: var(--space-1) 0 var(--space-8);
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+}
+
+.section {
+  margin-bottom: var(--space-8);
+}
+
+.sectionTitle {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.sectionHint {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-6);
+}
+
+/* Each cell mimics a real host container so the transparent EmptyState is
+ * seen the way it ships — dropped inside a bordered panel. */
+.cell {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.cellLabel {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+/* A deliberately cramped host, to prove the actions wrap and the copy stays
+ * readable on a narrow screen. */
+.narrow {
+  max-width: 280px;
+}

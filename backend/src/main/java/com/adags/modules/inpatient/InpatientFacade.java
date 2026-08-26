@@ -1,5 +1,7 @@
 package com.adags.modules.inpatient;
 
+import com.adags.shared.kernel.WardSummary;
+
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,6 +16,14 @@ public interface InpatientFacade {
 
     /** True admission only — a discharged (actual_departure_at set) admission for this encounter doesn't count. */
     Optional<UUID> findActiveAdmissionId(UUID encounterId);
+
+    /**
+     * The ward this encounter's active admission currently occupies (id and
+     * name only). Empty for an outpatient encounter, and for a patient who
+     * is admitted but not yet assigned a bed. Read-side only — pharmacy's
+     * dispensing queue groups its inpatient rows by ward.
+     */
+    Optional<WardSummary> findActiveAdmissionWard(UUID encounterId);
 
     /**
      * 17-ward-nurse.md §5.1: generates the MAR slots for one prescription

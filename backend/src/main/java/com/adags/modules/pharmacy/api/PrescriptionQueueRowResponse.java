@@ -34,6 +34,16 @@ public record PrescriptionQueueRowResponse(
         Instant prescribedAt,
         boolean gateSatisfied,
         boolean isEmergencyBypass,
-        boolean isInpatient
+        boolean isInpatient,
+        // 12-pharmacist.md §9.1/§12: the item's catalogue descriptors, so
+        // the Dispensing Queue can filter by medication type without a
+        // client-side lookup per row. Nullable (UNCLASSIFIED item).
+        String itemClassification,
+        String itemForm,
+        // The ward the encounter's active admission currently occupies —
+        // null for an outpatient line and for an inpatient not yet given a
+        // bed. Lets the queue group/filter its inpatient rows by ward.
+        UUID wardId,
+        String wardName
 ) {
 }

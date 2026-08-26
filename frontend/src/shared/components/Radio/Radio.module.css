@@ -1,0 +1,138 @@
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.root:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- circle -----------------------------------------------------------------
+ * appearance: none turns the native radio into a blank circle we draw
+ * ourselves — it's still a real, focusable, keyboard-operable <input>
+ * underneath: arrow-key navigation and single-selection within a shared
+ * `name` group, and FormData participation, are all native. */
+
+.circle {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  appearance: none;
+  margin: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.circle:disabled {
+  cursor: inherit;
+}
+
+/* The inner dot lives on the same element via ::after — no sibling icon or
+   combinator needed, since a solid dot doesn't need an SVG. */
+.circle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40%;
+  height: 40%;
+  border-radius: var(--radius-full);
+  background: var(--text-on-dark);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+/* Every border/background rule below is deliberately kept at equal
+   specificity (one class + at most one pseudo-class) so plain source order
+   decides the winner when several apply at once. Error is declared last so
+   it always wins the border colour. */
+
+.circle:hover {
+  border-color: var(--text-muted);
+}
+
+.circle:checked {
+  background: var(--green-600);
+  border-color: var(--green-600);
+}
+
+.circle:checked::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.circle:checked:hover {
+  background: var(--green-800);
+  border-color: var(--green-800);
+}
+
+.circle.error {
+  border-color: var(--critical);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circle,
+  .circle::after {
+    transition: none;
+  }
+}
+
+/* ---- sizes ---------------------------------------------------------------
+ * Dimensions reuse the spacing scale directly, matching Checkbox so the two
+ * "choice" controls read as one family. */
+
+.sm {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.md {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+.lg {
+  width: var(--space-6);
+  height: var(--space-6);
+}
+
+/* ---- label text ------------------------------------------------------------ */
+
+.labelText {
+  color: var(--text-primary);
+}
+
+.root:has(.sm) .labelText {
+  font-size: var(--text-sm);
+}
+
+.root:has(.md) .labelText {
+  font-size: var(--text-base);
+}
+
+.root:has(.lg) .labelText {
+  font-size: var(--text-lg);
+}
+
+/* ---- helper / error text --------------------------------------------------- */
+
+.message {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.messageError {
+  color: var(--critical);
+}

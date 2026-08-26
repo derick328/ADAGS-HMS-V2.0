@@ -26,6 +26,7 @@ export function PharmacyShell() {
           <div className="pharmacy-sidebar-brand">ADAGS</div>
           <nav className="pharmacy-nav">
             <DashboardLink />
+            <DispensingQueueLink />
             <HistoryLink />
             <StockLink />
             <PharmacyItemsLink />
@@ -80,6 +81,19 @@ function DashboardLink() {
         </span>
         <span className="badge badge-neutral">{readyCount}</span>
       </span>
+    </NavLink>
+  );
+}
+
+function DispensingQueueLink() {
+  const canSee = usePermission('PRESCRIPTION_QUEUE_READ');
+  if (!canSee) return null;
+  return (
+    <NavLink
+      to="/pharmacy/dispensing"
+      className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}
+    >
+      Dispensing queue
     </NavLink>
   );
 }

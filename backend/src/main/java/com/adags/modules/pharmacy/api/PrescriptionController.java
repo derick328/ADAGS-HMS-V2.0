@@ -18,6 +18,7 @@ import com.adags.shared.authz.ScopeType;
 import com.adags.shared.kernel.EncounterContext;
 import com.adags.shared.kernel.ItemSummary;
 import com.adags.shared.kernel.PatientIdentity;
+import com.adags.shared.kernel.WardSummary;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -34,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.UUID;
 
 // D1 (12-pharmacist.md §1): PRESCRIPTION_CREATE — doctors only. No
@@ -108,16 +110,24 @@ public class PrescriptionController {
         }
         List<PrescriptionLine> openLines = prescriptionLineRepository.findOpen();
         // Batches by order so each PrescriptionOrder (and the patient
-        // identity it points at) is only resolved once, not once per line.
+        // identity it points at) is only resolved once, not once per line;
+        // ward is resolved once per encounter for the same reason.
         Map<UUID, PrescriptionOrder> ordersById = new HashMap<>();
+        Map<UUID, Optional<WardSummary>> wardByEncounter = new HashMap<>();
         return openLines.stream()
-                .map(line -> toQueueRow(line, ordersById.computeIfAbsent(line.prescriptionOrderId(),
-                        id -> prescriptionOrderRepository.findById(id)
-                                .orElseThrow(() -> new NoSuchElementException("Prescription order not found: " + id)))))
+                .map(line -> {
+                    PrescriptionOrder order = ordersById.computeIfAbsent(line.prescriptionOrderId(),
+                            id -> prescriptionOrderRepository.findById(id)
+                                    .orElseThrow(() -> new NoSuchElementException("Prescription order not found: " + id)));
+                    Optional<WardSummary> ward = wardByEncounter.computeIfAbsent(
+                            order.encounterId(), inpatientFacade::findActiveAdmissionWard);
+                    return toQueueRow(line, order, ward);
+                })
                 .toList();
     }
 
-    private PrescriptionQueueRowResponse toQueueRow(PrescriptionLine line, PrescriptionOrder order) {
+    private PrescriptionQueueRowResponse toQueueRow(
+            PrescriptionLine line, PrescriptionOrder order, Optional<WardSummary> ward) {
         ItemSummary item = inventoryFacade.findItemSummary(line.itemId()).orElse(null);
         PatientIdentity identity = patientFacade.findIdentity(order.patientId()).orElse(null);
         boolean gateSatisfied = billingFacade.isLineAuthorized(line.invoiceLineId());
@@ -129,7 +139,9 @@ public class PrescriptionController {
                 identity == null ? null : identity.fullName(), identity == null ? null : identity.hospitalNumber(),
                 line.itemId(), item == null ? null : item.code(), item == null ? "Unknown item" : item.name(),
                 line.quantityPrescribed(), line.quantityDispensed(), line.remaining(), line.dosageInstructions(),
-                line.status(), order.prescribedAt(), gateSatisfied, emergencyBypass, isInpatient);
+                line.status(), order.prescribedAt(), gateSatisfied, emergencyBypass, isInpatient,
+                item == null ? null : item.classification(), item == null ? null : item.form(),
+                ward.map(WardSummary::wardId).orElse(null), ward.map(WardSummary::name).orElse(null));
     }
 
     // 08-doctor-navigation.md §5: "Request History" — every prescription

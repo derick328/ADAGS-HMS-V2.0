@@ -7,6 +7,7 @@ import com.adags.modules.inpatient.domain.Admission;
 import com.adags.modules.inpatient.domain.AdmissionRepository;
 import com.adags.modules.inpatient.domain.WardClass;
 import com.adags.modules.inpatient.domain.WardStatus;
+import com.adags.shared.kernel.WardSummary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,11 @@ public class InpatientFacadeImpl implements InpatientFacade {
         return admissionRepository.findByEncounterId(encounterId)
                 .filter(admission -> admission.actualDepartureAt() == null)
                 .map(Admission::id);
+    }
+
+    @Override
+    public Optional<WardSummary> findActiveAdmissionWard(UUID encounterId) {
+        return admissionRepository.findCurrentWardByEncounterId(encounterId);
     }
 
     @Override

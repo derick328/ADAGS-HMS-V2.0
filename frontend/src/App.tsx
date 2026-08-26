@@ -1,6 +1,23 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { ComponentsIndexPage } from './dev/ComponentsIndexPage';
 import { LoginPage } from './pages/LoginPage';
 import { RequireAuth } from './shared/auth/RequireAuth';
+import { ButtonStories } from './shared/components/Button/Button.stories';
+import { InputStories } from './shared/components/Input/Input.stories';
+import { CheckboxStories } from './shared/components/Checkbox/Checkbox.stories';
+import { BadgeStories } from './shared/components/Badge/Badge.stories';
+import { CardStories } from './shared/components/Card/Card.stories';
+import { EmptyStateStories } from './shared/components/EmptyState/EmptyState.stories';
+import { ModalStories } from './shared/components/Modal/Modal.stories';
+import { RadioStories } from './shared/components/Radio/Radio.stories';
+import { SelectStories } from './shared/components/Select/Select.stories';
+import { SkeletonStories } from './shared/components/Skeleton/Skeleton.stories';
+import { TableStories } from './shared/components/Table/Table.stories';
+import { TabsStories } from './shared/components/Tabs/Tabs.stories';
+import { TooltipStories } from './shared/components/Tooltip/Tooltip.stories';
+import { QueueShellStories } from './shared/shells/QueueShell/QueueShell.stories';
+import { TextareaStories } from './shared/components/Textarea/Textarea.stories';
+import { ToastStories } from './shared/components/Toast/Toast.stories';
 import { AdminDashboard } from './workspaces/admin/AdminDashboard';
 import { AdminShell } from './workspaces/admin/AdminShell';
 import { ComingSoon } from './workspaces/admin/ComingSoon';
@@ -42,6 +59,7 @@ import { TestQueuePage } from './workspaces/lab/TestQueuePage';
 import { ProfilePage as LabProfilePage } from './workspaces/triage/ProfilePage';
 import { DashboardPage as PharmacyDashboardPage } from './workspaces/pharmacy/DashboardPage';
 import { DispensePage } from './workspaces/pharmacy/DispensePage';
+import { DispensingQueue } from './workspaces/pharmacy/DispensingQueue';
 import { HistoryPage as PharmacyHistoryPage } from './workspaces/pharmacy/HistoryPage';
 import { LabStockRequestsPage as PharmacyLabStockRequestsPage } from './workspaces/pharmacy/LabStockRequestsPage';
 import { PharmacyItemsPage } from './workspaces/pharmacy/PharmacyItemsPage';
@@ -64,6 +82,24 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      {/* Dev-only component gallery — not linked from any workspace nav. */}
+      <Route path="/dev/components" element={<ComponentsIndexPage />} />
+      <Route path="/dev/components/button" element={<ButtonStories />} />
+      <Route path="/dev/components/input" element={<InputStories />} />
+      <Route path="/dev/components/textarea" element={<TextareaStories />} />
+      <Route path="/dev/components/select" element={<SelectStories />} />
+      <Route path="/dev/components/checkbox" element={<CheckboxStories />} />
+      <Route path="/dev/components/radio" element={<RadioStories />} />
+      <Route path="/dev/components/badge" element={<BadgeStories />} />
+      <Route path="/dev/components/card" element={<CardStories />} />
+      <Route path="/dev/components/skeleton" element={<SkeletonStories />} />
+      <Route path="/dev/components/emptystate" element={<EmptyStateStories />} />
+      <Route path="/dev/components/toast" element={<ToastStories />} />
+      <Route path="/dev/components/modal" element={<ModalStories />} />
+      <Route path="/dev/components/tabs" element={<TabsStories />} />
+      <Route path="/dev/components/table" element={<TableStories />} />
+      <Route path="/dev/components/tooltip" element={<TooltipStories />} />
+      <Route path="/dev/shells/queue" element={<QueueShellStories />} />
       <Route
         path="/admin"
         element={
@@ -162,6 +198,7 @@ export function App() {
         }
       >
         <Route index element={<PharmacyDashboardPage />} />
+        <Route path="dispensing" element={<DispensingQueue />} />
         <Route path="dispense/:prescriptionLineId" element={<DispensePage />} />
         <Route path="history" element={<PharmacyHistoryPage />} />
         <Route path="stock" element={<PharmacyStockPage />} />

@@ -1,0 +1,127 @@
+/* Skeleton — decorative loading placeholder.
+ *
+ * Base fill plus a gentle opacity pulse. No gradient (STYLE_GUIDE §1 bans
+ * gradients on surfaces), no shadow, no border. Every dimension resolves
+ * from the type scale or the spacing scale; `width` is a plain layout
+ * fraction, which is neither a colour, spacing, nor radius. */
+
+.bar {
+  display: block;
+  background: var(--gray-200);
+  animation: skeleton-pulse var(--duration-slow) var(--ease-standard) infinite alternate;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Pulses down to the same 0.5 opacity the disabled convention uses
+ * (.btn:disabled), so "not-yet-usable" reads consistently across surfaces. */
+@keyframes skeleton-pulse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.5;
+  }
+}
+
+/* ---- variants -------------------------------------------------------------
+ * Corners follow STYLE_GUIDE §1: --radius-sm on hairline text lines,
+ * --radius on blocks, --radius-full only for the circular (avatar) case. */
+
+.text {
+  border-radius: var(--radius-sm);
+}
+
+.rectangular {
+  border-radius: var(--radius);
+}
+
+.circular {
+  border-radius: var(--radius-full);
+}
+
+/* ---- sizes --------------------------------------------------------------
+ * text        → a line box from the type scale
+ * circular    → diameter from the spacing scale
+ * rectangular → block height from the spacing scale; the larger steps are
+ *   the scale's top step multiplied, so they still derive from the token
+ *   rather than a raw pixel value. */
+
+.text.sm {
+  height: var(--text-sm);
+}
+
+.text.md {
+  height: var(--text-base);
+}
+
+.text.lg {
+  height: var(--text-lg);
+}
+
+.circular.sm {
+  width: var(--space-6);
+  height: var(--space-6);
+}
+
+.circular.md {
+  width: var(--space-8);
+  height: var(--space-8);
+}
+
+.circular.lg {
+  width: var(--space-10);
+  height: var(--space-10);
+}
+
+.rectangular.sm {
+  height: var(--space-10);
+}
+
+.rectangular.md {
+  height: calc(var(--space-10) * 2);
+}
+
+.rectangular.lg {
+  height: calc(var(--space-10) * 4);
+}
+
+/* ---- width fractions ----------------------------------------------------
+ * Layout fractions only — no token governs "how wide". max-width keeps the
+ * skeleton inside a narrower container than its nominal fraction. */
+
+.wFull {
+  width: 100%;
+}
+
+.wThreeQuarters {
+  width: 75%;
+  max-width: 100%;
+}
+
+.wHalf {
+  width: 50%;
+  max-width: 100%;
+}
+
+.wQuarter {
+  width: 25%;
+  max-width: 100%;
+}
+
+.wLastLine {
+  width: 60%;
+  max-width: 100%;
+}
+
+/* ---- reduced motion ---------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+  }
+}

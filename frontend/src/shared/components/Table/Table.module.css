@@ -1,0 +1,222 @@
+/* ADAGS table — tokens only. Mirrors the canonical `.table` rules in
+   tokens.css. See STYLE_GUIDE.md §2, §3, §6, §8. */
+
+.scroll {
+  overflow-x: auto;
+  background: var(--bg-surface);
+}
+
+.scrollBordered {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+}
+
+.caption {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* ---- header ------------------------------------------------------- */
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+/* ---- body cells ------------------------------------------------------ */
+
+.table td,
+.table tbody th {
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  font-weight: var(--weight-normal);
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.table tbody tr:last-child td,
+.table tbody tr:last-child th {
+  border-bottom: none;
+}
+
+/* ---- sizes: cell padding ------------------------------------------- */
+
+.sm thead th {
+  padding: var(--space-1) var(--space-2);
+}
+.sm td,
+.sm tbody th {
+  padding: var(--space-2);
+}
+
+.md thead th {
+  padding: var(--space-2) var(--space-3);
+}
+.md td,
+.md tbody th {
+  padding: var(--space-3);
+}
+
+.lg thead th {
+  padding: var(--space-3) var(--space-4);
+}
+.lg td,
+.lg tbody th {
+  padding: var(--space-4);
+}
+
+/* ---- alignment --------------------------------------------------- */
+
+.alignCenter {
+  text-align: center;
+}
+
+.alignRight {
+  text-align: right;
+}
+
+.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- hover ------------------------------------------------------- */
+
+.table tbody tr {
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.table tbody tr:hover {
+  background: var(--gray-25);
+}
+
+.rowInteractive {
+  cursor: pointer;
+}
+
+/* ---- striped --------------------------------------------------- */
+
+.striped tbody tr:nth-child(even) {
+  background: var(--gray-25);
+}
+
+.striped tbody tr:nth-child(even):hover {
+  background: var(--gray-50);
+}
+
+/* ---- selected (wins over hover and stripe) -------------------- */
+
+.table tbody tr.selected,
+.table tbody tr.selected:hover,
+.striped tbody tr.selected:nth-child(even) {
+  background: var(--green-100);
+}
+
+/* ---- bordered ------------------------------------------------ */
+
+.bordered thead th,
+.bordered td,
+.bordered tbody th {
+  border: 1px solid var(--border);
+}
+
+.bordered tbody tr:last-child td,
+.bordered tbody tr:last-child th {
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---- sortable header button -------------------------------- */
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.sortButton:hover {
+  color: var(--text-secondary);
+}
+
+.table thead th[aria-sort='ascending'] .sortButton,
+.table thead th[aria-sort='descending'] .sortButton {
+  color: var(--text-secondary);
+}
+
+.sortIcon {
+  flex-shrink: 0;
+}
+
+.sortIconInactive {
+  opacity: 0.4;
+}
+
+/* ---- empty state ---------------------------------------- */
+
+.emptyCell {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--text-base);
+}
+
+/* ---- footer ------------------------------------------- */
+
+.table tfoot td,
+.table tfoot th {
+  padding: var(--space-3);
+  border-top: 1px solid var(--border-strong);
+  border-bottom: none;
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  text-align: left;
+}
+
+.sm tfoot td,
+.sm tfoot th {
+  padding: var(--space-2);
+}
+
+.lg tfoot td,
+.lg tfoot th {
+  padding: var(--space-4);
+}
+
+.bordered tfoot td,
+.bordered tfoot th {
+  border: 1px solid var(--border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table tbody tr,
+  .sortButton {
+    transition: none;
+  }
+}

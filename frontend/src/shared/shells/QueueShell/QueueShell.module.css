@@ -1,0 +1,225 @@
+/* QueueShell — layout only.
+ *
+ * No new visual language: this file is grid / flex / scroll / the 900px
+ * breakpoint over --space-* tokens, plus the hairline surface separators
+ * (STYLE_GUIDE §1: --border to divide surfaces, --radius on containers,
+ * --bg-surface fills) and the row hover / selected states already codified in
+ * tokens.css (.table tbody tr:hover → --gray-25, .row-selected → --green-100).
+ * Every colour, radius and spacing value is a token. No shadows, no gradients.
+ */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 0;
+  height: 100%;
+}
+
+/* ---- header ------------------------------------------------------------- */
+
+.header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.counts {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.headerSpacer {
+  flex: 1 1 auto;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ---- filter bar ------------------------------------------------------- */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.filterControl {
+  min-width: 180px;
+}
+
+/* ---- body grid ------------------------------------------------------ */
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.bodySplit {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+}
+
+/* ---- row list ---------------------------------------------------- */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.rowItem {
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.rowItem:last-child .row {
+  border-bottom: none;
+}
+
+.row:hover {
+  background: var(--gray-25);
+}
+
+.rowSelected,
+.rowSelected:hover {
+  background: var(--green-100);
+}
+
+/* primary + secondary, stacked, taking the left column and truncating */
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.rowPrimary {
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.rowSecondary {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* right-aligned cluster — badges + a waiting time; wraps on a narrow row */
+.rowTrailing {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* ---- detail pane -------------------------------------------- */
+
+.detailPane {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.detailTitle {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+/* Spaces the top-level blocks a caller's renderDetail returns — used the same
+   way in the desktop pane and the mobile Modal so a detail body reads
+   identically in both. */
+.detailBody > * + * {
+  margin-top: var(--space-4);
+}
+
+.detailEmpty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ---- state panels ----------------------------------------- */
+
+.centered {
+  display: grid;
+  place-items: center;
+  padding: var(--space-8) var(--space-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.listPane {
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.skeletonRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.skeletonRow:last-child {
+  border-bottom: none;
+}
+
+/* ---- responsive: below 900px the detail pane is a Modal, not a column -- */
+
+@media (max-width: 899px) {
+  .bodySplit {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
