@@ -196,7 +196,7 @@ class TriageAssessmentApiTest extends IntegrationTestSupport {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.providerId == '" + doctorId + "')].roleLabel").value(org.hamcrest.Matchers.hasItem("General")))
-                .andExpect(jsonPath("$[?(@.providerId == '" + doctorId + "')].feeAmountMinor").value(org.hamcrest.Matchers.hasItem(1000000)))
+                .andExpect(jsonPath("$[?(@.providerId == '" + doctorId + "')].feeAmountMinor").value(org.hamcrest.Matchers.hasItem(10000)))
                 .andExpect(jsonPath("$[?(@.providerId == '" + doctorId + "')].currencyCode").value(org.hamcrest.Matchers.hasItem("TZS")))
                 .andExpect(jsonPath("$[?(@.providerId == '" + doctorId + "')].queueDepth").value(org.hamcrest.Matchers.hasItem(0)));
     }
@@ -228,13 +228,13 @@ class TriageAssessmentApiTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.assignedProviderId").value(doctorId.toString()));
 
         // §6 step 6: the consultation charge, at the real seeded CASH price
-        // for a DOCTOR-role provider (V15/V19: CONSULT_GENERAL = 1,000,000).
+        // for a DOCTOR-role provider (V15 + V66: CONSULT_GENERAL = 10,000).
         Long grossMinor = jdbcTemplate.queryForObject("""
                         SELECT il.gross_minor FROM invoice_line il JOIN invoice i ON i.id = il.invoice_id
                         WHERE i.encounter_id = :id AND il.source_event_type = 'TriageCompleted'
                         """,
                 new MapSqlParameterSource("id", UUID.fromString(encounterId)), Long.class);
-        org.assertj.core.api.Assertions.assertThat(grossMinor).isEqualTo(1_000_000L);
+        org.assertj.core.api.Assertions.assertThat(grossMinor).isEqualTo(10_000L);
     }
 
     @Test

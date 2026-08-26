@@ -116,7 +116,7 @@ class AbandonUnpaidEncounterServiceTest extends IntegrationTestSupport {
                 new MapSqlParameterSource("encounterId", encounter.id()), UUID.class);
         postPaymentService.recordPayment(new PostPaymentCommand(
                 patientId, PaymentMethod.CASH, null, "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(invoiceLineId, 1_000_000)), admin));
+                List.of(new PostPaymentCommand.LineAllocationRequest(invoiceLineId, 10_000)), admin));
 
         assertThatThrownBy(() -> abandonUnpaidEncounterService.abandon(encounter.id(), "Changed their mind", admin))
                 .isInstanceOf(InvoiceCannotBeVoidedException.class);

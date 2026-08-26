@@ -76,12 +76,12 @@ class RevenueReportServiceTest extends IntegrationTestSupport {
         ChargePostingResult posted = postConsultCharge(encounterId, patientId, admin);
         postPaymentService.recordPayment(new PostPaymentCommand(patientId, PaymentMethod.CASH, null,
                 "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(posted.invoiceLineId(), 1_000_000)), admin));
+                List.of(new PostPaymentCommand.LineAllocationRequest(posted.invoiceLineId(), 10_000)), admin));
 
         RevenueReport report = revenueReportService.generate(
                 LocalDate.now().minusDays(1), LocalDate.now().plusDays(1), BOOTSTRAP_FACILITY_ID);
 
-        assertThat(report.collectedCashMinor()).isEqualTo(1_000_000);
+        assertThat(report.collectedCashMinor()).isEqualTo(10_000);
         assertThat(report.insuranceBilledMinor()).isEqualTo(0);
     }
 
@@ -94,7 +94,7 @@ class RevenueReportServiceTest extends IntegrationTestSupport {
         ChargePostingResult posted = postConsultCharge(encounterId, patientId, admin);
         postPaymentService.recordPayment(new PostPaymentCommand(patientId, PaymentMethod.CASH, null,
                 "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(posted.invoiceLineId(), 1_000_000)), admin));
+                List.of(new PostPaymentCommand.LineAllocationRequest(posted.invoiceLineId(), 10_000)), admin));
         jdbcTemplate.update("UPDATE payment SET received_at = now() - interval '10 days'", new MapSqlParameterSource());
 
         RevenueReport report = revenueReportService.generate(
@@ -117,7 +117,7 @@ class RevenueReportServiceTest extends IntegrationTestSupport {
                 "CONSULT_GENERAL", 1, "TestFixture", UUID.randomUUID(), admin));
         postPaymentService.recordPayment(new PostPaymentCommand(patientId, PaymentMethod.CASH, null,
                 "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(posted.invoiceLineId(), 1_000_000)), admin));
+                List.of(new PostPaymentCommand.LineAllocationRequest(posted.invoiceLineId(), 10_000)), admin));
 
         RevenueReport report = revenueReportService.generate(
                 LocalDate.now().minusDays(1), LocalDate.now().plusDays(1), BOOTSTRAP_FACILITY_ID);
@@ -168,7 +168,7 @@ class RevenueReportServiceTest extends IntegrationTestSupport {
         RevenueReport report = revenueReportService.generate(
                 LocalDate.now().minusYears(1), LocalDate.now().plusDays(1), BOOTSTRAP_FACILITY_ID);
 
-        assertThat(report.emergencyBypassDebtMinor()).isEqualTo(1_000_000);
+        assertThat(report.emergencyBypassDebtMinor()).isEqualTo(10_000);
     }
 
     @Test

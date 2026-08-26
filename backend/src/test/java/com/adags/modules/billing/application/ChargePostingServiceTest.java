@@ -60,8 +60,8 @@ class ChargePostingServiceTest extends IntegrationTestSupport {
                 encounterId, patientId, BOOTSTRAP_FACILITY_ID, PayerCategory.CASH, null,
                 "CONSULT_GENERAL", 1, "TriageCompleted", triageAssessmentId, bootstrapAdminId()));
 
-        assertThat(result.grossAmount()).isEqualTo(new Money(1_000_000, "TZS"));
-        assertThat(result.patientPortion()).isEqualTo(new Money(1_000_000, "TZS"));
+        assertThat(result.grossAmount()).isEqualTo(new Money(10_000, "TZS"));
+        assertThat(result.patientPortion()).isEqualTo(new Money(10_000, "TZS"));
         assertThat(result.invoiceNumber()).isNotBlank();
 
         String state = jdbcTemplate.queryForObject(
@@ -89,7 +89,7 @@ class ChargePostingServiceTest extends IntegrationTestSupport {
                 encounterId, patientId, BOOTSTRAP_FACILITY_ID, PayerCategory.CASH, null,
                 "CONSULT_SPECIALIST", 2, "TriageCompleted", UUID.randomUUID(), bootstrapAdminId()));
 
-        assertThat(result.grossAmount()).isEqualTo(new Money(8_000_000, "TZS"));
+        assertThat(result.grossAmount()).isEqualTo(new Money(80_000, "TZS"));
     }
 
     // root CLAUDE.md "Billing": "A missing price... blocks with an
@@ -127,8 +127,8 @@ class ChargePostingServiceTest extends IntegrationTestSupport {
                 encounterId, patientId, BOOTSTRAP_FACILITY_ID, PayerCategory.CASH, null,
                 "CONSULT_GENERAL", 1, "TriageCompleted", UUID.randomUUID(), bootstrapAdminId()));
 
-        assertThat(result.grossAmount()).isEqualTo(new Money(1_000_000, "TZS"));
-        assertThat(result.patientPortion()).isEqualTo(new Money(1_000_000, "TZS"));
+        assertThat(result.grossAmount()).isEqualTo(new Money(10_000, "TZS"));
+        assertThat(result.patientPortion()).isEqualTo(new Money(10_000, "TZS"));
 
         Long insurancePortionMinor = jdbcTemplate.queryForObject(
                 "SELECT insurance_portion_minor FROM invoice_line WHERE invoice_id = :id",

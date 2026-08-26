@@ -71,11 +71,11 @@ class PostPaymentServiceTest extends IntegrationTestSupport {
 
         Payment payment = postPaymentService.recordPayment(new PostPaymentCommand(
                 patientId, PaymentMethod.CASH, null, "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 1_000_000)),
+                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 10_000)),
                 admin));
 
         assertThat(payment.status()).isEqualTo(PaymentStatus.SETTLED);
-        assertThat(payment.amount()).isEqualTo(new Money(1_000_000, "TZS"));
+        assertThat(payment.amount()).isEqualTo(new Money(10_000, "TZS"));
 
         assertThat(billingGate.isSatisfied(charge.invoiceLineId())).isTrue();
 
@@ -111,7 +111,7 @@ class PostPaymentServiceTest extends IntegrationTestSupport {
         ChargePostingResult charge = postConsultCharge(encounterId, patientId, admin);
         String idempotencyKey = "idem-" + UUID.randomUUID();
         PostPaymentCommand command = new PostPaymentCommand(patientId, PaymentMethod.CASH, null, idempotencyKey,
-                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 1_000_000)), admin);
+                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 10_000)), admin);
 
         Payment first = postPaymentService.recordPayment(command);
         Payment second = postPaymentService.recordPayment(command);
@@ -136,7 +136,7 @@ class PostPaymentServiceTest extends IntegrationTestSupport {
 
         assertThatThrownBy(() -> postPaymentService.recordPayment(new PostPaymentCommand(
                 patientId, PaymentMethod.CASH, null, "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 1_000_000)), admin)))
+                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 10_000)), admin)))
                 .isInstanceOf(CashierShiftNotOpenException.class);
     }
 
@@ -152,7 +152,7 @@ class PostPaymentServiceTest extends IntegrationTestSupport {
 
         assertThatThrownBy(() -> postPaymentService.recordPayment(new PostPaymentCommand(
                 patientId, PaymentMethod.CASH, null, "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 500_000)), admin)))
+                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 5_000)), admin)))
                 .isInstanceOf(PaymentAllocationRejectedException.class);
     }
 
@@ -170,14 +170,14 @@ class PostPaymentServiceTest extends IntegrationTestSupport {
 
         Payment payment = postPaymentService.recordPayment(new PostPaymentCommand(
                 patientId, PaymentMethod.CASH, null, "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 300_000)), admin));
+                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 3_000)), admin));
 
-        assertThat(payment.amount()).isEqualTo(new Money(300_000, "TZS"));
+        assertThat(payment.amount()).isEqualTo(new Money(3_000, "TZS"));
 
         Long outstanding = jdbcTemplate.queryForObject(
                 "SELECT outstanding_total_minor FROM invoice WHERE id = :id",
                 new MapSqlParameterSource("id", charge.invoiceId()), Long.class);
-        assertThat(outstanding).isEqualTo(700_000L);
+        assertThat(outstanding).isEqualTo(7_000L);
 
         String invoiceState = jdbcTemplate.queryForObject(
                 "SELECT state FROM invoice WHERE id = :id", new MapSqlParameterSource("id", charge.invoiceId()), String.class);
@@ -202,7 +202,7 @@ class PostPaymentServiceTest extends IntegrationTestSupport {
 
         assertThatThrownBy(() -> postPaymentService.recordPayment(new PostPaymentCommand(
                 patientId, PaymentMethod.CASH, null, "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 1_000_000)), admin)))
+                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 10_000)), admin)))
                 .isInstanceOf(InvoiceNotPayableException.class);
     }
 
@@ -216,7 +216,7 @@ class PostPaymentServiceTest extends IntegrationTestSupport {
 
         Payment payment = postPaymentService.recordPayment(new PostPaymentCommand(
                 patientId, PaymentMethod.CHEQUE, "CHQ-00123", "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 1_000_000)), admin));
+                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 10_000)), admin));
 
         assertThat(payment.status()).isEqualTo(PaymentStatus.PENDING_CLEARANCE);
         assertThat(billingGate.isSatisfied(charge.invoiceLineId())).isFalse();
@@ -224,7 +224,7 @@ class PostPaymentServiceTest extends IntegrationTestSupport {
         Long outstanding = jdbcTemplate.queryForObject(
                 "SELECT outstanding_total_minor FROM invoice WHERE id = :id",
                 new MapSqlParameterSource("id", charge.invoiceId()), Long.class);
-        assertThat(outstanding).isEqualTo(1_000_000L);
+        assertThat(outstanding).isEqualTo(10_000L);
     }
 
     // The DB CHECK behind §9.2's "reference required for every non-cash method."
@@ -238,7 +238,7 @@ class PostPaymentServiceTest extends IntegrationTestSupport {
 
         assertThatThrownBy(() -> postPaymentService.recordPayment(new PostPaymentCommand(
                 patientId, PaymentMethod.MOBILE_MONEY, null, "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 1_000_000)), admin)))
+                List.of(new PostPaymentCommand.LineAllocationRequest(charge.invoiceLineId(), 10_000)), admin)))
                 .isInstanceOf(DataAccessException.class);
     }
 

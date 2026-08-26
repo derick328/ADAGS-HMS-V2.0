@@ -44,7 +44,7 @@ class PriceListEntryRepositoryTest extends IntegrationTestSupport {
 
         PriceListEntry current = repository.findCurrent(serviceItemId, PayerCategory.CASH).orElseThrow();
 
-        assertThat(current.amount()).isEqualTo(new Money(1_000_000, "TZS"));
+        assertThat(current.amount()).isEqualTo(new Money(10_000, "TZS"));
         assertThat(current.validTo()).isNull();
     }
 

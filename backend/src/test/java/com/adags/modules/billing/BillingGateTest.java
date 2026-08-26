@@ -102,7 +102,7 @@ class BillingGateTest extends IntegrationTestSupport {
                 .isInstanceOf(BillingGateRejectedException.class)
                 .satisfies(ex -> {
                     BillingGateRejectedException rejected = (BillingGateRejectedException) ex;
-                    assertThat(rejected.outstandingAmount()).isEqualTo(new Money(1_000_000, "TZS"));
+                    assertThat(rejected.outstandingAmount()).isEqualTo(new Money(10_000, "TZS"));
                     assertThat(rejected.serviceName()).isEqualTo("General consultation");
                 });
     }

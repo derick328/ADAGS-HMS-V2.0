@@ -21,13 +21,13 @@ class PriceResolutionServiceTest extends IntegrationTestSupport {
     @Test
     void resolvesTheSeededCashConsultGeneralPrice() {
         Money price = service.resolvePrice("CONSULT_GENERAL", PayerCategory.CASH);
-        assertThat(price).isEqualTo(new Money(1_000_000, "TZS"));
+        assertThat(price).isEqualTo(new Money(10_000, "TZS"));
     }
 
     @Test
     void resolvesTheSeededCashConsultSpecialistPrice() {
         Money price = service.resolvePrice("CONSULT_SPECIALIST", PayerCategory.CASH);
-        assertThat(price).isEqualTo(new Money(4_000_000, "TZS"));
+        assertThat(price).isEqualTo(new Money(40_000, "TZS"));
     }
 
     // Only CASH has seed prices — every other payer category is a real

@@ -68,18 +68,18 @@ class DepartmentContributionServiceTest extends IntegrationTestSupport {
                 "CONSULT_GENERAL", 1, "TriageCompleted", UUID.randomUUID(), admin));
         postPaymentService.recordPayment(new PostPaymentCommand(patientId, PaymentMethod.CASH, null,
                 "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(posted.invoiceLineId(), 1_000_000)), admin));
+                List.of(new PostPaymentCommand.LineAllocationRequest(posted.invoiceLineId(), 10_000)), admin));
 
-        insertFixtureDispense(encounterId, admin, 10, 5_000); // 50,000 pharmacy cost
+        insertFixtureDispense(encounterId, admin, 2, 2_000); // 4,000 pharmacy cost
 
         List<DepartmentContribution> lines = departmentContributionService.generate(
                 LocalDate.now().minusDays(1), LocalDate.now().plusDays(1), BOOTSTRAP_FACILITY_ID);
 
         DepartmentContribution line = lines.stream().filter(l -> l.departmentId().equals(departmentId)).findFirst().orElseThrow();
-        assertThat(line.cashCollectedMinor()).isEqualTo(1_000_000);
+        assertThat(line.cashCollectedMinor()).isEqualTo(10_000);
         assertThat(line.insuranceBilledMinor()).isEqualTo(0);
-        assertThat(line.pharmacyCostMinor()).isEqualTo(50_000);
-        assertThat(line.contributionMinor()).isEqualTo(950_000);
+        assertThat(line.pharmacyCostMinor()).isEqualTo(4_000);
+        assertThat(line.contributionMinor()).isEqualTo(6_000);
     }
 
     @Test
