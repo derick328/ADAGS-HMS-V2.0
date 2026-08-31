@@ -141,17 +141,21 @@ public class XlsxCatalogRowParser implements CatalogRowParserPort {
         // all mean "unpriced" — the metadata still lands, but no
         // price_list_entry is inserted. A later upload with a real value
         // introduces the current price. Only wildly out-of-range values
-        // are rejected outright, so we don't silently accept a spreadsheet
-        // that put the price in cents by mistake and would blow past a
-        // BIGINT-minor-units field.
+        // are rejected outright.
+        //
+        // Storage convention (V66 comment): TZS has no sub-unit here, so
+        // amount_minor is whole shillings. The Excel PRICE column is
+        // already whole shillings (source file: "5000" means TZS 5,000),
+        // so the parsed number is stored as-is — no *100 conversion.
+        // Multiplying by 100 landed prices at 100× the intended value
+        // and broke every downstream display.
         Double priceRaw = readNumericOrNull(row, headers, COL_PRICE);
         Long priceMinor = null;
         if (priceRaw != null && priceRaw >= 0) {
-            double asMinor = priceRaw * 100.0;
-            if (asMinor > (double) Long.MAX_VALUE / 2) {
+            if (priceRaw > (double) Long.MAX_VALUE / 2) {
                 throw new RowValidationException("PRICE is implausibly large — check the file's units.");
             }
-            priceMinor = Math.round(asMinor);
+            priceMinor = Math.round(priceRaw);
         }
 
         Integer externalRefId = null;

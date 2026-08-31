@@ -74,7 +74,16 @@ public class LabTestController {
     public List<PendingLabClassificationResponse> pendingClassification(
             @RequestParam(name = "q", required = false, defaultValue = "") String query,
             @AuthenticationPrincipal Actor actor) {
-        requirePermission(actor);
+        // Doctors call this from the lab-order typeahead but do NOT hold
+        // the lab-tech permissions requirePermission() checks — accept
+        // LAB_ORDER_CREATE as well so the endpoint serves both the
+        // ordering side (doctor) and the classification side (lab tech).
+        if (!authorizationService.hasPermission(actor, "LAB_ORDER_CREATE")
+                && !authorizationService.hasPermission(actor, "LAB_QUEUE_READ")
+                && !authorizationService.hasPermission(actor, "LAB_RESULT_ENTER")
+                && !authorizationService.hasPermission(actor, "LAB_ITEM_PROPOSE")) {
+            throw new AccessDeniedException("Missing permission: LAB_ORDER_CREATE");
+        }
         Set<String> classifiedCodes = labTestRepository.findAllActive().stream()
                 .map(LabTest::code).collect(Collectors.toSet());
         return billingFacade.findUnclassifiedCatalogueEntries(

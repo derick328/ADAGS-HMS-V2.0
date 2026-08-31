@@ -1194,9 +1194,13 @@ function LabTab({
         label="Lab test"
         placeholder="Search catalogue…"
         search={async (q) => {
+          // Placeholder fetch must never break the whole search — a 4xx
+          // (permission) or 5xx there would otherwise reject Promise.all
+          // and blank the typeahead entirely, hiding the orderable rows
+          // too. Fall back to an empty placeholder list on any failure.
           const [priced, placeholders] = await Promise.all([
             searchPriceCatalog(q, encounterId, accessToken as string).then((r) => r.filter((x) => x.category === 'LAB')),
-            fetchPendingLabClassifications(q, accessToken as string),
+            fetchPendingLabClassifications(q, accessToken as string).catch(() => []),
           ]);
           const orderable: LabTestOption[] = priced.map((p) => ({
             kind: 'orderable',
