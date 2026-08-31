@@ -25,6 +25,7 @@ import { fetchEncounterById } from '../../shared/api/encounters';
 import { recordIcd10Selection, searchIcd10, type Icd10SearchResult } from '../../shared/api/icd10';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
 import { placeLabOrder, type LabOrderUrgency } from '../../shared/api/labOrders';
+import { fetchPendingLabClassifications } from '../../shared/api/labTests';
 import { fetchPatientById, type PatientResponse } from '../../shared/api/patients';
 import { searchPriceCatalog, type PriceCatalogItemResponse } from '../../shared/api/priceCatalog';
 import { placePrescription, type PrescriptionFrequency } from '../../shared/api/prescriptions';
@@ -1127,6 +1128,16 @@ interface DraftLabLine {
   priceMinor: number | null;
 }
 
+// Discriminated union for the lab-test Combobox: orderable rows come
+// from the price catalogue (real lab_test row + resolved price);
+// pending rows come from the admin importer (V67 service_item TYPE=
+// Laboratory) that no lab_test classifies yet. Same visible-but-
+// unselectable UX the prescription typeahead uses for CONTROLLED /
+// not-yet-active items.
+type LabTestOption =
+  | { kind: 'orderable'; serviceItemId: string; test: PriceCatalogItemResponse }
+  | { kind: 'pending'; serviceItemId: string; code: string; name: string; unselectableReason: string };
+
 function LabTab({
   encounterId,
   encounter,
@@ -1179,17 +1190,51 @@ function LabTab({
 
   return (
     <div>
-      <Combobox<PriceCatalogItemResponse>
+      <Combobox<LabTestOption>
         label="Lab test"
         placeholder="Search catalogue…"
-        search={(q) => searchPriceCatalog(q, encounterId, accessToken as string).then((r) => r.filter((x) => x.category === 'LAB'))}
-        getKey={(o) => o.serviceItemId as string}
-        renderOption={(o) => (
-          <span>
-            {o.name} — {formatMoney(o.priceMinor, o.currencyCode)}
-          </span>
-        )}
-        onSelect={(o) => setPending(o)}
+        search={async (q) => {
+          const [priced, placeholders] = await Promise.all([
+            searchPriceCatalog(q, encounterId, accessToken as string).then((r) => r.filter((x) => x.category === 'LAB')),
+            fetchPendingLabClassifications(q, accessToken as string),
+          ]);
+          const orderable: LabTestOption[] = priced.map((p) => ({
+            kind: 'orderable',
+            test: p,
+            serviceItemId: p.serviceItemId as string,
+          }));
+          // Placeholders whose code already resolved to a priced,
+          // orderable row are dropped — that row IS the classified
+          // version, so showing "pending" alongside it would confuse.
+          const orderableCodes = new Set(priced.map((p) => p.code));
+          const pending: LabTestOption[] = placeholders
+            .filter((p) => !orderableCodes.has(p.code))
+            .map((p) => ({
+              kind: 'pending',
+              serviceItemId: p.serviceItemId,
+              code: p.code,
+              name: p.name,
+              unselectableReason: p.unselectableReason,
+            }));
+          return [...orderable, ...pending];
+        }}
+        getKey={(o) => o.serviceItemId}
+        renderOption={(o) =>
+          o.kind === 'orderable' ? (
+            <span>
+              {o.test.name} — {formatMoney(o.test.priceMinor, o.test.currencyCode)}
+            </span>
+          ) : (
+            <span style={{ opacity: 0.5 }}>
+              {o.name} <em>— {o.unselectableReason}</em>
+            </span>
+          )
+        }
+        onSelect={(o) => {
+          // Placeholders are visible-and-unselectable — matching the
+          // prescription typeahead's CONTROLLED / not-yet-active pattern.
+          if (o.kind === 'orderable') setPending(o.test);
+        }}
       />
 
       {pending && (

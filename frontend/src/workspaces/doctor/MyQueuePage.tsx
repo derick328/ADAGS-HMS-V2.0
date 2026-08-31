@@ -24,9 +24,15 @@ export function MyQueuePage() {
   const navigate = useNavigate();
   const location = useLocation() as { state?: { consultationError?: string } };
 
+  // Also fetches IN_CONSULT so a consultation the doctor already opened
+  // (and hasn't finalized — a page reload, a logout mid-visit, an
+  // autosaved draft) still has a visible resume point on the queue. Before
+  // this, the encounter fell off the queue the instant it transitioned
+  // AWAITING_CONSULT -> IN_CONSULT, and the only way back was the
+  // dismissible IncompleteConsultationPrompt on the next fresh sign-in.
   const { data: encounters, isLoading } = useQuery({
-    queryKey: ['encounters', 'search', { states: ['AWAITING_CONSULT'] }],
-    queryFn: () => searchEncounters({ states: ['AWAITING_CONSULT'] }, accessToken as string),
+    queryKey: ['encounters', 'search', { states: ['AWAITING_CONSULT', 'IN_CONSULT'] }],
+    queryFn: () => searchEncounters({ states: ['AWAITING_CONSULT', 'IN_CONSULT'] }, accessToken as string),
     enabled: accessToken != null,
     refetchInterval: 10_000,
   });
@@ -44,8 +50,17 @@ export function MyQueuePage() {
   const triageByEncounter = new Map((triageWindow ?? []).map((t) => [t.encounterId, t]));
 
   const mine = (encounters ?? []).filter((e) => e.assignedProviderId === me?.userId);
+  const inProgress = mine.filter((e) => e.state === 'IN_CONSULT');
+  const waiting = mine.filter((e) => e.state === 'AWAITING_CONSULT');
 
-  const rows: QueueRow[] = [...mine]
+  // In-progress rows carry no triage priority (they're already open) — sort
+  // by createdAt oldest-first so the doctor sees the one they've had open
+  // longest at the top.
+  const inProgressRows: QueueRow[] = [...inProgress]
+    .sort((a, b) => new Date(a.createdAt as string).getTime() - new Date(b.createdAt as string).getTime())
+    .map((e) => toQueueRow(e, triageByEncounter.get(e.id as string)).row);
+
+  const waitingRows: QueueRow[] = [...waiting]
     .map((e) => toQueueRow(e, triageByEncounter.get(e.id as string)))
     .sort((a, b) => compareQueueRows(a.rank, b.rank))
     .map((r) => r.row);
@@ -57,9 +72,19 @@ export function MyQueuePage() {
           {location.state.consultationError}
         </div>
       )}
+      {inProgressRows.length > 0 && (
+        <div style={{ marginBottom: 'var(--space-4)' }}>
+          <QueueShell
+            title="In progress"
+            rows={inProgressRows}
+            isLoading={false}
+            emptyMessage=""
+          />
+        </div>
+      )}
       <QueueShell
-        title="My Queue"
-        rows={rows}
+        title="Waiting"
+        rows={waitingRows}
         isLoading={isLoading}
         emptyMessage="No patients waiting for consultation."
       />
@@ -88,7 +113,7 @@ export function MyQueuePage() {
         meta: formatWaitingSince(encounter.createdAt),
         action: (
           <button type="button" className="btn btn-primary" onClick={() => navigate(`/doctor/consultation/${encounter.id}`)}>
-            Open
+            {encounter.state === 'IN_CONSULT' ? 'Continue' : 'Open'}
           </button>
         ),
       },

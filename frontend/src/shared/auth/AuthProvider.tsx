@@ -28,6 +28,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => setStatus('unauthenticated'));
   }, []);
 
+  // Swap an expired access token for a fresh one off the refresh cookie.
+  const renewAccessToken = useCallback(async (): Promise<string | null> => {
+    try {
+      const token = await api.refresh();
+      const next = token.accessToken ?? null;
+      setAccessToken(next);
+      setStatus(next ? 'authenticated' : 'unauthenticated');
+      return next;
+    } catch {
+      setAccessToken(null);
+      setStatus('unauthenticated');
+      return null;
+    }
+  }, []);
+
+  // Backstop: any request that still 401s (e.g. the laptop was asleep) gets
+  // one transparent retry with a freshly-minted token.
+  useEffect(() => {
+    api.setAccessTokenRefresher(renewAccessToken);
+    return () => api.setAccessTokenRefresher(null);
+  }, [renewAccessToken]);
+
+  // Proactive: renew well inside the 15-minute access-token TTL so a long
+  // workflow (billing, a slow triage assessment) never crosses the line.
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    const id = window.setInterval(() => void renewAccessToken(), 12 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, [status, renewAccessToken]);
+
   const login = useCallback(async (username: string, password: string) => {
     const response = await api.login({ username, password });
     setAccessToken(response.accessToken ?? null);

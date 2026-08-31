@@ -31,4 +31,21 @@ public record ItemSearchResultResponse(
         return new ItemSearchResultResponse(item.id(), item.code(), item.name(), item.form(), item.strength(),
                 item.regulatorySchedule(), selectable, reason);
     }
+
+    /**
+     * V67 admin importer visibility: the row exists in the shared
+     * catalogue but no inventory.item classifies it yet. Same
+     * "visible-and-unselectable" pattern as CONTROLLED — the doctor
+     * sees it and knows why they cannot prescribe it. The id is the
+     * service_item UUID so the client can key by it; it will not
+     * resolve to an Item at prescribe time, so a bypass in the UI
+     * still fails cleanly at the backend.
+     */
+    public static ItemSearchResultResponse pendingClassification(
+            java.util.UUID serviceItemId, String code, String name) {
+        return new ItemSearchResultResponse(
+                serviceItemId, code, name, "—", null,
+                RegulatorySchedule.UNCLASSIFIED, false,
+                "Pending pharmacy classification — a pharmacist must set form, unit and regulatory schedule before this can be prescribed.");
+    }
 }

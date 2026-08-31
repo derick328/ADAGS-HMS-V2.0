@@ -48,6 +48,9 @@ adags:
     access-key: ${MINIO_ACCESS_KEY:adags}
     secret-key: ${MINIO_SECRET_KEY:adags-minio-secret}
     lab-machine-output-bucket: ${MINIO_LAB_MACHINE_OUTPUT_BUCKET:lab-machine-output}
+    # Archive of the admin's catalogue-import .xlsx uploads — one object
+    # per catalog_import_batch row, keyed by that batch's id.
+    catalog-import-bucket: ${MINIO_CATALOG_IMPORT_BUCKET:catalog-import}
   bootstrap:
     admin-username: ${ADAGS_BOOTSTRAP_ADMIN_USERNAME:admin}
     # ADAGS_BOOTSTRAP_ADMIN_PASSWORD is required by the V3 bootstrap-admin

@@ -32,6 +32,7 @@ public class MinioConfig {
         private String accessKey;
         private String secretKey;
         private String labMachineOutputBucket;
+        private String catalogImportBucket;
 
         public String getEndpoint() {
             return endpoint;
@@ -63,6 +64,14 @@ public class MinioConfig {
 
         public void setLabMachineOutputBucket(String labMachineOutputBucket) {
             this.labMachineOutputBucket = labMachineOutputBucket;
+        }
+
+        public String getCatalogImportBucket() {
+            return catalogImportBucket;
+        }
+
+        public void setCatalogImportBucket(String catalogImportBucket) {
+            this.catalogImportBucket = catalogImportBucket;
         }
     }
 }

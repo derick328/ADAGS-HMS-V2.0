@@ -66,6 +66,21 @@ public class EncounterFacadeImpl implements EncounterFacade {
 
     @Override
     @Transactional
+    public void moveToAwaitingConsult(UUID encounterId, UUID actorUserId) {
+        // No-op if the encounter has already moved past AWAITING_PAYMENT —
+        // a settlement can fire this multiple times (a second invoice on an
+        // encounter that's already reached the doctor's queue, an
+        // idempotent retry), and only the first one should count.
+        Encounter encounter = encounterRepository.findById(encounterId)
+                .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + encounterId));
+        if (encounter.state() != EncounterState.AWAITING_PAYMENT) {
+            return;
+        }
+        transition(encounterId, EncounterState.AWAITING_CONSULT, actorUserId, null);
+    }
+
+    @Override
+    @Transactional
     public void referOut(UUID encounterId, UUID actorUserId) {
         transition(encounterId, EncounterState.REFERRED_OUT, actorUserId, null);
     }

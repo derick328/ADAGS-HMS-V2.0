@@ -1,0 +1,4 @@
+# SPA fallback: serve index.html for any path that isn't a real static asset,
+# so react-router client routes (e.g. /admin/roles) work on hard refresh.
+# Static files in dist/ are matched first, so /assets/* is unaffected.
+/*  /index.html  200

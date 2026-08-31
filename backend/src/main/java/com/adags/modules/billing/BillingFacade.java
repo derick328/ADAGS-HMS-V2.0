@@ -3,6 +3,8 @@ package com.adags.modules.billing;
 import com.adags.shared.kernel.Money;
 import com.adags.shared.kernel.PayerType;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -206,4 +208,38 @@ public interface BillingFacade {
      * amount moved to receivable (zero if nothing was outstanding).
      */
     Money createReceivablesForOutstandingBalance(UUID encounterId);
+
+    /**
+     * V67 admin importer visibility (option 2 of the catalogue-fanout
+     * discussion). Returns active rows from the shared service_item
+     * catalogue whose type matches {@code kind} and whose code is not in
+     * {@code excludeCodes} — the caller (inventory, laboratory) has
+     * already fetched its classified rows and passes their codes here so
+     * the two sets don't collide.
+     *
+     * <p>Consumers surface these as visible-but-unselectable placeholders
+     * in the prescription / lab-order typeaheads ("Pending pharmacy
+     * classification" / "Pending lab classification"), so a doctor sees
+     * that an imported catalogue row exists without being able to
+     * prescribe or order it before a pharmacist-in-charge / lab lead has
+     * filled in the fields those workflows require (form, unit,
+     * regulatory_schedule for drugs; specimen type, container, TAT for
+     * tests). Root CLAUDE.md "Safety": the classification gates are what
+     * keep controlled medicines and unvalidated lab specimens out of the
+     * clinical path — this method surfaces the row, it does not skip
+     * those gates.
+     */
+    List<UnclassifiedCatalogueEntry> findUnclassifiedCatalogueEntries(
+            CatalogueKind kind, String query, Collection<String> excludeCodes, int limit);
+
+    /** Which cross-module catalogue a lookup targets. */
+    enum CatalogueKind { PHARMACY, LABORATORY }
+
+    /**
+     * One catalogue row visible to a downstream workspace as a
+     * placeholder. serviceItemId is a stable identifier per row so a UI
+     * can key by it; it is NOT usable as an Item.id / LabTest.id — the
+     * point is that no classified row exists there yet.
+     */
+    record UnclassifiedCatalogueEntry(UUID serviceItemId, String code, String originalCode, String name) {}
 }

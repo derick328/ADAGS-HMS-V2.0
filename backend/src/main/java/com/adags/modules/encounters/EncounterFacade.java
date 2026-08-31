@@ -59,6 +59,20 @@ public interface EncounterFacade {
      */
     void moveToConsultComplete(UUID encounterId, UUID actorUserId);
 
+    /**
+     * Row 7 of the encounter transition table (02-billing-architecture.md
+     * §2.1): AWAITING_PAYMENT -> AWAITING_CONSULT once the consultation
+     * invoice reaches PATIENT_PORTION_SETTLED. Called by PostPaymentService
+     * inside the same @Transactional as the settlement, so a paid invoice
+     * and an advanced encounter succeed or roll back together — no window
+     * where the money is recorded but the patient never reaches the
+     * doctor's queue. Unlike MoveToAwaitingConsultService's own path (the
+     * /resume endpoint), this one does NOT re-check the billing gate: the
+     * caller has just settled the line, and the transaction hasn't
+     * committed yet.
+     */
+    void moveToAwaitingConsult(UUID encounterId, UUID actorUserId);
+
     /** Phase 8 item 5: IN_CONSULT -> REFERRED_OUT (terminal) for TRANSFER_OUT disposition. */
     void referOut(UUID encounterId, UUID actorUserId);
 

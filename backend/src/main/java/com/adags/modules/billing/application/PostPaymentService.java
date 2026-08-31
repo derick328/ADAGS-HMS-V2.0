@@ -18,6 +18,7 @@ import com.adags.modules.billing.domain.PaymentBypassRepository;
 import com.adags.modules.billing.domain.PaymentMethod;
 import com.adags.modules.billing.domain.PaymentRepository;
 import com.adags.modules.billing.domain.PaymentStatus;
+import com.adags.modules.encounters.EncounterFacade;
 import com.adags.modules.insurance.InsuranceFacade;
 import com.adags.shared.events.DomainEventPublisher;
 import com.adags.shared.kernel.Money;
@@ -48,6 +49,7 @@ public class PostPaymentService {
     private final PaymentBypassRepository paymentBypassRepository;
     private final BillingGate billingGate;
     private final InsuranceFacade insuranceFacade;
+    private final EncounterFacade encounterFacade;
     private final DomainEventPublisher eventPublisher;
 
     public PostPaymentService(
@@ -59,6 +61,7 @@ public class PostPaymentService {
             PaymentBypassRepository paymentBypassRepository,
             BillingGate billingGate,
             InsuranceFacade insuranceFacade,
+            EncounterFacade encounterFacade,
             DomainEventPublisher eventPublisher
     ) {
         this.cashierShiftRepository = cashierShiftRepository;
@@ -69,6 +72,7 @@ public class PostPaymentService {
         this.paymentBypassRepository = paymentBypassRepository;
         this.billingGate = billingGate;
         this.insuranceFacade = insuranceFacade;
+        this.encounterFacade = encounterFacade;
         this.eventPublisher = eventPublisher;
     }
 
@@ -128,6 +132,18 @@ public class PostPaymentService {
                 // crosses this branch only on the allocation that
                 // actually zeroes its outstanding).
                 raiseInsuranceClaimIfAnyLineIsCovered(after, command.actorUserId());
+                // Row 7 of the encounter transition table
+                // (02-billing-architecture.md §2.1): AWAITING_PAYMENT ->
+                // AWAITING_CONSULT once the consultation invoice settles,
+                // so the patient reaches the doctor's queue. In the same
+                // @Transactional as the settlement — a paid invoice and a
+                // stuck encounter must never diverge. Facade no-ops if
+                // the encounter has already moved past AWAITING_PAYMENT
+                // (a second invoice settled on the same encounter, an
+                // idempotent retry).
+                if (after.encounterId() != null) {
+                    encounterFacade.moveToAwaitingConsult(after.encounterId(), command.actorUserId());
+                }
             }
 
             long totalSettledForLine = v.alreadySettledBefore() + v.amountMinor();

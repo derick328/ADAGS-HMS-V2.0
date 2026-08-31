@@ -1,7 +1,10 @@
 package com.adags.shared.web;
 
 import com.adags.modules.billing.domain.BillingGateRejectedException;
+import com.adags.modules.billing.domain.CashierShiftNotOpenException;
 import com.adags.modules.billing.domain.CreditNoteAlreadyDecidedException;
+import com.adags.modules.billing.domain.DuplicateCatalogFileException;
+import com.adags.modules.billing.domain.InvalidCatalogFileException;
 import com.adags.modules.billing.domain.CreditNoteExceedsOutstandingException;
 import com.adags.modules.billing.domain.CreditNoteNotEligibleException;
 import com.adags.modules.billing.domain.CreditNoteSelfApprovalNotAllowedException;
@@ -640,6 +643,36 @@ public class GlobalExceptionHandler {
         problem.setProperty("serviceName", ex.serviceName());
         problem.setProperty("outstandingAmountMinor", ex.outstandingAmount().amountMinor());
         problem.setProperty("currencyCode", ex.outstandingAmount().currencyCode());
+        return problem;
+    }
+
+    // Without this, the cashier-shift precondition failure surfaced as an
+    // unhandled 500 → Spring Boot's error dispatch → 401 (ActorResolvingFilter
+    // is OncePerRequestFilter and doesn't re-run on the ERROR dispatch, so the
+    // second dispatch sees no auth). Return a proper 409 with the detail so
+    // the frontend's paymentErrorMessage branch on /cashier shift/i can guide
+    // the user to open a shift.
+    @ExceptionHandler(CashierShiftNotOpenException.class)
+    public ProblemDetail handleCashierShiftNotOpen(CashierShiftNotOpenException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // Catalogue import (Phase 5/9): 400 with a structured errors[] the
+    // frontend can render row-by-row. Kept as its own handler rather than
+    // reusing MethodArgumentNotValid — those errors carry field paths that
+    // don't match a spreadsheet's row/column vocabulary.
+    @ExceptionHandler(InvalidCatalogFileException.class)
+    public ProblemDetail handleInvalidCatalogFile(InvalidCatalogFileException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setProperty("errors", ex.errors());
+        return problem;
+    }
+
+    @ExceptionHandler(DuplicateCatalogFileException.class)
+    public ProblemDetail handleDuplicateCatalogFile(DuplicateCatalogFileException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("existingBatchId", ex.existingBatchId().toString());
+        problem.setProperty("existingStatus", ex.existingStatus());
         return problem;
     }
 }

@@ -44,9 +44,11 @@ import { TriageAssessmentFormPage } from './workspaces/triage/TriageAssessmentFo
 import { TriageNurseShell } from './workspaces/triage/TriageNurseShell';
 import { ConsultationPage } from './workspaces/doctor/ConsultationPage';
 import { DoctorShell } from './workspaces/doctor/DoctorShell';
+import { EncounterDetailPage } from './workspaces/doctor/EncounterDetailPage';
 import { HospitalCataloguePage } from './workspaces/doctor/HospitalCataloguePage';
 import { MyPatientsPage } from './workspaces/doctor/MyPatientsPage';
 import { MyQueuePage } from './workspaces/doctor/MyQueuePage';
+import { PatientPage } from './workspaces/doctor/PatientPage';
 import { ProfilePage as DoctorProfilePage } from './workspaces/triage/ProfilePage';
 import { RequestHistoryPage } from './workspaces/doctor/RequestHistoryPage';
 import { AcceptSamplePage } from './workspaces/lab/AcceptSamplePage';
@@ -169,6 +171,8 @@ export function App() {
         <Route index element={<MyQueuePage />} />
         <Route path="consultation/:encounterId" element={<ConsultationPage />} />
         <Route path="patients" element={<MyPatientsPage />} />
+        <Route path="patients/:patientId" element={<PatientPage />} />
+        <Route path="patients/:patientId/encounters/:encounterId" element={<EncounterDetailPage />} />
         <Route path="catalogue" element={<HospitalCataloguePage />} />
         <Route path="request-history" element={<RequestHistoryPage />} />
         <Route path="profile" element={<DoctorProfilePage />} />

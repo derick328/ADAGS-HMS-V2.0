@@ -1,6 +1,8 @@
 package com.adags.modules.billing.infrastructure;
 
 import com.adags.modules.billing.BillingFacade;
+import com.adags.modules.billing.application.CatalogItemLookupPort;
+import com.adags.modules.billing.application.CatalogItemView;
 import com.adags.modules.billing.application.ChargePostingCommand;
 import com.adags.modules.billing.application.ChargePostingResult;
 import com.adags.modules.billing.application.ChargePostingService;
@@ -8,6 +10,7 @@ import com.adags.modules.billing.application.FixedAmountChargePostingCommand;
 import com.adags.modules.billing.application.PriceResolutionService;
 import com.adags.modules.billing.application.SetPharmacyItemPriceCommand;
 import com.adags.modules.billing.application.SetPharmacyItemPriceService;
+import com.adags.modules.billing.domain.CatalogItemType;
 import com.adags.modules.billing.domain.BillingGate;
 import com.adags.modules.billing.domain.PriceListEntry;
 import com.adags.modules.billing.domain.Invoice;
@@ -33,6 +36,8 @@ import com.adags.shared.kernel.Money;
 import com.adags.shared.kernel.PayerType;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
@@ -54,6 +59,7 @@ public class BillingFacadeImpl implements BillingFacade {
     private final SetPharmacyItemPriceService setPharmacyItemPriceService;
     private final ServiceItemRepository serviceItemRepository;
     private final PriceResolutionService priceResolutionService;
+    private final CatalogItemLookupPort catalogItemLookup;
 
     public BillingFacadeImpl(
             PaymentBypassRepository paymentBypassRepository,
@@ -65,7 +71,8 @@ public class BillingFacadeImpl implements BillingFacade {
             ProviderBillingCategoryRepository providerBillingCategoryRepository,
             SetPharmacyItemPriceService setPharmacyItemPriceService,
             ServiceItemRepository serviceItemRepository,
-            PriceResolutionService priceResolutionService
+            PriceResolutionService priceResolutionService,
+            CatalogItemLookupPort catalogItemLookup
     ) {
         this.paymentBypassRepository = paymentBypassRepository;
         this.chargePostingService = chargePostingService;
@@ -77,6 +84,7 @@ public class BillingFacadeImpl implements BillingFacade {
         this.setPharmacyItemPriceService = setPharmacyItemPriceService;
         this.serviceItemRepository = serviceItemRepository;
         this.priceResolutionService = priceResolutionService;
+        this.catalogItemLookup = catalogItemLookup;
     }
 
     @Override
@@ -244,6 +252,19 @@ public class BillingFacadeImpl implements BillingFacade {
                 .orElseThrow(() -> new IllegalStateException("Assigned provider " + assignedProviderId
                         + " holds no role mapped to a consultation price (roles held: " + roleCodes + ")."));
         return category.serviceItemCode();
+    }
+
+    @Override
+    public List<UnclassifiedCatalogueEntry> findUnclassifiedCatalogueEntries(
+            CatalogueKind kind, String query, Collection<String> excludeCodes, int limit) {
+        CatalogItemType type = switch (kind) {
+            case PHARMACY -> CatalogItemType.PHARMACY;
+            case LABORATORY -> CatalogItemType.LABORATORY;
+        };
+        List<CatalogItemView> rows = catalogItemLookup.findUnclassified(type, query, excludeCodes, limit);
+        return rows.stream()
+                .map(v -> new UnclassifiedCatalogueEntry(v.serviceItemId(), v.code(), v.originalCode(), v.name()))
+                .toList();
     }
 
     private PayerCategory toPayerCategory(PayerType payerType) {

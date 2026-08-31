@@ -1,5 +1,6 @@
 package com.adags.modules.inventory.api;
 
+import com.adags.modules.billing.BillingFacade;
 import com.adags.modules.inventory.application.ActivateItemService;
 import com.adags.modules.inventory.application.ClassifyItemCommand;
 import com.adags.modules.inventory.application.ClassifyItemService;
@@ -24,9 +25,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 // 12-pharmacist.md §9.2/§10.2: the full NEW_ITEM proposal-and-approval
 // workflow is out of scope for this build brief (item proposals are a
@@ -48,6 +52,7 @@ public class ItemController {
     private final SetAdministrationWitnessService setAdministrationWitnessService;
     private final ItemRepository itemRepository;
     private final AuthorizationService authorizationService;
+    private final BillingFacade billingFacade;
 
     public ItemController(
             CreateItemService createItemService,
@@ -55,7 +60,8 @@ public class ItemController {
             ActivateItemService activateItemService,
             SetAdministrationWitnessService setAdministrationWitnessService,
             ItemRepository itemRepository,
-            AuthorizationService authorizationService
+            AuthorizationService authorizationService,
+            BillingFacade billingFacade
     ) {
         this.createItemService = createItemService;
         this.classifyItemService = classifyItemService;
@@ -63,6 +69,7 @@ public class ItemController {
         this.setAdministrationWitnessService = setAdministrationWitnessService;
         this.itemRepository = itemRepository;
         this.authorizationService = authorizationService;
+        this.billingFacade = billingFacade;
     }
 
     @PostMapping
@@ -91,12 +98,39 @@ public class ItemController {
     // never silently absent. Gated by STOCK_READ, the closest existing
     // catalogue-visibility permission — a dedicated formulary-search
     // permission belongs to the prescribing/orders module once it exists.
+    //
+    // Also surfaces catalogue rows the admin importer (V67) has landed
+    // in service_item but which no inventory.item row classifies yet —
+    // shown selectable=false with reason "Pending pharmacy
+    // classification." Same visibility pattern the CONTROLLED path
+    // already uses: the row exists, the doctor knows it exists, and
+    // nothing can be prescribed until a pharmacist-in-charge fills in
+    // form/unit/regulatory_schedule. Placeholder id is the service_item
+    // UUID and will not resolve to an Item on placement, so a bypass
+    // client-side would still fail at prescribe time.
     @GetMapping("/search")
     public List<ItemSearchResultResponse> search(@RequestParam String q, @AuthenticationPrincipal Actor actor) {
         if (!authorizationService.hasPermission(actor, "STOCK_READ")) {
             throw new AccessDeniedException("Missing permission: STOCK_READ");
         }
-        return itemRepository.searchByName(q, SEARCH_LIMIT).stream().map(ItemSearchResultResponse::from).toList();
+        List<ItemSearchResultResponse> classified = itemRepository.searchByName(q, SEARCH_LIMIT).stream()
+                .map(ItemSearchResultResponse::from).toList();
+        int remaining = SEARCH_LIMIT - classified.size();
+        if (remaining <= 0) {
+            return classified;
+        }
+        Set<String> excludeCodes = classified.stream()
+                .map(ItemSearchResultResponse::code)
+                .collect(Collectors.toSet());
+        List<BillingFacade.UnclassifiedCatalogueEntry> placeholders =
+                billingFacade.findUnclassifiedCatalogueEntries(
+                        BillingFacade.CatalogueKind.PHARMACY, q, excludeCodes, remaining);
+        List<ItemSearchResultResponse> combined = new ArrayList<>(classified);
+        for (BillingFacade.UnclassifiedCatalogueEntry entry : placeholders) {
+            combined.add(ItemSearchResultResponse.pendingClassification(
+                    entry.serviceItemId(), entry.code(), entry.name()));
+        }
+        return combined;
     }
 
     @PostMapping("/{id}/classify")

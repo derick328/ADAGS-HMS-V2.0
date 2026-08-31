@@ -59,9 +59,13 @@ function MyQueueLink() {
   const { data: me } = useMe();
   const canSee = usePermission('CONSULTATION_CREATE');
 
+  // Includes IN_CONSULT so the sidebar count matches what MyQueuePage
+  // shows (In progress + Waiting sections). Without this, a doctor with
+  // one open consultation and no waiting patients saw "0" on the sidebar
+  // while the queue page had a row — confusing.
   const { data } = useQuery({
-    queryKey: ['encounters', 'search', { states: ['AWAITING_CONSULT'] }],
-    queryFn: () => searchEncounters({ states: ['AWAITING_CONSULT'] }, accessToken as string),
+    queryKey: ['encounters', 'search', { states: ['AWAITING_CONSULT', 'IN_CONSULT'] }],
+    queryFn: () => searchEncounters({ states: ['AWAITING_CONSULT', 'IN_CONSULT'] }, accessToken as string),
     enabled: canSee && accessToken != null,
     refetchInterval: 15_000,
   });

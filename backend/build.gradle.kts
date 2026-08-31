@@ -55,6 +55,11 @@ dependencies {
     // module to actually talk to it.
     implementation("io.minio:minio:8.5.12")
 
+    // Phase 5/9 catalogue import: parse the admin's .xlsx price file
+    // server-side. poi-ooxml pulls in the OOXML (.xlsx) subset; the older
+    // .xls format is out of scope.
+    implementation("org.apache.poi:poi-ooxml:5.3.0")
+
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
 
