@@ -25,7 +25,7 @@ import { fetchEncounterById } from '../../shared/api/encounters';
 import { recordIcd10Selection, searchIcd10, type Icd10SearchResult } from '../../shared/api/icd10';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
 import { placeLabOrder, type LabOrderUrgency } from '../../shared/api/labOrders';
-import { fetchPendingLabClassifications } from '../../shared/api/labTests';
+import { fetchLabTests, fetchPendingLabClassifications } from '../../shared/api/labTests';
 import { fetchPatientById, type PatientResponse } from '../../shared/api/patients';
 import { searchPriceCatalog, type PriceCatalogItemResponse } from '../../shared/api/priceCatalog';
 import { placePrescription, type PrescriptionFrequency } from '../../shared/api/prescriptions';
@@ -1218,25 +1218,42 @@ function LabTab({
         label="Lab test"
         placeholder="Search catalogue…"
         search={async (q) => {
-          // Placeholder fetch must never break the whole search — a 4xx
-          // (permission) or 5xx there would otherwise reject Promise.all
-          // and blank the typeahead entirely, hiding the orderable rows
-          // too. Fall back to an empty placeholder list on any failure.
-          const [priced, placeholders] = await Promise.all([
+          // Ordering only works when a matching lab_test row exists —
+          // PlaceLabOrderService rejects any code that doesn't
+          // (NoSuchElementException → 404 "Resource not found"). Fetch
+          // the active lab_test list once and use it as the "orderable"
+          // whitelist; a price-catalogue row not in the whitelist is
+          // rendered as a Pending placeholder, unselectable, same
+          // pattern the CONTROLLED / not-yet-active prescription case
+          // uses. Every side-fetch is wrapped so a single failure never
+          // rejects Promise.all and blanks the typeahead.
+          const [priced, placeholders, activeLabTests] = await Promise.all([
             searchPriceCatalog(q, encounterId, accessToken as string).then((r) => r.filter((x) => x.category === 'LAB')),
             fetchPendingLabClassifications(q, accessToken as string).catch(() => []),
+            fetchLabTests(accessToken as string).catch(() => []),
           ]);
-          const orderable: LabTestOption[] = priced.map((p) => ({
-            kind: 'orderable',
-            test: p,
-            serviceItemId: p.serviceItemId as string,
-          }));
-          // Placeholders whose code already resolved to a priced,
-          // orderable row are dropped — that row IS the classified
-          // version, so showing "pending" alongside it would confuse.
-          const orderableCodes = new Set(priced.map((p) => p.code));
-          const pending: LabTestOption[] = placeholders
-            .filter((p) => !orderableCodes.has(p.code))
+          const orderableCodes = new Set(activeLabTests.filter((t) => t.active !== false).map((t) => t.code));
+          const orderable: LabTestOption[] = priced
+            .filter((p) => orderableCodes.has(p.code as string))
+            .map((p) => ({ kind: 'orderable', test: p, serviceItemId: p.serviceItemId as string }));
+          const priceCatalogWithoutLabTestRow = priced
+            .filter((p) => !orderableCodes.has(p.code as string))
+            .map<LabTestOption>((p) => ({
+              kind: 'pending',
+              serviceItemId: p.serviceItemId as string,
+              code: p.code as string,
+              name: p.name as string,
+              unselectableReason:
+                'Pending lab classification — a lab lead must set specimen type, container and turnaround time before this can be ordered.',
+            }));
+          // Placeholders from the admin importer (V67 service_item type=
+          // Laboratory) that aren't already covered by a price-catalogue
+          // row — same "pending classification" surface.
+          const shownCodes = new Set<string>([
+            ...priced.map((p) => p.code as string),
+          ]);
+          const importedPending: LabTestOption[] = placeholders
+            .filter((p) => !shownCodes.has(p.code))
             .map((p) => ({
               kind: 'pending',
               serviceItemId: p.serviceItemId,
@@ -1244,7 +1261,7 @@ function LabTab({
               name: p.name,
               unselectableReason: p.unselectableReason,
             }));
-          return [...orderable, ...pending];
+          return [...orderable, ...priceCatalogWithoutLabTestRow, ...importedPending];
         }}
         getKey={(o) => o.serviceItemId}
         renderOption={(o) =>

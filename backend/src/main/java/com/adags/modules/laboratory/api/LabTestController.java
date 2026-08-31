@@ -94,10 +94,15 @@ public class LabTestController {
     }
 
     private void requirePermission(Actor actor) {
-        if (!authorizationService.hasPermission(actor, "LAB_QUEUE_READ")
+        // Doctors hold LAB_ORDER_CREATE (they need to know which lab
+        // tests are actually orderable when building the order form) but
+        // do NOT hold the lab-tech permissions listed alongside — accept
+        // any of them.
+        if (!authorizationService.hasPermission(actor, "LAB_ORDER_CREATE")
+                && !authorizationService.hasPermission(actor, "LAB_QUEUE_READ")
                 && !authorizationService.hasPermission(actor, "LAB_RESULT_ENTER")
                 && !authorizationService.hasPermission(actor, "LAB_ITEM_PROPOSE")) {
-            throw new AccessDeniedException("Missing permission: LAB_QUEUE_READ");
+            throw new AccessDeniedException("Missing permission: LAB_ORDER_CREATE");
         }
     }
 }
