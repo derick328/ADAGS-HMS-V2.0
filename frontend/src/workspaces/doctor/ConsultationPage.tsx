@@ -269,22 +269,27 @@ function TriagePanel({
       </h2>
       {vitals ? (
         <dl style={{ fontSize: 'var(--text-sm)', display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 8px', margin: 0 }}>
+          {/* Keys match backend VitalType enum names exactly — TEMPERATURE,
+              SYSTOLIC_BP, DIASTOLIC_BP, PULSE, SPO2 (see VitalSignsController.
+              toResponse). Earlier "_C / _MMHG / _BPM / _PCT" suffixes never
+              matched and always resolved to undefined → every reading
+              rendered as "—". */}
           <dt>Temp</dt>
-          <dd className="tabular">{vitals.readings?.TEMPERATURE_C ?? '—'} °C</dd>
+          <dd className="tabular">{vitals.readings?.TEMPERATURE ?? '—'} °C</dd>
           <dt>BP</dt>
           <dd className="tabular">
-            {vitals.readings?.SYSTOLIC_MMHG ?? '—'}/{vitals.readings?.DIASTOLIC_MMHG ?? '—'}
+            {vitals.readings?.SYSTOLIC_BP ?? '—'}/{vitals.readings?.DIASTOLIC_BP ?? '—'}
           </dd>
           <dt>Pulse</dt>
-          <dd className="tabular">{vitals.readings?.PULSE_BPM ?? '—'} bpm</dd>
+          <dd className="tabular">{vitals.readings?.PULSE ?? '—'} bpm</dd>
           <dt>SpO₂</dt>
-          <dd className="tabular">{vitals.readings?.SPO2_PCT ?? '—'}%</dd>
+          <dd className="tabular">{vitals.readings?.SPO2 ?? '—'}%</dd>
           <dt>Weight / height</dt>
           <dd className="tabular">
             {vitals.weightKg}kg / {vitals.heightCm}cm
           </dd>
           <dt>BMI</dt>
-          <dd className="tabular">{vitals.bmi ?? '—'}</dd>
+          <dd className="tabular">{vitals.bmi != null ? vitals.bmi.toFixed(1) : '—'}</dd>
         </dl>
       ) : (
         <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>No vitals recorded.</p>
@@ -987,6 +992,13 @@ function PrescriptionTab({
             </span>
           )}
           onSelect={(o) => {
+            // Visible-but-unselectable rows (CONTROLLED,
+            // not-yet-active, or "pending pharmacy classification"
+            // placeholders from the V67 admin importer) must not become
+            // a pending line — placePrescription would 404 on the
+            // synthetic id and the mutation would fail with an opaque
+            // "Something went wrong" message. Ignore the select.
+            if (o.selectable === false) return;
             setPending(o);
             setPriceMinor(latestPriceByCode.current[o.code as string]?.priceMinor ?? null);
           }}
@@ -1072,8 +1084,15 @@ function PrescriptionTab({
               </td>
               <td className="money">{l.priceMinor != null ? formatMoney(l.priceMinor * l.quantity, 'TZS') : '—'}</td>
               <td>
-                <button type="button" className="btn btn-ghost" onClick={() => setLines((prev) => prev.filter((x) => x.key !== l.key))}>
-                  Remove
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  aria-label={`Remove ${l.item.name}`}
+                  title="Remove this line before sending"
+                  onClick={() => setLines((prev) => prev.filter((x) => x.key !== l.key))}
+                  style={{ color: 'var(--critical)', fontWeight: 'var(--weight-medium)' }}
+                >
+                  ✕ Remove
                 </button>
               </td>
             </tr>
@@ -1082,8 +1101,13 @@ function PrescriptionTab({
       </table>
 
       <button type="button" className="btn btn-primary" disabled={lines.length === 0 || send.isPending} onClick={() => send.mutate()} style={{ marginTop: 'var(--space-3)' }}>
-        Send Prescription
+        {send.isPending ? 'Sending…' : 'Send Prescription'}
       </button>
+      {lines.length === 0 && (
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
+          Add at least one drug above before sending.
+        </p>
+      )}
       {sendResult && <p style={{ color: 'var(--green-800)' }}>✓ Sent · {lines.length} items. {sendResult}</p>}
       {send.isError && <p className="form-error">{errorMessage(send.error)}</p>}
     </div>
@@ -1269,8 +1293,15 @@ function LabTab({
               </td>
               <td className="money">{l.priceMinor != null ? formatMoney(l.priceMinor, 'TZS') : '—'}</td>
               <td>
-                <button type="button" className="btn btn-ghost" onClick={() => setLines((prev) => prev.filter((x) => x.key !== l.key))}>
-                  Remove
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  aria-label={`Remove ${l.test.name}`}
+                  title="Remove this line before sending"
+                  onClick={() => setLines((prev) => prev.filter((x) => x.key !== l.key))}
+                  style={{ color: 'var(--critical)', fontWeight: 'var(--weight-medium)' }}
+                >
+                  ✕ Remove
                 </button>
               </td>
             </tr>
@@ -1279,8 +1310,13 @@ function LabTab({
       </table>
 
       <button type="button" className="btn btn-primary" disabled={lines.length === 0 || send.isPending} onClick={() => send.mutate()} style={{ marginTop: 'var(--space-3)' }}>
-        Send Lab Requests
+        {send.isPending ? 'Sending…' : 'Send Lab Requests'}
       </button>
+      {lines.length === 0 && (
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
+          Add at least one lab test above before sending.
+        </p>
+      )}
       {sendResult && <p style={{ color: 'var(--green-800)' }}>✓ Sent · {lines.length} items. {sendResult}</p>}
       {send.isError && <p className="form-error">{errorMessage(send.error)}</p>}
     </div>
