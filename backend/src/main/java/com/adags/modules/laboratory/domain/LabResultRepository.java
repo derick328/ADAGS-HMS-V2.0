@@ -22,6 +22,9 @@ public interface LabResultRepository {
     /** §9's patient-lookup tab, by patient — across every order/specimen/technician, newest first. */
     List<LabResult> findByPatientId(UUID patientId);
 
+    /** 08-doctor-navigation.md §5: doctor's Request History expansion — every result row (including superseded amendments) for one lab order, newest first. */
+    List<LabResult> findByLabOrderId(UUID labOrderId);
+
     /**
      * Sets verification fields — only while verification_state is PENDING.
      * Returns false (a no-op) if the row wasn't PENDING, e.g. a second

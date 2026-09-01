@@ -101,6 +101,12 @@ public class JdbcLabResultRepository implements LabResultRepository {
     }
 
     @Override
+    public List<LabResult> findByLabOrderId(UUID labOrderId) {
+        String sql = SELECT_COLUMNS + " WHERE lab_order_id = :labOrderId ORDER BY entered_at DESC";
+        return jdbcTemplate.query(sql, new MapSqlParameterSource("labOrderId", labOrderId), this::mapRow);
+    }
+
+    @Override
     public List<LabResult> findByPatientId(UUID patientId) {
         String sql = SELECT_COLUMNS + """
                  WHERE lab_order_id IN (SELECT id FROM lab_order WHERE patient_id = :patientId)

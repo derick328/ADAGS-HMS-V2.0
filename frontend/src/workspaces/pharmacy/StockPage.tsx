@@ -3,15 +3,26 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { ApiError } from '../../shared/api/client';
 import { Combobox } from '../../shared/components/Combobox';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
 import { restock } from '../../shared/api/stockBatches';
 import { fetchCurrentStock, fetchExpiringBatches, fetchLowStock, fetchStockValuation } from '../../shared/api/stockReports';
 import { fetchMyPharmacyStore } from '../../shared/api/stores';
-import { fetchSuppliers, type SupplierResponse } from '../../shared/api/suppliers';
+import { createSupplier, fetchSuppliers, type SupplierResponse } from '../../shared/api/suppliers';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { formatDate } from '../../shared/format/date';
 import { formatMoney } from '../../shared/format/money';
+
+const OTHER_SUPPLIER_VALUE = '__other__';
+function todayInFacilityTz(): string {
+  // The backend rejects a past expiry (V23 restock check) and there's no
+  // reason a pharmacist would ever intentionally receive expired stock —
+  // block it at the input, not just at the API. Uses today in the
+  // browser's local zone; the facility runs on Africa/Dar_es_Salaam and
+  // the pharmacist is on-site, so browser-local matches facility-local.
+  return new Date().toISOString().slice(0, 10);
+}
 
 type Tab = 'current' | 'low' | 'expiring' | 'valuation';
 
@@ -212,17 +223,26 @@ function TableShell({ isLoading, isEmpty, emptyMessage, children }: { isLoading:
 
 // 12-pharmacist.md §7.2 (D3, D6): batchNumber, unitCost, and
 // deliveryNoteRef are all required — the minimum control on stock
-// creation. Supplier is a managed list, never free text.
+// creation. Supplier is a managed list, with an "Other" branch that
+// creates a new supplier row on submit (still not free-text-only — the
+// row is persisted before the batch is written, so future restocks pick
+// it from the dropdown).
 const restockSchema = z.object({
   itemId: z.string().min(1, 'Select an item'),
   batchNumber: z.string().min(1, 'Enter the batch number'),
-  expiryDate: z.string().min(1, 'Enter the expiry date'),
+  expiryDate: z.string()
+    .min(1, 'Enter the expiry date')
+    .refine((v) => v >= todayInFacilityTz(), 'Expiry must be today or later — expired stock cannot be received'),
   quantity: z.coerce.number({ invalid_type_error: 'Enter a quantity' }).int().positive('Enter a quantity'),
   unitCostAmountMinor: z.coerce.number({ invalid_type_error: 'Enter the unit cost' }).min(0, 'Enter the unit cost'),
-  supplierId: z.string().min(1, 'Select a supplier'),
+  supplierChoice: z.string().min(1, 'Select a supplier'),
+  newSupplierName: z.string().optional(),
   deliveryNoteRef: z.string().min(1, 'Enter the delivery note reference'),
   notes: z.string().optional(),
-});
+}).refine(
+  (v) => v.supplierChoice !== OTHER_SUPPLIER_VALUE || (v.newSupplierName?.trim().length ?? 0) > 0,
+  { path: ['newSupplierName'], message: "Enter the new supplier's name" },
+);
 type RestockValues = z.infer<typeof restockSchema>;
 
 function RestockForm() {
@@ -247,12 +267,20 @@ function RestockForm() {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<RestockValues>({ resolver: zodResolver(restockSchema) });
+  const supplierChoice = watch('supplierChoice');
 
   const submit = useMutation({
-    mutationFn: (values: RestockValues) =>
-      restock(
+    mutationFn: async (values: RestockValues) => {
+      // "Other" branch: create the supplier first, then restock against
+      // the new id. Backend is idempotent on the trimmed name, so a
+      // double-click doesn't double-create.
+      const supplierId = values.supplierChoice === OTHER_SUPPLIER_VALUE
+        ? (await createSupplier({ name: values.newSupplierName!.trim() }, accessToken as string)).id as string
+        : values.supplierChoice;
+      return restock(
         {
           itemId: values.itemId,
           storeId: store?.id as string,
@@ -260,16 +288,18 @@ function RestockForm() {
           expiryDate: values.expiryDate,
           quantity: values.quantity,
           unitCostAmountMinor: values.unitCostAmountMinor,
-          supplierId: values.supplierId,
+          supplierId,
           deliveryNoteRef: values.deliveryNoteRef,
           notes: values.notes || undefined,
         },
         accessToken as string,
-      ),
+      );
+    },
     onSuccess: () => {
       reset();
       setSelectedItem(null);
       queryClient.invalidateQueries({ queryKey: ['stock-reports'] });
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
     },
   });
 
@@ -293,14 +323,19 @@ function RestockForm() {
                   {i.selectable === false && <span style={{ color: 'var(--critical)' }}> — {i.unselectableReason}</span>}
                 </span>
               )}
+              isOptionDisabled={(i) => i.selectable === false}
               onSelect={(i) => {
-                if (i.selectable === false) return;
                 setSelectedItem(i);
                 setValue('itemId', i.id as string, { shouldValidate: true });
               }}
-              clearOnSelect={false}
             />
-            {selectedItem && <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 4 }}>Selected: {selectedItem.name}</div>}
+            {selectedItem && (
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 4 }}>
+                Selected: <strong>{selectedItem.name}</strong>
+                {selectedItem.strength && <> · {selectedItem.strength}</>}
+                {selectedItem.form && <> · {selectedItem.form}</>}
+              </div>
+            )}
             {errors.itemId && <span className="field-error">{errors.itemId.message}</span>}
           </div>
 
@@ -309,7 +344,7 @@ function RestockForm() {
               <input {...register('batchNumber')} style={inputStyle} />
             </Field>
             <Field label="Expiry date" error={errors.expiryDate?.message}>
-              <input type="date" {...register('expiryDate')} style={inputStyle} />
+              <input type="date" min={todayInFacilityTz()} {...register('expiryDate')} style={inputStyle} />
             </Field>
             <Field label="Quantity" error={errors.quantity?.message}>
               <input type="text" inputMode="numeric" {...register('quantity')} style={inputStyle} />
@@ -317,31 +352,53 @@ function RestockForm() {
             <Field label="Unit cost (TZS minor units)" error={errors.unitCostAmountMinor?.message}>
               <input type="text" inputMode="numeric" {...register('unitCostAmountMinor')} style={inputStyle} />
             </Field>
-            <Field label="Supplier" error={errors.supplierId?.message}>
-              <select {...register('supplierId')} style={inputStyle}>
-                <option value="">Select a supplier</option>
+            <Field label="Supplier" error={errors.supplierChoice?.message}>
+              <select {...register('supplierChoice')} style={inputStyle} defaultValue="">
+                <option value="" disabled>Select a supplier</option>
                 {(suppliers ?? []).map((s: SupplierResponse) => (
-                  <option key={s.id} value={s.id}>
+                  <option key={s.id} value={s.id as string}>
                     {s.name}
                   </option>
                 ))}
+                <option value={OTHER_SUPPLIER_VALUE}>Other — add a new supplier</option>
               </select>
             </Field>
             <Field label="Delivery note reference" error={errors.deliveryNoteRef?.message}>
               <input {...register('deliveryNoteRef')} style={inputStyle} />
             </Field>
+            {supplierChoice === OTHER_SUPPLIER_VALUE && (
+              <Field label="New supplier name" error={errors.newSupplierName?.message}>
+                <input
+                  {...register('newSupplierName')}
+                  style={inputStyle}
+                  placeholder="e.g. Zenufa Laboratories"
+                  autoFocus
+                />
+              </Field>
+            )}
           </div>
 
           <Field label="Notes (optional)">
             <textarea rows={2} {...register('notes')} style={inputStyle} />
           </Field>
 
-          {submit.error && <div className="form-error">Something went wrong. Try again.</div>}
+          {submit.error && (
+            <div className="form-error">
+              {submit.error instanceof ApiError ? submit.error.message : 'Something went wrong. Try again.'}
+            </div>
+          )}
           {submit.isSuccess && <div style={{ color: 'var(--green-600)', fontSize: 'var(--text-sm)' }}>Batch received.</div>}
 
-          <button type="submit" className="btn btn-primary" disabled={submit.isPending || !store} style={{ alignSelf: 'flex-start' }}>
-            {submit.isPending ? 'Submitting…' : 'Receive stock'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <button type="submit" className="btn btn-primary" disabled={submit.isPending || !store}>
+              {submit.isPending ? 'Submitting…' : 'Receive stock'}
+            </button>
+            {!store && (
+              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+                Loading your pharmacy store…
+              </span>
+            )}
+          </div>
         </form>
       )}
     </div>

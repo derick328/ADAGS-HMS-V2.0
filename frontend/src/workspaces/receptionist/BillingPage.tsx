@@ -502,6 +502,13 @@ function RecordPaymentPanel({ initialPatientId }: { initialPatientId?: string | 
       setTicked({});
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['cashier-shift'] });
+      // Paying a prescription/lab-order line flips its authorization_id
+      // server-side, so the pharmacy and lab queues need to re-render
+      // that row into the "ready" bucket immediately. Without this,
+      // same-tab flows (staff cross-checking on one machine) wait the
+      // full 5s poll for a state change they just performed.
+      queryClient.invalidateQueries({ queryKey: ['prescriptions', 'queue'] });
+      queryClient.invalidateQueries({ queryKey: ['lab-orders', 'queue'] });
     },
   });
 

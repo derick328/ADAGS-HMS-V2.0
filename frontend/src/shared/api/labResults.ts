@@ -32,6 +32,11 @@ export function fetchMyLabResults(accessToken: string): Promise<LabResultDetailR
   return authFetch('/api/lab-results/mine', accessToken);
 }
 
+/** 08-doctor-navigation.md §5: doctor's Request History detail — every result released against one order (newest first, superseded amendments included). */
+export function fetchLabResultsByOrder(labOrderId: string, accessToken: string): Promise<LabResultDetailResponse[]> {
+  return authFetch(`/api/lab-results/by-lab-order/${labOrderId}`, accessToken);
+}
+
 /** §9: "Patient lookup" — by patient or accession, every result regardless of technician. */
 export function searchLabResults(
   params: { patientId?: string; accessionNo?: string },

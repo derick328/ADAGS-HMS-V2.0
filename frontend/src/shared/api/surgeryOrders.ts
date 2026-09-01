@@ -8,6 +8,12 @@ export type SurgeryDisposition = NonNullable<SurgeryOrderResponse['disposition']
 export type RecordSurgeryDispositionRequest = components['schemas']['RecordSurgeryDispositionRequest'];
 export type CancelSurgeryOrderRequest = components['schemas']['CancelSurgeryOrderRequest'];
 export type CancellationReason = NonNullable<CancelSurgeryOrderRequest['reason']>;
+export type ScheduleSurgeryRequest = components['schemas']['ScheduleSurgeryRequest'];
+
+/** 07-doctor.md §7: doctor books a surgery from the consultation's Schedule Surgery flow. Server posts the procedure charge in the same transaction. */
+export function scheduleSurgery(body: ScheduleSurgeryRequest, accessToken: string): Promise<SurgeryOrderResponse> {
+  return authFetch('/api/surgery-orders', accessToken, { method: 'POST', body: JSON.stringify(body) });
+}
 
 /** 17-ward-nurse.md §10: the Surgery Queue's source list — every order not yet COMPLETED/CANCELLED. */
 export function fetchActiveSurgeryOrders(accessToken: string): Promise<SurgeryOrderResponse[]> {

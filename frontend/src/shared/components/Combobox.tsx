@@ -22,6 +22,14 @@ export interface ComboboxProps<T> {
   disabled?: boolean;
   /** Cleared query text shown after a selection, e.g. the picked drug's name — the input resets to empty by default. */
   clearOnSelect?: boolean;
+  /**
+   * Marks a row as visible-but-unselectable — a controlled-drug row, an
+   * un-classified importer placeholder, etc. Clicking or Enter'ing a
+   * disabled row is a full no-op (no `onSelect`, dropdown stays open,
+   * query text is kept) so the user sees why they can't pick it instead
+   * of getting a silent close.
+   */
+  isOptionDisabled?: (option: T) => boolean;
 }
 
 export function Combobox<T>({
@@ -35,6 +43,7 @@ export function Combobox<T>({
   onSelect,
   disabled,
   clearOnSelect = true,
+  isOptionDisabled,
 }: ComboboxProps<T>) {
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState<T[]>([]);
@@ -69,6 +78,11 @@ export function Combobox<T>({
   }, [query, minChars, debounceMs]);
 
   function select(option: T) {
+    // Disabled rows (controlled-drug, un-classified importer placeholders)
+    // must not collapse the dropdown or clear the query — otherwise the
+    // click looks like a silent failure and the user has no idea why the
+    // item they picked never became a pending line.
+    if (isOptionDisabled?.(option)) return;
     onSelect(option);
     setQuery(clearOnSelect ? '' : String(getKey(option)));
     setOptions([]);
@@ -141,26 +155,31 @@ export function Combobox<T>({
             boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
           }}
         >
-          {options.map((option, index) => (
-            <li
-              key={getKey(option)}
-              role="option"
-              aria-selected={index === highlightedIndex}
-              onMouseDown={(event) => {
-                event.preventDefault(); // keep focus so onBlur doesn't beat the click
-                select(option);
-              }}
-              onMouseEnter={() => setHighlightedIndex(index)}
-              style={{
-                padding: '6px 8px',
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
-                background: index === highlightedIndex ? 'var(--green-100)' : 'transparent',
-              }}
-            >
-              {renderOption(option)}
-            </li>
-          ))}
+          {options.map((option, index) => {
+            const optDisabled = isOptionDisabled?.(option) ?? false;
+            return (
+              <li
+                key={getKey(option)}
+                role="option"
+                aria-selected={index === highlightedIndex}
+                aria-disabled={optDisabled || undefined}
+                onMouseDown={(event) => {
+                  event.preventDefault(); // keep focus so onBlur doesn't beat the click
+                  select(option);
+                }}
+                onMouseEnter={() => setHighlightedIndex(index)}
+                title={optDisabled ? 'Not selectable — see reason' : undefined}
+                style={{
+                  padding: '6px 8px',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: optDisabled ? 'not-allowed' : 'pointer',
+                  background: index === highlightedIndex ? 'var(--green-100)' : 'transparent',
+                }}
+              >
+                {renderOption(option)}
+              </li>
+            );
+          })}
         </ul>
       )}
       {isOpen && !isLoading && options.length === 0 && query.trim().length >= minChars && (

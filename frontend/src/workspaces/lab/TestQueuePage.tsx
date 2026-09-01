@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchLabOrderQueue, type LabOrderQueueRowResponse } from '../../shared/api/labOrders';
 import { useAuth } from '../../shared/auth/AuthProvider';
@@ -23,12 +23,13 @@ export function TestQueuePage() {
   const { accessToken } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<LabQueueTabKey>('ready');
+  const userPickedTab = useRef(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['lab-orders', 'queue'],
     queryFn: () => fetchLabOrderQueue(accessToken as string),
     enabled: accessToken != null,
-    refetchInterval: 10_000,
+    refetchInterval: 5_000,
   });
 
   const rows = data ?? [];
@@ -39,18 +40,47 @@ export function TestQueuePage() {
     urgent: key === 'emergency' || key === 'overdue',
   }));
 
+  // Auto-land on the first non-empty tab if 'ready' is empty — otherwise
+  // a lab tech opening the queue right after payment sees "No specimens
+  // waiting to be accepted" and assumes the order never arrived, when in
+  // fact the row is one tab over (Awaiting payment / Emergency / etc.).
+  // Runs only until the user picks a tab themselves.
+  useEffect(() => {
+    if (userPickedTab.current) return;
+    if (rows.length === 0) return;
+    if (countByBucket(rows, activeTab) > 0) return;
+    const firstNonEmpty = TAB_ORDER.find(({ key }) => countByBucket(rows, key) > 0);
+    if (firstNonEmpty && firstNonEmpty.key !== activeTab) setActiveTab(firstNonEmpty.key);
+  }, [rows, activeTab]);
+
   const visibleRows = rows.filter((row) => bucketOf(row) === activeTab).sort(compareLabQueueRows);
 
   return (
-    <QueueShell
-      title="Test Queue"
-      rows={visibleRows.map((row) => toQueueRow(row, activeTab, navigate))}
-      tabs={tabs}
-      activeTab={activeTab}
-      onTabChange={(key) => setActiveTab(key as LabQueueTabKey)}
-      isLoading={isLoading}
-      emptyMessage={emptyMessageFor(activeTab)}
-    />
+    <>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 'var(--space-2) var(--space-4) 0' }}>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          title="Poll runs every 5s; click to fetch now"
+        >
+          {isFetching ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </div>
+      <QueueShell
+        title="Test Queue"
+        rows={visibleRows.map((row) => toQueueRow(row, activeTab, navigate))}
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={(key) => {
+          userPickedTab.current = true;
+          setActiveTab(key as LabQueueTabKey);
+        }}
+        isLoading={isLoading}
+        emptyMessage={emptyMessageFor(activeTab)}
+      />
+    </>
   );
 }
 

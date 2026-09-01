@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { admitPatient, assignNurse, type Shift, type WardClass } from '../../shared/api/admissions';
 import { createFollowUpAppointment } from '../../shared/api/appointments';
 import { ApiError } from '../../shared/api/client';
+import { fetchNurseWorkload } from '../../shared/api/nurses';
 import {
   addDiagnosis,
   autosaveConsultationRecord,
@@ -46,19 +48,38 @@ const fieldStyle: CSSProperties = {
   font: 'inherit',
 };
 
-const DISPOSITION_OPTIONS: { value: DispositionOutcome; label: string; available: boolean }[] = [
-  { value: 'CONSULT_COMPLETE', label: 'Consult complete', available: true },
+// UI-only union — 'ADMIT_TO_WARD' routes through the admissions endpoint
+// (which itself finalizes the consultation record); the three
+// FinalizeConsultationRequest.disposition enum values go through
+// finalizeConsultation() directly. 'SCHEDULE_SURGERY' is deliberately
+// disabled: 07-doctor.md §7 lists it, but the surgery-order form
+// (theatre, timeslot, anaesthesia — POST /api/surgery-orders) needs a
+// scheduling page the doctor workspace does not yet ship. Marked
+// unavailable so the doctor can see it's on the map, and can't pick a
+// disposition the code silently downgrades.
+type DispositionChoice = DispositionOutcome | 'ADMIT_TO_WARD' | 'SCHEDULE_SURGERY';
+
+const DISPOSITION_OPTIONS: { value: DispositionChoice; label: string; available: boolean }[] = [
+  { value: 'CONSULT_COMPLETE', label: 'Consult complete — send home', available: true },
+  { value: 'ADMIT_TO_WARD', label: 'Admit to ward', available: true },
   { value: 'REFERRED_OUT', label: 'Referred out', available: true },
   { value: 'DECEASED', label: 'Deceased', available: true },
-  { value: 'REFERRED_OUT', label: 'Referred to another doctor (not yet available)', available: false },
-  { value: 'REFERRED_OUT', label: 'Referred to a specialist (not yet available)', available: false },
-  { value: 'REFERRED_OUT', label: 'Admitted (not yet available)', available: false },
-  { value: 'REFERRED_OUT', label: 'Schedule surgery (not yet available)', available: false },
-  { value: 'REFERRED_OUT', label: 'Absconded (not yet available)', available: false },
+  { value: 'SCHEDULE_SURGERY', label: 'Schedule surgery', available: true },
 ];
 
 const FREQUENCY_DOSES_PER_DAY: Record<string, number | null> = { STAT: 1, OD: 1, BD: 2, TDS: 3, QDS: 4, PRN: null };
 const QUANTITY_SANITY_CEILING = 200;
+
+// Picks the shift the doctor is currently working in — a sensible
+// default for the nurse-assignment shift picker on the admit form.
+// 07:00–14:59 = MORNING, 15:00–21:59 = AFTERNOON, else NIGHT. Roughly
+// matches Tanzanian hospital shift patterns; the doctor can override.
+function currentShift(): 'MORNING' | 'AFTERNOON' | 'NIGHT' {
+  const hour = new Date().getHours();
+  if (hour >= 7 && hour < 15) return 'MORNING';
+  if (hour >= 15 && hour < 22) return 'AFTERNOON';
+  return 'NIGHT';
+}
 
 type Tab = 'consultation' | 'prescription' | 'lab';
 
@@ -534,23 +555,81 @@ function ConsultationTab({
   });
 
   // Disposition + finalize
-  const [disposition, setDisposition] = useState<DispositionOutcome | ''>('');
+  const [disposition, setDisposition] = useState<DispositionChoice | ''>('');
+  const [wardClass, setWardClass] = useState<WardClass>('GENERAL');
+  const [nurseId, setNurseId] = useState<string>('');
+  const [shift, setShift] = useState<Shift>(currentShift());
   const [followUpDate, setFollowUpDate] = useState('');
   const [followUpInstructions, setFollowUpInstructions] = useState('');
   const [retrospective, setRetrospective] = useState(false);
   const [retrospectiveNote, setRetrospectiveNote] = useState('');
+
+  // The encounter query the parent already ran is cached under this same
+  // key — this hits the cache and returns instantly, no re-fetch.
+  const { data: encounterForFacility } = useQuery({
+    queryKey: ['encounters', encounterId],
+    queryFn: () => fetchEncounterById(encounterId, accessToken as string),
+    enabled: accessToken != null,
+  });
+  const facilityId = encounterForFacility?.facilityId;
+
+  // Nurse workload — only fetched once the doctor picks Admit-to-ward
+  // (nurse picker is hidden otherwise, no reason to hit the endpoint).
+  // Refetches every 30s so a stale count doesn't cause the doctor to
+  // over-assign a nurse who's just picked up a patient elsewhere.
+  const {
+    data: nurses,
+    isLoading: nursesLoading,
+    isError: nursesError,
+    error: nursesErrorValue,
+  } = useQuery({
+    queryKey: ['nurses', 'workload', facilityId],
+    queryFn: () => fetchNurseWorkload(facilityId as string, accessToken as string),
+    enabled: accessToken != null && disposition === 'ADMIT_TO_WARD' && !!facilityId,
+    refetchInterval: 30_000,
+  });
 
   const finalizeMutation = useMutation({
     // §7.2: follow-up is optional, doctor-only booking, created alongside
     // finalize rather than as a separate action — the date/instructions
     // fields on this screen only mean something if they actually create
     // the appointment the receptionist's read-only Follow-ups list shows.
+    //
+    // Admit-to-ward is a distinct backend action (POST /api/admissions),
+    // not a value of the FinalizeConsultationRequest enum: the admission
+    // service does the encounter transition and the consultation
+    // finalization itself, in one transaction — calling finalize
+    // separately would double-transition. Optional nurse assignment chains
+    // after admit: it's not part of admitPatient's own request shape.
     mutationFn: async () => {
-      const result = await finalizeConsultation(
-        encounterId,
-        { disposition: disposition as DispositionOutcome, retrospectiveCompletion: retrospective, retrospectiveNote: retrospective ? retrospectiveNote : undefined },
-        accessToken as string,
-      );
+      if (disposition === 'ADMIT_TO_WARD') {
+        const admission = await admitPatient(
+          {
+            encounterId,
+            orderedWardClass: wardClass,
+            retrospectiveCompletion: retrospective,
+            retrospectiveNote: retrospective ? retrospectiveNote : undefined,
+          },
+          accessToken as string,
+        );
+        if (nurseId && admission.id) {
+          await assignNurse(
+            admission.id,
+            {
+              nurseId,
+              shift,
+              assignmentDate: new Date().toISOString().slice(0, 10),
+            },
+            accessToken as string,
+          );
+        }
+      } else {
+        await finalizeConsultation(
+          encounterId,
+          { disposition: disposition as DispositionOutcome, retrospectiveCompletion: retrospective, retrospectiveNote: retrospective ? retrospectiveNote : undefined },
+          accessToken as string,
+        );
+      }
       if (followUpDate) {
         await createFollowUpAppointment(
           {
@@ -562,7 +641,6 @@ function ConsultationTab({
           accessToken as string,
         );
       }
-      return result;
     },
     onSuccess: () => onFinalized(),
   });
@@ -576,6 +654,22 @@ function ConsultationTab({
     !values.historyOfPresentingIllness.trim() || !values.physicalExamination.trim() || !values.treatmentPlan.trim();
   const canFinalize = !requiredMissing && diagnoses.some((d) => d.isPrimary) && disposition !== '' &&
     (!retrospective || retrospectiveNote.trim().length >= 20);
+
+  // Human-readable list of what's still missing — surfaced under the
+  // finalize / surgery button so a doctor never sees a disabled button
+  // without knowing which section to go back to. Matches the exact
+  // guards in canFinalize above so the list can never disagree with the
+  // enabled state.
+  const finalizeBlockers = (() => {
+    const missing: string[] = [];
+    if (!values.historyOfPresentingIllness.trim()) missing.push('History of presenting illness');
+    if (!values.physicalExamination.trim()) missing.push('Physical examination');
+    if (!values.treatmentPlan.trim()) missing.push('Treatment plan');
+    if (!diagnoses.some((d) => d.isPrimary)) missing.push('A diagnosis marked Primary');
+    if (disposition === '') missing.push('Select a disposition');
+    if (retrospective && retrospectiveNote.trim().length < 20) missing.push('Retrospective note (min 20 characters)');
+    return missing;
+  })();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
@@ -672,7 +766,7 @@ function ConsultationTab({
 
       <section>
         <h2 style={{ fontSize: 'var(--text-base)' }}>Disposition</h2>
-        <select value={disposition} onChange={(e) => setDisposition(e.target.value as DispositionOutcome)} style={{ ...fieldStyle, width: 320 }}>
+        <select value={disposition} onChange={(e) => setDisposition(e.target.value as DispositionChoice)} style={{ ...fieldStyle, width: 320 }}>
           <option value="">Select disposition…</option>
           {DISPOSITION_OPTIONS.map((o, i) => (
             <option key={i} value={o.available ? o.value : ''} disabled={!o.available}>
@@ -680,6 +774,65 @@ function ConsultationTab({
             </option>
           ))}
         </select>
+        {disposition === 'ADMIT_TO_WARD' && (
+          <div style={{ marginTop: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 4 }}>
+                Ward class
+              </label>
+              <select value={wardClass} onChange={(e) => setWardClass(e.target.value as WardClass)} style={{ ...fieldStyle, width: 220 }}>
+                <option value="GENERAL">General</option>
+                <option value="PRIVATE">Private</option>
+              </select>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 4 }}>
+                A ward nurse will assign a specific bed after admission.
+              </p>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 4 }}>
+                Assign primary nurse (optional) · current active-patient count shown after each name
+              </label>
+              {nursesLoading ? (
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Loading nurses…</span>
+              ) : nursesError ? (
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--critical)' }}>
+                  {nursesErrorValue instanceof ApiError ? nursesErrorValue.message : "Couldn't load the nurse workload — the ward nurse can assign someone later."}
+                </span>
+              ) : (nurses ?? []).length === 0 ? (
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+                  No ward nurses configured for this facility yet.
+                </span>
+              ) : (
+                <select value={nurseId} onChange={(e) => setNurseId(e.target.value)} style={{ ...fieldStyle, width: 360 }}>
+                  <option value="">Leave unassigned — a ward nurse will pick up the patient</option>
+                  {(nurses ?? []).map((n) => (
+                    <option key={n.nurseId} value={n.nurseId as string}>
+                      {n.username} — {n.activePatients} {n.activePatients === 1 ? 'patient' : 'patients'}
+                      {(n.activePatients ?? 0) >= 5 ? ' ⚠ heavy load' : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {nurseId && (
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 4 }}>
+                  Shift
+                </label>
+                <select value={shift} onChange={(e) => setShift(e.target.value as Shift)} style={{ ...fieldStyle, width: 220 }}>
+                  <option value="MORNING">Morning</option>
+                  <option value="AFTERNOON">Afternoon</option>
+                  <option value="NIGHT">Night</option>
+                </select>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 4 }}>
+                  Today, {new Date().toLocaleDateString()}. Care responsibility for this shift; the ward roster covers subsequent shifts.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
           <input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} style={fieldStyle} />
           <input
@@ -718,10 +871,47 @@ function ConsultationTab({
           Mark awaiting results
         </button>
         <div style={{ flex: 1 }} />
-        <button type="button" className="btn btn-primary" disabled={!canFinalize || finalizeMutation.isPending} onClick={() => finalizeMutation.mutate()}>
-          Finalize
-        </button>
+        {disposition === 'SCHEDULE_SURGERY' ? (
+          // Surgery scheduling is a full booking (theatre / slot / anaesthesia
+          // / consent) that lives on its own page — clicking here jumps to
+          // ScheduleSurgeryPage, which schedules the surgery AND finalizes
+          // this consultation on submit. Same disabled rule as Finalize
+          // (missing sections / no primary diagnosis / retrospective note
+          // too short) so the doctor can't sneak past the guard by picking
+          // this disposition.
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={!canFinalize}
+            onClick={() => navigate(`/doctor/schedule-surgery/${encounterId}`)}
+          >
+            Continue to surgery scheduling →
+          </button>
+        ) : (
+          <button type="button" className="btn btn-primary" disabled={!canFinalize || finalizeMutation.isPending} onClick={() => finalizeMutation.mutate()}>
+            Finalize
+          </button>
+        )}
       </div>
+      {!canFinalize && finalizeBlockers.length > 0 && (
+        <p
+          role="status"
+          style={{
+            margin: 0,
+            fontSize: 'var(--text-sm)',
+            color: 'var(--text-muted)',
+            padding: 'var(--space-2) var(--space-3)',
+            background: 'var(--bg-subtle)',
+            borderLeft: '3px solid var(--warning)',
+            borderRadius: 'var(--radius-sm)',
+          }}
+        >
+          {disposition === 'SCHEDULE_SURGERY'
+            ? 'Complete the consultation before continuing to surgery scheduling:'
+            : 'Finalize needs:'}{' '}
+          <strong>{finalizeBlockers.join('; ')}</strong>.
+        </p>
+      )}
       {finalizeMutation.isError && <p className="form-error">{errorMessage(finalizeMutation.error)}</p>}
     </div>
   );
@@ -991,14 +1181,8 @@ function PrescriptionTab({
               {o.selectable === false && <em> — {o.unselectableReason}</em>}
             </span>
           )}
+          isOptionDisabled={(o) => o.selectable === false}
           onSelect={(o) => {
-            // Visible-but-unselectable rows (CONTROLLED,
-            // not-yet-active, or "pending pharmacy classification"
-            // placeholders from the V67 admin importer) must not become
-            // a pending line — placePrescription would 404 on the
-            // synthetic id and the mutation would fail with an opaque
-            // "Something went wrong" message. Ignore the select.
-            if (o.selectable === false) return;
             setPending(o);
             setPriceMinor(latestPriceByCode.current[o.code as string]?.priceMinor ?? null);
           }}
@@ -1068,9 +1252,12 @@ function PrescriptionTab({
             <textarea rows={2} value={dosageInstructions} onChange={(e) => setDosageInstructions(e.target.value)} style={fieldStyle} placeholder="Dosage instructions" />
           </FormRow>
 
-          <button type="button" className="btn btn-secondary" onClick={addLine} style={{ marginTop: 'var(--space-2)' }}>
+          <button type="button" className="btn btn-primary" onClick={addLine} style={{ marginTop: 'var(--space-2)' }}>
             Add to prescription
           </button>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
+            Adds this drug to the list below. You'll send the whole list at the end with <strong>Send Prescription</strong>.
+          </p>
         </div>
       )}
 
@@ -1105,7 +1292,9 @@ function PrescriptionTab({
       </button>
       {lines.length === 0 && (
         <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
-          Add at least one drug above before sending.
+          {pending
+            ? "Click 'Add to prescription' above to add this drug — then Send Prescription becomes clickable."
+            : 'Search a drug above and click Add to prescription before sending.'}
         </p>
       )}
       {sendResult && <p style={{ color: 'var(--green-800)' }}>✓ Sent · {lines.length} items. {sendResult}</p>}
@@ -1275,9 +1464,8 @@ function LabTab({
             </span>
           )
         }
+        isOptionDisabled={(o) => o.kind !== 'orderable'}
         onSelect={(o) => {
-          // Placeholders are visible-and-unselectable — matching the
-          // prescription typeahead's CONTROLLED / not-yet-active pattern.
           if (o.kind === 'orderable') setPending(o.test);
         }}
       />

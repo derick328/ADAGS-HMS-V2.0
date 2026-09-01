@@ -85,6 +85,52 @@ public class JdbcNursingAssignmentRepository implements NursingAssignmentReposit
                 assignment.assignmentDate(), assignment.assignedBy(), rs.getTimestamp("created_at").toInstant()));
     }
 
+    @Override
+    public List<NurseWorkload> countActiveAdmissionsPerNurse(UUID facilityId) {
+        // LEFT JOIN so every nurse in this facility appears — even the ones
+        // with zero current patients (doctor sees them as candidates too).
+        // A nurse belongs to this facility when they hold WARD_NURSE or NURSE
+        // via a role_assignment that's currently valid (valid_to null or in
+        // the future) at GLOBAL or FACILITY scope on this facility. "Active"
+        // admission = actual_departure_at IS NULL; DISTINCT admission_id so a
+        // nurse who covered three shifts for the same patient still counts as
+        // one patient. Ordered by workload asc then username so the picker
+        // reads "least loaded first".
+        String sql = """
+                SELECT nurse.id AS nurse_id,
+                       nurse.username AS username,
+                       COALESCE(load.active_patients, 0) AS active_patients
+                  FROM app_user nurse
+                  JOIN role_assignment ra ON ra.user_id = nurse.id
+                  JOIN role r ON r.id = ra.role_id
+                  LEFT JOIN (
+                      SELECT na.nurse_id,
+                             COUNT(DISTINCT na.admission_id) AS active_patients
+                        FROM nursing_assignment na
+                        JOIN admission adm ON adm.id = na.admission_id
+                       WHERE adm.actual_departure_at IS NULL
+                         AND adm.facility_id = :facilityId
+                       GROUP BY na.nurse_id
+                  ) load ON load.nurse_id = nurse.id
+                 WHERE nurse.status = 'ACTIVE'
+                   AND r.code IN ('WARD_NURSE', 'NURSE')
+                   AND (ra.valid_to IS NULL OR ra.valid_to > now())
+                   AND (ra.valid_from IS NULL OR ra.valid_from <= now())
+                   AND (
+                       ra.scope_type = 'GLOBAL'
+                       OR (ra.scope_type = 'FACILITY' AND ra.scope_id = :facilityId)
+                   )
+                 GROUP BY nurse.id, nurse.username, load.active_patients
+                 ORDER BY active_patients ASC, nurse.username ASC
+                """;
+        return jdbcTemplate.query(sql,
+                new MapSqlParameterSource("facilityId", facilityId),
+                (rs, rowNum) -> new NurseWorkload(
+                        (UUID) rs.getObject("nurse_id"),
+                        rs.getString("username"),
+                        rs.getInt("active_patients")));
+    }
+
     private NursingAssignment mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new NursingAssignment(
                 (UUID) rs.getObject("id"),

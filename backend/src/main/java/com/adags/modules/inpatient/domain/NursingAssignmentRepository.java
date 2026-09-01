@@ -18,4 +18,19 @@ public interface NursingAssignmentRepository {
     Optional<NursingAssignment> findForShift(UUID admissionId, LocalDate date, Shift shift);
 
     NursingAssignment insert(NursingAssignment assignment);
+
+    /**
+     * 07-doctor.md §7: the "who's least loaded right now" number the
+     * doctor's Admit-to-ward nurse picker shows. Counts distinct
+     * admissions the nurse currently holds care responsibility for —
+     * "current" meaning the admission has not left the ward yet
+     * (actual_departure_at IS NULL); every nurse this facility employs
+     * is included, so a nurse with zero patients still shows up so the
+     * doctor can pick them.
+     */
+    List<NurseWorkload> countActiveAdmissionsPerNurse(UUID facilityId);
+
+    /** Row returned by countActiveAdmissionsPerNurse — nurseId, their app_user.username, and the live patient count. */
+    record NurseWorkload(UUID nurseId, String username, int activePatients) {
+    }
 }

@@ -32,6 +32,11 @@ export function fetchMyDispenses(accessToken: string): Promise<DispenseHistoryRe
   return authFetch('/api/dispenses/mine', accessToken);
 }
 
+/** 08-doctor-navigation.md §5: doctor's Request History detail — every dispense recorded against one prescription line, newest first. */
+export function fetchDispensesByPrescriptionLine(prescriptionLineId: string, accessToken: string): Promise<DispenseHistoryResponse[]> {
+  return authFetch(`/api/dispenses/by-prescription-line/${prescriptionLineId}`, accessToken);
+}
+
 /** 12-pharmacist.md §11: "Patient lookup" — every dispense to this patient, regardless of recording pharmacist. */
 export function searchDispensesByPatient(q: string, accessToken: string): Promise<DispenseHistoryResponse[]> {
   return authFetch(`/api/dispenses/patient-search?q=${encodeURIComponent(q)}`, accessToken);

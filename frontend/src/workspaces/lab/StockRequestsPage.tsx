@@ -82,14 +82,19 @@ export function StockRequestsPage() {
                 {i.selectable === false && <span style={{ color: 'var(--critical)' }}> — {i.unselectableReason}</span>}
               </span>
             )}
+            isOptionDisabled={(i) => i.selectable === false}
             onSelect={(i) => {
-              if (i.selectable === false) return;
               setSelectedItem(i);
               setValue('itemId', i.id as string, { shouldValidate: true });
             }}
-            clearOnSelect={false}
           />
-          {selectedItem && <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 4 }}>Selected: {selectedItem.name}</div>}
+          {selectedItem && (
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 4 }}>
+              Selected: <strong>{selectedItem.name}</strong>
+              {selectedItem.strength && <> · {selectedItem.strength}</>}
+              {selectedItem.form && <> · {selectedItem.form}</>}
+            </div>
+          )}
           {errors.itemId && <span className="field-error">{errors.itemId.message}</span>}
         </div>
 

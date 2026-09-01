@@ -14,6 +14,12 @@ export type Shift = NonNullable<AssignNurseRequest['shift']>;
 export type UpdateWardStatusRequest = components['schemas']['UpdateWardStatusRequest'];
 export type CompleteDischargeRequest = components['schemas']['CompleteDischargeRequest'];
 export type ReverseDischargeOrderRequest = components['schemas']['ReverseDischargeOrderRequest'];
+export type AdmitPatientRequest = components['schemas']['AdmitPatientRequest'];
+
+/** 07-doctor.md §7's ADMITTED disposition. Admits the patient AND finalizes the consultation record in one transaction — a doctor picking "Admit to ward" does not also need to call the finalize endpoint. */
+export function admitPatient(body: AdmitPatientRequest, accessToken: string): Promise<AdmissionResponse> {
+  return authFetch('/api/admissions', accessToken, { method: 'POST', body: JSON.stringify(body) });
+}
 
 /** 17-ward-nurse.md §3: the Dashboard/Ward Patients single source list — every patient currently on wardId. */
 export function fetchWardPatients(wardId: string, accessToken: string): Promise<WardPatientRowResponse[]> {

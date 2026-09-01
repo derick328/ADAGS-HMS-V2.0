@@ -158,6 +158,21 @@ public class LabResultController {
         return toDetailResponse(result, order);
     }
 
+    // 08-doctor-navigation.md §5: doctor's Request History detail — every
+    // result the lab tech released against one order (an amendment
+    // appends, so multiple rows are possible; newest first). Gated on
+    // LAB_RESULT_READ, which DOCTOR already holds; facility-scoped
+    // through the order the same way get() above is.
+    @GetMapping("/by-lab-order/{labOrderId}")
+    public List<LabResultDetailResponse> byLabOrder(@PathVariable UUID labOrderId, @AuthenticationPrincipal Actor actor) {
+        LabOrder order = labOrderRepository.findById(labOrderId)
+                .orElseThrow(() -> new NoSuchElementException("Lab order not found: " + labOrderId));
+        requirePermission(actor, "LAB_RESULT_READ", order.facilityId());
+        return labResultRepository.findByLabOrderId(labOrderId).stream()
+                .map(r -> toDetailResponse(r, order))
+                .toList();
+    }
+
     // §9: "My results" — this technician's own completed work.
     @GetMapping("/mine")
     public List<LabResultDetailResponse> mine(@AuthenticationPrincipal Actor actor) {

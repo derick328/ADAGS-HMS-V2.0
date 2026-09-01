@@ -8,6 +8,8 @@ import com.adags.modules.billing.domain.PriceList;
 import com.adags.modules.billing.domain.PriceListEntry;
 import com.adags.modules.billing.domain.PriceListEntryRepository;
 import com.adags.modules.billing.domain.PriceListRepository;
+import com.adags.modules.inventory.InventoryFacade;
+import com.adags.modules.laboratory.LaboratoryFacade;
 import com.adags.shared.events.DomainEventPublisher;
 import com.adags.shared.kernel.Money;
 import org.springframework.stereotype.Service;
@@ -49,6 +51,8 @@ public class ApplyCatalogImportService {
     private final CatalogImportBatchRepository batchRepository;
     private final PriceListRepository priceListRepository;
     private final PriceListEntryRepository priceListEntryRepository;
+    private final InventoryFacade inventoryFacade;
+    private final LaboratoryFacade laboratoryFacade;
     private final DomainEventPublisher eventPublisher;
     private final Clock clock;
 
@@ -59,6 +63,8 @@ public class ApplyCatalogImportService {
             CatalogImportBatchRepository batchRepository,
             PriceListRepository priceListRepository,
             PriceListEntryRepository priceListEntryRepository,
+            InventoryFacade inventoryFacade,
+            LaboratoryFacade laboratoryFacade,
             DomainEventPublisher eventPublisher,
             Clock clock
     ) {
@@ -68,6 +74,8 @@ public class ApplyCatalogImportService {
         this.batchRepository = batchRepository;
         this.priceListRepository = priceListRepository;
         this.priceListEntryRepository = priceListEntryRepository;
+        this.inventoryFacade = inventoryFacade;
+        this.laboratoryFacade = laboratoryFacade;
         this.eventPublisher = eventPublisher;
         this.clock = clock;
     }
@@ -112,6 +120,13 @@ public class ApplyCatalogImportService {
                             new Money(row.priceMinor(), CURRENCY),
                             today, null, actorUserId, now));
                 }
+                // Materialise the pharmacy/lab counterpart alongside the
+                // service_item so a doctor can prescribe/order it
+                // immediately — otherwise the row surfaces only as a
+                // "Pending classification" placeholder in the typeahead
+                // and every click is a silent reject. Idempotent by code,
+                // safe on re-imports.
+                materializeCatalogueCounterpart(row, actorUserId);
                 // Unpriced new item: service_item row inserted with the
                 // metadata but no price_list_entry. The billing gate will
                 // refuse to charge it until a later upload provides a
@@ -135,6 +150,12 @@ public class ApplyCatalogImportService {
                 itemLookup.updateMetadata(current.serviceItemId(), row);
                 metadataChanges++;
             }
+            // Re-run the counterpart materialiser regardless of whether
+            // the metadata changed: a row imported before V72 shipped
+            // has a service_item but no item/lab_test, and a "no
+            // changes" re-import must not leave it unclickable. The
+            // facade calls are idempotent by code.
+            materializeCatalogueCounterpart(row, actorUserId);
             if (priceChanged) {
                 // Close old (if any) then open new — same close-then-insert
                 // pattern the pharmacy proposal review already uses.
@@ -162,6 +183,15 @@ public class ApplyCatalogImportService {
                 "metadataChanges", Integer.toString(metadataChanges)));
 
         return applied;
+    }
+
+    private void materializeCatalogueCounterpart(CatalogRow row, UUID actorUserId) {
+        switch (row.type()) {
+            case PHARMACY -> inventoryFacade.ensureCatalogueItem(
+                    row.code(), row.name(), nullIfBlank(row.classification()), actorUserId);
+            case LABORATORY -> laboratoryFacade.ensureCatalogueTest(row.code(), row.name());
+            default -> { /* CONSULTATION / PROCEDURE bill directly off service_item — nothing to materialise. */ }
+        }
     }
 
     private static boolean metadataMatches(CatalogRow row, CatalogItemView current) {

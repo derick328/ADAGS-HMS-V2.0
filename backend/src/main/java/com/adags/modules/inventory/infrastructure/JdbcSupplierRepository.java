@@ -54,6 +54,14 @@ public class JdbcSupplierRepository implements SupplierRepository {
         return jdbcTemplate.query(SELECT_COLUMNS + " WHERE active = TRUE ORDER BY name", this::mapRow);
     }
 
+    @Override
+    public Optional<Supplier> findByNameIgnoreCase(String name) {
+        List<Supplier> results = jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE lower(name) = lower(:name)",
+                new MapSqlParameterSource("name", name), this::mapRow);
+        return results.stream().findFirst();
+    }
+
     private Supplier mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Supplier((UUID) rs.getObject("id"), rs.getString("code"), rs.getString("name"),
                 rs.getBoolean("active"), rs.getTimestamp("created_at").toInstant());

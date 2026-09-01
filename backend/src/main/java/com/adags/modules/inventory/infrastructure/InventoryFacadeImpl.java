@@ -5,6 +5,7 @@ import com.adags.modules.inventory.domain.BatchExpiredException;
 import com.adags.modules.inventory.domain.Item;
 import com.adags.modules.inventory.domain.ItemRepository;
 import com.adags.modules.inventory.domain.MovementType;
+import com.adags.modules.inventory.domain.RegulatorySchedule;
 import com.adags.modules.inventory.domain.StockBalanceRepository;
 import com.adags.modules.inventory.domain.StockBatch;
 import com.adags.modules.inventory.domain.StockBatchRepository;
@@ -46,6 +47,25 @@ public class InventoryFacadeImpl implements InventoryFacade {
     @Override
     public boolean itemExists(UUID itemId) {
         return itemRepository.findById(itemId).isPresent();
+    }
+
+    @Override
+    @Transactional
+    public UUID ensureCatalogueItem(String code, String name, String classification, UUID actorUserId) {
+        return itemRepository.findByCode(code)
+                .map(Item::id)
+                .orElseGet(() -> {
+                    String cls = (classification == null || classification.isBlank()) ? "General" : classification;
+                    Item draft = Item.create(code, name, cls, "—", null, "unit", 0, actorUserId);
+                    Item inserted = itemRepository.insert(draft);
+                    // create() lands the row UNCLASSIFIED + inactive; move it
+                    // straight to PRESCRIPTION_ONLY + active so a doctor can
+                    // prescribe without waiting on a manual classify step
+                    // (V72 backfill reasoning applied to fresh imports).
+                    itemRepository.updateSchedule(inserted.id(), RegulatorySchedule.PRESCRIPTION_ONLY);
+                    itemRepository.activate(inserted.id());
+                    return inserted.id();
+                });
     }
 
     @Override

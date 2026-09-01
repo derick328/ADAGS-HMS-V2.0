@@ -113,7 +113,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Validation failed.");
+        // "Validation failed." with nothing else strands the operator —
+        // they have no way to know which field the server rejected.
+        // Assemble a field-by-field summary from the binding result so
+        // the caller sees e.g. "parameterValues: must not be empty; expiryDate: must be today or later".
+        String details = ex.getBindingResult().getFieldErrors().stream()
+                .map(fieldError -> {
+                    String message = fieldError.getDefaultMessage();
+                    return fieldError.getField() + ": " + (message == null || message.isBlank() ? "invalid value" : message);
+                })
+                .collect(java.util.stream.Collectors.joining("; "));
+        if (details.isBlank()) {
+            details = "Validation failed.";
+        }
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, details);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

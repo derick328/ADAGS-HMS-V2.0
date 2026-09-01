@@ -372,6 +372,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/suppliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_2"];
+        put?: never;
+        post: operations["create_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/substitution-proposals/{id}/review": {
         parameters: {
             query?: never;
@@ -717,7 +733,7 @@ export interface paths {
         };
         get: operations["byPatient"];
         put?: never;
-        post: operations["create_4"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -749,7 +765,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["create_5"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -909,7 +925,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["create_6"];
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -973,7 +989,7 @@ export interface paths {
         };
         get: operations["search_6"];
         put?: never;
-        post: operations["create_7"];
+        post: operations["create_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1469,7 +1485,7 @@ export interface paths {
         };
         get: operations["scheduledBetween"];
         put?: never;
-        post: operations["create_8"];
+        post: operations["create_9"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1716,6 +1732,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/catalog/items/deactivate-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["deactivateAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/import/{batchId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/import/{batchId}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["apply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me": {
         parameters: {
             query?: never;
@@ -1804,22 +1884,6 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getById_1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/suppliers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["list_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2260,6 +2324,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/nurses/workload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["workload"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lab-tests": {
         parameters: {
             query?: never;
@@ -2284,6 +2364,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-tests/pending-classification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pendingClassification"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2396,6 +2492,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["url"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-results/by-lab-order/{labOrderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["byLabOrder"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2571,7 +2683,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["preview"];
+        get: operations["preview_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2780,6 +2892,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["mine_6"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dispenses/by-prescription-line/{prescriptionLineId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["byPrescriptionLine"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3132,6 +3260,54 @@ export interface paths {
             cookie?: never;
         };
         get: operations["list_12"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/import/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_13"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/import/batches/{batchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3504,6 +3680,15 @@ export interface components {
             estimatedDurationMinutes?: number;
             assignedNurses?: string[];
             preOpNotes?: string;
+        };
+        CreateSupplierRequest: {
+            name: string;
+        };
+        SupplierResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
         };
         ReviewSubstitutionRequest: {
             /** @enum {string} */
@@ -4046,7 +4231,7 @@ export interface components {
             referenceRangeNote?: string;
             conclusion?: string;
             machineOutputObjectKey?: string;
-            parameterValues: components["schemas"]["ParameterValueRequest"][];
+            parameterValues?: components["schemas"]["ParameterValueRequest"][];
             reagents?: components["schemas"]["ReagentRequest"][];
         };
         LabResultResponse: {
@@ -5029,6 +5214,95 @@ export interface components {
             omissionNotes?: string;
             remarks?: string;
         };
+        DeactivateAllCatalogItemsRequest: {
+            confirmationPhrase?: string;
+        };
+        DeactivateAllCatalogItemsResponse: {
+            /** Format: int32 */
+            deactivatedCount?: number;
+        };
+        CatalogImportBatchResponse: {
+            /** Format: uuid */
+            id?: string;
+            originalFilename?: string;
+            status?: string;
+            /** Format: int32 */
+            rowCount?: number;
+            /** Format: int32 */
+            newItemCount?: number;
+            /** Format: int32 */
+            priceChangeCount?: number;
+            /** Format: int32 */
+            metadataChangeCount?: number;
+            /** Format: int32 */
+            unchangedCount?: number;
+            /** Format: uuid */
+            uploadedBy?: string;
+            /** Format: date-time */
+            uploadedAt?: string;
+            /** Format: uuid */
+            appliedBy?: string;
+            /** Format: date-time */
+            appliedAt?: string;
+        };
+        CatalogImportPreviewResponse: {
+            /** Format: uuid */
+            batchId?: string;
+            /** Format: int32 */
+            rowCount?: number;
+            /** Format: int32 */
+            newItemCount?: number;
+            /** Format: int32 */
+            priceChangeCount?: number;
+            /** Format: int32 */
+            metadataChangeCount?: number;
+            /** Format: int32 */
+            unchangedCount?: number;
+            /** Format: int32 */
+            duplicateCodeCount?: number;
+            newItems?: components["schemas"]["NewItemDto"][];
+            priceChanges?: components["schemas"]["PriceChangeDto"][];
+            metadataChanges?: components["schemas"]["MetadataChangeDto"][];
+            duplicateCodes?: components["schemas"]["DuplicateCodeDto"][];
+        };
+        DuplicateCodeDto: {
+            originalCode?: string;
+            occurrences?: components["schemas"]["DuplicateOccurrenceDto"][];
+        };
+        DuplicateOccurrenceDto: {
+            /** Format: int32 */
+            excelRow?: number;
+            effectiveCode?: string;
+            name?: string;
+        };
+        MetadataChangeDto: {
+            /** Format: int32 */
+            excelRow?: number;
+            code?: string;
+            originalCode?: string;
+            name?: string;
+            changedFields?: string[];
+        };
+        NewItemDto: {
+            /** Format: int32 */
+            excelRow?: number;
+            code?: string;
+            originalCode?: string;
+            name?: string;
+            /** Format: int64 */
+            priceMinor?: number;
+        };
+        PriceChangeDto: {
+            /** Format: int32 */
+            excelRow?: number;
+            code?: string;
+            originalCode?: string;
+            name?: string;
+            /** Format: int64 */
+            previousMinor?: number;
+            /** Format: int64 */
+            newMinor?: number;
+        };
         MeResponse: {
             /** Format: uuid */
             userId?: string;
@@ -5098,12 +5372,6 @@ export interface components {
             modeOfAmbulation?: "WALKING" | "INFANT_IN_MOTHERS_LAP" | "WHEELCHAIR_ASSISTED" | "STRETCHER_ASSISTED";
             /** Format: date-time */
             updatedAt?: string;
-        };
-        SupplierResponse: {
-            /** Format: uuid */
-            id?: string;
-            code?: string;
-            name?: string;
         };
         StoreResponse: {
             /** Format: uuid */
@@ -5405,6 +5673,13 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        NurseWorkloadResponse: {
+            /** Format: uuid */
+            nurseId?: string;
+            username?: string;
+            /** Format: int32 */
+            activePatients?: number;
+        };
         WatchlistListResponse: {
             curationGuidance?: string;
             entries?: components["schemas"]["WatchlistEntryResponse"][];
@@ -5434,6 +5709,13 @@ export interface components {
             producesMachineOutput?: boolean;
             active?: boolean;
             parameters?: components["schemas"]["LabTestParameterResponse"][];
+        };
+        PendingLabClassificationResponse: {
+            /** Format: uuid */
+            serviceItemId?: string;
+            code?: string;
+            name?: string;
+            unselectableReason?: string;
         };
         LabStockRequestQueueRowResponse: {
             /** Format: uuid */
@@ -5892,6 +6174,29 @@ export interface components {
             createdAt?: string;
             acknowledged?: boolean;
             escalated?: boolean;
+        };
+        CatalogItemPageResponse: {
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            pageSize?: number;
+            /** Format: int32 */
+            totalCount?: number;
+            items?: components["schemas"]["CatalogItemResponse"][];
+        };
+        CatalogItemResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            originalCode?: string;
+            name?: string;
+            classification?: string;
+            type?: string;
+            billingCategory?: string;
+            /** Format: int64 */
+            currentCashPriceMinor?: number;
+            currencyCode?: string;
+            isActive?: boolean;
         };
     };
     responses: never;
@@ -6623,6 +6928,50 @@ export interface operations {
             };
         };
     };
+    list_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupplierResponse"][];
+                };
+            };
+        };
+    };
+    create_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSupplierRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SupplierResponse"];
+                };
+            };
+        };
+    };
     review: {
         parameters: {
             query?: never;
@@ -7206,7 +7555,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -7276,7 +7625,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -7527,7 +7876,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -7652,7 +8001,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -8488,7 +8837,7 @@ export interface operations {
             };
         };
     };
-    create_8: {
+    create_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -8973,6 +9322,99 @@ export interface operations {
             };
         };
     };
+    deactivateAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeactivateAllCatalogItemsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DeactivateAllCatalogItemsResponse"];
+                };
+            };
+        };
+    };
+    cancel_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    apply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CatalogImportBatchResponse"];
+                };
+            };
+        };
+    };
+    preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CatalogImportPreviewResponse"];
+                };
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -9101,26 +9543,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SurgeryOrderResponse"];
-                };
-            };
-        };
-    };
-    list_2: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["SupplierResponse"][];
                 };
             };
         };
@@ -9707,6 +10129,28 @@ export interface operations {
             };
         };
     };
+    workload: {
+        parameters: {
+            query: {
+                facilityId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NurseWorkloadResponse"][];
+                };
+            };
+        };
+    };
     list_5: {
         parameters: {
             query?: never;
@@ -9745,6 +10189,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["LabTestResponse"];
+                };
+            };
+        };
+    };
+    pendingClassification: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PendingLabClassificationResponse"][];
                 };
             };
         };
@@ -9894,6 +10360,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MachineOutputUrlResponse"];
+                };
+            };
+        };
+    };
+    byLabOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                labOrderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabResultDetailResponse"][];
                 };
             };
         };
@@ -10110,7 +10598,7 @@ export interface operations {
             };
         };
     };
-    preview: {
+    preview_1: {
         parameters: {
             query: {
                 month: number;
@@ -10403,6 +10891,28 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DispenseHistoryResponse"][];
+                };
+            };
+        };
+    };
+    byPrescriptionLine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prescriptionLineId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -10881,6 +11391,75 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["WardAlertNotificationResponse"][];
+                };
+            };
+        };
+    };
+    listItems: {
+        parameters: {
+            query?: {
+                q?: string;
+                type?: "PHARMACY" | "PROCEDURE" | "SURGERY" | "LABORATORY" | "RADIOLOGY" | "OPTICAL" | "DIALYSIS" | "OTHERS" | "OTHER_GENERAL_CHARGES";
+                billingCategory?: "SURGICAL_CHARGES" | "MEDICINES_AND_CONSUMABLES" | "DIAGNOSTIC_EXAMINATIONS" | "PROCEDURAL_CHARGES" | "INPATIENT_CHARGES" | "REGISTRATION_CONSULTATION_CHARGES" | "OTHER_CHARGES" | "ADVANCE_PAYMENT";
+                activeOnly?: boolean;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CatalogItemPageResponse"];
+                };
+            };
+        };
+    };
+    list_13: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CatalogImportBatchResponse"][];
+                };
+            };
+        };
+    };
+    get_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CatalogImportBatchResponse"];
                 };
             };
         };

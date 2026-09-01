@@ -63,18 +63,37 @@ public class StoreController {
         return StoreResponse.from(store);
     }
 
-    // LabOrderController's own comment: "a lab serves a whole facility, not
-    // one ward or department... a facility-scoped assignment is the right
-    // granularity here" — a correctly provisioned LAB_TECHNICIAN/PHARMACIST
-    // assignment is FACILITY-scoped, so this is expected to always resolve.
+    // Fixed id of the bootstrap facility inserted by V4 — the well-known
+    // "1" this single-facility deployment operates against. GLOBAL-scoped
+    // assignments fall back to this so admins can grant PHARMACIST /
+    // LAB_TECHNICIAN with the Users page's default (GLOBAL) scope and
+    // still land on a working restock form — the previous behaviour
+    // threw a 500 that surfaced as the store query never resolving,
+    // which read as "Receive stock button is stuck disabled" on the UI.
+    private static final UUID DEFAULT_FACILITY_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
+    // A properly provisioned LAB_TECHNICIAN/PHARMACIST is FACILITY-scoped
+    // (a lab or dispensary serves a facility, not a ward or department —
+    // see LabOrderController). If the admin granted the role GLOBAL
+    // instead, we still resolve to the seed facility; only a role
+    // scoped at DEPARTMENT/WARD/etc. is genuinely ambiguous and stays
+    // an error so misconfigured setups are still noticed rather than
+    // silently defaulting.
     private UUID resolveFacilityId(Actor actor, String permissionCode) {
-        return authorizationService.activeAssignments(actor).stream()
+        var matchingAssignments = authorizationService.activeAssignments(actor).stream()
                 .filter(assignment -> assignment.permissionCodes().contains(permissionCode))
+                .toList();
+        return matchingAssignments.stream()
                 .filter(assignment -> assignment.scope().type() == ScopeType.FACILITY)
                 .map(assignment -> assignment.scope().id())
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "No facility-scoped " + permissionCode + " assignment for user " + actor.userId()));
+                .orElseGet(() -> matchingAssignments.stream()
+                        .filter(assignment -> assignment.scope().type() == ScopeType.GLOBAL)
+                        .findFirst()
+                        .map(ignored -> DEFAULT_FACILITY_ID)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "No facility- or global-scoped " + permissionCode
+                                        + " assignment for user " + actor.userId())));
     }
 
     private Store createStore(String name, String type, UUID facilityId) {

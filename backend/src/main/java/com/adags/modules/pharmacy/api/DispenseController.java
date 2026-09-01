@@ -111,6 +111,24 @@ public class DispenseController {
         return DispenseLabelResponse.from(dispenseLabelService.generate(id));
     }
 
+    // 08-doctor-navigation.md §5: doctor's Request History detail — the
+    // dispense trail for one prescription line. Gated on PRESCRIPTION_READ
+    // (which DOCTOR holds; pharmacist's DISPENSE_HISTORY_READ also
+    // suffices via requirePermissionForLine's normal permission match) so
+    // the doctor can see how their prescribed drug was actually
+    // dispensed (batch, quantity, pharmacist, counselling notes) without
+    // being granted the pharmacy-side history permission.
+    @GetMapping("/api/dispenses/by-prescription-line/{prescriptionLineId}")
+    public List<DispenseHistoryResponse> byPrescriptionLine(
+            @PathVariable UUID prescriptionLineId, @AuthenticationPrincipal Actor actor
+    ) {
+        requirePermissionForLine(actor, "PRESCRIPTION_READ", prescriptionLineId);
+        return dispenseRepository.findByPrescriptionLineId(prescriptionLineId).stream()
+                .sorted(Comparator.comparing(Dispense::dispensedAt).reversed())
+                .map(this::toHistoryResponse)
+                .toList();
+    }
+
     // 12-pharmacist.md §11: "My dispenses" — this pharmacist's own work,
     // the History screen's default tab. Unscoped (no facility check) —
     // same treatment as PrescriptionController#mine, matching what the

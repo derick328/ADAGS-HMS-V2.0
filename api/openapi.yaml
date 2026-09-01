@@ -613,6 +613,37 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SurgeryOrderResponse"
+  /api/suppliers:
+    get:
+      tags:
+      - supplier-controller
+      operationId: list_2
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupplierResponse"
+    post:
+      tags:
+      - supplier-controller
+      operationId: create_4
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSupplierRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SupplierResponse"
   /api/substitution-proposals/{id}/review:
     post:
       tags:
@@ -1112,7 +1143,7 @@ paths:
     post:
       tags:
       - allergy-controller
-      operationId: create_4
+      operationId: create_5
       parameters:
       - name: patientId
         in: path
@@ -1166,7 +1197,7 @@ paths:
     post:
       tags:
       - lab-stock-request-controller
-      operationId: create_5
+      operationId: create_6
       requestBody:
         content:
           application/json:
@@ -1381,7 +1412,7 @@ paths:
     post:
       tags:
       - item-controller
-      operationId: create_6
+      operationId: create_7
       requestBody:
         content:
           application/json:
@@ -1527,7 +1558,7 @@ paths:
     post:
       tags:
       - invoice-controller
-      operationId: create_7
+      operationId: create_8
       requestBody:
         content:
           application/json:
@@ -2320,7 +2351,7 @@ paths:
     post:
       tags:
       - appointment-controller
-      operationId: create_8
+      operationId: create_9
       requestBody:
         content:
           application/json:
@@ -2768,6 +2799,81 @@ paths:
       responses:
         "200":
           description: OK
+  /api/admin/catalog/items/deactivate-all:
+    post:
+      tags:
+      - catalog-import-controller
+      operationId: deactivateAll
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeactivateAllCatalogItemsRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DeactivateAllCatalogItemsResponse"
+  /api/admin/catalog/import/{batchId}/cancel:
+    post:
+      tags:
+      - catalog-import-controller
+      operationId: cancel_1
+      parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+  /api/admin/catalog/import/{batchId}/apply:
+    post:
+      tags:
+      - catalog-import-controller
+      operationId: apply
+      parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CatalogImportBatchResponse"
+  /api/admin/catalog/import/preview:
+    post:
+      tags:
+      - catalog-import-controller
+      operationId: preview
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              required:
+              - file
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CatalogImportPreviewResponse"
   /me:
     get:
       tags:
@@ -2894,20 +3000,6 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SurgeryOrderResponse"
-  /api/suppliers:
-    get:
-      tags:
-      - supplier-controller
-      operationId: list_2
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/SupplierResponse"
   /api/stores/mine:
     get:
       tags:
@@ -3444,6 +3536,27 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/NursingAssignmentHistoryRowResponse"
+  /api/nurses/workload:
+    get:
+      tags:
+      - nurse-workload-controller
+      operationId: workload
+      parameters:
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NurseWorkloadResponse"
   /api/lab-tests:
     get:
       tags:
@@ -3477,6 +3590,27 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/LabTestResponse"
+  /api/lab-tests/pending-classification:
+    get:
+      tags:
+      - lab-test-controller
+      operationId: pendingClassification
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+          default: ""
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PendingLabClassificationResponse"
   /api/lab-stock-requests/{id}:
     get:
       tags:
@@ -3601,6 +3735,27 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/MachineOutputUrlResponse"
+  /api/lab-results/by-lab-order/{labOrderId}:
+    get:
+      tags:
+      - lab-result-controller
+      operationId: byLabOrder
+      parameters:
+      - name: labOrderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabResultDetailResponse"
   /api/lab-orders/{id}/result-entry-form:
     get:
       tags:
@@ -3778,7 +3933,7 @@ paths:
     get:
       tags:
       - payroll-controller
-      operationId: preview
+      operationId: preview_1
       parameters:
       - name: month
         in: query
@@ -4056,6 +4211,27 @@ paths:
       tags:
       - dispense-controller
       operationId: mine_6
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DispenseHistoryResponse"
+  /api/dispenses/by-prescription-line/{prescriptionLineId}:
+    get:
+      tags:
+      - dispense-controller
+      operationId: byPrescriptionLine
+      parameters:
+      - name: prescriptionLineId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         "200":
           description: OK
@@ -4468,6 +4644,106 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/WardAlertNotificationResponse"
+  /api/admin/catalog/items:
+    get:
+      tags:
+      - catalog-import-controller
+      operationId: listItems
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: type
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - PHARMACY
+          - PROCEDURE
+          - SURGERY
+          - LABORATORY
+          - RADIOLOGY
+          - OPTICAL
+          - DIALYSIS
+          - OTHERS
+          - OTHER_GENERAL_CHARGES
+      - name: billingCategory
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - SURGICAL_CHARGES
+          - MEDICINES_AND_CONSUMABLES
+          - DIAGNOSTIC_EXAMINATIONS
+          - PROCEDURAL_CHARGES
+          - INPATIENT_CHARGES
+          - REGISTRATION_CONSULTATION_CHARGES
+          - OTHER_CHARGES
+          - ADVANCE_PAYMENT
+      - name: activeOnly
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CatalogItemPageResponse"
+  /api/admin/catalog/import/batches:
+    get:
+      tags:
+      - catalog-import-controller
+      operationId: list_13
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CatalogImportBatchResponse"
+  /api/admin/catalog/import/batches/{batchId}:
+    get:
+      tags:
+      - catalog-import-controller
+      operationId: get_5
+      parameters:
+      - name: batchId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CatalogImportBatchResponse"
 components:
   schemas:
     TriageAssessmentDraftRequest:
@@ -5215,6 +5491,25 @@ components:
             type: string
             format: uuid
         preOpNotes:
+          type: string
+    CreateSupplierRequest:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          maxLength: 120
+          minLength: 0
+          type: string
+    SupplierResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
           type: string
     ReviewSubstitutionRequest:
       required:
@@ -6285,7 +6580,6 @@ components:
           type: string
     RecordLabResultRequest:
       required:
-      - parameterValues
       - specimenId
       type: object
       properties:
@@ -8323,6 +8617,162 @@ components:
           type: string
         remarks:
           type: string
+    DeactivateAllCatalogItemsRequest:
+      type: object
+      properties:
+        confirmationPhrase:
+          type: string
+    DeactivateAllCatalogItemsResponse:
+      type: object
+      properties:
+        deactivatedCount:
+          type: integer
+          format: int32
+    CatalogImportBatchResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        originalFilename:
+          type: string
+        status:
+          type: string
+        rowCount:
+          type: integer
+          format: int32
+        newItemCount:
+          type: integer
+          format: int32
+        priceChangeCount:
+          type: integer
+          format: int32
+        metadataChangeCount:
+          type: integer
+          format: int32
+        unchangedCount:
+          type: integer
+          format: int32
+        uploadedBy:
+          type: string
+          format: uuid
+        uploadedAt:
+          type: string
+          format: date-time
+        appliedBy:
+          type: string
+          format: uuid
+        appliedAt:
+          type: string
+          format: date-time
+    CatalogImportPreviewResponse:
+      type: object
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        rowCount:
+          type: integer
+          format: int32
+        newItemCount:
+          type: integer
+          format: int32
+        priceChangeCount:
+          type: integer
+          format: int32
+        metadataChangeCount:
+          type: integer
+          format: int32
+        unchangedCount:
+          type: integer
+          format: int32
+        duplicateCodeCount:
+          type: integer
+          format: int32
+        newItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/NewItemDto"
+        priceChanges:
+          type: array
+          items:
+            $ref: "#/components/schemas/PriceChangeDto"
+        metadataChanges:
+          type: array
+          items:
+            $ref: "#/components/schemas/MetadataChangeDto"
+        duplicateCodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DuplicateCodeDto"
+    DuplicateCodeDto:
+      type: object
+      properties:
+        originalCode:
+          type: string
+        occurrences:
+          type: array
+          items:
+            $ref: "#/components/schemas/DuplicateOccurrenceDto"
+    DuplicateOccurrenceDto:
+      type: object
+      properties:
+        excelRow:
+          type: integer
+          format: int32
+        effectiveCode:
+          type: string
+        name:
+          type: string
+    MetadataChangeDto:
+      type: object
+      properties:
+        excelRow:
+          type: integer
+          format: int32
+        code:
+          type: string
+        originalCode:
+          type: string
+        name:
+          type: string
+        changedFields:
+          type: array
+          items:
+            type: string
+    NewItemDto:
+      type: object
+      properties:
+        excelRow:
+          type: integer
+          format: int32
+        code:
+          type: string
+        originalCode:
+          type: string
+        name:
+          type: string
+        priceMinor:
+          type: integer
+          format: int64
+    PriceChangeDto:
+      type: object
+      properties:
+        excelRow:
+          type: integer
+          format: int32
+        code:
+          type: string
+        originalCode:
+          type: string
+        name:
+          type: string
+        previousMinor:
+          type: integer
+          format: int64
+        newMinor:
+          type: integer
+          format: int64
     MeResponse:
       type: object
       properties:
@@ -8468,16 +8918,6 @@ components:
         updatedAt:
           type: string
           format: date-time
-    SupplierResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        code:
-          type: string
-        name:
-          type: string
     StoreResponse:
       type: object
       properties:
@@ -8987,6 +9427,17 @@ components:
         createdAt:
           type: string
           format: date-time
+    NurseWorkloadResponse:
+      type: object
+      properties:
+        nurseId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        activePatients:
+          type: integer
+          format: int32
     WatchlistListResponse:
       type: object
       properties:
@@ -9047,6 +9498,18 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/LabTestParameterResponse"
+    PendingLabClassificationResponse:
+      type: object
+      properties:
+        serviceItemId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        unselectableReason:
+          type: string
     LabStockRequestQueueRowResponse:
       type: object
       properties:
@@ -9902,4 +10365,45 @@ components:
         acknowledged:
           type: boolean
         escalated:
+          type: boolean
+    CatalogItemPageResponse:
+      type: object
+      properties:
+        page:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+        totalCount:
+          type: integer
+          format: int32
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogItemResponse"
+    CatalogItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        originalCode:
+          type: string
+        name:
+          type: string
+        classification:
+          type: string
+        type:
+          type: string
+        billingCategory:
+          type: string
+        currentCashPriceMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        isActive:
           type: boolean

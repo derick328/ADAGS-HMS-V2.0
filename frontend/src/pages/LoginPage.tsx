@@ -9,21 +9,41 @@ import { useAuth } from '../shared/auth/AuthProvider';
 import './LoginPage.css';
 
 // A user's active role assignments decide which shell they land in;
-// everyone else defaults to /admin. This was stale for TRIAGE_NURSE (never
-// updated when that shell shipped — fixed here alongside adding DOCTOR/
-// SPECIALIST_DOCTOR for this build) and still doesn't handle every role
-// this catalogue defines (pharmacy, lab, ward, accounts) until their own
-// shells exist.
-function landingRouteFor(roleCodes: string[]): string {
-  if (roleCodes.includes('RECEPTIONIST') && !roleCodes.includes('ADMIN')) {
-    return '/receptionist';
-  }
-  if (roleCodes.includes('TRIAGE_NURSE') && !roleCodes.includes('ADMIN')) {
-    return '/triage';
-  }
-  if ((roleCodes.includes('DOCTOR') || roleCodes.includes('SPECIALIST_DOCTOR')) && !roleCodes.includes('ADMIN')) {
-    return '/doctor';
-  }
+// pure-admin users fall through to /admin. Every role that has its own
+// shell wired in App.tsx must have a branch here — otherwise the user
+// lands on /admin and sees the Admin sidebar (Dashboard / Expenses /
+// Profile) rather than their own workspace, and it looks like their
+// workspace is broken.
+//
+// Operational roles are checked BEFORE the ADMIN fallback: a user who
+// holds both an operational role and ADMIN is here to work the
+// operational role — a lab tech doing admin tasks logs in with their
+// admin account, not the lab-tech one. This differs from the original
+// rule (which sent any ADMIN-holder straight to /admin regardless of
+// their other roles) and unblocks the common seed-data case where an
+// operator account was created with ADMIN also attached.
+function landingRouteFor(roleCodes: string[], permissions: string[]): string {
+  const roles = new Set(roleCodes);
+  const perms = new Set(permissions);
+  // Role-code branches first — the intended mapping.
+  if (roles.has('LAB_TECHNICIAN')) return '/lab';
+  if (roles.has('PHARMACIST')) return '/pharmacy';
+  if (roles.has('WARD_NURSE') || roles.has('NURSE')) return '/ward-nurse';
+  if (roles.has('DOCTOR') || roles.has('SPECIALIST_DOCTOR')) return '/doctor';
+  if (roles.has('TRIAGE_NURSE')) return '/triage';
+  if (roles.has('RECEPTIONIST')) return '/receptionist';
+  // Capability fallback — a seeded account may carry only the
+  // workspace's permissions without the exact role code (a custom role,
+  // a per-user grant, or a role rename after seed). Route them by what
+  // they can DO rather than by what the role happens to be called.
+  // Order matches the role list above so the same person routes the
+  // same way regardless of which source (role vs. permission) matches.
+  if (perms.has('LAB_QUEUE_READ') || perms.has('SPECIMEN_ACCEPT') || perms.has('LAB_RESULT_ENTER')) return '/lab';
+  if (perms.has('DISPENSE_CREATE') || perms.has('PRESCRIPTION_QUEUE_READ')) return '/pharmacy';
+  if (perms.has('WARD_PATIENT_READ') || perms.has('MEDICATION_ADMINISTER')) return '/ward-nurse';
+  if (perms.has('CONSULTATION_CREATE') || perms.has('PRESCRIPTION_CREATE')) return '/doctor';
+  if (perms.has('VITALS_CREATE') && !perms.has('WARD_PATIENT_READ')) return '/triage';
+  if (perms.has('PAYMENT_CREATE') || perms.has('PATIENT_REGISTER')) return '/receptionist';
   return '/admin';
 }
 
@@ -57,7 +77,8 @@ export function LoginPage() {
       const accessToken = await login(values.username, values.password);
       const me = accessToken ? await fetchMe(accessToken) : null;
       const roleCodes = me?.scopes?.map((scope) => scope.roleCode).filter((code): code is string => Boolean(code)) ?? [];
-      navigate(landingRouteFor(roleCodes), { replace: true });
+      const permissions = me?.permissions ?? [];
+      navigate(landingRouteFor(roleCodes, permissions), { replace: true });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setFormError('Invalid username or password.');

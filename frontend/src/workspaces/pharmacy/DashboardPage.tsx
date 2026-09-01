@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchPrescriptionQueue, type PrescriptionQueueRowResponse } from '../../shared/api/prescriptions';
 import { useAuth } from '../../shared/auth/AuthProvider';
@@ -22,12 +22,13 @@ export function DashboardPage() {
   const { accessToken } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<PharmacyQueueTabKey>('ready');
+  const userPickedTab = useRef(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['prescriptions', 'queue'],
     queryFn: () => fetchPrescriptionQueue(accessToken as string),
     enabled: accessToken != null,
-    refetchInterval: 10_000,
+    refetchInterval: 5_000,
   });
 
   const rows = data ?? [];
@@ -38,18 +39,48 @@ export function DashboardPage() {
     urgent: key === 'emergency',
   }));
 
+  // Auto-land on the first non-empty tab if 'ready' is empty — otherwise
+  // a pharmacist opening the dashboard right after payment sees "No
+  // prescriptions ready" and assumes the order never arrived, when in
+  // fact the row is one tab over (Awaiting payment / Emergency / etc.).
+  // Runs only until the user picks a tab themselves, so the auto-switch
+  // never yanks the view out from under them once they're navigating.
+  useEffect(() => {
+    if (userPickedTab.current) return;
+    if (rows.length === 0) return;
+    if (countByBucket(rows, activeTab) > 0) return;
+    const firstNonEmpty = TAB_ORDER.find(({ key }) => countByBucket(rows, key) > 0);
+    if (firstNonEmpty && firstNonEmpty.key !== activeTab) setActiveTab(firstNonEmpty.key);
+  }, [rows, activeTab]);
+
   const visibleRows = rows.filter((row) => bucketOf(row, rows) === activeTab).sort(comparePharmacyQueueRows);
 
   return (
-    <QueueShell
-      title="Dashboard"
-      rows={visibleRows.map((row) => toQueueRow(row, activeTab, navigate))}
-      tabs={tabs}
-      activeTab={activeTab}
-      onTabChange={(key) => setActiveTab(key as PharmacyQueueTabKey)}
-      isLoading={isLoading}
-      emptyMessage={emptyMessageFor(activeTab)}
-    />
+    <>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: 'var(--space-2) var(--space-4) 0' }}>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          title="Poll runs every 5s; click to fetch now"
+        >
+          {isFetching ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </div>
+      <QueueShell
+        title="Dashboard"
+        rows={visibleRows.map((row) => toQueueRow(row, activeTab, navigate))}
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={(key) => {
+          userPickedTab.current = true;
+          setActiveTab(key as PharmacyQueueTabKey);
+        }}
+        isLoading={isLoading}
+        emptyMessage={emptyMessageFor(activeTab)}
+      />
+    </>
   );
 }
 

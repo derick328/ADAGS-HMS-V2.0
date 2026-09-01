@@ -21,6 +21,18 @@ public interface InventoryFacade {
 
     boolean itemExists(UUID itemId);
 
+    /**
+     * V72 catalogue-import bootstrap: create an inventory.item row for a
+     * PHARMACY service_item that has none yet, so a doctor can select it
+     * in the prescription typeahead immediately after admin upload. The
+     * item lands classified as PRESCRIPTION_ONLY and active — the safe
+     * default per V71's Reg 16(3) reasoning; a pharmacist-in-charge can
+     * refine schedule/form/strength via /api/items/{id}/classify later.
+     * Idempotent: returns the existing item id when the code is already
+     * taken, so a re-import of the same catalogue file never duplicates.
+     */
+    UUID ensureCatalogueItem(String code, String name, String classification, UUID actorUserId);
+
     /** False for a missing item too — a caller checking dispensability doesn't need a separate not-found branch. */
     boolean isDispensable(UUID itemId);
 
