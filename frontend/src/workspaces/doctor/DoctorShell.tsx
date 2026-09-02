@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { searchEncounters } from '../../shared/api/encounters';
 import { fetchMyLabOrders } from '../../shared/api/labOrders';
 import { fetchMyPrescriptions } from '../../shared/api/prescriptions';
+import { fetchActiveSurgeryOrders } from '../../shared/api/surgeryOrders';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { useMe } from '../../shared/auth/useMe';
 import { usePermission } from '../../shared/auth/usePermission';
@@ -25,6 +26,7 @@ export function DoctorShell() {
           <nav className="doctor-nav">
             <MyQueueLink />
             <MyPatientsLink />
+            <MyScheduledSurgeriesLink />
             <HospitalCatalogueLink />
             <RequestHistoryLink />
 
@@ -94,6 +96,40 @@ function MyPatientsLink() {
   return (
     <NavLink to="/doctor/patients" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
       My Patients
+    </NavLink>
+  );
+}
+
+// Read-only surgery view — the ward nurse owns the working screen. Badge
+// counts open (non-terminal) orders this doctor scheduled so the sidebar
+// mirrors how many patients are still moving through theatre.
+function MyScheduledSurgeriesLink() {
+  const { accessToken } = useAuth();
+  const { data: me } = useMe();
+  const canSee = usePermission('SURGERY_ORDER_CREATE') || usePermission('SURGERY_EPISODE_DOCUMENT');
+
+  const { data } = useQuery({
+    queryKey: ['surgery-orders', 'active'],
+    queryFn: () => fetchActiveSurgeryOrders(accessToken as string),
+    enabled: canSee && accessToken != null,
+    refetchInterval: 60_000,
+  });
+
+  if (!canSee) return null;
+
+  const openMine = (data ?? []).filter(
+    (o) => o.scheduledBy === me?.userId && o.status !== 'COMPLETED' && o.status !== 'CANCELLED',
+  );
+
+  return (
+    <NavLink
+      to="/doctor/scheduled-surgeries"
+      className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}
+    >
+      <span className="nav-item-label">
+        <span>My Surgeries</span>
+        {openMine.length > 0 && <span className="badge badge-neutral">{openMine.length}</span>}
+      </span>
     </NavLink>
   );
 }

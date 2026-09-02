@@ -143,6 +143,13 @@ export function EncounterDetailPage() {
         </dl>
       </header>
 
+      <EncounterStateGuidance
+        state={encounter.state}
+        encounterId={encounter.id as string}
+        patientId={patientId as string}
+        navigate={navigate}
+      />
+
       {/* Compact patient context */}
       {patient && (
         <div
@@ -234,6 +241,156 @@ export function EncounterDetailPage() {
           invoicesAt={encounterInvoices.map((i) => i.createdAt).filter(Boolean) as string[]}
         />
       </SectionCard>
+    </div>
+  );
+}
+
+// Small in-page callout that names what state the encounter is in and
+// what the doctor's next step actually is. The detail page is a
+// read-only reference view (there is no consultation editor mounted
+// here), and clicking "Open encounter" on My Patients used to land the
+// doctor here with no explanation for why nothing is editable — this
+// banner is that explanation.
+function EncounterStateGuidance({
+  state,
+  encounterId,
+  patientId,
+  navigate,
+}: {
+  state?: string;
+  encounterId: string;
+  patientId: string;
+  navigate: (to: string) => void;
+}) {
+  if (!state) return null;
+
+  if (state === 'IN_CONSULT') {
+    return (
+      <GuidanceBanner tone="info">
+        <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div>
+            <strong>Consultation open.</strong> Continue your notes, orders, and finalize on the consultation
+            page.
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate(`/doctor/consultation/${encounterId}`)}
+          >
+            Continue consultation →
+          </button>
+        </div>
+      </GuidanceBanner>
+    );
+  }
+
+  if (state === 'AWAITING_CONSULT') {
+    return (
+      <GuidanceBanner tone="info">
+        <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div>
+            <strong>Waiting to be seen.</strong> Open the consultation to begin.
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate(`/doctor/consultation/${encounterId}`)}
+          >
+            Open consultation →
+          </button>
+        </div>
+      </GuidanceBanner>
+    );
+  }
+
+  if (state === 'AWAITING_RESULTS') {
+    return (
+      <GuidanceBanner tone="warning">
+        <div>
+          <div style={{ marginBottom: 'var(--space-2)' }}>
+            <strong>Awaiting results.</strong> Your consultation note is finalized; the encounter stays open
+            until lab or imaging results come back.
+          </div>
+          <ol style={{ margin: '0 0 var(--space-2) var(--space-4)', padding: 0, fontSize: 'var(--text-sm)' }}>
+            <li>
+              Watch <strong>Request History</strong> for status changes on the orders you placed — results
+              flow in there as the lab enters them.
+            </li>
+            <li>
+              When the patient physically returns, the receptionist opens <strong>Expected Returns</strong>{' '}
+              and clicks <strong>Resume</strong>; the encounter moves back to <em>Awaiting consult</em> and
+              lands on your My Queue.
+            </li>
+            <li>Reopen the consultation there to amend the diagnosis, adjust prescription, or finalize.</li>
+          </ol>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 'var(--text-xs)',
+              color: 'var(--text-muted)',
+            }}
+          >
+            This page is read-only by design — it's your reference view. Editing lives on the consultation
+            page, reached only via the queue once the patient is back.
+          </p>
+          <div style={{ marginTop: 'var(--space-2)', display: 'flex', gap: 'var(--space-2)' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => navigate('/doctor/request-history')}
+            >
+              Go to Request History
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => navigate(`/doctor/patients/${patientId}`)}
+            >
+              Back to patient
+            </button>
+          </div>
+        </div>
+      </GuidanceBanner>
+    );
+  }
+
+  if (state === 'CONSULT_COMPLETE' || state === 'CLOSED' || state === 'DISCHARGED') {
+    return (
+      <GuidanceBanner tone="neutral">
+        <div>
+          <strong>Encounter closed.</strong> This is the historical record — everything is read-only.
+        </div>
+      </GuidanceBanner>
+    );
+  }
+
+  return null;
+}
+
+function GuidanceBanner({
+  tone,
+  children,
+}: {
+  tone: 'info' | 'warning' | 'neutral';
+  children: React.ReactNode;
+}) {
+  const bg =
+    tone === 'warning' ? 'var(--warning-bg)' : tone === 'info' ? 'var(--info-bg, #eef4ff)' : 'var(--gray-100)';
+  const border =
+    tone === 'warning' ? 'var(--warning)' : tone === 'info' ? 'var(--info, #1f5fff)' : 'var(--border)';
+  return (
+    <div
+      role={tone === 'warning' ? 'status' : undefined}
+      style={{
+        background: bg,
+        borderLeft: `3px solid ${border}`,
+        borderRadius: 'var(--radius)',
+        padding: 'var(--space-3) var(--space-4)',
+        marginBottom: 'var(--space-4)',
+        fontSize: 'var(--text-sm)',
+      }}
+    >
+      {children}
     </div>
   );
 }

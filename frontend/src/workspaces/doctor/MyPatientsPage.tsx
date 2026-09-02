@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { searchEncounters, type EncounterResponse } from '../../shared/api/encounters';
 import { fetchPatientById, searchPatients, type PatientSearchResult } from '../../shared/api/patients';
@@ -11,6 +11,11 @@ import { useMe } from '../../shared/auth/useMe';
 // PatientPage / EncounterDetailPage flow rather than rendering the whole
 // clinical record inline. Everything clinically detailed lives on those
 // pages; this one exists to help the doctor pick which patient they want.
+//
+// §3.1: Active is every non-terminal encounter assigned to this doctor,
+// grouped visibly by state so a patient sent home to wait for labs
+// (AWAITING_RESULTS) is one glance away — that's the state a doctor
+// most often forgets and can no longer find on the queue.
 export function MyPatientsPage() {
   const [tab, setTab] = useState<'active' | 'all'>('active');
   const navigate = useNavigate();
@@ -44,9 +49,20 @@ export function MyPatientsPage() {
   );
 }
 
+type StateFilter = 'ALL' | 'AWAITING_CONSULT' | 'IN_CONSULT' | 'AWAITING_RESULTS' | 'OTHER';
+
+const STATE_FILTERS: { key: StateFilter; label: string }[] = [
+  { key: 'ALL', label: 'All' },
+  { key: 'AWAITING_CONSULT', label: 'Awaiting consult' },
+  { key: 'IN_CONSULT', label: 'In consult' },
+  { key: 'AWAITING_RESULTS', label: 'Awaiting results' },
+  { key: 'OTHER', label: 'Other' },
+];
+
 function ActiveTab({ onSelect }: { onSelect: (patientId: string) => void }) {
   const { accessToken } = useAuth();
   const { data: me } = useMe();
+  const [stateFilter, setStateFilter] = useState<StateFilter>('ALL');
 
   const { data: encounters, isLoading } = useQuery({
     queryKey: ['encounters', 'search', { excludeTerminal: true }],
@@ -54,27 +70,114 @@ function ActiveTab({ onSelect }: { onSelect: (patientId: string) => void }) {
     enabled: accessToken != null,
     refetchInterval: 30_000,
   });
-  const mine = (encounters ?? []).filter((e) => e.assignedProviderId === me?.userId);
+  const mine = useMemo(
+    () => (encounters ?? []).filter((e) => e.assignedProviderId === me?.userId),
+    [encounters, me?.userId],
+  );
+
+  const counts = useMemo(() => bucketByState(mine), [mine]);
+  const filtered = useMemo(() => {
+    if (stateFilter === 'ALL') return mine;
+    if (stateFilter === 'OTHER')
+      return mine.filter(
+        (e) => e.state !== 'AWAITING_CONSULT' && e.state !== 'IN_CONSULT' && e.state !== 'AWAITING_RESULTS',
+      );
+    return mine.filter((e) => e.state === stateFilter);
+  }, [mine, stateFilter]);
 
   if (isLoading) return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
-  if (mine.length === 0) return <p style={{ color: 'var(--text-muted)' }}>No active patients right now.</p>;
 
   return (
-    <table className="table">
-      <tbody>
-        {mine.map((e) => (
-          <tr key={e.id}>
-            <td>
-              <ActivePatientRow encounter={e} onSelect={onSelect} />
-            </td>
-          </tr>
+    <div>
+      <div
+        style={{
+          display: 'flex',
+          gap: 'var(--space-1)',
+          flexWrap: 'wrap',
+          marginBottom: 'var(--space-3)',
+        }}
+      >
+        {STATE_FILTERS.map((f) => (
+          <button
+            key={f.key}
+            type="button"
+            onClick={() => setStateFilter(f.key)}
+            className={stateFilter === f.key ? 'btn btn-secondary' : 'btn btn-ghost'}
+            style={{ fontSize: 'var(--text-sm)' }}
+          >
+            {f.label}
+            <span className="badge badge-neutral" style={{ marginLeft: 'var(--space-1)' }}>
+              {counts[f.key] ?? 0}
+            </span>
+          </button>
         ))}
-      </tbody>
-    </table>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p style={{ color: 'var(--text-muted)' }}>
+          {mine.length === 0
+            ? 'No active patients right now.'
+            : `No patients in "${STATE_FILTERS.find((f) => f.key === stateFilter)?.label}".`}
+        </p>
+      ) : (
+        <table className="table">
+          <tbody>
+            {filtered.map((e) => (
+              <tr key={e.id}>
+                <td>
+                  <ActivePatientRow encounter={e} onSelect={onSelect} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
   );
 }
 
-function ActivePatientRow({ encounter, onSelect }: { encounter: EncounterResponse; onSelect: (patientId: string) => void }) {
+function bucketByState(rows: EncounterResponse[]): Record<StateFilter, number> {
+  const counts: Record<StateFilter, number> = {
+    ALL: rows.length,
+    AWAITING_CONSULT: 0,
+    IN_CONSULT: 0,
+    AWAITING_RESULTS: 0,
+    OTHER: 0,
+  };
+  for (const r of rows) {
+    if (r.state === 'AWAITING_CONSULT') counts.AWAITING_CONSULT++;
+    else if (r.state === 'IN_CONSULT') counts.IN_CONSULT++;
+    else if (r.state === 'AWAITING_RESULTS') counts.AWAITING_RESULTS++;
+    else counts.OTHER++;
+  }
+  return counts;
+}
+
+function stateBadgeClass(state: EncounterResponse['state']): string {
+  switch (state) {
+    case 'IN_CONSULT':
+      return 'badge-success';
+    case 'AWAITING_RESULTS':
+      return 'badge-warning';
+    case 'AWAITING_CONSULT':
+      return 'badge-neutral';
+    default:
+      return 'badge-neutral';
+  }
+}
+
+function formatState(state: EncounterResponse['state']): string {
+  if (!state) return '—';
+  return state.replaceAll('_', ' ').toLowerCase();
+}
+
+function ActivePatientRow({
+  encounter,
+  onSelect,
+}: {
+  encounter: EncounterResponse;
+  onSelect: (patientId: string) => void;
+}) {
   const { accessToken } = useAuth();
   const navigate = useNavigate();
   const { data: patient } = useQuery({
@@ -83,18 +186,38 @@ function ActivePatientRow({ encounter, onSelect }: { encounter: EncounterRespons
     enabled: accessToken != null,
     staleTime: 60_000,
   });
-  // IN_CONSULT rows carry a Continue action alongside the view button —
-  // the patient page is a scan-and-select surface, not the consultation
-  // workspace itself.
   const isInConsult = encounter.state === 'IN_CONSULT';
+  const isAwaitingResults = encounter.state === 'AWAITING_RESULTS';
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
-      <button type="button" className="btn btn-ghost" onClick={() => onSelect(encounter.patientId as string)} style={{ textAlign: 'left', flex: 1 }}>
-        {patient?.fullName ?? 'Loading…'} · {patient?.hospitalNo} · <span className="badge badge-neutral">{encounter.state}</span>
+      <button
+        type="button"
+        className="btn btn-ghost"
+        onClick={() => onSelect(encounter.patientId as string)}
+        style={{ textAlign: 'left', flex: 1 }}
+      >
+        {patient?.fullName ?? 'Loading…'}
+        {patient?.hospitalNo && <> · {patient.hospitalNo}</>}
+        {' · '}
+        <span className={`badge ${stateBadgeClass(encounter.state)}`}>{formatState(encounter.state)}</span>
       </button>
       {isInConsult && (
-        <button type="button" className="btn btn-primary" onClick={() => navigate(`/doctor/consultation/${encounter.id}`)}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => navigate(`/doctor/consultation/${encounter.id}`)}
+        >
           Continue
+        </button>
+      )}
+      {isAwaitingResults && (
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => navigate(`/doctor/patients/${encounter.patientId}/encounters/${encounter.id}`)}
+          title="Open encounter to review results as they come in"
+        >
+          Open encounter
         </button>
       )}
     </div>

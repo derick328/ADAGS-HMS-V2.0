@@ -58,13 +58,39 @@ public class JdbcServiceItemRepository implements ServiceItemRepository {
 
     @Override
     public List<ServiceItem> search(String query) {
+        // 07-doctor.md §3 "One component, four configurations": the
+        // Combobox debounces to 200ms and hits this on every keystroke —
+        // the ordering has to reflect the query so the top of the
+        // dropdown actually moves as the doctor narrows what they typed.
+        // Plain `ORDER BY name` kept "Angioplasty" / "Appendectomy" at
+        // the top regardless of query (`app`, `bio`, `laparo` all
+        // rendered A-names first because the sort ignored the search
+        // term) — the user reads only the first few visible rows and
+        // reasonably assumes the search is broken.
+        //
+        // Three tiers: name starts-with wins (that's what someone
+        // typing "app" is looking for), then code starts-with, then
+        // anywhere-in-name/code. Break ties by name so the order is
+        // stable across identical relevance rows. LIMIT is a defence
+        // against a two-letter query returning every seeded item.
+        String prefix = query + "%";
+        String contains = "%" + query + "%";
         return jdbcTemplate.query(
                 """
                 SELECT id, code, name, category, is_active FROM service_item
-                WHERE is_active = true AND (name ILIKE :pattern OR code ILIKE :pattern)
-                ORDER BY name
+                WHERE is_active = true AND (name ILIKE :contains OR code ILIKE :contains)
+                ORDER BY
+                    CASE
+                        WHEN name ILIKE :prefix THEN 0
+                        WHEN code ILIKE :prefix THEN 1
+                        ELSE 2
+                    END,
+                    name
+                LIMIT 50
                 """,
-                new MapSqlParameterSource("pattern", "%" + query + "%"),
+                new MapSqlParameterSource()
+                        .addValue("prefix", prefix)
+                        .addValue("contains", contains),
                 this::mapRow);
     }
 
