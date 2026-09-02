@@ -1,5 +1,6 @@
 package com.adags.modules.inventory.infrastructure;
 
+import com.adags.modules.inventory.domain.RestockLedgerEntry;
 import com.adags.modules.inventory.domain.StockBatch;
 import com.adags.modules.inventory.domain.StockBatchRepository;
 import com.adags.modules.inventory.domain.StockBatchStatus;
@@ -10,7 +11,9 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -76,6 +79,60 @@ public class JdbcStockBatchRepository implements StockBatchRepository {
                         + "ORDER BY expiry_date ASC",
                 new MapSqlParameterSource("itemId", itemId),
                 this::mapRow);
+    }
+
+    @Override
+    public List<RestockLedgerEntry> findRestocksBetween(Instant from, Instant to) {
+        String sql = """
+                SELECT sb.id           AS batch_id,
+                       sb.item_id      AS item_id,
+                       i.name          AS item_name,
+                       sb.batch_number AS batch_number,
+                       COALESCE(mv.qty_delta, 0) AS received_qty,
+                       sb.unit_cost_amount_minor AS unit_cost_amount_minor,
+                       sb.unit_cost_currency_code AS currency_code,
+                       sb.supplier_id  AS supplier_id,
+                       sup.name        AS supplier_name,
+                       sb.delivery_note_ref AS delivery_note_ref,
+                       sb.received_at  AS received_at,
+                       sb.received_by  AS received_by_id,
+                       u.username      AS received_by_name
+                  FROM stock_batch sb
+                  JOIN item i ON i.id = sb.item_id
+                  JOIN supplier sup ON sup.id = sb.supplier_id
+                  LEFT JOIN app_user u ON u.id = sb.received_by
+                  LEFT JOIN LATERAL (
+                      SELECT qty_delta FROM stock_movement
+                       WHERE batch_id = sb.id AND movement_type = 'RECEIPT'
+                       ORDER BY occurred_at ASC LIMIT 1
+                  ) mv ON TRUE
+                 WHERE sb.received_at >= :fromTs
+                   AND sb.received_at <  :toTs
+                 ORDER BY sb.received_at DESC
+                """;
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("fromTs", Timestamp.from(from))
+                .addValue("toTs", Timestamp.from(to));
+        return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            long unitCost = rs.getLong("unit_cost_amount_minor");
+            int receivedQty = rs.getInt("received_qty");
+            String currency = rs.getString("currency_code");
+            return new RestockLedgerEntry(
+                    (UUID) rs.getObject("batch_id"),
+                    (UUID) rs.getObject("item_id"),
+                    rs.getString("item_name"),
+                    rs.getString("batch_number"),
+                    receivedQty,
+                    unitCost,
+                    unitCost * receivedQty,
+                    currency,
+                    (UUID) rs.getObject("supplier_id"),
+                    rs.getString("supplier_name"),
+                    rs.getString("delivery_note_ref"),
+                    rs.getTimestamp("received_at").toInstant(),
+                    (UUID) rs.getObject("received_by_id"),
+                    rs.getString("received_by_name"));
+        });
     }
 
     private StockBatch mapRow(ResultSet rs, int rowNum) throws SQLException {

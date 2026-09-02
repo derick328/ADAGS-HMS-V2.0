@@ -8,6 +8,8 @@ export type ApproveExpenseRequest = components['schemas']['ApproveExpenseRequest
 export type VoidExpenseRequest = components['schemas']['VoidExpenseRequest'];
 export type ExpenseCategoryTotal = components['schemas']['ExpenseCategoryTotal'];
 export type ExpenseMonthlyTotal = components['schemas']['ExpenseMonthlyTotal'];
+export type RevenueReport = components['schemas']['RevenueReport'];
+export type ReceivablesOverview = components['schemas']['ReceivablesOverview'];
 
 export function fetchExpensesByStatus(status: ExpenseStatus, accessToken: string): Promise<ExpenseResponse[]> {
   return authFetch(`/api/finance/expenses?status=${status}`, accessToken);
@@ -51,4 +53,23 @@ export function fetchExpensesMonthlyTrend(
   accessToken: string,
 ): Promise<ExpenseMonthlyTotal[]> {
   return authFetch(`/api/reporting/expenses/monthly-trend?from=${from}&to=${to}`, accessToken);
+}
+
+export function fetchRevenueReport(
+  from: string,
+  to: string,
+  facilityId: string,
+  accessToken: string,
+): Promise<RevenueReport> {
+  return authFetch(
+    `/api/reporting/revenue?from=${from}&to=${to}&facilityId=${facilityId}`,
+    accessToken,
+  );
+}
+
+export function fetchReceivablesOverview(
+  facilityId: string,
+  accessToken: string,
+): Promise<ReceivablesOverview> {
+  return authFetch(`/api/reporting/receivables-overview?facilityId=${facilityId}`, accessToken);
 }

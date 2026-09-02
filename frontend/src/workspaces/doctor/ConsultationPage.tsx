@@ -59,12 +59,20 @@ const fieldStyle: CSSProperties = {
 // disposition the code silently downgrades.
 type DispositionChoice = DispositionOutcome | 'ADMIT_TO_WARD' | 'SCHEDULE_SURGERY';
 
-const DISPOSITION_OPTIONS: { value: DispositionChoice; label: string; available: boolean }[] = [
-  { value: 'CONSULT_COMPLETE', label: 'Consult complete — send home', available: true },
-  { value: 'ADMIT_TO_WARD', label: 'Admit to ward', available: true },
-  { value: 'REFERRED_OUT', label: 'Referred out', available: true },
-  { value: 'DECEASED', label: 'Deceased', available: true },
-  { value: 'SCHEDULE_SURGERY', label: 'Schedule surgery', available: true },
+// Every disposition is offered here. SURGERY_ORDER_CREATE and the
+// surgery-scheduling endpoints stay permission-checked server-side —
+// hiding an option in the dropdown produces a dead end for anyone who
+// looks for it and can't find it. V75 grants the surgery permissions
+// to the DOCTOR role too so the option isn't blocked at the next page.
+const DISPOSITION_OPTIONS: {
+  value: DispositionChoice;
+  label: string;
+}[] = [
+  { value: 'CONSULT_COMPLETE', label: 'Consult complete — send home' },
+  { value: 'ADMIT_TO_WARD', label: 'Admit to ward' },
+  { value: 'REFERRED_OUT', label: 'Referred out' },
+  { value: 'DECEASED', label: 'Deceased' },
+  { value: 'SCHEDULE_SURGERY', label: 'Schedule surgery' },
 ];
 
 const FREQUENCY_DOSES_PER_DAY: Record<string, number | null> = { STAT: 1, OD: 1, BD: 2, TDS: 3, QDS: 4, PRN: null };
@@ -446,6 +454,7 @@ function ConsultationTab({
 }) {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [values, setValues] = useState<ConsultationFormValues>({
     historyOfPresentingIllness: '',
@@ -769,7 +778,7 @@ function ConsultationTab({
         <select value={disposition} onChange={(e) => setDisposition(e.target.value as DispositionChoice)} style={{ ...fieldStyle, width: 320 }}>
           <option value="">Select disposition…</option>
           {DISPOSITION_OPTIONS.map((o, i) => (
-            <option key={i} value={o.available ? o.value : ''} disabled={!o.available}>
+            <option key={i} value={o.value}>
               {o.label}
             </option>
           ))}

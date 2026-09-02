@@ -23,11 +23,14 @@ import { AdminShell } from './workspaces/admin/AdminShell';
 import { ComingSoon } from './workspaces/admin/ComingSoon';
 import { ExpenseAnalyticsPage } from './workspaces/admin/ExpenseAnalyticsPage';
 import { ExpensesCategoryPage } from './workspaces/admin/ExpensesCategoryPage';
+import { MedicationPharmacyPage } from './workspaces/admin/MedicationPharmacyPage';
 import { PatientsPage } from './workspaces/admin/PatientsPage';
 import { PaymentBypassWaiverPage } from './workspaces/admin/PaymentBypassWaiverPage';
 import { PricingPage } from './workspaces/admin/PricingPage';
 import { ProfilePage } from './workspaces/admin/ProfilePage';
 import { RevenuePage } from './workspaces/admin/RevenuePage';
+import { SalariesPage } from './workspaces/admin/SalariesPage';
+import { TheatresPage } from './workspaces/admin/TheatresPage';
 import { UsersPage } from './workspaces/admin/UsersPage';
 import { BillingPage as ReceptionistBillingPage } from './workspaces/receptionist/BillingPage';
 import { CashierShiftPage } from './workspaces/receptionist/CashierShiftPage';
@@ -117,12 +120,10 @@ export function App() {
         <Route path="payment-bypass-waivers" element={<PaymentBypassWaiverPage />} />
         <Route path="patients" element={<PatientsPage />} />
         <Route path="users" element={<UsersPage />} />
-        <Route
-          path="expenses/medication-pharmacy"
-          element={<ExpensesCategoryPage category="Medication & pharmacy" />}
-        />
+        <Route path="theatres" element={<TheatresPage />} />
+        <Route path="expenses/medication-pharmacy" element={<MedicationPharmacyPage />} />
         <Route path="expenses/medications" element={<ExpensesCategoryPage category="Medications" />} />
-        <Route path="expenses/salaries" element={<ExpensesCategoryPage category="Salaries" />} />
+        <Route path="expenses/salaries" element={<SalariesPage />} />
         <Route path="expenses/utilities" element={<ExpensesCategoryPage category="Utilities" />} />
         <Route path="expenses/maintenance" element={<ExpensesCategoryPage category="Maintenance" />} />
         <Route path="expenses/equipment" element={<ExpensesCategoryPage category="Equipment" />} />

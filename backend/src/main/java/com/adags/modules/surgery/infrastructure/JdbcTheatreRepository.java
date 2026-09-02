@@ -54,6 +54,20 @@ public class JdbcTheatreRepository implements TheatreRepository {
                 new MapSqlParameterSource("facilityId", facilityId), this::mapRow);
     }
 
+    @Override
+    public List<Theatre> findAllByFacilityId(UUID facilityId) {
+        return jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE facility_id = :facilityId ORDER BY active DESC, name",
+                new MapSqlParameterSource("facilityId", facilityId), this::mapRow);
+    }
+
+    @Override
+    public void setActive(UUID id, boolean active) {
+        jdbcTemplate.update(
+                "UPDATE theatre SET active = :active WHERE id = :id",
+                new MapSqlParameterSource().addValue("id", id).addValue("active", active));
+    }
+
     private Theatre mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Theatre(
                 (UUID) rs.getObject("id"),
