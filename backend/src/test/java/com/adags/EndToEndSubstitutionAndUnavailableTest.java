@@ -409,7 +409,7 @@ class EndToEndSubstitutionAndUnavailableTest extends IntegrationTestSupport {
                 givenName, null, familyName, LocalDate.of(1990, 4, 12), null, null,
                 "FEMALE", "SINGLE", null, "+255700" + (100000 + Math.abs((givenName + familyName + UUID.randomUUID()).hashCode() % 900000)),
                 null, null,
-                new NextOfKin(null, null, "Next Kin", "SIBLING", "+255711000000", false),
+                new NextOfKin(null, null, "Next Kin", "SIBLING", null, "+255711000000", false),
                 List.of(), null, BOOTSTRAP_FACILITY_ID, actor, null);
     }
 

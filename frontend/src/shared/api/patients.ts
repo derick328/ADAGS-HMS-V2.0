@@ -6,6 +6,21 @@ export type PatientResponse = components['schemas']['PatientResponse'];
 export type RegisterPatientRequest = components['schemas']['RegisterPatientRequest'];
 export type VisitHistoryResponse = components['schemas']['VisitHistoryResponse'];
 
+// Hand-typed to match com.adags.modules.patients.domain.PatientListResult
+// while the openapi.yaml regeneration catches up. Swap to
+// components['schemas']['PatientListResult'] after the next backend build.
+export interface PatientListResult {
+  id: string;
+  hospitalNo: string;
+  fullName: string;
+  dateOfBirth: string | null;
+  dobIsEstimated: boolean;
+  phone: string | null;
+  createdAt: string | null;
+  insuranceSchemeCode: string | null;
+  insuranceSchemeName: string | null;
+}
+
 // 05-receptionist.md §4.1: DuplicatePatientException attaches this shape to
 // the 409's ProblemDetail body dynamically (GlobalExceptionHandler) —
 // springdoc has no static return type to generate a schema from for it, so
@@ -36,6 +51,22 @@ export function fetchPatientById(id: string, accessToken: string): Promise<Patie
 /** A count only — deliberately no browsable list backs this (root CLAUDE.md's "no browse-all-patients" reasoning). */
 export function fetchRegisteredPatientCount(from: string, to: string, accessToken: string): Promise<number> {
   return authFetch(`/api/patients/registered-count?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, accessToken);
+}
+
+// Admin Patients page recent-registrations list — bounded, audited each
+// call, gated on PATIENT_SEARCH. See the backend PatientListResult for
+// the deviation from 05-receptionist.md §5.1's "no list-all" line.
+export function listRecentPatients(
+  params: { from?: string; to?: string; payer?: string; limit?: number },
+  accessToken: string,
+): Promise<PatientListResult[]> {
+  const search = new URLSearchParams();
+  if (params.from) search.set('from', params.from);
+  if (params.to) search.set('to', params.to);
+  if (params.payer) search.set('payer', params.payer);
+  if (params.limit != null) search.set('limit', String(params.limit));
+  const qs = search.toString();
+  return authFetch(`/api/patients${qs ? `?${qs}` : ''}`, accessToken);
 }
 
 export function fetchVisitHistory(patientId: string, accessToken: string): Promise<VisitHistoryResponse[]> {

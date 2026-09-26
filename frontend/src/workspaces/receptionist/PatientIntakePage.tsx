@@ -302,9 +302,10 @@ function SearchResultsTable({ results }: { results: PatientSearchResult[] }) {
   );
 }
 
-const relationshipOptions = ['SPOUSE', 'PARENT', 'CHILD', 'SIBLING', 'GUARDIAN', 'OTHER'] as const;
+const relationshipOptions = ['SPOUSE', 'PARENT', 'CHILD', 'SIBLING', 'GUARDIAN', 'FRIEND', 'OTHER'] as const;
 const genderOptions = ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY'] as const;
-const maritalStatusOptions = ['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED'] as const;
+const maritalStatusOptions = ['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED', 'WIDOWER'] as const;
+const MINOR_MAX_AGE = 15;
 
 const registrationSchema = z
   .object({
@@ -323,6 +324,7 @@ const registrationSchema = z
     occupation: z.string().optional(),
     nokFullName: z.string().min(2, "Enter the next of kin's name"),
     nokRelationship: z.enum(relationshipOptions),
+    nokRelationshipOther: z.string().optional(),
     nokPhone: z.string().min(1, "Enter the next of kin's phone number"),
     currentRegion: z.string().optional(),
     currentDistrict: z.string().optional(),
@@ -351,7 +353,31 @@ const registrationSchema = z
   })
   .refine((v) => v.isPrincipal || (v.principalName ?? '').trim() !== '', {
     message: 'Enter the principal member’s name', path: ['principalName'],
-  });
+  })
+  .refine((v) => v.nokRelationship !== 'OTHER' || (v.nokRelationshipOther ?? '').trim() !== '', {
+    message: 'Describe the relationship', path: ['nokRelationshipOther'],
+  })
+  .refine((v) => normalizePhone(v.nokPhone) !== normalizePhone(v.phone), {
+    message: 'Enter a different phone from the patient’s', path: ['nokPhone'],
+  })
+  .refine(
+    (v) => {
+      const nok = normalizeName(v.nokFullName);
+      if (nok === '') return true;
+      const withMiddle = normalizeName(`${v.givenName} ${v.middleName ?? ''} ${v.familyName}`);
+      const withoutMiddle = normalizeName(`${v.givenName} ${v.familyName}`);
+      return nok !== withMiddle && nok !== withoutMiddle;
+    },
+    { message: 'Next of kin must be a different person from the patient', path: ['nokFullName'] },
+  );
+
+function normalizePhone(phone: string | undefined): string {
+  return (phone ?? '').replace(/\s+/g, '');
+}
+
+function normalizeName(name: string | undefined): string {
+  return (name ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
 
 type RegistrationValues = z.infer<typeof registrationSchema>;
 
@@ -382,7 +408,10 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
   const hasInsurance = watch('hasInsurance');
   const isPrincipal = watch('isPrincipal');
   const ageYears = watch('ageYears');
-  const isMinor = dobKnown === 'estimated' ? (ageYears ?? 99) < 18 : false;
+  const dateOfBirth = watch('dateOfBirth');
+  const nokRelationship = watch('nokRelationship');
+  const computedAge = dobKnown === 'exact' ? ageFromDobString(dateOfBirth) : ageYears;
+  const isMinor = computedAge != null && computedAge <= MINOR_MAX_AGE;
 
   const submit = useMutation({
     mutationFn: (body: RegisterPatientRequest) => registerPatient(body, accessToken as string),
@@ -438,6 +467,7 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
       nextOfKin: {
         fullName: values.nokFullName,
         relationship: values.nokRelationship,
+        relationshipOther: values.nokRelationship === 'OTHER' ? values.nokRelationshipOther?.trim() : undefined,
         phone: values.nokPhone,
         isGuardian: false,
       },
@@ -601,6 +631,11 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
             ))}
           </select>
         </FormRow>
+        {nokRelationship === 'OTHER' && (
+          <FormRow label="Specify relationship" error={errors.nokRelationshipOther?.message}>
+            <input {...register('nokRelationshipOther')} style={fieldStyle} />
+          </FormRow>
+        )}
         <FormRow label="Phone" error={errors.nokPhone?.message}>
           <input {...register('nokPhone')} style={fieldStyle} placeholder="0700000000" />
         </FormRow>
@@ -696,8 +731,15 @@ function FormRow({ label, error, children }: { label: string; error?: string; ch
 
 function ageFromDob(dob: string | undefined): string {
   if (!dob) return '—';
-  const years = Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-  return `${years}`;
+  const years = ageFromDobString(dob);
+  return years == null ? '—' : `${years}`;
+}
+
+function ageFromDobString(dob: string | undefined): number | undefined {
+  if (!dob) return undefined;
+  const parsed = new Date(dob);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return Math.floor((Date.now() - parsed.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
 }
 
 function EmptyState({ message }: { message: string }) {

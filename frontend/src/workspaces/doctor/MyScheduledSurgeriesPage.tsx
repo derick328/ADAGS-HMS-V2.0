@@ -139,6 +139,7 @@ export function MyScheduledSurgeriesPage() {
                   key={order.id}
                   order={order}
                   onOpenPatient={(patientId) => navigate(`/doctor/patients/${patientId}`)}
+                  onManageItems={(id) => navigate(`/doctor/surgery/${id}/items`)}
                 />
               ))}
             </tbody>
@@ -168,9 +169,11 @@ function bucketByStatus(rows: SurgeryOrderResponse[]): Record<StatusFilter, numb
 function SurgeryRow({
   order,
   onOpenPatient,
+  onManageItems,
 }: {
   order: SurgeryOrderResponse;
   onOpenPatient: (patientId: string) => void;
+  onManageItems: (surgeryOrderId: string) => void;
 }) {
   const { accessToken } = useAuth();
   const { data: encounter } = useQuery({
@@ -234,15 +237,26 @@ function SurgeryRow({
         )}
       </td>
       <td style={{ textAlign: 'right' }}>
-        {encounter?.patientId && (
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => onOpenPatient(encounter.patientId as string)}
-          >
-            Open patient →
-          </button>
-        )}
+        <div style={{ display: 'inline-flex', gap: 'var(--space-1)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {order.id && order.status !== 'CANCELLED' && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => onManageItems(order.id as string)}
+            >
+              Manage items
+            </button>
+          )}
+          {encounter?.patientId && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => onOpenPatient(encounter.patientId as string)}
+            >
+              Open patient →
+            </button>
+          )}
+        </div>
       </td>
     </tr>
   );

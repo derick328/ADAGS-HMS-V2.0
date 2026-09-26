@@ -51,6 +51,7 @@ import { EncounterDetailPage } from './workspaces/doctor/EncounterDetailPage';
 import { HospitalCataloguePage } from './workspaces/doctor/HospitalCataloguePage';
 import { MyPatientsPage } from './workspaces/doctor/MyPatientsPage';
 import { MyQueuePage } from './workspaces/doctor/MyQueuePage';
+import { DoctorSurgeryItemsPage } from './workspaces/doctor/DoctorSurgeryItemsPage';
 import { MyScheduledSurgeriesPage } from './workspaces/doctor/MyScheduledSurgeriesPage';
 import { PatientPage } from './workspaces/doctor/PatientPage';
 import { ProfilePage as DoctorProfilePage } from './workspaces/triage/ProfilePage';
@@ -175,6 +176,7 @@ export function App() {
         <Route path="consultation/:encounterId" element={<ConsultationPage />} />
         <Route path="schedule-surgery/:encounterId" element={<ScheduleSurgeryPage />} />
         <Route path="scheduled-surgeries" element={<MyScheduledSurgeriesPage />} />
+        <Route path="surgery/:surgeryOrderId/items" element={<DoctorSurgeryItemsPage />} />
         <Route path="patients" element={<MyPatientsPage />} />
         <Route path="patients/:patientId" element={<PatientPage />} />
         <Route path="patients/:patientId/encounters/:encounterId" element={<EncounterDetailPage />} />

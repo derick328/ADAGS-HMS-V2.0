@@ -91,10 +91,7 @@ public record TriageAssessment(
         Integer effectivePainScore = null;
         String effectivePainLocation = null;
         if (hasPain) {
-            if (painScore == null) {
-                throw new InvalidTriageAssessmentException("pain_score is required when has_pain is true.");
-            }
-            if (painScore < 0 || painScore > 10) {
+            if (painScore != null && (painScore < 0 || painScore > 10)) {
                 throw new InvalidTriageAssessmentException("pain_score must be between 0 and 10.");
             }
             if (isBlank(painLocation)) {

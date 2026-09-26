@@ -4,8 +4,11 @@ import { searchInvoices, type InvoiceResponse } from '../../shared/api/invoices'
 import {
   fetchPatientById,
   fetchRegisteredPatientCount,
+  listRecentPatients,
   searchPatients,
+  type PatientListResult,
   type PatientResponse,
+  type PatientSearchResult,
 } from '../../shared/api/patients';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
@@ -15,13 +18,15 @@ import { formatMoney } from '../../shared/format/money';
 // clinical (R2). Landing view puts three registration counts (today /
 // month / year) across the top, then the always-visible filter row
 // (search + payer + date range + outstanding-only), then the results
-// table. The same date/payer/outstanding filters flow through to the
-// selected patient's invoice history — one filter panel, two stages,
-// so the admin never has to re-apply after picking a patient.
+// table.
 //
-// §3.1 ⚠ still applies: nothing browses all patients. Registration
-// counts are numbers, never rows; the results table stays empty until
-// the admin submits a search term.
+// Opens on the recent-registrations list (newest first) — a product
+// deviation from 05-receptionist.md §5.1's "no list-all" line, restored
+// by request so admin can see who receptionists registered without
+// having to type a name first. The same date/payer filters drive both
+// the list and, once a patient is picked, their invoice history — one
+// filter panel, two stages, no reapply. Search still overrides the
+// list when submitted.
 export function PatientsPage() {
   const { accessToken } = useAuth();
   const canReadInvoices = usePermission('INVOICE_READ');
@@ -36,12 +41,34 @@ export function PatientsPage() {
   const [outstandingOnly, setOutstandingOnly] = useState(false);
 
   const filtersActive = payerFilter !== 'ALL' || from !== '' || to !== '' || outstandingOnly;
+  const searchActive = submittedQuery.trim() !== '';
 
-  const { data: results, isLoading, isError } = useQuery({
+  const { data: searchResults, isLoading: searchLoading, isError: searchError } = useQuery({
     queryKey: ['patients', 'search', submittedQuery],
     queryFn: () => searchPatients(submittedQuery, accessToken as string),
-    enabled: accessToken != null && submittedQuery.trim() !== '',
+    enabled: accessToken != null && searchActive,
   });
+
+  const { data: recentResults, isLoading: recentLoading, isError: recentError } = useQuery({
+    queryKey: ['patients', 'recent', from, to, payerFilter],
+    queryFn: () =>
+      listRecentPatients(
+        {
+          from: from ? `${from}T00:00:00Z` : undefined,
+          to: to ? `${to}T23:59:59Z` : undefined,
+          payer: payerFilter === 'ALL' ? undefined : payerFilter,
+          limit: 50,
+        },
+        accessToken as string,
+      ),
+    enabled: accessToken != null && !searchActive,
+  });
+
+  const listRows: PatientListRow[] = searchActive
+    ? (searchResults ?? []).map(fromSearchResult)
+    : (recentResults ?? []).map(fromListResult);
+  const listLoading = searchActive ? searchLoading : recentLoading;
+  const listError = searchActive ? searchError : recentError;
 
   const { data: selected } = useQuery({
     queryKey: ['patients', 'detail', selectedId],
@@ -100,6 +127,19 @@ export function PatientsPage() {
           <button type="submit" className="btn btn-primary" disabled={query.trim() === ''}>
             Search
           </button>
+          {searchActive && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setQuery('');
+                setSubmittedQuery('');
+                setSelectedId(null);
+              }}
+            >
+              Clear search
+            </button>
+          )}
         </form>
 
         <div
@@ -177,7 +217,8 @@ export function PatientsPage() {
         </div>
 
         <p style={{ margin: 'var(--space-2) 0 0', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-          Filters apply to a selected patient's invoice history — search first, then open a patient to see their filtered invoices.
+          Payment method and date filters apply to the recent-registrations list below, and to a
+          selected patient's invoice history. Outstanding-only applies to invoice history only.
         </p>
       </section>
 
@@ -189,27 +230,58 @@ export function PatientsPage() {
           overflow: 'hidden',
         }}
       >
-        {submittedQuery === '' ? (
-          <EmptyState message="Search for a patient by name, hospital number, or phone." />
-        ) : isLoading ? (
-          <EmptyState message="Searching…" />
-        ) : isError ? (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+            padding: 'var(--space-3) var(--space-4)',
+            borderBottom: '1px solid var(--border)',
+            gap: 'var(--space-2)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <h2 style={{ margin: 0, fontSize: 'var(--text-base)', fontWeight: 'var(--weight-medium)' }}>
+            {searchActive ? `Search results for "${submittedQuery}"` : 'Recent registrations'}
+          </h2>
+          {!listLoading && !listError && (
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+              {listRows.length} {listRows.length === 1 ? 'patient' : 'patients'}
+              {!searchActive && listRows.length >= 50 && ' (showing 50 most recent)'}
+            </span>
+          )}
+        </div>
+        {listLoading ? (
+          <EmptyState message={searchActive ? 'Searching…' : 'Loading…'} />
+        ) : listError ? (
           <EmptyState message="Couldn't reach the patient index. Try again." />
-        ) : !results || results.length === 0 ? (
-          <EmptyState message={`No patients match "${submittedQuery}"`} />
+        ) : listRows.length === 0 ? (
+          <EmptyState
+            message={
+              searchActive
+                ? `No patients match "${submittedQuery}"`
+                : filtersActive
+                  ? 'No registrations match the current filters.'
+                  : 'No patients registered yet.'
+            }
+          />
         ) : (
           <table className="table">
-            <caption className="sr-only">Patient search results</caption>
+            <caption className="sr-only">
+              {searchActive ? 'Patient search results' : 'Recently registered patients'}
+            </caption>
             <thead>
               <tr>
                 <th>Hospital no.</th>
                 <th>Name</th>
                 <th>Date of birth</th>
                 <th>Phone</th>
+                {!searchActive && <th>Payment method</th>}
+                {!searchActive && <th>Registered</th>}
               </tr>
             </thead>
             <tbody>
-              {results.map((patient) => (
+              {listRows.map((patient) => (
                 <tr
                   key={patient.id}
                   onClick={() => setSelectedId(patient.id ?? null)}
@@ -227,6 +299,14 @@ export function PatientsPage() {
                     )}
                   </td>
                   <td>{patient.phone ?? '—'}</td>
+                  {!searchActive && (
+                    <td>
+                      {patient.insuranceSchemeName ?? patient.insuranceSchemeCode ?? (
+                        <span style={{ color: 'var(--text-muted)' }}>Cash</span>
+                      )}
+                    </td>
+                  )}
+                  {!searchActive && <td>{formatRegisteredAt(patient.createdAt)}</td>}
                 </tr>
               ))}
             </tbody>
@@ -537,6 +617,58 @@ function formatCreatedAt(value: string | undefined): string {
   if (!value) return '—';
   return new Intl.DateTimeFormat('en-TZ', {
     dateStyle: 'medium',
+    timeZone: 'Africa/Dar_es_Salaam',
+  }).format(new Date(value));
+}
+
+// Shared shape between search results (§5.1 columns) and the recent list
+// (adds createdAt + payment method). Optional fields on either side stay
+// optional here so a search row without a createdAt still renders.
+type PatientListRow = {
+  id: string | undefined;
+  hospitalNo: string | null | undefined;
+  fullName: string | null | undefined;
+  dateOfBirth: string | null | undefined;
+  dobIsEstimated: boolean | undefined;
+  phone: string | null | undefined;
+  createdAt: string | null | undefined;
+  insuranceSchemeCode: string | null | undefined;
+  insuranceSchemeName: string | null | undefined;
+};
+
+function fromSearchResult(r: PatientSearchResult): PatientListRow {
+  return {
+    id: r.id,
+    hospitalNo: r.hospitalNo,
+    fullName: r.fullName,
+    dateOfBirth: r.dateOfBirth,
+    dobIsEstimated: r.dobIsEstimated,
+    phone: r.phone,
+    createdAt: undefined,
+    insuranceSchemeCode: undefined,
+    insuranceSchemeName: undefined,
+  };
+}
+
+function fromListResult(r: PatientListResult): PatientListRow {
+  return {
+    id: r.id,
+    hospitalNo: r.hospitalNo,
+    fullName: r.fullName,
+    dateOfBirth: r.dateOfBirth,
+    dobIsEstimated: r.dobIsEstimated,
+    phone: r.phone,
+    createdAt: r.createdAt,
+    insuranceSchemeCode: r.insuranceSchemeCode,
+    insuranceSchemeName: r.insuranceSchemeName,
+  };
+}
+
+function formatRegisteredAt(value: string | null | undefined): string {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('en-TZ', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
     timeZone: 'Africa/Dar_es_Salaam',
   }).format(new Date(value));
 }

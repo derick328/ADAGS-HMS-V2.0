@@ -1,6 +1,7 @@
 package com.adags.modules.surgery.api;
 
 import com.adags.modules.encounters.EncounterFacade;
+import com.adags.modules.identity.IdentityFacade;
 import com.adags.modules.surgery.application.AttestProcedureItemCommand;
 import com.adags.modules.surgery.application.AttestProcedureItemService;
 import com.adags.modules.surgery.application.PrepareProcedureItemCommand;
@@ -47,6 +48,7 @@ public class ProcedureItemController {
     private final ProcedureItemRepository procedureItemRepository;
     private final SurgeryOrderRepository surgeryOrderRepository;
     private final EncounterFacade encounterFacade;
+    private final IdentityFacade identityFacade;
     private final AuthorizationService authorizationService;
 
     public ProcedureItemController(
@@ -56,6 +58,7 @@ public class ProcedureItemController {
             ProcedureItemRepository procedureItemRepository,
             SurgeryOrderRepository surgeryOrderRepository,
             EncounterFacade encounterFacade,
+            IdentityFacade identityFacade,
             AuthorizationService authorizationService
     ) {
         this.prepareProcedureItemService = prepareProcedureItemService;
@@ -64,7 +67,21 @@ public class ProcedureItemController {
         this.procedureItemRepository = procedureItemRepository;
         this.surgeryOrderRepository = surgeryOrderRepository;
         this.encounterFacade = encounterFacade;
+        this.identityFacade = identityFacade;
         this.authorizationService = authorizationService;
+    }
+
+    // Small helper — the "who did each step" enrichment. Kept per-call
+    // (three lookups per row) because the browse endpoint's page size is
+    // one surgery order's item list, typically single digits; a bigger
+    // caller can grow this into a batched IdentityFacade.findUsernames
+    // later without touching the response shape.
+    private ProcedureItemResponse enrich(ProcedureItem item) {
+        return ProcedureItemResponse.from(
+                item,
+                item.preparedBy() != null ? identityFacade.findUsername(item.preparedBy()).orElse(null) : null,
+                item.reconciledBy() != null ? identityFacade.findUsername(item.reconciledBy()).orElse(null) : null,
+                item.attestedBy() != null ? identityFacade.findUsername(item.attestedBy()).orElse(null) : null);
     }
 
     @PostMapping
@@ -77,7 +94,7 @@ public class ProcedureItemController {
         PrepareProcedureItemCommand command = new PrepareProcedureItemCommand(request.surgeryOrderId(),
                 request.itemId(), request.phase(), request.quantityPrepared(), request.batchId(), actor.userId());
         ProcedureItem item = prepareProcedureItemService.prepare(command);
-        return ProcedureItemResponse.from(item);
+        return enrich(item);
     }
 
     // Circulating nurse's half of reconciliation.
@@ -92,7 +109,7 @@ public class ProcedureItemController {
 
         ReconcileProcedureItemCommand command = new ReconcileProcedureItemCommand(id, request.quantityUsed(),
                 request.quantityReturned(), request.quantityWasted(), request.wastageReason(), actor.userId());
-        return ProcedureItemResponse.from(reconcileProcedureItemService.reconcile(command));
+        return enrich(reconcileProcedureItemService.reconcile(command));
     }
 
     // Surgeon's half — attests to the counts the circulating nurse already
@@ -104,7 +121,7 @@ public class ProcedureItemController {
                 .orElseThrow(() -> new NoSuchElementException("Procedure item not found: " + id));
         requirePermission(actor, "SURGERY_EPISODE_DOCUMENT", existing.surgeryOrderId());
 
-        return ProcedureItemResponse.from(
+        return enrich(
                 attestProcedureItemService.attest(new AttestProcedureItemCommand(id, actor.userId())));
     }
 
@@ -114,7 +131,7 @@ public class ProcedureItemController {
     ) {
         requirePermission(actor, "SURGERY_EPISODE_DOCUMENT", surgeryOrderId);
         return procedureItemRepository.findBySurgeryOrderId(surgeryOrderId).stream()
-                .map(ProcedureItemResponse::from).toList();
+                .map(this::enrich).toList();
     }
 
     private void requirePermission(Actor actor, String permissionCode, UUID surgeryOrderId) {

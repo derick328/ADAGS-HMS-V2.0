@@ -1,9 +1,24 @@
 import { authFetch } from './client';
 import type { components } from './types';
 
-export type ProcedureItemResponse = components['schemas']['ProcedureItemResponse'];
-export type ProcedurePhase = NonNullable<ProcedureItemResponse['phase']>;
-export type PrepareProcedureItemRequest = components['schemas']['PrepareProcedureItemRequest'];
+// The controller now enriches with preparedByName / reconciledByName /
+// attestedByName so the report line reads "prepared by <username>",
+// not "prepared by 2698b9a1-…". Typed as optional locally; the
+// generated openapi picks them up on the next backend build.
+type ProcedureItemResponseBase = components['schemas']['ProcedureItemResponse'];
+export type ProcedureItemResponse = ProcedureItemResponseBase & {
+  preparedByName?: string | null;
+  reconciledByName?: string | null;
+  attestedByName?: string | null;
+};
+export type ProcedurePhase = NonNullable<ProcedureItemResponseBase['phase']>;
+// batchId is nullable server-side (default = FEFO batch) — the
+// generated schema is one build behind; type it locally so the UI can
+// omit it without a cast until the next openapi regeneration.
+type PrepareProcedureItemRequestBase = components['schemas']['PrepareProcedureItemRequest'];
+export type PrepareProcedureItemRequest = Omit<PrepareProcedureItemRequestBase, 'batchId'> & {
+  batchId?: string;
+};
 export type ReconcileProcedureItemRequest = components['schemas']['ReconcileProcedureItemRequest'];
 
 export function fetchProcedureItems(surgeryOrderId: string, accessToken: string): Promise<ProcedureItemResponse[]> {

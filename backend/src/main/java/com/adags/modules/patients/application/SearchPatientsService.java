@@ -1,10 +1,12 @@
 package com.adags.modules.patients.application;
 
+import com.adags.modules.patients.domain.PatientListResult;
 import com.adags.modules.patients.domain.PatientRepository;
 import com.adags.modules.patients.domain.PatientSearchResult;
 import com.adags.shared.authz.AuditRecorder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,5 +33,16 @@ public class SearchPatientsService {
         int limit = Math.min(Math.max(requestedLimit, 1), MAX_RESULTS);
         auditRecorder.record(actorUserId, "PATIENT_SEARCH", "PATIENT", null, null);
         return patientRepository.search(query, limit);
+    }
+
+    // Admin Patients page (opens on this) — see PatientListResult for the
+    // deviation note. Same audit event key as search(): a browse of the
+    // registration list is a query over the same data, so distinguishing
+    // event types in the audit log would be cosmetic.
+    public List<PatientListResult> listRecent(Instant from, Instant to, String payerFilter,
+                                              int requestedLimit, UUID actorUserId) {
+        int limit = Math.min(Math.max(requestedLimit, 1), MAX_RESULTS);
+        auditRecorder.record(actorUserId, "PATIENT_SEARCH", "PATIENT", null, null);
+        return patientRepository.listRecent(from, to, payerFilter, limit);
     }
 }

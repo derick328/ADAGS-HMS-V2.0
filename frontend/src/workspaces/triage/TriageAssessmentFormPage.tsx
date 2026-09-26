@@ -742,8 +742,8 @@ function buildSchema(pregnancyApplicable: boolean) {
     })
     .superRefine((v, ctx) => {
       if (v.hasPain) {
-        if (v.painScore == null || Number.isNaN(v.painScore) || v.painScore < 0 || v.painScore > 10) {
-          ctx.addIssue({ path: ['painScore'], code: z.ZodIssueCode.custom, message: 'Enter a pain score from 0 to 10' });
+        if (v.painScore != null && !Number.isNaN(v.painScore) && (v.painScore < 0 || v.painScore > 10)) {
+          ctx.addIssue({ path: ['painScore'], code: z.ZodIssueCode.custom, message: 'Pain score must be 0 to 10' });
         }
         if (!v.painLocation || v.painLocation.trim() === '') {
           ctx.addIssue({ path: ['painLocation'], code: z.ZodIssueCode.custom, message: 'Enter where the pain is' });

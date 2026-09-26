@@ -13,6 +13,7 @@ import {
   type ProcedureItemResponse,
   type ProcedurePhase,
 } from '../../shared/api/procedureItems';
+import { formatDateTime } from '../../shared/format/date';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { useMe } from '../../shared/auth/useMe';
 
@@ -55,6 +56,7 @@ export function SurgeryEpisodeProcedureItems({ surgeryOrderId }: { surgeryOrderI
                 <th>Prepared</th>
                 <th>Used / returned / wasted</th>
                 <th>Status</th>
+                <th>Attribution</th>
                 <th></th>
               </tr>
             </thead>
@@ -88,6 +90,20 @@ function ProcedureItemRow({ surgeryOrderId, item }: { surgeryOrderId: string; it
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['procedure-items', surgeryOrderId] }),
   });
 
+  // "Return all" — the doctor's cleanest way to undo a prepared item
+  // they no longer need. Recorded as a fully-returned reconciliation
+  // (0 used, all returned, 0 wasted) so the stock ledger stays honest
+  // and the surgeon still attests to it, same as any other line.
+  const returnAll = useMutation({
+    mutationFn: () =>
+      reconcileProcedureItem(
+        item.id as string,
+        { quantityUsed: 0, quantityReturned: item.quantityPrepared ?? 0, quantityWasted: 0 },
+        accessToken as string,
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['procedure-items', surgeryOrderId] }),
+  });
+
   const isReconciled = item.reconciledBy != null;
   const isAttested = item.attestedBy != null;
   const canSelfAttest = item.reconciledBy === me?.userId;
@@ -111,11 +127,47 @@ function ProcedureItemRow({ surgeryOrderId, item }: { surgeryOrderId: string; it
             <span className="badge badge-neutral">Prepared</span>
           )}
         </td>
+        <td style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+          <div>
+            Prepared by{' '}
+            <strong style={{ color: 'var(--text-primary)' }}>
+              {item.preparedByName ?? (item.preparedBy ? item.preparedBy.slice(0, 8) : '—')}
+            </strong>
+            {item.preparedAt && <> · {formatDateTime(item.preparedAt)}</>}
+          </div>
+          {isReconciled && (
+            <div>
+              Reconciled by{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>
+                {item.reconciledByName ?? (item.reconciledBy ? item.reconciledBy.slice(0, 8) : '—')}
+              </strong>
+            </div>
+          )}
+          {isAttested && (
+            <div>
+              Attested by{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>
+                {item.attestedByName ?? (item.attestedBy ? item.attestedBy.slice(0, 8) : '—')}
+              </strong>
+            </div>
+          )}
+        </td>
         <td>
           {!isReconciled && (
-            <button type="button" className="btn btn-secondary" onClick={() => setShowReconcile((v) => !v)}>
-              {showReconcile ? 'Cancel' : 'Reconcile'}
-            </button>
+            <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowReconcile((v) => !v)}>
+                {showReconcile ? 'Cancel' : 'Reconcile'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={returnAll.isPending}
+                onClick={() => returnAll.mutate()}
+                title="Return the whole prepared quantity to stock — use when the item was pulled but not needed"
+              >
+                {returnAll.isPending ? 'Removing…' : 'Return all'}
+              </button>
+            </div>
           )}
           {isReconciled && !isAttested && (
             <button
@@ -132,7 +184,7 @@ function ProcedureItemRow({ surgeryOrderId, item }: { surgeryOrderId: string; it
       </tr>
       {showReconcile && (
         <tr>
-          <td colSpan={6}>
+          <td colSpan={7}>
             <ReconcileForm surgeryOrderId={surgeryOrderId} item={item} onDone={() => setShowReconcile(false)} />
           </td>
         </tr>
@@ -145,7 +197,6 @@ const prepareSchema = z.object({
   itemId: z.string().min(1, 'Select an item'),
   phase: z.enum(['PRE_OP', 'INTRA_OP', 'POST_OP']),
   quantityPrepared: z.coerce.number().int().positive('Enter a quantity'),
-  batchId: z.string().min(1, 'Enter a batch ID'),
 });
 type PrepareValues = z.infer<typeof prepareSchema>;
 
@@ -160,10 +211,18 @@ function PrepareForm({ surgeryOrderId, onDone }: { surgeryOrderId: string; onDon
     formState: { errors },
   } = useForm<PrepareValues>({ resolver: zodResolver(prepareSchema), defaultValues: { phase: 'PRE_OP', quantityPrepared: 1 } });
 
+  // batchId is resolved server-side to the earliest-expiring active
+  // batch — same FEFO rule the pharmacy dispense already uses, so the
+  // circulating nurse never types a UUID.
   const submit = useMutation({
     mutationFn: (values: PrepareValues) =>
       prepareProcedureItem(
-        { surgeryOrderId, itemId: values.itemId, phase: values.phase, quantityPrepared: values.quantityPrepared, batchId: values.batchId },
+        {
+          surgeryOrderId,
+          itemId: values.itemId,
+          phase: values.phase,
+          quantityPrepared: values.quantityPrepared,
+        },
         accessToken as string,
       ),
     onSuccess: () => {
@@ -195,7 +254,6 @@ function PrepareForm({ surgeryOrderId, onDone }: { surgeryOrderId: string; onDon
             setSelected(i);
             setValue('itemId', i.id as string, { shouldValidate: true });
           }}
-          clearOnSelect={false}
         />
         {selected && <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 4 }}>Selected: {selected.name}</div>}
         {errors.itemId && <span className="field-error">{errors.itemId.message}</span>}
@@ -219,13 +277,13 @@ function PrepareForm({ surgeryOrderId, onDone }: { surgeryOrderId: string; onDon
         </label>
       </div>
 
-      <label style={{ fontSize: 'var(--text-sm)' }}>
-        Batch ID
-        <input type="text" {...register('batchId')} style={inputStyle} />
-        {errors.batchId && <div className="field-error">{errors.batchId.message}</div>}
-      </label>
-
-      {submit.error && <div className="form-error">Something went wrong. Try again.</div>}
+      {submit.error && (
+        <div className="form-error">
+          {submit.error instanceof Error && submit.error.message
+            ? submit.error.message
+            : 'Something went wrong. Try again.'}
+        </div>
+      )}
       <button type="submit" className="btn btn-primary" disabled={submit.isPending} style={{ alignSelf: 'flex-start' }}>
         {submit.isPending ? 'Preparing…' : 'Prepare'}
       </button>

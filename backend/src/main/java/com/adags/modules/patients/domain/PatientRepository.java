@@ -22,6 +22,18 @@ public interface PatientRepository {
     /** The dashboard's "Registered today" tile — a count, not a browsable list (18-admin.md's "no browse-all" applies here too). */
     long countCreatedBetween(Instant from, Instant to);
 
+    /**
+     * Recent-registrations list for the admin Patients page — newest first,
+     * bounded. See PatientListResult for the deviation note; caller is
+     * responsible for the audit record. Optional filters:
+     *   - from/to: inclusive on created_at
+     *   - payerFilter: "CASH" = no active policy; "NHIF" = active policy
+     *     whose scheme code matches NHIF (case-insensitive); any other
+     *     non-null value = active non-NHIF policy (the coarse
+     *     PayerCategory.fromPayerType simplification applies).
+     */
+    List<PatientListResult> listRecent(Instant from, Instant to, String payerFilter, int limit);
+
     List<InsurancePolicy> findInsurancePoliciesByPatientId(UUID patientId);
 
     Patient insert(Patient patient, UUID createdByUserId);

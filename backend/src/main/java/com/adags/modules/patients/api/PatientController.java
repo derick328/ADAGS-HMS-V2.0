@@ -7,6 +7,7 @@ import com.adags.modules.patients.domain.InsurancePolicy;
 import com.adags.modules.patients.domain.NextOfKin;
 import com.adags.modules.patients.domain.Patient;
 import com.adags.modules.patients.domain.PatientAddress;
+import com.adags.modules.patients.domain.PatientListResult;
 import com.adags.modules.patients.domain.PatientRepository;
 import com.adags.modules.patients.domain.PatientSearchResult;
 import com.adags.shared.authz.Actor;
@@ -88,6 +89,24 @@ public class PatientController {
         return searchPatientsService.search(query, limit, actor.userId());
     }
 
+    // Admin Patients page opens on this — see PatientListResult for the
+    // deviation from 05-receptionist.md §5.1's "no list-all" line.
+    // Safeguards: bounded page size (SearchPatientsService MAX_RESULTS),
+    // audited each call, gated on PATIENT_SEARCH.
+    @GetMapping
+    public List<PatientListResult> listRecent(
+            @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @RequestParam(value = "payer", required = false) String payer,
+            @RequestParam(value = "limit", defaultValue = "50") int limit,
+            @AuthenticationPrincipal Actor actor
+    ) {
+        if (!authorizationService.hasPermission(actor, "PATIENT_SEARCH")) {
+            throw new AccessDeniedException("Missing permission: PATIENT_SEARCH");
+        }
+        return searchPatientsService.listRecent(from, to, payer, limit, actor.userId());
+    }
+
     // 05-receptionist.md §3's "Registered today" dashboard tile — a count,
     // not a list. 18-admin.md's "no browse-all-patients" reasoning applies
     // here too: this deliberately returns a number, never rows.
@@ -115,7 +134,12 @@ public class PatientController {
     }
 
     private NextOfKin toNextOfKin(NextOfKinRequest request) {
-        return new NextOfKin(null, null, request.fullName(), request.relationship(), request.phone(), request.isGuardian());
+        String other = request.relationshipOther() == null ? null : request.relationshipOther().trim();
+        if (other != null && other.isEmpty()) {
+            other = null;
+        }
+        return new NextOfKin(null, null, request.fullName(), request.relationship(),
+                other, request.phone(), request.isGuardian());
     }
 
     private List<PatientAddress> toAddresses(List<PatientAddressRequest> requests) {

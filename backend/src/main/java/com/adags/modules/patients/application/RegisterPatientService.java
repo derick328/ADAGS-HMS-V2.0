@@ -66,6 +66,7 @@ public class RegisterPatientService {
         LocalDate dateOfBirth = resolveDateOfBirth(command);
         boolean dobIsEstimated = command.dateOfBirth() == null;
 
+        rejectNextOfKinIsSameAsPatient(command);
         checkForDuplicates(command, dateOfBirth);
 
         String hospitalNo = numberAllocator.allocate(
@@ -112,6 +113,30 @@ public class RegisterPatientService {
         }
     }
 
+    private void rejectNextOfKinIsSameAsPatient(RegisterPatientCommand command) {
+        NextOfKin nok = command.nextOfKin();
+        if (nok == null) {
+            return;
+        }
+        if (normalizedPhone(nok.phone()).equals(normalizedPhone(command.phone()))) {
+            throw new IllegalArgumentException("Next of kin phone must not be the patient's own phone.");
+        }
+        String nokName = normalizedName(nok.fullName());
+        String withMiddle = normalizedName(command.givenName() + " " + command.middleName() + " " + command.familyName());
+        String withoutMiddle = normalizedName(command.givenName() + " " + command.familyName());
+        if (nokName.equals(withMiddle) || nokName.equals(withoutMiddle)) {
+            throw new IllegalArgumentException("Next of kin must be a different person from the patient.");
+        }
+    }
+
+    private static String normalizedPhone(String phone) {
+        return phone == null ? "" : phone.replaceAll("\\s+", "");
+    }
+
+    private static String normalizedName(String name) {
+        return name == null ? "" : name.trim().replaceAll("\\s+", " ").toLowerCase();
+    }
+
     private LocalDate resolveDateOfBirth(RegisterPatientCommand command) {
         if (command.dateOfBirth() != null) {
             return command.dateOfBirth();
@@ -125,7 +150,7 @@ public class RegisterPatientService {
 
     private NextOfKin withPatientId(NextOfKin nextOfKin, UUID patientId) {
         return new NextOfKin(null, patientId, nextOfKin.fullName(), nextOfKin.relationship(),
-                nextOfKin.phone(), nextOfKin.isGuardian());
+                nextOfKin.relationshipOther(), nextOfKin.phone(), nextOfKin.isGuardian());
     }
 
     private PatientAddress withPatientId(PatientAddress address, UUID patientId) {

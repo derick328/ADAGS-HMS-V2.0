@@ -8,6 +8,7 @@ import com.adags.modules.patients.domain.NextOfKin;
 import com.adags.modules.patients.domain.Patient;
 import com.adags.modules.patients.domain.PatientAddress;
 import com.adags.modules.patients.domain.PatientIdentifier;
+import com.adags.modules.patients.domain.PatientListResult;
 import com.adags.modules.patients.domain.PatientRepository;
 import com.adags.modules.patients.domain.PatientSearchResult;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -102,6 +103,72 @@ public class JdbcPatientRepository implements PatientRepository {
                     rs.getObject("date_of_birth", LocalDate.class),
                     rs.getBoolean("dob_is_estimated"),
                     rs.getString("phone"));
+        });
+    }
+
+    @Override
+    public List<PatientListResult> listRecent(Instant from, Instant to, String payerFilter, int limit) {
+        // LATERAL join finds one "most-recent active policy today" per
+        // patient — an admin scanning the list wants to see the payer they
+        // will bill against, not every historical policy stitched into
+        // duplicate rows.
+        StringBuilder sql = new StringBuilder("""
+                SELECT p.id, p.hospital_no, p.given_name, p.middle_name, p.family_name,
+                       p.date_of_birth, p.dob_is_estimated, p.phone, p.created_at,
+                       s.code  AS scheme_code,
+                       s.name  AS scheme_name
+                FROM patient p
+                LEFT JOIN LATERAL (
+                    SELECT ip.scheme_id
+                    FROM insurance_policy ip
+                    WHERE ip.patient_id = p.id
+                      AND (ip.valid_from IS NULL OR ip.valid_from <= CURRENT_DATE)
+                      AND (ip.valid_to   IS NULL OR ip.valid_to   >= CURRENT_DATE)
+                    ORDER BY ip.valid_from DESC NULLS LAST
+                    LIMIT 1
+                ) active_policy ON TRUE
+                LEFT JOIN insurance_scheme s ON s.id = active_policy.scheme_id
+                WHERE p.merged_into_id IS NULL
+                """);
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        if (from != null) {
+            sql.append(" AND p.created_at >= :from");
+            params.addValue("from", Timestamp.from(from));
+        }
+        if (to != null) {
+            sql.append(" AND p.created_at < :to");
+            params.addValue("to", Timestamp.from(to));
+        }
+        if (payerFilter != null && !payerFilter.isBlank()) {
+            String upper = payerFilter.toUpperCase();
+            if (upper.equals("CASH")) {
+                sql.append(" AND active_policy.scheme_id IS NULL");
+            } else if (upper.equals("NHIF")) {
+                sql.append(" AND s.code ILIKE '%NHIF%'");
+            } else {
+                sql.append(" AND active_policy.scheme_id IS NOT NULL AND (s.code IS NULL OR s.code NOT ILIKE '%NHIF%')");
+            }
+        }
+        sql.append(" ORDER BY p.created_at DESC LIMIT :limit");
+        params.addValue("limit", limit);
+
+        return jdbcTemplate.query(sql.toString(), params, (rs, rowNum) -> {
+            String middleName = rs.getString("middle_name");
+            String fullName = middleName == null || middleName.isBlank()
+                    ? rs.getString("given_name") + " " + rs.getString("family_name")
+                    : rs.getString("given_name") + " " + middleName + " " + rs.getString("family_name");
+            Timestamp createdAt = rs.getTimestamp("created_at");
+            return new PatientListResult(
+                    (UUID) rs.getObject("id"),
+                    rs.getString("hospital_no"),
+                    fullName,
+                    rs.getObject("date_of_birth", LocalDate.class),
+                    rs.getBoolean("dob_is_estimated"),
+                    rs.getString("phone"),
+                    createdAt == null ? null : createdAt.toInstant(),
+                    rs.getString("scheme_code"),
+                    rs.getString("scheme_name"));
         });
     }
 
@@ -230,14 +297,17 @@ public class JdbcPatientRepository implements PatientRepository {
     @Override
     public UUID insertNextOfKin(NextOfKin nextOfKin) {
         String sql = """
-                INSERT INTO next_of_kin (patient_id, full_name, relationship, phone, is_guardian)
-                VALUES (:patientId, :fullName, :relationship, :phone, :isGuardian)
+                INSERT INTO next_of_kin (patient_id, full_name, relationship, relationship_other,
+                                          phone, is_guardian)
+                VALUES (:patientId, :fullName, :relationship, :relationshipOther,
+                        :phone, :isGuardian)
                 RETURNING id
                 """;
         return jdbcTemplate.queryForObject(sql, new MapSqlParameterSource()
                 .addValue("patientId", nextOfKin.patientId())
                 .addValue("fullName", nextOfKin.fullName())
                 .addValue("relationship", nextOfKin.relationship())
+                .addValue("relationshipOther", nextOfKin.relationshipOther())
                 .addValue("phone", nextOfKin.phone())
                 .addValue("isGuardian", nextOfKin.isGuardian()), UUID.class);
     }

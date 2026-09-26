@@ -7,6 +7,7 @@ public record NextOfKin(
         UUID patientId,
         String fullName,
         String relationship,
+        String relationshipOther,
         String phone,
         boolean isGuardian
 ) {

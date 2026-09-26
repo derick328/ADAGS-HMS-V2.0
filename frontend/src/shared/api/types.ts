@@ -4068,6 +4068,7 @@ export interface components {
         NextOfKinRequest: {
             fullName: string;
             relationship: string;
+            relationshipOther?: string;
             phone: string;
             isGuardian?: boolean;
         };

@@ -7,9 +7,11 @@ import com.adags.modules.surgery.domain.SurgeryOrder;
 import com.adags.modules.surgery.domain.SurgeryOrderNotOpenException;
 import com.adags.modules.surgery.domain.SurgeryOrderRepository;
 import com.adags.modules.surgery.domain.SurgeryOrderStatus;
+import com.adags.shared.kernel.BatchAvailability;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
@@ -55,15 +57,41 @@ public class PrepareProcedureItemService {
             throw new SurgeryOrderNotOpenException(order.id(), order.status());
         }
 
+        // batchId defaults to the earliest-expiring ACTIVE batch that
+        // holds enough of this item (12-pharmacist.md §5.3 FEFO). The
+        // circulating nurse doesn't type a UUID; the ledger still gets a
+        // real batch reference, and cost snapshotting on the movement
+        // works exactly as before.
+        UUID batchId = command.batchId() != null
+                ? command.batchId()
+                : resolveFefoBatch(command.itemId(), command.quantityPrepared());
+
         // Pre-generated id (same pattern as SurgeryOrder/TriageAssessment):
         // the stock movement needs to reference this row before it exists.
         UUID procedureItemId = UUID.randomUUID();
         inventoryFacade.decrementForProcedureItem(
-                command.itemId(), command.batchId(), command.quantityPrepared(), procedureItemId, command.preparedBy());
+                command.itemId(), batchId, command.quantityPrepared(), procedureItemId, command.preparedBy());
 
         ProcedureItem toInsert = ProcedureItem.prepare(
                 command.surgeryOrderId(), command.itemId(), command.phase(), command.quantityPrepared(),
-                command.batchId(), command.preparedBy()).withId(procedureItemId);
+                batchId, command.preparedBy()).withId(procedureItemId);
         return procedureItemRepository.insert(toInsert);
+    }
+
+    private UUID resolveFefoBatch(UUID itemId, int quantityNeeded) {
+        List<BatchAvailability> fefo = inventoryFacade.findFefoBatches(itemId);
+        // Pick the earliest-expiring batch that can cover the whole
+        // quantityPrepared in one draw. Cross-batch splitting on a
+        // single procedure-item line is a future refinement (would need
+        // a new domain rule for whether one ProcedureItem may span
+        // batches); until then, ask the pharmacist to restock rather
+        // than half-pull two batches under one prepared line.
+        return fefo.stream()
+                .filter(b -> b.quantityAvailable() >= quantityNeeded)
+                .findFirst()
+                .map(BatchAvailability::batchId)
+                .orElseThrow(() -> new NoSuchElementException(
+                        "No active batch has enough stock (" + quantityNeeded + ") of item " + itemId
+                                + " — ask the pharmacist to restock, or pick a batch explicitly."));
     }
 }

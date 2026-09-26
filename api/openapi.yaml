@@ -6280,6 +6280,8 @@ components:
           type: string
         relationship:
           type: string
+        relationshipOther:
+          type: string
         phone:
           type: string
         isGuardian:

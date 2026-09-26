@@ -106,7 +106,13 @@ function MyPatientsLink() {
 function MyScheduledSurgeriesLink() {
   const { accessToken } = useAuth();
   const { data: me } = useMe();
-  const canSee = usePermission('SURGERY_ORDER_CREATE') || usePermission('SURGERY_EPISODE_DOCUMENT');
+  // Both hooks must run unconditionally — `||` short-circuits the second
+  // call once the first is true, changing the hook count between
+  // renders (React's Rules of Hooks). Same pattern RequestHistoryLink
+  // already uses for its two-permission gate.
+  const canOrder = usePermission('SURGERY_ORDER_CREATE');
+  const canDocument = usePermission('SURGERY_EPISODE_DOCUMENT');
+  const canSee = canOrder || canDocument;
 
   const { data } = useQuery({
     queryKey: ['surgery-orders', 'active'],
