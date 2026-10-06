@@ -1,3 +1,4 @@
+import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
 import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
 import { searchEncounters } from '../../shared/api/encounters';
@@ -20,10 +21,11 @@ export function DoctorShell() {
 
   return (
     <div className="doctor-shell-outer">
-      <div className="doctor-shell">
-        <aside className="doctor-sidebar">
-          <div className="doctor-sidebar-brand">ADAGS</div>
-          <nav className="doctor-nav">
+      <div className="doctor-shell app-shell">
+        <a className="skip-link" href="#workspace-main">Skip to content</a>
+        <aside className="doctor-sidebar app-sidebar">
+          <WorkspaceBrand workspace="Doctor workspace" />
+          <nav className="doctor-nav app-nav" aria-label="Doctor workspace navigation">
             <MyQueueLink />
             <MyPatientsLink />
             <MyScheduledSurgeriesLink />
@@ -36,15 +38,15 @@ export function DoctorShell() {
               Profile
             </NavLink>
           </nav>
-          <div className="doctor-sidebar-footer">
+          <div className="doctor-sidebar-footer app-sidebar-footer">
             <div className="doctor-user">{me?.username}</div>
-            <button type="button" className="doctor-logout" onClick={() => logout()}>
+            <button type="button" className="doctor-logout app-logout" onClick={() => logout()}>
               Sign out
             </button>
           </div>
         </aside>
-        <main className="doctor-content">
-          <Outlet />
+        <main id="workspace-main" tabIndex={-1} className="doctor-content app-content">
+          <div className="workspace-body"><Outlet /></div>
         </main>
       </div>
       <IncompleteConsultationPrompt />

@@ -18,6 +18,18 @@ export function formatTime(value: string | undefined | null): string {
   return new Intl.DateTimeFormat('en-TZ', { timeStyle: 'short', timeZone: TIME_ZONE }).format(new Date(value));
 }
 
+/** Weekday + date, facility-local — "Monday, 5 Oct 2026". Used where the day of the week matters to the reader, e.g. a patient's prior-visit list. */
+export function formatWeekdayDate(value: string | undefined | null): string {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('en-TZ', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: TIME_ZONE,
+  }).format(new Date(value));
+}
+
 /** Elapsed time since `since` as a short waiting-room label — "8m", "1h 05m". Shared by every queue that shows how long a patient has been waiting. */
 export function formatWaitingSince(since: string | undefined | null): string {
   if (!since) return '—';

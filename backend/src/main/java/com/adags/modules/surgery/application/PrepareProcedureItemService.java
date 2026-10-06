@@ -3,6 +3,7 @@ package com.adags.modules.surgery.application;
 import com.adags.modules.inventory.InventoryFacade;
 import com.adags.modules.surgery.domain.ProcedureItem;
 import com.adags.modules.surgery.domain.ProcedureItemRepository;
+import com.adags.modules.surgery.domain.ProcedureItemStockUnavailableException;
 import com.adags.modules.surgery.domain.SurgeryOrder;
 import com.adags.modules.surgery.domain.SurgeryOrderNotOpenException;
 import com.adags.modules.surgery.domain.SurgeryOrderRepository;
@@ -90,8 +91,11 @@ public class PrepareProcedureItemService {
                 .filter(b -> b.quantityAvailable() >= quantityNeeded)
                 .findFirst()
                 .map(BatchAvailability::batchId)
-                .orElseThrow(() -> new NoSuchElementException(
-                        "No active batch has enough stock (" + quantityNeeded + ") of item " + itemId
-                                + " — ask the pharmacist to restock, or pick a batch explicitly."));
+                // Not a NoSuchElementException: that surfaces as a generic
+                // 404 "Resource not found." and leaves the operator with no
+                // idea it is a stock problem (the far more common cause here
+                // — most catalogue items have never been restocked). This is
+                // a stock condition, reported as one.
+                .orElseThrow(() -> new ProcedureItemStockUnavailableException(itemId, quantityNeeded));
     }
 }

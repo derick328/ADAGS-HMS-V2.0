@@ -96,3 +96,9 @@
   justify-content: flex-end;
   gap: var(--space-2);
 }
+
+.root, .body { min-width: 0; }
+.head, .footer { flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .md, .lg { padding: var(--space-4); }
+}

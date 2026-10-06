@@ -1,3 +1,4 @@
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchActivePaymentBypasses } from '../../shared/api/paymentBypasses';
@@ -65,7 +66,7 @@ export function EmergencyBillingBar() {
       </button>
 
       {expanded && (
-        <table className="table" style={{ background: 'var(--bg-surface)' }}>
+        <TableRegion label="Patients under an active payment bypass"><table className="table" style={{ background: 'var(--bg-surface)' }}>
           <caption className="sr-only">Patients under an active payment bypass</caption>
           <thead>
             <tr>
@@ -85,7 +86,7 @@ export function EmergencyBillingBar() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></TableRegion>
       )}
     </div>
   );

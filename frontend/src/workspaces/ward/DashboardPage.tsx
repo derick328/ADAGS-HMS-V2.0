@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQueries } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { fetchOverdueMar } from '../../shared/api/medicationAdministration';
@@ -54,25 +57,22 @@ export function DashboardPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Dashboard</h1>
-        <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>{wardName ?? 'Your ward'}</p>
-      </header>
+      <PageHeader title={<>Dashboard</>} description={<>{wardName ?? 'Your ward'}</>} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
+      <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
         <StatusCountCard label="Critical" count={counts.CRITICAL} tone="critical" />
         <StatusCountCard label="Admitted" count={counts.ADMITTED} tone="neutral" />
         <StatusCountCard label="Stable" count={counts.STABLE} tone="success" />
         <StatusCountCard label="Transferred" count={counts.TRANSFERRED} tone="neutral" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-5)' }}>
+      <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-5)' }}>
         <section style={panelStyle}>
           <h2 style={panelTitleStyle}>
             Overdue MAR doses {totalOverdue > 0 && <span className="badge badge-critical">{totalOverdue}</span>}
           </h2>
           {totalOverdue === 0 ? (
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>No overdue doses.</p>
+            <FeedbackState>No overdue doses.</FeedbackState>
           ) : (
             <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
               {rows
@@ -98,7 +98,7 @@ export function DashboardPage() {
             Alerting vitals {totalAlertingVitals > 0 && <span className="badge badge-critical">{totalAlertingVitals}</span>}
           </h2>
           {totalAlertingVitals === 0 ? (
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>No unacknowledged breaches.</p>
+            <FeedbackState>No unacknowledged breaches.</FeedbackState>
           ) : (
             <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
               {rows
@@ -123,11 +123,11 @@ export function DashboardPage() {
       <section style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         <h2 style={{ ...panelTitleStyle, padding: 'var(--space-4) var(--space-4) 0' }}>Assigned patients</h2>
         {isLoading ? (
-          <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+          <FeedbackState loading>Loading…</FeedbackState>
         ) : rows.length === 0 ? (
-          <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No patients currently on this ward.</p>
+          <FeedbackState>No patients currently on this ward.</FeedbackState>
         ) : (
-          <table className="table">
+          <TableRegion label="Assigned patients"><table className="table">
             <caption className="sr-only">Assigned patients</caption>
             <thead>
               <tr>
@@ -143,7 +143,7 @@ export function DashboardPage() {
                 <PatientRow key={row.admissionId} row={row} onOpen={() => navigate(`/ward-nurse/patients/${row.admissionId}`)} />
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </section>
     </div>

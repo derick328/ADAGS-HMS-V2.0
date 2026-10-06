@@ -1,3 +1,7 @@
+import { Tabs } from '../../shared/components/Tabs';
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -40,38 +44,15 @@ export function StockPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Stock</h1>
-      </header>
+      <PageHeader title={<>Stock</>} description={<>Review available batches, expiry dates, and incoming stock.</>} />
 
       <RestockForm />
 
-      <nav aria-label="Stock views" style={{ display: 'flex', gap: 'var(--space-1)', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-4)' }}>
-        {TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            aria-current={tab === key ? 'page' : undefined}
-            style={{
-              padding: 'var(--space-2) var(--space-3)',
-              border: 'none',
-              background: 'none',
-              font: 'inherit',
-              cursor: 'pointer',
-              color: tab === key ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontWeight: tab === key ? 'var(--weight-medium)' : 'var(--weight-normal)',
-              boxShadow: tab === key ? 'inset 0 -2px 0 var(--green-signal)' : 'none',
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+      <Tabs aria-label="Stock views" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} unmountInactivePanels
+        items={TABS.map(({ key, label }) => ({ id: key, label, content: {
+          current: <CurrentStockView />, low: <LowStockView />, expiring: <ExpiringView />, valuation: <ValuationView />,
+        }[key] }))} />
 
-      {tab === 'current' && <CurrentStockView />}
-      {tab === 'low' && <LowStockView />}
-      {tab === 'expiring' && <ExpiringView />}
-      {tab === 'valuation' && <ValuationView />}
     </div>
   );
 }
@@ -208,14 +189,14 @@ function TableShell({ isLoading, isEmpty, emptyMessage, children }: { isLoading:
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: 'var(--space-6)' }}>
       {isLoading ? (
-        <p style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : isEmpty ? (
-        <p style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>{emptyMessage}</p>
+        <FeedbackState>{emptyMessage}</FeedbackState>
       ) : (
-        <table className="table">
+        <TableRegion label="Stock report"><table className="table">
           <caption className="sr-only">Stock report</caption>
           {children}
-        </table>
+        </table></TableRegion>
       )}
     </div>
   );
@@ -339,21 +320,21 @@ function RestockForm() {
             {errors.itemId && <span className="field-error">{errors.itemId.message}</span>}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+          <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
             <Field label="Batch number" error={errors.batchNumber?.message}>
-              <input {...register('batchNumber')} style={inputStyle} />
+              <input className="clinical-control" {...register('batchNumber')} style={inputStyle} />
             </Field>
             <Field label="Expiry date" error={errors.expiryDate?.message}>
-              <input type="date" min={todayInFacilityTz()} {...register('expiryDate')} style={inputStyle} />
+              <input className="clinical-control" type="date" min={todayInFacilityTz()} {...register('expiryDate')} style={inputStyle} />
             </Field>
             <Field label="Quantity" error={errors.quantity?.message}>
-              <input type="text" inputMode="numeric" {...register('quantity')} style={inputStyle} />
+              <input className="clinical-control" type="text" inputMode="numeric" {...register('quantity')} style={inputStyle} />
             </Field>
             <Field label="Unit cost (TZS minor units)" error={errors.unitCostAmountMinor?.message}>
-              <input type="text" inputMode="numeric" {...register('unitCostAmountMinor')} style={inputStyle} />
+              <input className="clinical-control" type="text" inputMode="numeric" {...register('unitCostAmountMinor')} style={inputStyle} />
             </Field>
             <Field label="Supplier" error={errors.supplierChoice?.message}>
-              <select {...register('supplierChoice')} style={inputStyle} defaultValue="">
+              <select className="clinical-control" {...register('supplierChoice')} style={inputStyle} defaultValue="">
                 <option value="" disabled>Select a supplier</option>
                 {(suppliers ?? []).map((s: SupplierResponse) => (
                   <option key={s.id} value={s.id as string}>
@@ -364,11 +345,11 @@ function RestockForm() {
               </select>
             </Field>
             <Field label="Delivery note reference" error={errors.deliveryNoteRef?.message}>
-              <input {...register('deliveryNoteRef')} style={inputStyle} />
+              <input className="clinical-control" {...register('deliveryNoteRef')} style={inputStyle} />
             </Field>
             {supplierChoice === OTHER_SUPPLIER_VALUE && (
               <Field label="New supplier name" error={errors.newSupplierName?.message}>
-                <input
+                <input aria-label="e.g. Zenufa Laboratories" className="clinical-control"
                   {...register('newSupplierName')}
                   style={inputStyle}
                   placeholder="e.g. Zenufa Laboratories"
@@ -379,7 +360,7 @@ function RestockForm() {
           </div>
 
           <Field label="Notes (optional)">
-            <textarea rows={2} {...register('notes')} style={inputStyle} />
+            <textarea className="clinical-control" rows={2} {...register('notes')} style={inputStyle} />
           </Field>
 
           {submit.error && (

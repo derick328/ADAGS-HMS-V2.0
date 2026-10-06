@@ -37,6 +37,7 @@ import { CashierShiftPage } from './workspaces/receptionist/CashierShiftPage';
 import { ExpectedReturnsPage } from './workspaces/receptionist/ExpectedReturnsPage';
 import { PatientIntakePage } from './workspaces/receptionist/PatientIntakePage';
 import { PatientRecordsPage } from './workspaces/receptionist/PatientRecordsPage';
+import { PriceLookupPage } from './workspaces/receptionist/PriceLookupPage';
 import { ProfilePage as ReceptionistProfilePage } from './workspaces/receptionist/ProfilePage';
 import { ReceptionistDashboard } from './workspaces/receptionist/ReceptionistDashboard';
 import { ReceptionistShell } from './workspaces/receptionist/ReceptionistShell';
@@ -148,6 +149,7 @@ export function App() {
         <Route path="billing" element={<ReceptionistBillingPage />} />
         <Route path="expected-returns" element={<ExpectedReturnsPage />} />
         <Route path="patient-records" element={<PatientRecordsPage />} />
+        <Route path="price-lookup" element={<PriceLookupPage />} />
         <Route path="shift" element={<CashierShiftPage />} />
         <Route path="profile" element={<ReceptionistProfilePage />} />
       </Route>

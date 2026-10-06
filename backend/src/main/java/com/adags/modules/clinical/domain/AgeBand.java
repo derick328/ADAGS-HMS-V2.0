@@ -3,13 +3,18 @@ package com.adags.modules.clinical.domain;
 import java.time.LocalDate;
 import java.time.Period;
 
-// 06-triage.md §2.2: "neonate 0-1m, infant 1-12m, toddler 1-3y, child
-// 3-12y, adolescent 12-18y, adult, elderly 65+."
+// 06-triage.md §2.2 originally named a single "child 3-12y" band. V78 split
+// it into PRESCHOOL (3-5y) and SCHOOL_AGE (6-12y) so the seeded reference
+// ranges can carry the tighter clinical bounds that differ between those
+// sub-bands (HR 80-140 vs 70-120, RR 22-30 vs 18-25). CHILD stays in the
+// enum for schema and history compatibility but forAge no longer returns it.
 public enum AgeBand {
     NEONATE,
     INFANT,
     TODDLER,
     CHILD,
+    PRESCHOOL,
+    SCHOOL_AGE,
     ADOLESCENT,
     ADULT,
     ELDERLY;
@@ -28,8 +33,11 @@ public enum AgeBand {
         if (years < 3) {
             return TODDLER;
         }
-        if (years < 12) {
-            return CHILD;
+        if (years < 6) {
+            return PRESCHOOL;
+        }
+        if (years < 13) {
+            return SCHOOL_AGE;
         }
         if (years < 18) {
             return ADOLESCENT;

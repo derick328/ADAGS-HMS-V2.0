@@ -1,3 +1,4 @@
+import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { useMe } from '../../shared/auth/useMe';
@@ -79,10 +80,11 @@ export function AdminShell() {
   const { data: me } = useMe();
 
   return (
-    <div className="admin-shell">
-      <aside className="admin-sidebar">
-        <div className="admin-sidebar-brand">ADAGS</div>
-        <nav className="admin-nav">
+    <div className="admin-shell app-shell">
+        <a className="skip-link" href="#workspace-main">Skip to content</a>
+      <aside className="admin-sidebar app-sidebar">
+        <WorkspaceBrand workspace="Administration" />
+        <nav className="admin-nav app-nav" aria-label="Administration navigation">
           <NavLink to="/admin" end className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
             Dashboard
           </NavLink>
@@ -108,15 +110,15 @@ export function AdminShell() {
             <NavItemLink key={item.to} item={item} />
           ))}
         </nav>
-        <div className="admin-sidebar-footer">
+        <div className="admin-sidebar-footer app-sidebar-footer">
           <div className="admin-user">{me?.username}</div>
-          <button type="button" className="admin-logout" onClick={() => logout()}>
+          <button type="button" className="admin-logout app-logout" onClick={() => logout()}>
             Sign out
           </button>
         </div>
       </aside>
-      <main className="admin-content">
-        <Outlet />
+      <main id="workspace-main" tabIndex={-1} className="admin-content app-content">
+        <div className="workspace-body"><Outlet /></div>
       </main>
     </div>
   );

@@ -1,4 +1,8 @@
 import type { ReactNode } from 'react';
+import { ClipboardList } from 'lucide-react';
+import { PageHeader } from './PageHeader';
+import { TableRegion } from './TableRegion';
+import { EmptyState } from './EmptyState';
 
 /**
  * The queue shell. Used by the triage queue, doctor queue, lab worklist,
@@ -51,6 +55,8 @@ export interface QueueTab {
 
 interface QueueShellProps {
   title: string;
+  headingLevel?: 1 | 2;
+  description?: string;
   rows: QueueRow[];
   tabs?: QueueTab[];
   activeTab?: string;
@@ -71,6 +77,8 @@ const SEVERITY_CLASS: Record<Severity, string> = {
 
 export function QueueShell({
   title,
+  headingLevel = 1,
+  description,
   rows,
   tabs,
   activeTab,
@@ -80,66 +88,22 @@ export function QueueShell({
   toolbar,
 }: QueueShellProps) {
   return (
-    <section aria-labelledby="queue-title">
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'baseline',
-          gap: 'var(--space-3)',
-          marginBottom: 'var(--space-4)',
-        }}
-      >
-        <h1
-          id="queue-title"
-          style={{
-            margin: 0,
-            fontSize: 'var(--text-xl)',
-            fontWeight: 'var(--weight-medium)',
-          }}
-        >
-          {title}
-        </h1>
-        <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-          {rows.length} {rows.length === 1 ? 'patient' : 'patients'}
-        </span>
-      </header>
+    <section aria-label={title}>
+      <PageHeader title={title} level={headingLevel} description={description}>
+        {!isLoading && <span className="badge badge-neutral">{rows.length} {rows.length === 1 ? 'item' : 'items'}</span>}
+      </PageHeader>
 
       {tabs && tabs.length > 0 && (
-        <nav
-          aria-label="Queue filters"
-          style={{
-            display: 'flex',
-            gap: 'var(--space-1)',
-            borderBottom: '1px solid var(--border)',
-            marginBottom: 'var(--space-4)',
-          }}
-        >
+        <nav aria-label="Queue filters" className="queue-filters">
           {tabs.map((tab) => {
             const isActive = tab.key === activeTab;
             return (
               <button
                 key={tab.key}
                 onClick={() => onTabChange?.(tab.key)}
-                aria-current={isActive ? 'page' : undefined}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  padding: 'var(--space-2) var(--space-3)',
-                  border: 'none',
-                  background: 'none',
-                  font: 'inherit',
-                  cursor: 'pointer',
-                  color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
-                  fontWeight: isActive
-                    ? 'var(--weight-medium)'
-                    : 'var(--weight-normal)',
-                  // The signal green marks the active tab. Same role it plays
-                  // in the sidebar — consistency is what makes it read as brand.
-                  boxShadow: isActive
-                    ? 'inset 0 -2px 0 var(--green-signal)'
-                    : 'none',
-                }}
+                type="button"
+                className="queue-filter"
+                aria-pressed={isActive}
               >
                 {tab.label}
                 {tab.count > 0 && (
@@ -157,7 +121,7 @@ export function QueueShell({
         </nav>
       )}
 
-      {toolbar && <div style={{ marginBottom: 'var(--space-3)' }}>{toolbar}</div>}
+      {toolbar && <div className="clinical-filter-bar">{toolbar}</div>}
 
       <div
         style={{
@@ -172,7 +136,7 @@ export function QueueShell({
         ) : rows.length === 0 ? (
           <QueueEmpty message={emptyMessage} />
         ) : (
-          <table className="table">
+          <TableRegion label={title}><table className="table">
             <caption className="sr-only">{title}</caption>
             <tbody>
               {rows.map((row) => (
@@ -261,7 +225,7 @@ export function QueueShell({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </div>
     </section>
@@ -269,17 +233,7 @@ export function QueueShell({
 }
 
 function QueueEmpty({ message }: { message: string }) {
-  return (
-    <div
-      style={{
-        padding: 'var(--space-10) var(--space-4)',
-        textAlign: 'center',
-        color: 'var(--text-muted)',
-      }}
-    >
-      {message}
-    </div>
-  );
+  return <div role="status"><EmptyState icon={ClipboardList} title={message} /></div>;
 }
 
 /**

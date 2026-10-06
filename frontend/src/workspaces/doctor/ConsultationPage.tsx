@@ -1,3 +1,10 @@
+import { Radio } from '../../shared/components/Radio';
+import { Checkbox } from '../../shared/components/Checkbox';
+import { FormField as FormRow } from '../../shared/components/FormField';
+import { FormSection } from '../../shared/components/FormSection';
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -23,7 +30,7 @@ import {
   type DispositionOutcome,
   type EncounterResponse,
 } from '../../shared/api/clinical';
-import { fetchEncounterById } from '../../shared/api/encounters';
+import { fetchEncounterById, fetchEncountersByPatient } from '../../shared/api/encounters';
 import { recordIcd10Selection, searchIcd10, type Icd10SearchResult } from '../../shared/api/icd10';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
 import { placeLabOrder, type LabOrderUrgency } from '../../shared/api/labOrders';
@@ -35,8 +42,9 @@ import { fetchCurrentStock } from '../../shared/api/stockReports';
 import { searchCompletedAssessments, type CompletedTriageAssessmentResponse } from '../../shared/api/triage';
 import { fetchVitalSignsByEncounter, type VitalSignsResponse } from '../../shared/api/vitalSigns';
 import { useAuth } from '../../shared/auth/AuthProvider';
+import { usePermission } from '../../shared/auth/usePermission';
 import { Combobox } from '../../shared/components/Combobox';
-import { formatDateTime } from '../../shared/format/date';
+import { formatDateTime, formatWeekdayDate } from '../../shared/format/date';
 import { formatMoney } from '../../shared/format/money';
 
 const fieldStyle: CSSProperties = {
@@ -212,9 +220,10 @@ function ConsultationWorkspace({
     <div>
       <ConsultationHeader patient={patient} encounter={encounter} />
 
-      <div style={{ display: 'flex', gap: 'var(--space-6)', marginTop: 'var(--space-4)' }}>
-        <aside style={{ width: 280, flexShrink: 0 }}>
+      <div className="consultation-layout">
+        <aside className="consultation-summary">
           <TriagePanel triage={triage} vitals={vitals} />
+          <PreviousEncountersPanel patientId={encounter?.patientId} currentEncounterId={encounterId} />
         </aside>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -270,17 +279,14 @@ function ConsultationHeader({
 }) {
   const age = ageFromDob(patient?.dateOfBirth);
   return (
-    <header>
-      <h1 style={{ margin: 0, fontSize: 'var(--text-xl)' }}>{patient?.fullName ?? 'Loading…'}</h1>
-      <div style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginTop: 4 }}>
+    <PageHeader title={<>{patient?.fullName ?? 'Loading…'}</>}><div style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginTop: 4 }}>
         {patient?.hospitalNo} · {age != null ? `${age}${patient?.gender?.[0] ?? ''}` : '—'} · {encounter?.payerType}
         {encounter?.type === 'EMERGENCY' && (
           <span className="badge badge-critical" style={{ marginLeft: 8 }}>
             EMERGENCY
           </span>
         )}
-      </div>
-    </header>
+      </div></PageHeader>
   );
 }
 
@@ -297,7 +303,7 @@ function TriagePanel({
         Triage summary
       </h2>
       {vitals ? (
-        <dl style={{ fontSize: 'var(--text-sm)', display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 8px', margin: 0 }}>
+        <dl className="clinical-grid" style={{ fontSize: 'var(--text-sm)', display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 8px', margin: 0 }}>
           {/* Keys match backend VitalType enum names exactly — TEMPERATURE,
               SYSTOLIC_BP, DIASTOLIC_BP, PULSE, SPO2 (see VitalSignsController.
               toResponse). Earlier "_C / _MMHG / _BPM / _PCT" suffixes never
@@ -321,21 +327,62 @@ function TriagePanel({
           <dd className="tabular">{vitals.bmi != null ? vitals.bmi.toFixed(1) : '—'}</dd>
         </dl>
       ) : (
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>No vitals recorded.</p>
+        <FeedbackState>No vitals recorded.</FeedbackState>
       )}
 
       <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 'var(--space-3) 0' }} />
 
-      <div style={{ fontSize: 'var(--text-sm)' }}>
+      {/* 07-doctor.md §5.1 — triage context inherited read-only. All of these
+          are already fetched on the triage assessment; the doctor needs to see
+          the nurse's chief complaint, symptoms and comorbidities while writing
+          the note, not just the vitals. */}
+      <div style={{ fontSize: 'var(--text-sm)', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div>
-          <strong>Chief complaint:</strong> {triage?.chiefComplaint ?? '—'}
+          <strong>Chief complaint:</strong> {triage?.chiefComplaint || '—'}
+        </div>
+        <div>
+          <strong>Current symptoms:</strong> {triage?.currentSymptoms || '—'}
+        </div>
+        <div>
+          <strong>Comorbidities:</strong> {triage?.comorbidities || '—'}
+        </div>
+        <div>
+          <strong>Priority:</strong> {triage?.priority ? triage.priority.replaceAll('_', ' ').toLowerCase() : '—'}
+        </div>
+        <div>
+          <strong>Mode of ambulation:</strong>{' '}
+          {triage?.modeOfAmbulation ? triage.modeOfAmbulation.replaceAll('_', ' ').toLowerCase() : '—'}
+        </div>
+      </div>
+
+      <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 'var(--space-3) 0' }} />
+
+      {/* 07-doctor.md §5.2 — pain/fall/infection/pregnancy as recorded at
+          triage. Shown read-only here ("triage's original stands"); a formal
+          doctor re-assessment is a new record, out of this view's scope. */}
+      <div style={{ fontSize: 'var(--text-sm)' }}>
+        <div style={{ fontWeight: 'var(--weight-medium)', textTransform: 'uppercase', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
+          Pain &amp; risk assessment
         </div>
         <div style={{ marginTop: 4 }}>
-          <strong>Priority:</strong> {triage?.priority ?? '—'}
+          <strong>Pain:</strong>{' '}
+          {triage?.hasPain
+            ? `Yes${triage.painScore != null ? ` (${triage.painScore}/10)` : ''}${triage.painLocation ? ` — ${triage.painLocation}` : ''}`
+            : 'No'}
         </div>
         <div style={{ marginTop: 4 }}>
-          <strong>Mode of arrival:</strong> {triage?.modeOfAmbulation ?? '—'}
+          <strong>Fall risk:</strong>{' '}
+          {triage?.fallRisk ? `Yes${triage.fallScore != null ? ` (score ${triage.fallScore})` : ''}` : 'No'}
         </div>
+        <div style={{ marginTop: 4 }}>
+          <strong>Infectious disease risk:</strong> {triage?.infectionRisk ? 'Yes' : 'No'}
+        </div>
+        {triage?.pregnancyStatus && (
+          <div style={{ marginTop: 4 }}>
+            <strong>Pregnancy:</strong> {triage.pregnancyStatus.toLowerCase()}
+            {triage.gestationalWeeks != null ? ` · ${triage.gestationalWeeks} weeks` : ''}
+          </div>
+        )}
       </div>
 
       {/* root CLAUDE.md "Safety": allergies render inline and unmissable, never collapsed. */}
@@ -367,6 +414,78 @@ function TriagePanelAllergies({ triageAllergiesText }: { triageAllergiesText?: s
   );
 }
 
+// The patient's prior encounters, surfaced alongside the live consultation so
+// the doctor sees earlier triage and consultation visits without leaving the
+// screen (08-doctor-navigation.md §3 — the Patient page carries the full
+// detail; this is the in-consult shortcut to it). The current encounter is
+// excluded; each row links to that encounter's full record (triage, notes,
+// diagnoses). Gated on PATIENT_READ_VISIT_HISTORY — the same permission the
+// doctor's patient-history nav uses.
+function PreviousEncountersPanel({
+  patientId,
+  currentEncounterId,
+}: {
+  patientId?: string;
+  currentEncounterId: string;
+}) {
+  const { accessToken } = useAuth();
+  const navigate = useNavigate();
+  const canSee = usePermission('PATIENT_READ_VISIT_HISTORY');
+
+  const { data: encounters, isLoading } = useQuery({
+    queryKey: ['encounters', 'by-patient', patientId],
+    queryFn: () => fetchEncountersByPatient(patientId as string, accessToken as string),
+    enabled: accessToken != null && patientId != null && canSee,
+    staleTime: 60_000,
+  });
+
+  if (!canSee || !patientId) {
+    return null;
+  }
+
+  const prior = [...(encounters ?? [])]
+    .filter((e) => e.id !== currentEncounterId)
+    .sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
+
+  return (
+    <div
+      style={{
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: 'var(--space-3)',
+      }}
+    >
+      <h2 style={{ fontSize: 'var(--text-sm)', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 0 }}>
+        Previous visits
+      </h2>
+      {isLoading ? (
+        <FeedbackState loading>Loading…</FeedbackState>
+      ) : prior.length === 0 ? (
+        <FeedbackState>No earlier visits on record.</FeedbackState>
+      ) : (
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          {prior.map((e) => (
+            <li key={e.id}>
+              <button
+                type="button"
+                className="workspace-name"
+                onClick={() => navigate(`/doctor/patients/${patientId}/encounters/${e.id}`)}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, width: '100%', textAlign: 'left' }}
+              >
+                <span style={{ fontWeight: 'var(--weight-medium)', fontSize: 'var(--text-sm)' }}>{formatWeekdayDate(e.createdAt)}</span>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+                  {(e.type ?? '—').toString().toLowerCase()} · {(e.state ?? '').replaceAll('_', ' ').toLowerCase()}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Tab bar with running total — 08-doctor-navigation.md §6.1, suppressed for EMERGENCY.
 // ---------------------------------------------------------------------------
@@ -392,23 +511,15 @@ function TabBar({
     { key: 'lab', label: suppressTotal ? 'Lab Requests' : `Lab Requests · ${formatMoney(labTotalMinor, 'TZS')}` },
   ];
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-4)' }}>
-      <nav style={{ display: 'flex', gap: 'var(--space-1)' }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-4)' }}>
+      <nav aria-label="Consultation sections" className="queue-filters">
         {tabDef.map((t) => (
           <button
             key={t.key}
             onClick={() => onChange(t.key)}
-            aria-current={tab === t.key ? 'page' : undefined}
-            style={{
-              padding: 'var(--space-2) var(--space-3)',
-              border: 'none',
-              background: 'none',
-              font: 'inherit',
-              cursor: 'pointer',
-              color: tab === t.key ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontWeight: tab === t.key ? 'var(--weight-medium)' : 'var(--weight-normal)',
-              boxShadow: tab === t.key ? 'inset 0 -2px 0 var(--green-signal)' : 'none',
-            }}
+            type="button"
+            className="queue-filter"
+            aria-pressed={tab === t.key}
           >
             {t.label}
           </button>
@@ -663,6 +774,14 @@ function ConsultationTab({
     !values.historyOfPresentingIllness.trim() || !values.physicalExamination.trim() || !values.treatmentPlan.trim();
   const canFinalize = !requiredMissing && diagnoses.some((d) => d.isPrimary) && disposition !== '' &&
     (!retrospective || retrospectiveNote.trim().length >= 20);
+  const blockersRef = useRef<HTMLParagraphElement | null>(null);
+  function attemptFinalize(action: () => void) {
+    if (!canFinalize) {
+      blockersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
+    action();
+  }
 
   // Human-readable list of what's still missing — surfaced under the
   // finalize / surgery button so a doctor never sees a disabled button
@@ -681,38 +800,49 @@ function ConsultationTab({
   })();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+    <div className="consultation-form">
       <AllergyReconciliation patientId={patientId} encounterId={encounterId} allergies={allergies} />
 
-      <section>
+      <FormSection title="Consultation note">
         <FormRow label="History of presenting illness *">
-          <textarea rows={3} {...field('historyOfPresentingIllness')} style={fieldStyle} />
+          <textarea className="clinical-control" rows={4} {...field('historyOfPresentingIllness')} />
         </FormRow>
-        <FormRow label="Past medical / surgical / family-social history">
-          <textarea rows={2} {...field('pastMedicalHistory')} style={fieldStyle} placeholder="Medical" />
-          <textarea rows={2} {...field('pastSurgicalHistory')} style={{ ...fieldStyle, marginTop: 'var(--space-2)' }} placeholder="Surgical" />
-          <textarea rows={2} {...field('familySocialHistory')} style={{ ...fieldStyle, marginTop: 'var(--space-2)' }} placeholder="Family / social" />
+        <FormRow label="Past medical history">
+          <textarea className="clinical-control" rows={2} {...field('pastMedicalHistory')} />
+        </FormRow>
+        <FormRow label="Past surgical history">
+          <textarea className="clinical-control" rows={2} {...field('pastSurgicalHistory')} />
+        </FormRow>
+        <FormRow label="Family & social history">
+          <textarea className="clinical-control" rows={2} {...field('familySocialHistory')} />
         </FormRow>
         <FormRow label="Physical examination *">
-          <textarea rows={3} {...field('physicalExamination')} style={fieldStyle} />
+          <textarea className="clinical-control" rows={4} {...field('physicalExamination')} />
         </FormRow>
         <FormRow label="Clinical notes">
-          <textarea rows={2} {...field('clinicalNotes')} style={fieldStyle} />
+          <textarea className="clinical-control" rows={3} {...field('clinicalNotes')} />
         </FormRow>
-      </section>
+      </FormSection>
 
-      <section>
-        <h2 style={{ fontSize: 'var(--text-base)' }}>Diagnosis</h2>
-        {diagnoses.length > 0 && (
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 var(--space-3)' }}>
-            {diagnoses.map((d) => (
-              <li key={d.id} style={{ padding: 'var(--space-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', marginBottom: 'var(--space-1)' }}>
-                <strong>{d.icd10Code}</strong> {d.icd10TitleSnapshot} {d.isPrimary && <span className="badge badge-signal">Primary</span>}{' '}
-                <span className="badge badge-neutral">{d.certainty}</span>
-                {d.freeTextClarifier && <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{d.freeTextClarifier}</div>}
-              </li>
-            ))}
-          </ul>
+      <FormSection title="Diagnosis">
+        {/* 07-doctor.md §5.3 — provisional_diagnosis * and final_diagnosis
+            (nullable) are one coded list split by certainty, not two separate
+            pickers: §4 notes the final diagnosis is often deferred until
+            results arrive. Shown here as two labelled groups so both read as
+            distinct fields while a single picker (below) still feeds either. */}
+        <div className="form-field">
+          <label>Provisional diagnosis *</label>
+          <DiagnosisGroup items={diagnoses.filter((d) => d.certainty === 'PROVISIONAL')} emptyHint="Add a diagnosis below and mark it Provisional." />
+        </div>
+        <div className="form-field">
+          <label>Final diagnosis</label>
+          <DiagnosisGroup items={diagnoses.filter((d) => d.certainty === 'CONFIRMED')} emptyHint="Add once confirmed — often after results arrive." />
+        </div>
+        {diagnoses.some((d) => d.certainty === 'RULED_OUT') && (
+          <div className="form-field">
+            <label>Ruled out</label>
+            <DiagnosisGroup items={diagnoses.filter((d) => d.certainty === 'RULED_OUT')} />
+          </div>
         )}
         <Combobox<Icd10SearchResult>
           label="ICD-10 diagnosis"
@@ -743,20 +873,18 @@ function ConsultationTab({
             <div>
               Selected: <strong>{selectedCode.code}</strong> {selectedCode.title}
             </div>
-            <input
+            <input aria-label="Free-text clarifier" className="clinical-control"
               placeholder="Free-text clarifier"
               value={clarifier}
               onChange={(e) => setClarifier(e.target.value)}
               style={{ ...fieldStyle, width: 240 }}
             />
-            <select value={certainty} onChange={(e) => setCertainty(e.target.value as DiagnosisCertainty)} style={fieldStyle}>
+            <select aria-label="Diagnosis certainty" className="clinical-control" value={certainty} onChange={(e) => setCertainty(e.target.value as DiagnosisCertainty)} style={{ width: 180 }}>
               <option value="PROVISIONAL">Provisional</option>
-              <option value="CONFIRMED">Confirmed</option>
+              <option value="CONFIRMED">Final (confirmed)</option>
               <option value="RULED_OUT">Ruled out</option>
             </select>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--text-sm)' }}>
-              <input type="checkbox" checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} /> Primary
-            </label>
+            <Checkbox  className="clinical-choice" checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} label={<>Primary</>} />
             <button type="button" className="btn btn-secondary" onClick={() => addDiagnosisMutation.mutate()} disabled={addDiagnosisMutation.isPending}>
               Add diagnosis
             </button>
@@ -765,31 +893,29 @@ function ConsultationTab({
         {addDiagnosisMutation.isError && (
           <p className="form-error">{errorMessage(addDiagnosisMutation.error)}</p>
         )}
-      </section>
+      </FormSection>
 
-      <section>
+      <FormSection title="Treatment & disposition">
         <FormRow label="Treatment plan *">
-          <textarea rows={3} {...field('treatmentPlan')} style={fieldStyle} />
+          <textarea className="clinical-control" rows={4} {...field('treatmentPlan')} />
         </FormRow>
-      </section>
-
-      <section>
-        <h2 style={{ fontSize: 'var(--text-base)' }}>Disposition</h2>
-        <select value={disposition} onChange={(e) => setDisposition(e.target.value as DispositionChoice)} style={{ ...fieldStyle, width: 320 }}>
-          <option value="">Select disposition…</option>
-          {DISPOSITION_OPTIONS.map((o, i) => (
-            <option key={i} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+        <FormRow label="Disposition">
+          <select className="clinical-control" value={disposition} onChange={(e) => setDisposition(e.target.value as DispositionChoice)}>
+            <option value="">Select disposition…</option>
+            {DISPOSITION_OPTIONS.map((o, i) => (
+              <option key={i} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </FormRow>
         {disposition === 'ADMIT_TO_WARD' && (
           <div style={{ marginTop: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             <div>
               <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 4 }}>
                 Ward class
               </label>
-              <select value={wardClass} onChange={(e) => setWardClass(e.target.value as WardClass)} style={{ ...fieldStyle, width: 220 }}>
+              <select className="clinical-control" value={wardClass} onChange={(e) => setWardClass(e.target.value as WardClass)} style={{ ...fieldStyle, width: 220 }}>
                 <option value="GENERAL">General</option>
                 <option value="PRIVATE">Private</option>
               </select>
@@ -813,7 +939,7 @@ function ConsultationTab({
                   No ward nurses configured for this facility yet.
                 </span>
               ) : (
-                <select value={nurseId} onChange={(e) => setNurseId(e.target.value)} style={{ ...fieldStyle, width: 360 }}>
+                <select className="clinical-control" value={nurseId} onChange={(e) => setNurseId(e.target.value)} style={{ ...fieldStyle, width: 360 }}>
                   <option value="">Leave unassigned — a ward nurse will pick up the patient</option>
                   {(nurses ?? []).map((n) => (
                     <option key={n.nurseId} value={n.nurseId as string}>
@@ -830,7 +956,7 @@ function ConsultationTab({
                 <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 4 }}>
                   Shift
                 </label>
-                <select value={shift} onChange={(e) => setShift(e.target.value as Shift)} style={{ ...fieldStyle, width: 220 }}>
+                <select className="clinical-control" value={shift} onChange={(e) => setShift(e.target.value as Shift)} style={{ ...fieldStyle, width: 220 }}>
                   <option value="MORNING">Morning</option>
                   <option value="AFTERNOON">Afternoon</option>
                   <option value="NIGHT">Night</option>
@@ -842,32 +968,30 @@ function ConsultationTab({
             )}
           </div>
         )}
-        <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-          <input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} style={fieldStyle} />
-          <input
-            placeholder="Follow-up instructions"
-            value={followUpInstructions}
-            onChange={(e) => setFollowUpInstructions(e.target.value)}
-            style={fieldStyle}
-          />
-        </div>
+        <FormRow label="Follow-up appointment (optional)">
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <input aria-label="Follow-up date" className="clinical-control" type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} style={{ flex: '0 0 auto' }} />
+            <input aria-label="Follow-up instructions" className="clinical-control"
+              placeholder="Follow-up instructions"
+              value={followUpInstructions}
+              onChange={(e) => setFollowUpInstructions(e.target.value)}
+              style={{ flex: '1 1 220px' }}
+            />
+          </div>
+        </FormRow>
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 'var(--space-3)', fontSize: 'var(--text-sm)' }}>
-          <input type="checkbox" checked={retrospective} onChange={(e) => setRetrospective(e.target.checked)} />
-          This is a retrospective completion (patient was seen earlier)
-        </label>
+        <Checkbox  className="clinical-choice" checked={retrospective} onChange={(e) => setRetrospective(e.target.checked)} label={<>This is a retrospective completion (patient was seen earlier)</>} />
         {retrospective && (
-          <textarea
+          <textarea className="clinical-control"
             rows={2}
             placeholder="What this note is based on (memory, paper notes, the nurse's record) — minimum 20 characters"
             value={retrospectiveNote}
             onChange={(e) => setRetrospectiveNote(e.target.value)}
-            style={{ ...fieldStyle, marginTop: 'var(--space-2)' }}
           />
         )}
-      </section>
+      </FormSection>
 
-      <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+      <div className="form-actions">
         <button type="button" className="btn btn-secondary" onClick={triggerAutosave}>
           Save draft
         </button>
@@ -891,19 +1015,26 @@ function ConsultationTab({
           <button
             type="button"
             className="btn btn-primary"
-            disabled={!canFinalize}
-            onClick={() => navigate(`/doctor/schedule-surgery/${encounterId}`)}
+            aria-disabled={!canFinalize}
+            onClick={() => attemptFinalize(() => navigate(`/doctor/schedule-surgery/${encounterId}`))}
           >
             Continue to surgery scheduling →
           </button>
         ) : (
-          <button type="button" className="btn btn-primary" disabled={!canFinalize || finalizeMutation.isPending} onClick={() => finalizeMutation.mutate()}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            aria-disabled={!canFinalize}
+            disabled={finalizeMutation.isPending}
+            onClick={() => attemptFinalize(() => finalizeMutation.mutate())}
+          >
             Finalize
           </button>
         )}
       </div>
       {!canFinalize && finalizeBlockers.length > 0 && (
         <p
+          ref={blockersRef}
           role="status"
           style={{
             margin: 0,
@@ -923,6 +1054,26 @@ function ConsultationTab({
       )}
       {finalizeMutation.isError && <p className="form-error">{errorMessage(finalizeMutation.error)}</p>}
     </div>
+  );
+}
+
+// Renders one certainty group of the diagnosis list (provisional / final /
+// ruled out). Empty groups show a muted hint rather than nothing, so the
+// doctor sees the field exists and what fills it.
+function DiagnosisGroup({ items, emptyHint }: { items: DiagnosisResponse[]; emptyHint?: string }) {
+  if (items.length === 0) {
+    return <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{emptyHint ?? '—'}</p>;
+  }
+  return (
+    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+      {items.map((d) => (
+        <li key={d.id} style={{ padding: 'var(--space-2) var(--space-3)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--bg-surface)' }}>
+          <strong>{d.icd10Code}</strong> {d.icd10TitleSnapshot}{' '}
+          {d.isPrimary && <span className="badge badge-signal">Primary</span>}
+          {d.freeTextClarifier && <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{d.freeTextClarifier}</div>}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -966,7 +1117,7 @@ function AllergyReconciliation({
     <section style={{ border: '1px solid var(--warning)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-3)', background: 'var(--warning-bg)' }}>
       <h2 style={{ fontSize: 'var(--text-base)', marginTop: 0 }}>Allergies — reconcile</h2>
       {allergies.length === 0 ? (
-        <p style={{ fontSize: 'var(--text-sm)' }}>No allergy records for this patient.</p>
+        <FeedbackState>No allergy records for this patient.</FeedbackState>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
           {allergies.map((a) => (
@@ -991,7 +1142,7 @@ function AllergyReconciliation({
               )}
               {refutingId === a.id && (
                 <div style={{ marginTop: 4 }}>
-                  <textarea
+                  <textarea className="clinical-control"
                     rows={2}
                     placeholder="Note required to refute"
                     value={note}
@@ -1014,8 +1165,8 @@ function AllergyReconciliation({
         </div>
       )}
       <div style={{ marginTop: 'var(--space-3)', display: 'flex', gap: 'var(--space-2)' }}>
-        <input placeholder="Add allergy" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} style={fieldStyle} />
-        <input placeholder="Reaction" value={newReaction} onChange={(e) => setNewReaction(e.target.value)} style={fieldStyle} />
+        <input aria-label="Add allergy" className="clinical-control" placeholder="Add allergy" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} style={fieldStyle} />
+        <input aria-label="Reaction" className="clinical-control" placeholder="Reaction" value={newReaction} onChange={(e) => setNewReaction(e.target.value)} style={fieldStyle} />
         <button type="button" className="btn btn-secondary" disabled={!newDescription.trim()} onClick={() => addAllergy.mutate()}>
           + Add
         </button>
@@ -1215,24 +1366,20 @@ function PrescriptionTab({
             </div>
           )}
 
-          <label style={{ marginRight: 'var(--space-3)' }}>
-            <input type="radio" checked={mode === 'whole'} onChange={() => setMode('whole')} /> Dispense as whole
-          </label>
-          <label>
-            <input type="radio" checked={mode === 'structured'} onChange={() => setMode('structured')} /> Structured dosing
-          </label>
+          <Radio  className="clinical-choice" checked={mode === 'whole'} onChange={() => setMode('whole')} label={<>Dispense as whole</>} />
+          <Radio  className="clinical-choice" checked={mode === 'structured'} onChange={() => setMode('structured')} label={<>Structured dosing</>} />
 
           {mode === 'whole' ? (
             <FormRow label="Total quantity">
-              <input type="number" min={1} value={wholeQuantity} onChange={(e) => setWholeQuantity(Number(e.target.value))} style={fieldStyle} />
+              <input className="clinical-control" type="number" min={1} value={wholeQuantity} onChange={(e) => setWholeQuantity(Number(e.target.value))} style={fieldStyle} />
             </FormRow>
           ) : (
             <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)', flexWrap: 'wrap' }}>
               <FormRow label="Quantity per dose">
-                <input type="number" min={1} value={quantityPerDose} onChange={(e) => setQuantityPerDose(Number(e.target.value))} style={fieldStyle} />
+                <input className="clinical-control" type="number" min={1} value={quantityPerDose} onChange={(e) => setQuantityPerDose(Number(e.target.value))} style={fieldStyle} />
               </FormRow>
               <FormRow label="Frequency">
-                <select value={frequency} onChange={(e) => setFrequency(e.target.value as PrescriptionFrequency)} style={fieldStyle}>
+                <select className="clinical-control" value={frequency} onChange={(e) => setFrequency(e.target.value as PrescriptionFrequency)} style={fieldStyle}>
                   {(['STAT', 'OD', 'BD', 'TDS', 'QDS', 'PRN'] as PrescriptionFrequency[]).map((f) => (
                     <option key={f} value={f}>
                       {f}
@@ -1242,11 +1389,11 @@ function PrescriptionTab({
               </FormRow>
               {dosesPerDay != null ? (
                 <FormRow label="Days">
-                  <input type="number" min={1} value={durationDays} onChange={(e) => setDurationDays(Number(e.target.value))} style={fieldStyle} />
+                  <input className="clinical-control" type="number" min={1} value={durationDays} onChange={(e) => setDurationDays(Number(e.target.value))} style={fieldStyle} />
                 </FormRow>
               ) : (
                 <FormRow label="Total quantity (PRN — no fixed schedule)">
-                  <input type="number" min={1} value={wholeQuantity} onChange={(e) => setWholeQuantity(Number(e.target.value))} style={fieldStyle} />
+                  <input className="clinical-control" type="number" min={1} value={wholeQuantity} onChange={(e) => setWholeQuantity(Number(e.target.value))} style={fieldStyle} />
                 </FormRow>
               )}
               <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', alignSelf: 'center' }}>
@@ -1257,8 +1404,8 @@ function PrescriptionTab({
           {overCeiling && <p className="field-error">Quantity looks unusually high for one item — double-check before adding.</p>}
 
           <FormRow label="Route / instructions">
-            <input value={route} onChange={(e) => setRoute(e.target.value)} style={{ ...fieldStyle, marginBottom: 'var(--space-2)' }} />
-            <textarea rows={2} value={dosageInstructions} onChange={(e) => setDosageInstructions(e.target.value)} style={fieldStyle} placeholder="Dosage instructions" />
+            <input className="clinical-control" value={route} onChange={(e) => setRoute(e.target.value)} style={{ ...fieldStyle, marginBottom: 'var(--space-2)' }} />
+            <textarea className="clinical-control" rows={2} value={dosageInstructions} onChange={(e) => setDosageInstructions(e.target.value)} style={fieldStyle} placeholder="Dosage instructions" />
           </FormRow>
 
           <button type="button" className="btn btn-primary" onClick={addLine} style={{ marginTop: 'var(--space-2)' }}>
@@ -1270,7 +1417,7 @@ function PrescriptionTab({
         </div>
       )}
 
-      <table className="table">
+      <TableRegion><table className="table">
         <tbody>
           {lines.map((l) => (
             <tr key={l.key}>
@@ -1294,7 +1441,7 @@ function PrescriptionTab({
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></TableRegion>
 
       <button type="button" className="btn btn-primary" disabled={lines.length === 0 || send.isPending} onClick={() => send.mutate()} style={{ marginTop: 'var(--space-3)' }}>
         {send.isPending ? 'Sending…' : 'Send Prescription'}
@@ -1483,14 +1630,14 @@ function LabTab({
         <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 'var(--space-3)', margin: 'var(--space-3) 0' }}>
           <strong>{pending.name}</strong> — {formatMoney(pending.priceMinor, pending.currencyCode)}
           <FormRow label="Urgency">
-            <select value={urgency} onChange={(e) => setUrgency(e.target.value as LabOrderUrgency)} style={fieldStyle}>
+            <select className="clinical-control" value={urgency} onChange={(e) => setUrgency(e.target.value as LabOrderUrgency)} style={fieldStyle}>
               <option value="ROUTINE">Routine</option>
               <option value="URGENT">Urgent</option>
               <option value="STAT">STAT</option>
             </select>
           </FormRow>
           <FormRow label="Clinical indication / instructions">
-            <textarea rows={2} value={instructions} onChange={(e) => setInstructions(e.target.value)} style={fieldStyle} />
+            <textarea className="clinical-control" rows={2} value={instructions} onChange={(e) => setInstructions(e.target.value)} style={fieldStyle} />
           </FormRow>
           <button type="button" className="btn btn-secondary" onClick={addLine} style={{ marginTop: 'var(--space-2)' }}>
             Add to request
@@ -1498,7 +1645,7 @@ function LabTab({
         </div>
       )}
 
-      <table className="table">
+      <TableRegion><table className="table">
         <tbody>
           {lines.map((l) => (
             <tr key={l.key}>
@@ -1521,7 +1668,7 @@ function LabTab({
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></TableRegion>
 
       <button type="button" className="btn btn-primary" disabled={lines.length === 0 || send.isPending} onClick={() => send.mutate()} style={{ marginTop: 'var(--space-3)' }}>
         {send.isPending ? 'Sending…' : 'Send Lab Requests'}
@@ -1541,14 +1688,6 @@ function LabTab({
 // Shared helpers
 // ---------------------------------------------------------------------------
 
-function FormRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 'var(--space-3)' }}>
-      <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{label}</label>
-      {children}
-    </div>
-  );
-}
 
 function ageFromDob(dob: string | undefined | null): number | null {
   if (!dob) return null;

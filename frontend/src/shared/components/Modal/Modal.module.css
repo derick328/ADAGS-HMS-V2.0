@@ -234,3 +234,10 @@
     transition: none;
   }
 }
+
+.header:not(.withIcon) { grid-template-columns: minmax(0, 1fr) auto; }
+.close { min-width: var(--row-height); min-height: var(--row-height); }
+.body { min-height: 0; }
+@media (max-width: 640px) {
+  .panel .header, .panel .body, .panel .footer { padding-inline: var(--space-4); }
+}

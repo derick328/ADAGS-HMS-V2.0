@@ -1,3 +1,4 @@
+import { PageHeader } from '../../shared/components/PageHeader';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, type CSSProperties } from 'react';
 import {
@@ -76,11 +77,14 @@ export function RevenuePage() {
 
   return (
     <div>
+      <PageHeader title="Revenue" description="Review collections, receivables, and invoice cancellation requests." />
       {canReadReports && (
         <section style={{ marginBottom: 'var(--space-5)' }}>
           <div
             style={{
               display: 'flex',
+              flexWrap: 'wrap',
+              gap: 'var(--space-3)',
               justifyContent: 'space-between',
               alignItems: 'baseline',
               marginBottom: 'var(--space-3)',
@@ -153,7 +157,7 @@ export function RevenuePage() {
         </section>
       )}
 
-      <QueueShell
+      <QueueShell headingLevel={2}
         title="Invoice cancellations"
         rows={rows}
         isLoading={isLoading}
@@ -191,11 +195,12 @@ function RangeTabs({
     { key: 'YTD', label: 'Year to date' },
   ];
   return (
-    <div style={{ display: 'flex', gap: 'var(--space-1)' }}>
+    <div className="workspace-filters" role="group" aria-label="Revenue period">
       {options.map((option) => (
         <button
           key={option.key}
           type="button"
+          aria-pressed={value === option.key}
           onClick={() => onChange(option.key)}
           className={value === option.key ? 'btn btn-secondary' : 'btn btn-ghost'}
           style={{ fontSize: 'var(--text-sm)' }}
@@ -291,7 +296,7 @@ function ReviewPanel({
       <label htmlFor="review-note" style={{ display: 'block', marginTop: 'var(--space-3)', fontSize: 'var(--text-sm)' }}>
         Review note
       </label>
-      <textarea
+      <textarea className="clinical-control"
         id="review-note"
         value={reviewNote}
         onChange={(e) => onNoteChange(e.target.value)}

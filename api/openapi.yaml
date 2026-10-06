@@ -346,6 +346,12 @@ paths:
         schema:
           type: string
           format: uuid
+      - name: includeInactive
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
       responses:
         "200":
           description: OK
@@ -368,6 +374,44 @@ paths:
       responses:
         "201":
           description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TheatreResponse"
+  /api/theatres/{id}/deactivate:
+    post:
+      tags:
+      - theatre-controller
+      operationId: deactivate
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TheatreResponse"
+  /api/theatres/{id}/activate:
+    post:
+      tags:
+      - theatre-controller
+      operationId: activate
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
           content:
             '*/*':
               schema:
@@ -670,6 +714,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/SubstitutionReviewResponse"
   /api/stock-batches:
+    get:
+      tags:
+      - stock-batch-controller
+      operationId: list_3
+      parameters:
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RestockLedgerEntry"
     post:
       tags:
       - stock-batch-controller
@@ -1102,6 +1172,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/GrantAdminWaiverResponse"
   /api/patients:
+    get:
+      tags:
+      - patient-controller
+      operationId: listRecent
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: payer
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PatientListResult"
     post:
       tags:
       - patient-controller
@@ -1168,7 +1276,7 @@ paths:
     get:
       tags:
       - watchlist-controller
-      operationId: list_4
+      operationId: list_5
       responses:
         "200":
           description: OK
@@ -1480,7 +1588,7 @@ paths:
     post:
       tags:
       - item-controller
-      operationId: activate
+      operationId: activate_1
       parameters:
       - name: id
         in: path
@@ -2614,7 +2722,7 @@ paths:
     get:
       tags:
       - wound-care-controller
-      operationId: list_9
+      operationId: list_10
       parameters:
       - name: admissionId
         in: path
@@ -2685,7 +2793,7 @@ paths:
     get:
       tags:
       - shift-handover-controller
-      operationId: list_10
+      operationId: list_11
       parameters:
       - name: admissionId
         in: path
@@ -3084,7 +3192,7 @@ paths:
     get:
       tags:
       - role-controller
-      operationId: list_3
+      operationId: list_4
       responses:
         "200":
           description: OK
@@ -3561,7 +3669,7 @@ paths:
     get:
       tags:
       - lab-test-controller
-      operationId: list_5
+      operationId: list_6
       responses:
         "200":
           description: OK
@@ -3919,7 +4027,7 @@ paths:
     get:
       tags:
       - insurance-scheme-controller
-      operationId: list_6
+      operationId: list_7
       responses:
         "200":
           description: OK
@@ -4245,7 +4353,7 @@ paths:
     get:
       tags:
       - department-controller
-      operationId: list_7
+      operationId: list_8
       responses:
         "200":
           description: OK
@@ -4414,7 +4522,7 @@ paths:
     get:
       tags:
       - receivables-controller
-      operationId: list_8
+      operationId: list_9
       parameters:
       - name: payerCategory
         in: query
@@ -4585,7 +4693,7 @@ paths:
     get:
       tags:
       - medication-administration-controller
-      operationId: list_11
+      operationId: list_12
       parameters:
       - name: admissionId
         in: path
@@ -4627,7 +4735,7 @@ paths:
     get:
       tags:
       - ward-alert-notification-controller
-      operationId: list_12
+      operationId: list_13
       parameters:
       - name: admissionId
         in: path
@@ -4715,7 +4823,7 @@ paths:
     get:
       tags:
       - catalog-import-controller
-      operationId: list_13
+      operationId: list_14
       responses:
         "200":
           description: OK
@@ -5908,7 +6016,6 @@ components:
           format: int32
     PrepareProcedureItemRequest:
       required:
-      - batchId
       - itemId
       - phase
       - surgeryOrderId
@@ -5970,15 +6077,21 @@ components:
         preparedBy:
           type: string
           format: uuid
+        preparedByName:
+          type: string
         preparedAt:
           type: string
           format: date-time
         reconciledBy:
           type: string
           format: uuid
+        reconciledByName:
+          type: string
         attestedBy:
           type: string
           format: uuid
+        attestedByName:
+          type: string
         reconciledAt:
           type: string
           format: date-time
@@ -8455,6 +8568,53 @@ components:
         occurredAt:
           type: string
           format: date-time
+    RecordConsultationVitalsRequest:
+      required:
+      - diastolicMmHg
+      - heightCm
+      - pulseBpm
+      - respiratoryRate
+      - spo2Pct
+      - systolicMmHg
+      - temperatureC
+      - weightKg
+      type: object
+      properties:
+        temperatureC:
+          type: number
+          format: double
+        systolicMmHg:
+          type: number
+          format: double
+        diastolicMmHg:
+          type: number
+          format: double
+        pulseBpm:
+          type: number
+          format: double
+        respiratoryRate:
+          type: number
+          format: double
+        spo2Pct:
+          type: number
+          format: double
+        weightKg:
+          type: number
+          format: double
+        heightCm:
+          type: number
+          format: double
+        avpu:
+          type: string
+        bloodGlucoseMmol:
+          type: number
+          format: double
+        painScore:
+          type: integer
+          format: int32
+        occurredAt:
+          type: string
+          format: date-time
     RecordShiftHandoverRequest:
       required:
       - assessment
@@ -9009,6 +9169,45 @@ components:
         quantity:
           type: integer
           format: int32
+    RestockLedgerEntry:
+      type: object
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        itemName:
+          type: string
+        batchNumber:
+          type: string
+        receivedQuantity:
+          type: integer
+          format: int32
+        unitCostAmountMinor:
+          type: integer
+          format: int64
+        totalCostMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        supplierId:
+          type: string
+          format: uuid
+        supplierName:
+          type: string
+        deliveryNoteRef:
+          type: string
+        receivedAt:
+          type: string
+          format: date-time
+        receivedById:
+          type: string
+          format: uuid
+        receivedByName:
+          type: string
     RoleResponse:
       type: object
       properties:
@@ -9353,6 +9552,30 @@ components:
           type: integer
           format: int64
         currencyCode:
+          type: string
+    PatientListResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        hospitalNo:
+          type: string
+        fullName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        dobIsEstimated:
+          type: boolean
+        phone:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        insuranceSchemeCode:
+          type: string
+        insuranceSchemeName:
           type: string
     VisitHistoryResponse:
       type: object
@@ -10028,6 +10251,10 @@ components:
           additionalProperties:
             type: number
             format: double
+        abnormalVitalTypes:
+          type: array
+          items:
+            type: string
         weightKg:
           type: number
           format: double
@@ -10193,6 +10420,8 @@ components:
           - INFANT
           - TODDLER
           - CHILD
+          - PRESCHOOL
+          - SCHOOL_AGE
           - ADOLESCENT
           - ADULT
           - ELDERLY

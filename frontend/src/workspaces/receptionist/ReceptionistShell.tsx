@@ -1,3 +1,4 @@
+import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
 import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
 import { searchInvoices } from '../../shared/api/invoices';
@@ -32,6 +33,7 @@ const MAIN_NAV: NavLeaf[] = [
   { to: '/receptionist/billing', label: 'Billing', permission: 'INVOICE_READ' },
   { to: '/receptionist/expected-returns', label: 'Expected Returns', permission: 'PATIENT_READ_VISIT_HISTORY' },
   { to: '/receptionist/patient-records', label: 'Patient Records', permission: 'PATIENT_READ_VISIT_HISTORY' },
+  { to: '/receptionist/price-lookup', label: 'Price check', permission: 'PRICE_CATALOG_READ' },
 ];
 
 const AFTER_DIVIDER_NAV: NavLeaf[] = [
@@ -71,10 +73,11 @@ export function ReceptionistShell() {
   return (
     <div className="receptionist-shell-outer">
       <EmergencyBillingBar />
-      <div className="receptionist-shell">
-        <aside className="receptionist-sidebar">
-          <div className="receptionist-sidebar-brand">ADAGS</div>
-          <nav className="receptionist-nav">
+      <div className="receptionist-shell app-shell">
+        <a className="skip-link" href="#workspace-main">Skip to content</a>
+        <aside className="receptionist-sidebar app-sidebar">
+          <WorkspaceBrand workspace="Reception & billing" />
+          <nav className="receptionist-nav app-nav" aria-label="Reception & billing navigation">
             <NavLink to="/receptionist" end className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
               Dashboard
             </NavLink>
@@ -93,15 +96,15 @@ export function ReceptionistShell() {
               <NavItemLink key={item.to} item={item} />
             ))}
           </nav>
-          <div className="receptionist-sidebar-footer">
+          <div className="receptionist-sidebar-footer app-sidebar-footer">
             <div className="receptionist-user">{me?.username}</div>
-            <button type="button" className="receptionist-logout" onClick={() => logout()}>
+            <button type="button" className="receptionist-logout app-logout" onClick={() => logout()}>
               Sign out
             </button>
           </div>
         </aside>
-        <main className="receptionist-content">
-          <Outlet />
+        <main id="workspace-main" tabIndex={-1} className="receptionist-content app-content">
+          <div className="workspace-body"><Outlet /></div>
         </main>
       </div>
     </div>

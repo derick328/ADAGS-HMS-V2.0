@@ -99,7 +99,7 @@ competes visually with "active" / "success," which are green in this system.
 | Token | Hex | Meaning |
 |---|---|---|
 | `--critical` / `--critical-bg` | `#C4183C` / `#FCEBEE` | IMMEDIATE, critical lab results, overdue doses. This is the system's **danger/error** token — there is no separate `--danger`, don't add one |
-| `--warning` / `--warning-bg` | `#B8690A` / `#FDF4E7` | URGENT, expiring stock, unpaid balance |
+| `--warning` / `--warning-bg` | `#8C4D08` / `#FDF4E7` | URGENT, expiring stock, unpaid balance |
 | `--info` / `--info-bg` | `#1B6E9E` / `#EBF4F9` | Neutral informational callouts |
 | `--success` / `--success-bg` | `--green-800` / `--green-100` | Confirmations, positive status text. Aliases onto the brand ramp deliberately — success *is* green here, it's the one status that's allowed to agree with brand |
 
@@ -118,12 +118,12 @@ align (`.tabular`, `.money`).
 
 | Token | Size | Typical weight | Use for |
 |---|---|---|---|
-| `--text-xs` | 11px | `--weight-medium` | Badge labels, table captions |
-| `--text-sm` | 12px | `--weight-normal`/`--weight-medium` | Table headers, secondary/meta text, field hints and errors |
+| `--text-xs` | 12px | `--weight-medium` | Badge labels, table captions |
+| `--text-sm` | 13px | `--weight-normal`/`--weight-medium` | Table headers, secondary/meta text, field hints and errors |
 | `--text-base` | 14px | `--weight-normal` | Body copy, inputs, buttons — the default |
 | `--text-lg` | 16px | `--weight-normal`/`--weight-medium` | Input text (touch-safe), section labels |
-| `--text-xl` | 20px | `--weight-medium` | Screen/section titles (`<h1>` inside a workspace page) |
-| `--text-2xl` | 26px | `--weight-bold` | The one or two "arrival" headings per app — login, empty states, a workspace splash. Not for routine screen titles |
+| `--text-xl` | 20px | `--weight-medium` | Section titles and card headings |
+| `--text-2xl` | 26px | `--weight-bold` | Page titles, login, and full-page empty states |
 
 | Weight | Value | Use for |
 |---|---|---|
@@ -256,6 +256,17 @@ common accommodation, not an edge case.
 
 ## 9. Token quick reference
 
+Workspace lists use `WorkspacePage` for a heading, description, and a centered
+`--content-width` (1280px) content area. The page heading uses `--text-2xl`;
+section headings remain `--text-xl`. Reuse `workspace-toolbar`,
+`workspace-filters`, `workspace-panel`, `workspace-list`, and
+`workspace-table` from `workspace.css` for responsive list screens.
+Use the shared Tabs, Input, Badge, and EmptyState primitives inside these layouts.
+`QueryState` supplies loading and retryable error feedback. Only show counts
+after both the list and its user scope have loaded successfully.
+`--text-muted` uses a darker neutral (#646B60) for readable secondary text on
+light surfaces; `--gray-500` remains available in the neutral palette.
+
 See `tokens.css` for exact values and inline comments — this table is a map,
 not a duplicate source of truth.
 
@@ -278,3 +289,56 @@ Elevation:  --shadow --shadow-lg
 Motion:     --duration-fast --duration-base --duration-slow --ease-standard
 Layout:     --sidebar-width --header-height --row-height --focus-ring
 ```
+
+
+## 10. Workspace layout and responsive forms
+
+`dashboard.css` owns shared workspace chrome across all seven role shells.
+Keep role-specific links, query badges, scope selection, and permission gates in
+their original shells. `WorkspaceBrand` identifies the current workspace;
+`app-content` and `workspace-body` provide a centered 1280px content boundary.
+Below 900px, navigation becomes a horizontally scrollable strip; it never hides
+links. Each shell includes a keyboard skip link. Sidebar selection uses the
+`--sidebar-active` tint and a signal-green marker.
+
+Use `PageHeader` for a 26px page heading, a contextual description, and wrapping
+actions. `WorkspacePage` composes this same header. Use `Card` or
+`workspace-panel` for sections, `clinical-filter-bar` for search/filter forms,
+and `clinical-grid` on form/detail grids that should stack below 640px. Do not
+apply that grid class to calendars.
+
+Existing native form controls use `clinical-control`; new forms should prefer
+Input, Select, and Textarea. The default control and button target is 44px.
+`FormField` connects a native control to its label and validation message while
+preserving its ref and handlers. Complex children receive a labelled group.
+`FeedbackState` provides a compact loading/empty state with the original message;
+`QueryState` handles retryable errors. Never treat a failed request as an empty
+queue when adding new query states.
+
+Wrap native tables in `TableRegion`, with a descriptive label. It keeps semantic
+tables and all columns, scrolls horizontally with a keyboard, and expands for
+printing. Critical and selected rows retain their background on hover. Use the
+shared Tabs for arrow-key navigation and Modal for focus trapping, accessible
+names, Escape handling, and constrained-height scrolling.
+
+Warning text uses #8C4D08 for stronger contrast on pale warning backgrounds.
+Secondary type is 13px and badges are at least 12px; body type stays 14px.
+
+## 11. Clinical forms and dashboard summaries
+
+`forms.css` extends the shared control language with `--control-height` (46px),
+`--control-border`, and `--control-shadow`. Preserve native number/date behavior.
+Use `FormSection` for a semantic fieldset with a visible legend and optional
+2- or 3-column field grid. `clinical-form-layout` groups sections at wide widths;
+`form-section--wide` spans the form. Fields collapse to one column on phones.
+
+Use Checkbox and Radio for labelled choices, with `clinical-choice` for an entire
+clickable bordered tile. Preserve registered refs, names, values and handlers.
+Critical clinical choices use the critical section tone; color never substitutes
+for a text label. FormField supports a direct native control alongside hints and
+connects its visible label, validation error and existing ARIA descriptions.
+
+`MetricCard` presents an existing API value, its meaning, and the relevant action
+link. Keep financial categories distinct. Admin action cards retain permission
+gates. Do not invent figures, trends or decorative chart data. The login layout
+uses a bounded two-column brand/form panel that stacks below 760px.

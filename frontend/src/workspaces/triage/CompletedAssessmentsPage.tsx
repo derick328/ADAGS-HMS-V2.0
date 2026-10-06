@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchPatientById } from '../../shared/api/patients';
@@ -40,13 +43,11 @@ export function CompletedAssessmentsPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'baseline', gap: 'var(--space-3)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Completed Assessments</h1>
-      </header>
+      <PageHeader title={<>Completed assessments</>} />
 
       <div style={{ marginBottom: 'var(--space-4)' }}>
         <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-1)' }}>Date</label>
-        <input
+        <input className="clinical-control"
           type="date"
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
@@ -108,11 +109,11 @@ function AssessmentSection({
         {title}
       </h2>
       {isLoading ? (
-        <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : !assessments || assessments.length === 0 ? (
-        <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No assessments for this date.</p>
+        <FeedbackState>No assessments for this date.</FeedbackState>
       ) : (
-        <table className="table">
+        <TableRegion><table className="table">
           <caption className="sr-only">{title}</caption>
           <thead>
             <tr>
@@ -129,7 +130,7 @@ function AssessmentSection({
               <AssessmentRow key={a.id} assessment={a} showAssessor={showAssessor} onPrint={() => onPrint(a)} />
             ))}
           </tbody>
-        </table>
+        </table></TableRegion>
       )}
     </section>
   );

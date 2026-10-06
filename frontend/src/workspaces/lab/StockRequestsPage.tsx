@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -61,9 +64,7 @@ export function StockRequestsPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Stock Requests</h1>
-      </header>
+      <PageHeader title={<>Stock requests</>} description={<>Request reagents and supplies, and track fulfilment from pharmacy.</>} />
 
       <form
         onSubmit={handleSubmit((v) => submit.mutate(v))}
@@ -102,7 +103,7 @@ export function StockRequestsPage() {
           <label htmlFor="quantity" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
             Quantity
           </label>
-          <input id="quantity" type="text" inputMode="numeric" {...register('requestedQuantity')} style={inputStyle} />
+          <input className="clinical-control" id="quantity" type="text" inputMode="numeric" {...register('requestedQuantity')} style={inputStyle} />
           {errors.requestedQuantity && <span className="field-error">{errors.requestedQuantity.message}</span>}
         </div>
 
@@ -110,7 +111,7 @@ export function StockRequestsPage() {
           <label htmlFor="notes" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
             Notes (optional)
           </label>
-          <textarea id="notes" rows={2} {...register('requestNotes')} style={inputStyle} />
+          <textarea className="clinical-control" id="notes" rows={2} {...register('requestNotes')} style={inputStyle} />
           {errors.requestNotes && <span className="field-error">{errors.requestNotes.message}</span>}
         </div>
 
@@ -127,11 +128,11 @@ export function StockRequestsPage() {
 
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {isLoading ? (
-          <p style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</p>
+          <FeedbackState loading>Loading…</FeedbackState>
         ) : (requests ?? []).length === 0 ? (
-          <p style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>No stock requests yet.</p>
+          <FeedbackState>No stock requests yet.</FeedbackState>
         ) : (
-          <table className="table">
+          <TableRegion label="Stock requests"><table className="table">
             <caption className="sr-only">Stock requests</caption>
             <thead>
               <tr>
@@ -156,7 +157,7 @@ export function StockRequestsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </div>
     </div>

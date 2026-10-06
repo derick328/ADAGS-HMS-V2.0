@@ -1,3 +1,4 @@
+import { Radio } from '../../shared/components/Radio';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -121,7 +122,7 @@ function ChecklistForm({ surgeryOrderId, phase }: { surgeryOrderId: string; phas
       <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>{phase.replace('_', ' ')} checklist items</div>
       {fields.map((field, index) => (
         <div key={field.id} style={{ display: 'flex', gap: 'var(--space-2)' }}>
-          <input type="text" {...register(`items.${index}.value` as const)} style={inputStyle} placeholder="Checklist item confirmed" />
+          <input aria-label="Checklist item confirmed" className="clinical-control" type="text" {...register(`items.${index}.value` as const)} style={inputStyle} placeholder="Checklist item confirmed" />
           <button type="button" className="btn btn-ghost" onClick={() => remove(index)}>
             Remove
           </button>
@@ -136,16 +137,12 @@ function ChecklistForm({ surgeryOrderId, phase }: { surgeryOrderId: string; phas
           <div style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--critical)' }}>
             Swab/instrument count — never waivable
           </div>
-          <label style={{ fontSize: 'var(--text-sm)', display: 'block', marginTop: 4 }}>
-            <input type="radio" value="true" {...register('countCorrect', { setValueAs: (v) => v === 'true' })} /> Count correct
-          </label>
-          <label style={{ fontSize: 'var(--text-sm)', display: 'block' }}>
-            <input type="radio" value="false" {...register('countCorrect', { setValueAs: (v) => v === 'true' })} /> Discrepancy
-          </label>
+          <Radio  className="clinical-choice" value="true" {...register('countCorrect', { setValueAs: (v) => v === 'true' })} label={<>Count correct</>} />
+          <Radio  className="clinical-choice" value="false" {...register('countCorrect', { setValueAs: (v) => v === 'true' })} label={<>Discrepancy</>} />
           {countCorrect === false && (
             <label style={{ fontSize: 'var(--text-sm)', display: 'block', marginTop: 4 }}>
               Discrepancy note
-              <textarea rows={2} {...register('countDiscrepancyNote')} style={inputStyle} />
+              <textarea className="clinical-control" rows={2} {...register('countDiscrepancyNote')} style={inputStyle} />
               {errors.countDiscrepancyNote && <div className="field-error">{errors.countDiscrepancyNote.message}</div>}
             </label>
           )}

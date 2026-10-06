@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDateTime } from '../../shared/format/date';
@@ -27,17 +30,15 @@ export function WardPatientsPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Ward Patients</h1>
-        <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>{wardName ?? 'Your ward'}</p>
-      </header>
+      <PageHeader title={<>Ward patients</>} description={<>{wardName ?? 'Your ward'}</>} />
 
-      <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+      <div className="workspace-filters" role="group" aria-label="Ward patient status">
         {FILTERS.map((f) => (
           <button
             key={f.key}
             type="button"
             className={filter === f.key ? 'btn btn-primary' : 'btn btn-secondary'}
+            aria-pressed={filter === f.key}
             onClick={() => setFilter(f.key)}
           >
             {f.label}
@@ -47,11 +48,11 @@ export function WardPatientsPage() {
 
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {isLoading ? (
-          <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+          <FeedbackState loading>Loading…</FeedbackState>
         ) : rows.length === 0 ? (
-          <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No patients match this filter.</p>
+          <FeedbackState>No patients match this filter.</FeedbackState>
         ) : (
-          <table className="table">
+          <TableRegion label="Ward patients"><table className="table">
             <caption className="sr-only">Ward patients</caption>
             <thead>
               <tr>
@@ -90,7 +91,7 @@ export function WardPatientsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </div>
     </div>

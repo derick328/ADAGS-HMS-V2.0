@@ -35,8 +35,8 @@
   text-align: left;
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
-  color: var(--text-muted);
-  background: var(--bg-surface);
+  color: var(--text-secondary);
+  background: var(--bg-raised);
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }

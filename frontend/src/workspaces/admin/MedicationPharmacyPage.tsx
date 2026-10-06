@@ -1,3 +1,4 @@
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { fetchRestocks, type RestockLedgerEntry } from '../../shared/api/stockBatches';
@@ -95,7 +96,7 @@ function RestockTable({
 }) {
   return (
     <>
-      <table className="table">
+      <TableRegion><table className="table">
         <thead>
           <tr>
             <th>Received</th>
@@ -136,7 +137,7 @@ function RestockTable({
             </td>
           </tr>
         </tfoot>
-      </table>
+      </table></TableRegion>
     </>
   );
 }

@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, type CSSProperties } from 'react';
 import { ApiError } from '../../shared/api/client';
@@ -118,14 +121,7 @@ export function TheatresPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>
-          Theatres
-        </h1>
-        <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)' }}>
-          Define the operating theatres this facility runs. Doctors book against these when scheduling surgery.
-        </p>
-      </header>
+      <PageHeader title={<>Theatres</>} description={<>Define the operating theatres this facility runs. Doctors book against these when scheduling surgery.</>} />
 
       {!canManage ? (
         <p className="form-error">You need THEATRE_MANAGE at facility scope to see this page.</p>
@@ -150,7 +146,7 @@ export function TheatresPage() {
               <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 4 }}>
                 Facility ID
               </label>
-              <input
+              <input aria-label="Facility UUID" className="clinical-control"
                 value={globalFacilityInput}
                 onChange={(e) => setGlobalFacilityInput(e.target.value)}
                 placeholder="Facility UUID"
@@ -177,7 +173,7 @@ export function TheatresPage() {
               <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 4 }}>
                 Facility
               </label>
-              <select
+              <select className="clinical-control"
                 value={activeFacilityId}
                 onChange={(e) => setFacilityId(e.target.value)}
                 style={inputStyle}
@@ -209,7 +205,7 @@ export function TheatresPage() {
               The doctor's schedule-surgery form only offers <strong>Major</strong> and <strong>Minor</strong> theatres by
               name. Extra theatres you add here stay visible to admins and can be picked from other surgery flows.
             </p>
-            <form
+            <form className="clinical-filter-bar"
               onSubmit={(event) => {
                 event.preventDefault();
                 if (canSubmit) create.mutate();
@@ -221,7 +217,7 @@ export function TheatresPage() {
                 <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 4 }}>
                   Theatre name
                 </label>
-                <input
+                <input aria-label="e.g. Major Theatre, Minor Theatre, Endoscopy Suite" className="clinical-control"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. Major Theatre, Minor Theatre, Endoscopy Suite"
@@ -249,13 +245,11 @@ export function TheatresPage() {
               </span>
             </div>
             {isLoading ? (
-              <p style={{ color: 'var(--text-muted)' }}>Loading theatres…</p>
+              <FeedbackState loading>Loading theatres…</FeedbackState>
             ) : isError ? (
               <p className="form-error">{errorMessage(error)}</p>
             ) : (theatres ?? []).length === 0 ? (
-              <p style={{ color: 'var(--text-muted)' }}>
-                No theatres yet. Add Major Theatre and Minor Theatre first — those are the two the doctor form uses.
-              </p>
+              <FeedbackState>No theatres yet. Add Major Theatre and Minor Theatre first — those are the two the doctor form uses.</FeedbackState>
             ) : (
               <TheatreTable
                 rows={theatres ?? []}
@@ -287,7 +281,7 @@ function TheatreTable({
 }) {
   return (
     <>
-      <table className="table" style={{ maxWidth: 720 }}>
+      <TableRegion><table className="table" style={{ maxWidth: 720 }}>
         <thead>
           <tr>
             <th>Name</th>
@@ -337,7 +331,7 @@ function TheatreTable({
             );
           })}
         </tbody>
-      </table>
+      </table></TableRegion>
       {toggleError != null && <p className="form-error">{errorMessage(toggleError)}</p>}
     </>
   );

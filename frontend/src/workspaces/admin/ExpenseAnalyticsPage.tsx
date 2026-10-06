@@ -1,3 +1,5 @@
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { fetchExpensesByCategory, fetchExpensesMonthlyTrend } from '../../shared/api/finance';
@@ -46,16 +48,14 @@ export function ExpenseAnalyticsPage() {
 
   return (
     <div>
-      <header style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Expense analytics</h1>
-      </header>
+      <PageHeader title={<>Expense analytics</>} />
 
       <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-end', marginBottom: 'var(--space-5)' }}>
         <div>
           <label htmlFor="analytics-from" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
             From
           </label>
-          <input
+          <input className="clinical-control"
             id="analytics-from"
             type="date"
             value={from}
@@ -67,7 +67,7 @@ export function ExpenseAnalyticsPage() {
           <label htmlFor="analytics-to" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
             To
           </label>
-          <input
+          <input className="clinical-control"
             id="analytics-to"
             type="date"
             value={to}
@@ -151,9 +151,9 @@ function AnalyticsTable({
       ) : isEmpty ? (
         <div style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>{emptyMessage}</div>
       ) : (
-        <table className="table">
+        <TableRegion><table className="table">
           <tbody>{children}</tbody>
-        </table>
+        </table></TableRegion>
       )}
     </div>
   );

@@ -1,3 +1,7 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { Tabs } from '../../shared/components/Tabs';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Combobox } from '../../shared/components/Combobox';
@@ -21,33 +25,13 @@ export function MyHistoryPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>My History</h1>
-      </header>
+      <PageHeader title={<>My history</>} description={<>Review released results or find a report by patient or accession number.</>} />
 
-      <nav aria-label="History tabs" style={{ display: 'flex', gap: 'var(--space-1)', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-4)' }}>
-        {(['mine', 'lookup'] as Tab[]).map((key) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            aria-current={tab === key ? 'page' : undefined}
-            style={{
-              padding: 'var(--space-2) var(--space-3)',
-              border: 'none',
-              background: 'none',
-              font: 'inherit',
-              cursor: 'pointer',
-              color: tab === key ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontWeight: tab === key ? 'var(--weight-medium)' : 'var(--weight-normal)',
-              boxShadow: tab === key ? 'inset 0 -2px 0 var(--green-signal)' : 'none',
-            }}
-          >
-            {key === 'mine' ? 'My results' : 'Patient lookup'}
-          </button>
-        ))}
-      </nav>
+      <Tabs aria-label="History" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} unmountInactivePanels items={[
+        { id: 'mine', label: 'My results', content: <MyResultsTab onSelect={setSelectedId} /> },
+        { id: 'lookup', label: 'Patient lookup', content: <PatientLookupTab onSelect={setSelectedId} /> },
+      ]} />
 
-      {tab === 'mine' ? <MyResultsTab onSelect={setSelectedId} /> : <PatientLookupTab onSelect={setSelectedId} />}
     </div>
   );
 }
@@ -80,7 +64,7 @@ function PatientLookupTab({ onSelect }: { onSelect: (id: string) => void }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-end', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
-        <div style={{ width: 320 }}>
+        <div style={{ width: '100%', maxWidth: 320 }}>
           <Combobox<PatientSearchResult>
             label="Search by patient"
             placeholder="Name or hospital number"
@@ -108,7 +92,7 @@ function PatientLookupTab({ onSelect }: { onSelect: (id: string) => void }) {
           )}
         </div>
 
-        <form
+        <form className="clinical-filter-bar"
           onSubmit={(e) => {
             e.preventDefault();
             setPatientId(null);
@@ -120,7 +104,7 @@ function PatientLookupTab({ onSelect }: { onSelect: (id: string) => void }) {
             <label htmlFor="accession-search" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
               Search by accession number
             </label>
-            <input
+            <input className="clinical-control"
               id="accession-search"
               value={accessionNo}
               onChange={(e) => setAccessionNo(e.target.value)}
@@ -156,11 +140,11 @@ function ResultsTable({
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
       {isLoading ? (
-        <p style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : rows.length === 0 ? (
-        <p style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>{emptyMessage}</p>
+        <FeedbackState>{emptyMessage}</FeedbackState>
       ) : (
-        <table className="table">
+        <TableRegion label="Lab results"><table className="table">
           <caption className="sr-only">Lab results</caption>
           <thead>
             <tr>
@@ -191,7 +175,7 @@ function ResultsTable({
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></TableRegion>
       )}
     </div>
   );
@@ -206,7 +190,7 @@ function ResultDetail({ resultId, onBack }: { resultId: string; onBack: () => vo
   });
 
   if (isLoading || !result) {
-    return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
+    return <FeedbackState loading>Loading…</FeedbackState>;
   }
 
   return (
@@ -228,7 +212,7 @@ function ResultDetail({ resultId, onBack }: { resultId: string; onBack: () => vo
       )}
 
       <section style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
-        <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', margin: 0 }}>
+        <dl className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', margin: 0 }}>
           <div>
             <dt style={{ color: 'var(--text-muted)' }}>Patient</dt>
             <dd style={{ margin: 0, fontWeight: 'var(--weight-medium)' }}>{result.patientName} · {result.hospitalNumber}</dd>
@@ -263,7 +247,7 @@ function ResultDetail({ resultId, onBack }: { resultId: string; onBack: () => vo
       </section>
 
       <section style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: 'var(--space-4)' }}>
-        <table className="table">
+        <TableRegion label="Parameter values"><table className="table">
           <caption className="sr-only">Parameter values</caption>
           <thead>
             <tr>
@@ -290,7 +274,7 @@ function ResultDetail({ resultId, onBack }: { resultId: string; onBack: () => vo
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></TableRegion>
       </section>
 
       <section style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', fontSize: 'var(--text-sm)' }}>

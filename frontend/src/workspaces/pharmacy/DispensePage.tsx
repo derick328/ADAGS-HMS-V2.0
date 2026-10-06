@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -127,18 +130,15 @@ export function DispensePage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Dispense</h1>
-        {queueRow && (
+      <PageHeader title={<>Dispense</>}>{queueRow && (
           <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>
             {queueRow.patientName ?? 'Unknown patient'}
             {queueRow.hospitalNumber && ` · ${queueRow.hospitalNumber}`} · {queueRow.itemName}
           </p>
-        )}
-      </header>
+        )}</PageHeader>
 
       {isLoading || !context ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : (
         <div style={{ maxWidth: 760 }}>
           <AllergyInlineWarning allergies={context.allergies ?? []} />
@@ -152,7 +152,7 @@ export function DispensePage() {
               marginBottom: 'var(--space-4)',
             }}
           >
-            <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', margin: 0 }}>
+            <dl className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', margin: 0 }}>
               <div>
                 <dt style={{ color: 'var(--text-muted)' }}>Prescribed</dt>
                 <dd style={{ margin: 0 }}>{context.prescriptionLine?.dosageInstructions}</dd>
@@ -195,7 +195,7 @@ export function DispensePage() {
           {mode === 'dispense' && (
             <form onSubmit={handleSubmit(onSubmitDispense)} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-                <table className="table">
+                <TableRegion label="Batch lines"><table className="table">
                   <caption className="sr-only">Batch lines</caption>
                   <thead>
                     <tr>
@@ -209,7 +209,7 @@ export function DispensePage() {
                     {fields.map((field, index) => (
                       <tr key={field.id}>
                         <td>
-                          <select {...register(`lines.${index}.batchId` as const)} style={selectStyle}>
+                          <select className="clinical-control" {...register(`lines.${index}.batchId` as const)} style={selectStyle}>
                             <option value="">Select a batch</option>
                             {(context.availableBatches ?? []).map((b) => (
                               <option key={b.batchId} value={b.batchId}>
@@ -220,11 +220,11 @@ export function DispensePage() {
                           {errors.lines?.[index]?.batchId && <div className="field-error">{errors.lines[index]?.batchId?.message}</div>}
                         </td>
                         <td>
-                          <input type="text" inputMode="numeric" {...register(`lines.${index}.quantity` as const)} style={{ ...inputStyle, width: 80 }} />
+                          <input className="clinical-control" type="text" inputMode="numeric" {...register(`lines.${index}.quantity` as const)} style={{ ...inputStyle, width: 80 }} />
                           {errors.lines?.[index]?.quantity && <div className="field-error">{errors.lines[index]?.quantity?.message}</div>}
                         </td>
                         <td>
-                          <input type="text" placeholder="Reason, if overriding FEFO" {...register(`lines.${index}.overrideReason` as const)} style={inputStyle} />
+                          <input aria-label="Reason, if overriding FEFO" className="clinical-control" type="text" placeholder="Reason, if overriding FEFO" {...register(`lines.${index}.overrideReason` as const)} style={inputStyle} />
                           {errors.lines?.[index]?.overrideReason && <div className="field-error">{errors.lines[index]?.overrideReason?.message}</div>}
                         </td>
                         <td>
@@ -235,9 +235,9 @@ export function DispensePage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></TableRegion>
                 {(context.availableBatches ?? []).length === 0 && (
-                  <p style={{ padding: 'var(--space-4)', color: 'var(--critical)' }}>No stock available for this item.</p>
+                  <FeedbackState>No stock available for this item.</FeedbackState>
                 )}
               </div>
               {errors.lines?.root && <div className="field-error">{errors.lines.root.message}</div>}
@@ -255,13 +255,13 @@ export function DispensePage() {
                 <label htmlFor="counsellingNotes" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
                   Counselling notes (optional)
                 </label>
-                <textarea id="counsellingNotes" rows={2} {...register('counsellingNotes')} style={inputStyle} />
+                <textarea className="clinical-control" id="counsellingNotes" rows={2} {...register('counsellingNotes')} style={inputStyle} />
               </div>
               <div>
                 <label htmlFor="dispensingNotes" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
                   Dispensing notes (optional)
                 </label>
-                <textarea id="dispensingNotes" rows={2} {...register('dispensingNotes')} style={inputStyle} />
+                <textarea className="clinical-control" id="dispensingNotes" rows={2} {...register('dispensingNotes')} style={inputStyle} />
               </div>
 
               {gateRejected && submitDispense.error instanceof ApiError && (
@@ -363,7 +363,7 @@ function MarkUnavailableForm({ prescriptionLineId, onDone }: { prescriptionLineI
         <label htmlFor="unavailable-reason" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
           Reason
         </label>
-        <textarea id="unavailable-reason" rows={2} {...register('reason')} style={inputStyle} />
+        <textarea className="clinical-control" id="unavailable-reason" rows={2} {...register('reason')} style={inputStyle} />
         {errors.reason && <span className="field-error">{errors.reason.message}</span>}
       </div>
       {submit.error && <div className="form-error">Something went wrong. Try again.</div>}
@@ -425,7 +425,7 @@ function SubstitutionForm({ prescriptionLineId, onDone }: { prescriptionLineId: 
         <label htmlFor="substitution-reason" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
           Reason
         </label>
-        <textarea id="substitution-reason" rows={2} {...register('reason')} style={inputStyle} />
+        <textarea className="clinical-control" id="substitution-reason" rows={2} {...register('reason')} style={inputStyle} />
         {errors.reason && <span className="field-error">{errors.reason.message}</span>}
       </div>
       {submit.error && <div className="form-error">Something went wrong. Try again.</div>}

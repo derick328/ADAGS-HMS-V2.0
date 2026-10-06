@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -85,13 +88,9 @@ export function ReceptionistDashboard() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>
-          Welcome{me?.username ? `, ${me.username}` : ''}
-        </h1>
-      </header>
+      <PageHeader title={<>Welcome{me?.username ? `, ${me.username}` : ''}</>} />
 
-      <div
+      <div className="clinical-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
@@ -139,7 +138,7 @@ export function ReceptionistDashboard() {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--space-4)' }}>
+      <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 'var(--space-4)' }}>
         <AppointmentPanel title="Recent appointments" rows={recentAppointments.data} isLoading={recentAppointments.isLoading} emptyMessage="No recent appointments" />
         <AppointmentPanel title="Next up today" rows={upcomingAppointments.data} isLoading={upcomingAppointments.isLoading} emptyMessage="No appointments left today" />
       </div>
@@ -215,11 +214,11 @@ function AppointmentPanel({
         {title}
       </h2>
       {isLoading ? (
-        <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : !rows || rows.length === 0 ? (
-        <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>{emptyMessage}</p>
+        <FeedbackState>{emptyMessage}</FeedbackState>
       ) : (
-        <table className="table">
+        <TableRegion><table className="table">
           <caption className="sr-only">{title}</caption>
           <tbody>
             {rows.map((row) => (
@@ -232,7 +231,7 @@ function AppointmentPanel({
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></TableRegion>
       )}
     </section>
   );

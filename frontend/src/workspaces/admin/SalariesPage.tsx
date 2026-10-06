@@ -1,3 +1,4 @@
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { fetchPayrollPreview } from '../../shared/api/payroll';
@@ -61,7 +62,7 @@ export function SalariesPage() {
           </div>
 
           {preview && (
-            <div
+            <div className="clinical-grid"
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
@@ -109,7 +110,7 @@ export function SalariesPage() {
                 No active employees with a basic salary set. Add employees under Users first.
               </div>
             ) : (
-              <table className="table">
+              <TableRegion><table className="table">
                 <thead>
                   <tr>
                     <th>Employee</th>
@@ -137,7 +138,7 @@ export function SalariesPage() {
                       </tr>
                     ))}
                 </tbody>
-              </table>
+              </table></TableRegion>
             )}
           </div>
         </section>
@@ -168,7 +169,7 @@ function PeriodPicker({
         <label htmlFor="payroll-month" style={{ display: 'block', fontSize: 'var(--text-xs)' }}>
           Month
         </label>
-        <select
+        <select className="clinical-control"
           id="payroll-month"
           value={month}
           onChange={(e) => onChange(Number(e.target.value), year)}
@@ -185,7 +186,7 @@ function PeriodPicker({
         <label htmlFor="payroll-year" style={{ display: 'block', fontSize: 'var(--text-xs)' }}>
           Year
         </label>
-        <input
+        <input className="clinical-control"
           id="payroll-year"
           type="number"
           value={year}

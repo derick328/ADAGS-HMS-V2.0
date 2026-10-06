@@ -150,3 +150,5 @@
 .messageError {
   color: var(--critical);
 }
+
+.control { position: relative; display: inline-flex; flex-shrink: 0; margin-top: 1px; }

@@ -1,3 +1,4 @@
+import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
 import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
 import { searchEncounters } from '../../shared/api/encounters';
@@ -22,10 +23,11 @@ export function TriageNurseShell() {
 
   return (
     <div className="triage-shell-outer">
-      <div className="triage-shell">
-        <aside className="triage-sidebar">
-          <div className="triage-sidebar-brand">ADAGS</div>
-          <nav className="triage-nav">
+      <div className="triage-shell app-shell">
+        <a className="skip-link" href="#workspace-main">Skip to content</a>
+        <aside className="triage-sidebar app-sidebar">
+          <WorkspaceBrand workspace="Triage" />
+          <nav className="triage-nav app-nav" aria-label="Triage navigation">
             <PatientQueueLink />
             <CompletedAssessmentsLink />
 
@@ -38,15 +40,15 @@ export function TriageNurseShell() {
               Profile
             </NavLink>
           </nav>
-          <div className="triage-sidebar-footer">
+          <div className="triage-sidebar-footer app-sidebar-footer">
             <div className="triage-user">{me?.username}</div>
-            <button type="button" className="triage-logout" onClick={() => logout()}>
+            <button type="button" className="triage-logout app-logout" onClick={() => logout()}>
               Sign out
             </button>
           </div>
         </aside>
-        <main className="triage-content">
-          <Outlet />
+        <main id="workspace-main" tabIndex={-1} className="triage-content app-content">
+          <div className="workspace-body"><Outlet /></div>
         </main>
       </div>
     </div>

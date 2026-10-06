@@ -174,7 +174,7 @@ export function ExpensesCategoryPage({ category }: { category: string }) {
           <label htmlFor="void-reason" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
             Reason
           </label>
-          <textarea
+          <textarea className="clinical-control"
             id="void-reason"
             value={voidReason}
             onChange={(e) => setVoidReason(e.target.value)}
@@ -247,7 +247,7 @@ function RecordExpenseForm({
         <label htmlFor="expense-title" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
           Title
         </label>
-        <input id="expense-title" {...register('title')} style={fieldStyle} />
+        <input className="clinical-control" id="expense-title" {...register('title')} style={fieldStyle} />
         {errors.title && <span className="field-error">{errors.title.message}</span>}
       </div>
 
@@ -255,7 +255,7 @@ function RecordExpenseForm({
         <label htmlFor="expense-amount" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
           Amount (TZS)
         </label>
-        <input id="expense-amount" type="number" min={1} {...register('amountMinor')} style={fieldStyle} />
+        <input className="clinical-control" id="expense-amount" type="number" min={1} {...register('amountMinor')} style={fieldStyle} />
         {errors.amountMinor && <span className="field-error">{errors.amountMinor.message}</span>}
       </div>
 
@@ -263,7 +263,7 @@ function RecordExpenseForm({
         <label htmlFor="expense-date" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
           Date
         </label>
-        <input id="expense-date" type="date" {...register('expenseDate')} style={fieldStyle} />
+        <input className="clinical-control" id="expense-date" type="date" {...register('expenseDate')} style={fieldStyle} />
         {errors.expenseDate && <span className="field-error">{errors.expenseDate.message}</span>}
       </div>
 
@@ -271,7 +271,7 @@ function RecordExpenseForm({
         <label htmlFor="expense-payment-method" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
           Payment method
         </label>
-        <select id="expense-payment-method" {...register('paymentMethod')} style={fieldStyle}>
+        <select className="clinical-control" id="expense-payment-method" {...register('paymentMethod')} style={fieldStyle}>
           <option value="CASH">Cash</option>
           <option value="DEBIT_CARD">Debit card</option>
           <option value="CREDIT_CARD">Credit card</option>
@@ -285,7 +285,7 @@ function RecordExpenseForm({
         <label htmlFor="expense-paid-to" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
           Paid to
         </label>
-        <input id="expense-paid-to" {...register('paidTo')} style={fieldStyle} />
+        <input className="clinical-control" id="expense-paid-to" {...register('paidTo')} style={fieldStyle} />
         {errors.paidTo && <span className="field-error">{errors.paidTo.message}</span>}
       </div>
 
@@ -293,14 +293,14 @@ function RecordExpenseForm({
         <label htmlFor="expense-receipt" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
           Receipt number (optional)
         </label>
-        <input id="expense-receipt" {...register('receiptNumber')} style={fieldStyle} />
+        <input className="clinical-control" id="expense-receipt" {...register('receiptNumber')} style={fieldStyle} />
       </div>
 
       <div>
         <label htmlFor="expense-notes" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
           Notes (optional)
         </label>
-        <textarea id="expense-notes" rows={2} {...register('notes')} style={fieldStyle} />
+        <textarea className="clinical-control" id="expense-notes" rows={2} {...register('notes')} style={fieldStyle} />
       </div>
 
       <button type="submit" className="btn btn-primary" disabled={isSubmitting} style={{ alignSelf: 'flex-start' }}>

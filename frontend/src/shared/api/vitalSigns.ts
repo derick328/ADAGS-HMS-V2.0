@@ -4,6 +4,7 @@ import type { components } from './types';
 export type VitalSignsResponse = components['schemas']['VitalSignsResponse'];
 export type RecordWardVitalsRequest = components['schemas']['RecordWardVitalsRequest'];
 export type RecordSurgeryVitalsRequest = components['schemas']['RecordSurgeryVitalsRequest'];
+export type RecordConsultationVitalsRequest = components['schemas']['RecordConsultationVitalsRequest'];
 export type Avpu = NonNullable<VitalSignsResponse['avpu']>;
 
 /** 07-doctor.md §5.1: the consultation left panel's triage-recorded vitals — newest first, every context. */
@@ -21,6 +22,24 @@ export function recordWardVitals(
   accessToken: string,
 ): Promise<string> {
   return authFetch(`/api/admissions/${admissionId}/vitals`, accessToken, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Consultation-time vitals recorded by the doctor. Optional in the workflow —
+ * if triage already recorded a set, this replaces nothing; both rows persist
+ * with distinct contexts and the doctor's screen shows the CONSULTATION one
+ * when present, else the TRIAGE one. Context is pinned to CONSULTATION
+ * server-side.
+ */
+export function recordConsultationVitals(
+  encounterId: string,
+  body: RecordConsultationVitalsRequest,
+  accessToken: string,
+): Promise<string> {
+  return authFetch(`/api/encounters/${encounterId}/vital-signs`, accessToken, {
     method: 'POST',
     body: JSON.stringify(body),
   });

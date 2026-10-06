@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -35,14 +38,9 @@ export function PatientRecordsPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Patient Records</h1>
-        <p style={{ margin: 'var(--space-1) 0 0', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-          Financial and visit history only — no clinical content is shown to this role.
-        </p>
-      </header>
+      <PageHeader title={<>Patient records</>} description={<>Financial and visit history only — no clinical content is shown to this role.</>} />
 
-      <form
+      <form className="clinical-filter-bar"
         onSubmit={(e) => {
           e.preventDefault();
           setSubmittedQuery(query.trim());
@@ -50,7 +48,7 @@ export function PatientRecordsPage() {
         }}
         style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}
       >
-        <input
+        <input aria-label="Search by name, hospital number, phone, or national ID" className="clinical-control"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name, hospital number, phone, or national ID"
@@ -78,7 +76,7 @@ export function PatientRecordsPage() {
         <EmptyState message={`No patients match "${submittedQuery}"`} />
       ) : (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: 'var(--space-4)' }}>
-          <table className="table">
+          <TableRegion label="Patient search results"><table className="table">
             <caption className="sr-only">Patient search results</caption>
             <thead>
               <tr><th>Hospital no.</th><th>Name</th><th>Phone</th></tr>
@@ -87,12 +85,12 @@ export function PatientRecordsPage() {
               {results.map((p) => (
                 <tr key={p.id} onClick={() => setSelectedPatientId(p.id ?? null)} style={{ cursor: 'pointer' }} className={p.id === selectedPatientId ? 'row-selected' : ''}>
                   <td>{p.hospitalNo}</td>
-                  <td style={{ fontWeight: 'var(--weight-medium)' }}>{p.fullName}</td>
+                  <td><button type="button" className="workspace-name" onClick={() => setSelectedPatientId(p.id ?? null)}>{p.fullName}</button></td>
                   <td>{formatPhone(p.phone)}</td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         </div>
       )}
 
@@ -135,7 +133,7 @@ function PatientRecordDetail({ patientId }: { patientId: string }) {
       {canReadFinancial && (
         <section style={sectionStyle}>
           <h2 style={sectionTitleStyle}>Financial summary</h2>
-          <div style={{ display: 'flex', gap: 'var(--space-6)', padding: 'var(--space-4)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)', padding: 'var(--space-4)' }}>
             <SummaryStat label="Total billed" value={formatMoney(totalBilledMinor, invoices?.[0]?.currencyCode)} />
             <SummaryStat label="Total paid" value={formatMoney(totalPaidMinor, invoices?.[0]?.currencyCode)} />
             <SummaryStat label="Outstanding" value={formatMoney(totalOutstandingMinor, invoices?.[0]?.currencyCode)} warn={totalOutstandingMinor > 0} />
@@ -147,9 +145,9 @@ function PatientRecordDetail({ patientId }: { patientId: string }) {
         <section style={sectionStyle}>
           <h2 style={sectionTitleStyle}>Visit history</h2>
           {!history || history.length === 0 ? (
-            <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No visits recorded.</p>
+            <FeedbackState>No visits recorded.</FeedbackState>
           ) : (
-            <table className="table">
+            <TableRegion label="Visit history"><table className="table">
               <caption className="sr-only">Visit history</caption>
               <thead>
                 <tr><th>Date</th><th>Type</th><th>State</th><th>Department</th><th>Provider</th><th>Invoice</th></tr>
@@ -177,7 +175,7 @@ function PatientRecordDetail({ patientId }: { patientId: string }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></TableRegion>
           )}
         </section>
       )}
@@ -186,9 +184,9 @@ function PatientRecordDetail({ patientId }: { patientId: string }) {
         <section style={sectionStyle}>
           <h2 style={sectionTitleStyle}>Invoices</h2>
           {!invoices || invoices.length === 0 ? (
-            <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No invoices.</p>
+            <FeedbackState>No invoices.</FeedbackState>
           ) : (
-            <table className="table">
+            <TableRegion label="Invoices"><table className="table">
               <caption className="sr-only">Invoices</caption>
               <thead>
                 <tr><th>Number</th><th>State</th><th>Created</th><th>Outstanding</th></tr>
@@ -203,7 +201,7 @@ function PatientRecordDetail({ patientId }: { patientId: string }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></TableRegion>
           )}
         </section>
       )}
@@ -236,11 +234,7 @@ function SummaryStat({ label, value, warn }: { label: string; value: string; war
 }
 
 function EmptyState({ message }: { message: string }) {
-  return (
-    <div style={{ padding: 'var(--space-10) var(--space-4)', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
-      {message}
-    </div>
-  );
+  return <FeedbackState loading={message.startsWith('Loading') || message.startsWith('Searching')}>{message}</FeedbackState>;
 }
 
 const sectionStyle = {

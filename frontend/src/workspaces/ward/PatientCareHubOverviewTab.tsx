@@ -1,3 +1,4 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
 import { useQuery } from '@tanstack/react-query';
 import { fetchLabOrdersByEncounter } from '../../shared/api/labOrders';
 import { fetchPrescriptionsByEncounter } from '../../shared/api/prescriptions';
@@ -69,17 +70,17 @@ export function PatientCareHubOverviewTab({
   });
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+    <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
       <section style={panelStyle}>
         <h2 style={panelTitleStyle}>Latest vitals</h2>
         {!latestVital ? (
-          <p style={{ color: 'var(--text-muted)', margin: 0 }}>No ward-rounds vitals recorded yet.</p>
+          <FeedbackState>No ward-rounds vitals recorded yet.</FeedbackState>
         ) : (
           <>
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>
               {formatDateTime(latestVital.occurredAt)}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
+            <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
               {Object.entries(latestVital.readings ?? {}).map(([k, v]) => (
                 <div key={k}>
                   <div style={{ color: 'var(--text-muted)' }}>{k}</div>
@@ -122,7 +123,7 @@ export function PatientCareHubOverviewTab({
       <section style={panelStyle}>
         <h2 style={panelTitleStyle}>Latest wound note</h2>
         {!latestWound ? (
-          <p style={{ color: 'var(--text-muted)', margin: 0 }}>No wound care recorded yet.</p>
+          <FeedbackState>No wound care recorded yet.</FeedbackState>
         ) : (
           <>
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: 'var(--space-1)' }}>

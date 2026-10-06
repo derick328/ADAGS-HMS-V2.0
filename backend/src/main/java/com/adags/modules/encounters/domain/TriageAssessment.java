@@ -103,9 +103,6 @@ public record TriageAssessment(
 
         Integer effectiveFallScore = null;
         if (fallRisk) {
-            if (fallScore == null) {
-                throw new InvalidTriageAssessmentException("fall_score is required when fall_risk is true.");
-            }
             effectiveFallScore = fallScore;
         }
 

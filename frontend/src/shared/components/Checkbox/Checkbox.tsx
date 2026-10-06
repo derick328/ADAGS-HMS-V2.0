@@ -93,7 +93,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
   return (
     <div className={fieldClasses}>
       <label className={styles.root} htmlFor={inputId}>
-        <input
+        <span className={styles.control}><input
           ref={setRefs}
           type="checkbox"
           id={inputId}
@@ -104,7 +104,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
           {...rest}
         />
         <Check size={ICON_SIZE} strokeWidth={2} className={styles.checkIcon} aria-hidden="true" />
-        <Minus size={ICON_SIZE} strokeWidth={2} className={styles.indeterminateIcon} aria-hidden="true" />
+        <Minus size={ICON_SIZE} strokeWidth={2} className={styles.indeterminateIcon} aria-hidden="true" /></span>
         {label && (
           <span className={styles.labelText}>
             {label}

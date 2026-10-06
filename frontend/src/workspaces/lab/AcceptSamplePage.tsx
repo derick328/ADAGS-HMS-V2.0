@@ -1,3 +1,5 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -81,17 +83,14 @@ export function AcceptSamplePage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Accept sample</h1>
-        {order && (
+      <PageHeader title={<>Accept sample</>}>{order && (
           <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>
             {order.patientName} · {order.labTestName}
           </p>
-        )}
-      </header>
+        )}</PageHeader>
 
       {isLoading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : !order ? (
         <p style={{ color: 'var(--text-muted)' }}>Order not found in the queue — return to Test Queue and try again.</p>
       ) : (
@@ -136,7 +135,7 @@ export function AcceptSamplePage() {
               <label htmlFor="quality" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
                 Quality
               </label>
-              <select
+              <select className="clinical-control"
                 id="quality"
                 {...register('quality')}
                 style={{ width: '100%', padding: 'var(--space-2)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius)', font: 'inherit' }}
@@ -154,7 +153,7 @@ export function AcceptSamplePage() {
                 <label htmlFor="qualityNote" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
                   Quality note
                 </label>
-                <textarea
+                <textarea className="clinical-control"
                   id="qualityNote"
                   rows={3}
                   {...register('qualityNote')}

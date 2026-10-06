@@ -1,3 +1,7 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { Tabs } from '../../shared/components/Tabs';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Combobox } from '../../shared/components/Combobox';
@@ -16,33 +20,13 @@ export function HistoryPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>History</h1>
-      </header>
+      <PageHeader title={<>History</>} description={<>Review your dispensing activity or look up a patient’s medication history.</>} />
 
-      <nav aria-label="History tabs" style={{ display: 'flex', gap: 'var(--space-1)', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-4)' }}>
-        {(['mine', 'lookup'] as Tab[]).map((key) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            aria-current={tab === key ? 'page' : undefined}
-            style={{
-              padding: 'var(--space-2) var(--space-3)',
-              border: 'none',
-              background: 'none',
-              font: 'inherit',
-              cursor: 'pointer',
-              color: tab === key ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontWeight: tab === key ? 'var(--weight-medium)' : 'var(--weight-normal)',
-              boxShadow: tab === key ? 'inset 0 -2px 0 var(--green-signal)' : 'none',
-            }}
-          >
-            {key === 'mine' ? 'My dispenses' : 'Patient lookup'}
-          </button>
-        ))}
-      </nav>
+      <Tabs aria-label="History" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} unmountInactivePanels items={[
+        { id: 'mine', label: 'My dispenses', content: <MyDispensesTab /> },
+        { id: 'lookup', label: 'Patient lookup', content: <PatientLookupTab /> },
+      ]} />
 
-      {tab === 'mine' ? <MyDispensesTab /> : <PatientLookupTab />}
     </div>
   );
 }
@@ -73,7 +57,7 @@ function PatientLookupTab() {
 
   return (
     <div>
-      <div style={{ width: 320, marginBottom: 'var(--space-4)' }}>
+      <div style={{ width: '100%', maxWidth: 320, marginBottom: 'var(--space-4)' }}>
         <Combobox<PatientSearchResult>
           label="Search by patient"
           placeholder="Name or hospital number"
@@ -127,11 +111,11 @@ function DispensesTable({ rows, isLoading, emptyMessage }: { rows: DispenseHisto
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
       {isLoading ? (
-        <p style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : rows.length === 0 ? (
-        <p style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>{emptyMessage}</p>
+        <FeedbackState>{emptyMessage}</FeedbackState>
       ) : (
-        <table className="table">
+        <TableRegion label="Dispenses"><table className="table">
           <caption className="sr-only">Dispenses</caption>
           <thead>
             <tr>
@@ -156,7 +140,7 @@ function DispensesTable({ rows, isLoading, emptyMessage }: { rows: DispenseHisto
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></TableRegion>
       )}
     </div>
   );

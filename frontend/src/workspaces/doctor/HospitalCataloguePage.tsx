@@ -1,3 +1,6 @@
+import { TableRegion } from '../../shared/components/TableRegion';
+import { WorkspacePage, QueryState } from '../../shared/components/WorkspacePage';
+import { EmptyState } from '../../shared/components/EmptyState';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { searchPriceCatalog } from '../../shared/api/priceCatalog';
@@ -21,7 +24,7 @@ export function HospitalCataloguePage() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<'ALL' | 'CONSULTATION' | 'LAB' | 'PROCEDURE' | 'PHARMACY' | 'WARD'>('ALL');
 
-  const { data: results, isLoading } = useQuery({
+  const { data: results, isLoading, isError, refetch } = useQuery({
     queryKey: ['price-catalog', 'search', query],
     queryFn: () => searchPriceCatalog(query, undefined, accessToken as string),
     enabled: accessToken != null && query.trim().length >= 2,
@@ -45,17 +48,18 @@ export function HospitalCataloguePage() {
   const filtered = (results ?? []).filter((r) => category === 'ALL' || r.category === category);
 
   return (
-    <div>
-      <h1 style={{ fontSize: 'var(--text-xl)' }}>Hospital Catalogue</h1>
+    <WorkspacePage title="Hospital catalogue" description="Search hospital services, medicines, and cash prices.">
 
-      <div style={{ display: 'flex', gap: 'var(--space-3)', margin: 'var(--space-3) 0' }}>
-        <input
+      <div className="workspace-toolbar">
+        <input className="clinical-control"
+          aria-label="Search hospital catalogue"
           placeholder="Search procedures, medicines, lab tests…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           style={{ flex: 1, padding: 'var(--space-2)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius)' }}
         />
-        <select
+        <select className="clinical-control"
+          aria-label="Service category"
           value={category}
           onChange={(e) => setCategory(e.target.value as typeof category)}
           style={{ padding: 'var(--space-2)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius)' }}
@@ -78,14 +82,16 @@ export function HospitalCataloguePage() {
       </div>
 
       {query.trim().length < 2 ? (
-        <p style={{ color: 'var(--text-muted)' }}>Type at least 2 characters to search.</p>
+        <div className="workspace-panel"><EmptyState title="Find a service or medicine" description="Enter at least 2 characters to search the hospital catalogue." /></div>
+      ) : isError ? (
+        <QueryState title="Unable to load catalogue" onRetry={() => void refetch()} />
       ) : isLoading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Searching…</p>
+        <QueryState loading title="Searching the catalogue…" />
       ) : filtered.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No matches.</p>
+        <div className="workspace-panel"><EmptyState role="status" title="No matching services" description="Try another search term or choose a different category." /></div>
       ) : (
-        <table className="table">
-          <tbody>
+        <div className="workspace-table" role="region" aria-label="Hospital catalogue" tabIndex={0}><TableRegion><table className="table">
+          <thead><tr><th scope="col">Service or medicine</th><th scope="col">Cash price</th></tr></thead><tbody>
             {filtered.map((item) => {
               const qty = item.code ? stockByItemCode[item.code] : undefined;
               return (
@@ -112,8 +118,8 @@ export function HospitalCataloguePage() {
               );
             })}
           </tbody>
-        </table>
+        </table></TableRegion></div>
       )}
-    </div>
+    </WorkspacePage>
   );
 }

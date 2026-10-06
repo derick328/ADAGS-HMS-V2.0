@@ -169,3 +169,6 @@
 .messageSuccess {
   color: var(--success);
 }
+
+.wrap { min-height: var(--row-height); }
+.input { min-width: 0; }

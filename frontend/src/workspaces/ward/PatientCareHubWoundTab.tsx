@@ -1,3 +1,6 @@
+import { Checkbox } from '../../shared/components/Checkbox';
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -66,35 +69,29 @@ export function PatientCareHubWoundTab({ admission }: { admission: AdmissionResp
         >
           <label style={{ fontSize: 'var(--text-sm)' }}>
             Appearance
-            <textarea rows={2} {...register('appearance')} style={inputStyle} />
+            <textarea className="clinical-control" rows={2} {...register('appearance')} style={inputStyle} />
             {errors.appearance && <div className="field-error">{errors.appearance.message}</div>}
           </label>
 
-          <label style={{ fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <input type="checkbox" {...register('dressingChanged')} />
-            Dressing changed
-          </label>
+          <Checkbox  className="clinical-choice" {...register('dressingChanged')} label={<>Dressing changed</>} />
 
           <label style={{ fontSize: 'var(--text-sm)' }}>
             Dressing type
-            <input type="text" {...register('dressingType')} style={inputStyle} />
+            <input className="clinical-control" type="text" {...register('dressingType')} style={inputStyle} />
           </label>
 
-          <label style={{ fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--critical)', fontWeight: 'var(--weight-medium)' }}>
-            <input type="checkbox" {...register('signsOfInfection')} />
-            Signs of infection
-          </label>
+          <Checkbox  className="clinical-choice" {...register('signsOfInfection')} label={<>Signs of infection</>} />
 
           {signsOfInfection && (
             <label style={{ fontSize: 'var(--text-sm)' }}>
               Infection description
-              <textarea rows={2} {...register('infectionDescription')} style={inputStyle} />
+              <textarea className="clinical-control" rows={2} {...register('infectionDescription')} style={inputStyle} />
             </label>
           )}
 
           <label style={{ fontSize: 'var(--text-sm)' }}>
             Remarks (optional)
-            <textarea rows={2} {...register('remarks')} style={inputStyle} />
+            <textarea className="clinical-control" rows={2} {...register('remarks')} style={inputStyle} />
           </label>
 
           {signsOfInfection && (
@@ -112,11 +109,11 @@ export function PatientCareHubWoundTab({ admission }: { admission: AdmissionResp
 
       <section style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {isLoading ? (
-          <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+          <FeedbackState loading>Loading…</FeedbackState>
         ) : rows.length === 0 ? (
-          <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No wound care recorded yet.</p>
+          <FeedbackState>No wound care recorded yet.</FeedbackState>
         ) : (
-          <table className="table">
+          <TableRegion label="Wound care history"><table className="table">
             <caption className="sr-only">Wound care history</caption>
             <thead>
               <tr>
@@ -142,7 +139,7 @@ export function PatientCareHubWoundTab({ admission }: { admission: AdmissionResp
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </section>
     </div>

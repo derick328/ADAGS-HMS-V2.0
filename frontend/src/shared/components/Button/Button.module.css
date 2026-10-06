@@ -126,3 +126,5 @@
     animation: none;
   }
 }
+
+.md, .lg { min-height: var(--row-height); }

@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, type CSSProperties } from 'react';
@@ -16,12 +19,10 @@ export function ProfilePage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Profile</h1>
-      </header>
+      <PageHeader title={<>Profile</>} />
 
       {isLoading || !me ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : (
         <>
           {me.mustChangePassword && (
@@ -81,9 +82,9 @@ export function ProfilePage() {
               Role assignments
             </h2>
             {!me.scopes || me.scopes.length === 0 ? (
-              <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No role assignments.</p>
+              <FeedbackState>No role assignments.</FeedbackState>
             ) : (
-              <table className="table">
+              <TableRegion label="Role assignments"><table className="table">
                 <caption className="sr-only">Role assignments</caption>
                 <thead>
                   <tr>
@@ -108,7 +109,7 @@ export function ProfilePage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></TableRegion>
             )}
           </section>
 
@@ -194,21 +195,21 @@ function ChangePasswordSection() {
           <label htmlFor="current-password" style={labelStyle}>
             Current password
           </label>
-          <input id="current-password" type="password" {...register('currentPassword')} style={fieldStyle} />
+          <input className="clinical-control" id="current-password" type="password" {...register('currentPassword')} style={fieldStyle} />
           {errors.currentPassword && <span className="field-error">{errors.currentPassword.message}</span>}
         </div>
         <div>
           <label htmlFor="new-password" style={labelStyle}>
             New password
           </label>
-          <input id="new-password" type="password" {...register('newPassword')} style={fieldStyle} />
+          <input className="clinical-control" id="new-password" type="password" {...register('newPassword')} style={fieldStyle} />
           {errors.newPassword && <span className="field-error">{errors.newPassword.message}</span>}
         </div>
         <div>
           <label htmlFor="confirm-password" style={labelStyle}>
             Confirm new password
           </label>
-          <input id="confirm-password" type="password" {...register('confirmPassword')} style={fieldStyle} />
+          <input className="clinical-control" id="confirm-password" type="password" {...register('confirmPassword')} style={fieldStyle} />
           {errors.confirmPassword && <span className="field-error">{errors.confirmPassword.message}</span>}
         </div>
         {submit.error && <div className="form-error">{changePasswordErrorMessage(submit.error)}</div>}

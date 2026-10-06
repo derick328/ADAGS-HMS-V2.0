@@ -1,3 +1,6 @@
+import { Tabs } from '../../shared/components/Tabs';
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -52,7 +55,7 @@ export function PatientCareHubPage() {
   );
 
   if (isLoading || !admission || !admissionId) {
-    return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
+    return <FeedbackState loading>Loading…</FeedbackState>;
   }
 
   return (
@@ -61,12 +64,9 @@ export function PatientCareHubPage() {
         ← Ward Patients
       </button>
 
-      <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Patient care hub</h1>
-        <StatusBadge status={admission.wardStatus} />
-      </header>
+      <PageHeader title={<>Patient care hub</>}><StatusBadge status={admission.wardStatus} /></PageHeader>
 
-      <dl style={{ display: 'flex', gap: 'var(--space-5)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: '0 0 var(--space-4)' }}>
+      <dl style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-5)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: '0 0 var(--space-4)' }}>
         <div>
           <dt style={{ color: 'var(--text-muted)' }}>Admitted</dt>
           <dd style={{ margin: 0 }}>{formatDateTime(admission.admittedAt)}</dd>
@@ -85,42 +85,18 @@ export function PatientCareHubPage() {
 
       <AllergyBanner allergies={activeAllergies} />
 
-      <nav
-        aria-label="Patient care hub tabs"
-        style={{ display: 'flex', gap: 'var(--space-1)', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-4)' }}
-      >
-        {TABS.map((t) => {
-          const isActive = t.key === tab;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => {
-                setTab(t.key);
-                setSearchParams(t.key === 'overview' ? {} : { tab: t.key }, { replace: true });
-              }}
-              style={{
-                padding: 'var(--space-2) var(--space-3)',
-                border: 'none',
-                background: 'none',
-                font: 'inherit',
-                cursor: 'pointer',
-                color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
-                fontWeight: isActive ? 'var(--weight-medium)' : 'var(--weight-normal)',
-                boxShadow: isActive ? 'inset 0 -2px 0 var(--green-signal)' : 'none',
-              }}
-            >
-              {t.label}
-            </button>
-          );
-        })}
-      </nav>
+      <Tabs aria-label="Patient care" variant="underline" value={tab} unmountInactivePanels
+        onChange={(value) => {
+          setTab(value as TabKey);
+          setSearchParams(value === 'overview' ? {} : { tab: value }, { replace: true });
+        }} items={[
+          { id: 'overview', label: 'Overview', content: <PatientCareHubOverviewTab admission={admission} onNavigateTab={(value) => { setTab(value as TabKey); setSearchParams({ tab: value }, { replace: true }); }} /> },
+          { id: 'mar', label: 'MAR', content: <PatientCareHubMarTab admission={admission} /> },
+          { id: 'vitals', label: 'Vitals', content: <PatientCareHubVitalsTab admission={admission} /> },
+          { id: 'wound', label: 'Wound care', content: <PatientCareHubWoundTab admission={admission} /> },
+          { id: 'status', label: 'Status & bed', content: <PatientCareHubStatusTab admission={admission} /> },
+        ]} />
 
-      {tab === 'overview' && <PatientCareHubOverviewTab admission={admission} onNavigateTab={(t) => setTab(t as TabKey)} />}
-      {tab === 'mar' && <PatientCareHubMarTab admission={admission} />}
-      {tab === 'vitals' && <PatientCareHubVitalsTab admission={admission} />}
-      {tab === 'wound' && <PatientCareHubWoundTab admission={admission} />}
-      {tab === 'status' && <PatientCareHubStatusTab admission={admission} />}
     </div>
   );
 }

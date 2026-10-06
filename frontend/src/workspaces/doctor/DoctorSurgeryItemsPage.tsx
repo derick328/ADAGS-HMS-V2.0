@@ -1,3 +1,5 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchEncounterById } from '../../shared/api/encounters';
@@ -48,12 +50,9 @@ export function DoctorSurgeryItemsPage() {
         ← Back to My Surgeries
       </button>
 
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>
-          Procedure items
-        </h1>
-        {orderLoading ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', margin: '4px 0 0' }}>Loading…</p>
+      <PageHeader title={<>Procedure items</>} description={<>Add pre-op / post-op items you want prepared. Each row records who prepared, reconciled, and attested
+          it — that attribution appears on the final surgery report.</>}>{orderLoading ? (
+          <FeedbackState loading>Loading…</FeedbackState>
         ) : orderError || !order ? (
           <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', margin: '4px 0 0' }}>
             Couldn't load this surgery order.
@@ -65,12 +64,7 @@ export function DoctorSurgeryItemsPage() {
             {patient?.hospitalNo && <> · {patient.hospitalNo}</>}
             {order.scheduledDate && <> · {formatDate(order.scheduledDate)}</>}
           </p>
-        )}
-        <p style={{ margin: '4px 0 0', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-          Add pre-op / post-op items you want prepared. Each row records who prepared, reconciled, and attested
-          it — that attribution appears on the final surgery report.
-        </p>
-      </header>
+        )}</PageHeader>
 
       {surgeryOrderId && <SurgeryEpisodeProcedureItems surgeryOrderId={surgeryOrderId} />}
     </div>

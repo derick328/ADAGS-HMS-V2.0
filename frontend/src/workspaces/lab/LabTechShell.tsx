@@ -1,3 +1,4 @@
+import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
 import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
 import { fetchLabOrderQueue } from '../../shared/api/labOrders';
@@ -19,10 +20,11 @@ export function LabTechShell() {
 
   return (
     <div className="lab-shell-outer">
-      <div className="lab-shell">
-        <aside className="lab-sidebar">
-          <div className="lab-sidebar-brand">ADAGS</div>
-          <nav className="lab-nav">
+      <div className="lab-shell app-shell">
+        <a className="skip-link" href="#workspace-main">Skip to content</a>
+        <aside className="lab-sidebar app-sidebar">
+          <WorkspaceBrand workspace="Laboratory" />
+          <nav className="lab-nav app-nav" aria-label="Laboratory navigation">
             <TestQueueLink />
             <LabCatalogueLink />
             <StockRequestsLink />
@@ -34,15 +36,15 @@ export function LabTechShell() {
               Profile
             </NavLink>
           </nav>
-          <div className="lab-sidebar-footer">
+          <div className="lab-sidebar-footer app-sidebar-footer">
             <div className="lab-user">{me?.username}</div>
-            <button type="button" className="lab-logout" onClick={() => logout()}>
+            <button type="button" className="lab-logout app-logout" onClick={() => logout()}>
               Sign out
             </button>
           </div>
         </aside>
-        <main className="lab-content">
-          <Outlet />
+        <main id="workspace-main" tabIndex={-1} className="lab-content app-content">
+          <div className="workspace-body"><Outlet /></div>
         </main>
       </div>
     </div>

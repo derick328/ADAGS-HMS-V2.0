@@ -1,3 +1,5 @@
+import { TableRegion } from '../../shared/components/TableRegion';
+import { WorkspacePage, QueryState } from '../../shared/components/WorkspacePage';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -34,11 +36,11 @@ const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
 
 export function MyScheduledSurgeriesPage() {
   const { accessToken } = useAuth();
-  const { data: me } = useMe();
+  const { data: me, isPending: profilePending, isError: profileError, refetch: retryProfile } = useMe();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ACTIVE');
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['surgery-orders', 'active'],
     queryFn: () => fetchActiveSurgeryOrders(accessToken as string),
     enabled: accessToken != null,
@@ -46,8 +48,8 @@ export function MyScheduledSurgeriesPage() {
   });
 
   const mine = useMemo(
-    () => (data ?? []).filter((o) => o.scheduledBy === me?.userId),
-    [data, me?.userId],
+    () => (data ?? []).filter((o) => me?.userId != null && o.scheduledBy === me.userId),
+    [data, me],
   );
 
   const counts = useMemo(() => bucketByStatus(mine), [mine]);
@@ -65,28 +67,13 @@ export function MyScheduledSurgeriesPage() {
   }, [mine, statusFilter]);
 
   return (
-    <div>
-      <header style={{ marginBottom: 'var(--space-3)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>
-          My Scheduled Surgeries
-        </h1>
-        <p style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-          Surgeries you scheduled from a consultation. Prep, checklists, and disposition happen on the ward
-          nurse's screens — this is your read-only view.
-        </p>
-      </header>
+    <WorkspacePage title="My surgeries" description="Review surgeries you scheduled, their current status, and ward preparation.">
 
-      <div
-        style={{
-          display: 'flex',
-          gap: 'var(--space-1)',
-          flexWrap: 'wrap',
-          marginBottom: 'var(--space-3)',
-        }}
-      >
+      {!isLoading && !profilePending && !isError && !profileError && <div className="workspace-filters" role="group" aria-label="Filter surgeries by status">
         {STATUS_FILTERS.map((f) => (
           <button
             key={f.key}
+            aria-pressed={statusFilter === f.key}
             type="button"
             onClick={() => setStatusFilter(f.key)}
             className={statusFilter === f.key ? 'btn btn-secondary' : 'btn btn-ghost'}
@@ -98,20 +85,20 @@ export function MyScheduledSurgeriesPage() {
             </span>
           </button>
         ))}
-      </div>
+      </div>}
 
       <div
         style={{
           background: 'var(--bg-surface)',
           border: '1px solid var(--border)',
           borderRadius: 'var(--radius-lg)',
-          overflow: 'hidden',
+          overflowX: 'auto',
         }}
       >
-        {isLoading ? (
-          <Empty message="Loading surgeries…" />
-        ) : isError ? (
-          <Empty message="Couldn't load surgery orders." />
+        {isError || profileError ? (
+          <QueryState title="Unable to load surgeries" onRetry={() => { void refetch(); void retryProfile(); }} />
+        ) : isLoading || profilePending ? (
+          <QueryState loading title="Loading surgeries…" />
         ) : filtered.length === 0 ? (
           <Empty
             message={
@@ -121,7 +108,7 @@ export function MyScheduledSurgeriesPage() {
             }
           />
         ) : (
-          <table className="table">
+          <TableRegion label="My scheduled surgeries"><table className="table">
             <caption className="sr-only">My scheduled surgeries</caption>
             <thead>
               <tr>
@@ -143,10 +130,10 @@ export function MyScheduledSurgeriesPage() {
                 />
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </div>
-    </div>
+    </WorkspacePage>
   );
 }
 

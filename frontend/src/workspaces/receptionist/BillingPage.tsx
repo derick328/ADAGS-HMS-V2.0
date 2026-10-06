@@ -1,3 +1,7 @@
+import { Checkbox } from '../../shared/components/Checkbox';
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { ApiError } from '../../shared/api/client';
@@ -52,9 +56,7 @@ export function BillingPage() {
 
   return (
     <div>
-      <header style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Billing</h1>
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+      <PageHeader title={<>Billing</>} description={<>Find invoices, review balances, and record patient payments.</>}><div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
           <button type="button" className={tab === 'invoices' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('invoices')}>
             {outstandingOnly ? 'Pending bills' : 'Invoices'}
           </button>
@@ -64,19 +66,18 @@ export function BillingPage() {
           <button type="button" className={tab === 'payment' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('payment')}>
             Record payment
           </button>
-        </div>
-      </header>
+        </div></PageHeader>
 
       {tab === 'invoices' && (
         <>
-          <form
+          <form className="clinical-filter-bar"
             onSubmit={(e) => {
               e.preventDefault();
               setSubmittedPatientQuery(patientQuery.trim());
             }}
             style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}
           >
-            <input
+            <input aria-label="Filter by patient name, hospital number, or phone" className="clinical-control"
               value={patientQuery}
               onChange={(e) => setPatientQuery(e.target.value)}
               placeholder="Filter by patient name, hospital number, or phone"
@@ -90,10 +91,7 @@ export function BillingPage() {
                 Clear
               </button>
             )}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginLeft: 'auto' }}>
-              <input type="checkbox" checked={outstandingOnly} onChange={(e) => setOutstandingOnly(e.target.checked)} />
-              Outstanding only
-            </label>
+            <Checkbox  className="clinical-choice" checked={outstandingOnly} onChange={(e) => setOutstandingOnly(e.target.checked)} label={<>Outstanding only</>} />
           </form>
 
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
@@ -110,7 +108,7 @@ export function BillingPage() {
                 }
               />
             ) : (
-              <table className="table">
+              <TableRegion label="Invoices"><table className="table">
                 <caption className="sr-only">Invoices</caption>
                 <thead>
                   <tr>
@@ -132,7 +130,7 @@ export function BillingPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></TableRegion>
             )}
           </div>
 
@@ -210,7 +208,7 @@ function InvoiceDetailPanel({
       <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)', marginTop: 0 }}>
         {invoice?.invoiceNumber ?? 'Draft invoice'}
       </h2>
-      <table className="table" style={{ marginBottom: 'var(--space-3)' }}>
+      <TableRegion label="Invoice lines"><table className="table" style={{ marginBottom: 'var(--space-3)' }}>
         <caption className="sr-only">Invoice lines</caption>
         <thead>
           <tr><th>Item</th><th>Qty</th><th>Gross</th><th>Remaining</th></tr>
@@ -225,9 +223,9 @@ function InvoiceDetailPanel({
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></TableRegion>
 
-      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
         {invoice?.state === 'DRAFT' && canCreate && (
           <button type="button" className="btn btn-primary" disabled={issue.isPending} onClick={() => issue.mutate()}>
             Issue invoice
@@ -253,7 +251,7 @@ function InvoiceDetailPanel({
           <label htmlFor="cancel-reason" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
             Reason (required — routes to admin for approval)
           </label>
-          <textarea id="cancel-reason" rows={2} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} style={fieldStyle} />
+          <textarea className="clinical-control" id="cancel-reason" rows={2} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} style={fieldStyle} />
           <button
             type="button"
             className="btn btn-danger"
@@ -320,8 +318,8 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
       {!selectedPatient ? (
         <div>
           <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Patient</label>
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-            <input value={patientQuery} onChange={(e) => setPatientQuery(e.target.value)} style={{ ...fieldStyle, marginTop: 0 }} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+            <input className="clinical-control" value={patientQuery} onChange={(e) => setPatientQuery(e.target.value)} style={{ ...fieldStyle, marginTop: 0 }} />
             <button type="button" className="btn btn-secondary" onClick={runPatientSearch}>Search</button>
           </div>
           {patientResults.length > 0 && (
@@ -344,26 +342,23 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
           </p>
 
           {openEncounter && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>
-              <input type="checkbox" checked={useEncounter} onChange={(e) => setUseEncounter(e.target.checked)} />
-              Attach to open encounter ({openEncounter.state?.toLowerCase()})
-            </label>
+            <Checkbox  className="clinical-choice" checked={useEncounter} onChange={(e) => setUseEncounter(e.target.checked)} label={<>Attach to open encounter ({openEncounter.state?.toLowerCase()})</>} />
           )}
 
           <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
             <div>
               <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Due date</label>
-              <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={fieldStyle} />
+              <input className="clinical-control" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={fieldStyle} />
             </div>
             <div style={{ flex: 1 }}>
               <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Notes (optional)</label>
-              <input value={notes} onChange={(e) => setNotes(e.target.value)} style={fieldStyle} />
+              <input className="clinical-control" value={notes} onChange={(e) => setNotes(e.target.value)} style={fieldStyle} />
             </div>
           </div>
 
           <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Add line item</label>
           <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-            <input value={catalogQuery} onChange={(e) => setCatalogQuery(e.target.value)} placeholder="Search the catalogue…" style={{ ...fieldStyle, marginTop: 0 }} />
+            <input aria-label="Search the catalogue…" className="clinical-control" value={catalogQuery} onChange={(e) => setCatalogQuery(e.target.value)} placeholder="Search the catalogue…" style={{ ...fieldStyle, marginTop: 0 }} />
             <button type="button" className="btn btn-secondary" onClick={runCatalogSearch}>Search</button>
           </div>
           {catalogResults.length > 0 && (
@@ -388,7 +383,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
           )}
 
           {pickedLines.length > 0 && (
-            <table className="table" style={{ marginBottom: 'var(--space-3)' }}>
+            <TableRegion label="Picked line items"><table className="table" style={{ marginBottom: 'var(--space-3)' }}>
               <caption className="sr-only">Picked line items</caption>
               <thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th /></tr></thead>
               <tbody>
@@ -396,7 +391,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
                   <tr key={i}>
                     <td>{l.item.name}</td>
                     <td>
-                      <input
+                      <input className="clinical-control"
                         type="number"
                         min={1}
                         value={l.quantity}
@@ -415,7 +410,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></TableRegion>
           )}
 
           {create.error && <div className="form-error">Something went wrong creating the invoice.</div>}
@@ -530,8 +525,8 @@ function RecordPaymentPanel({ initialPatientId }: { initialPatientId?: string | 
 
       {!selectedPatient ? (
         <div>
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-            <input value={patientQuery} onChange={(e) => setPatientQuery(e.target.value)} placeholder="Search patients…" style={{ ...fieldStyle, marginTop: 0 }} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+            <input aria-label="Search patients…" className="clinical-control" value={patientQuery} onChange={(e) => setPatientQuery(e.target.value)} placeholder="Search patients…" style={{ ...fieldStyle, marginTop: 0 }} />
             <button type="button" className="btn btn-secondary" onClick={runPatientSearch}>Search</button>
           </div>
           {patientResults.length > 0 && (
@@ -556,15 +551,15 @@ function RecordPaymentPanel({ initialPatientId }: { initialPatientId?: string | 
           {pickableRows.length === 0 ? (
             <EmptyState message="No outstanding lines for this patient." />
           ) : (
-            <table className="table" style={{ marginBottom: 'var(--space-3)' }}>
+            <TableRegion label="Payable lines"><table className="table" style={{ marginBottom: 'var(--space-3)' }}>
               <caption className="sr-only">Payable lines</caption>
               <thead><tr><th /><th>Invoice</th><th>Item</th><th>Remaining</th></tr></thead>
               <tbody>
                 {pickableRows.map((r) => (
                   <tr key={r.line.id}>
                     <td>
-                      <input
-                        type="checkbox"
+                      <Checkbox
+                        aria-label={`Select ${r.line.serviceItemName ?? "invoice line"} for payment`}
                         checked={!!ticked[r.line.id as string]}
                         onChange={(e) => setTicked((prev) => ({ ...prev, [r.line.id as string]: e.target.checked }))}
                       />
@@ -580,13 +575,13 @@ function RecordPaymentPanel({ initialPatientId }: { initialPatientId?: string | 
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></TableRegion>
           )}
 
           <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-end', marginBottom: 'var(--space-3)' }}>
             <div>
               <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Method</label>
-              <select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} style={fieldStyle}>
+              <select className="clinical-control" value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} style={fieldStyle}>
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m} value={m}>{m.replaceAll('_', ' ').toLowerCase()}</option>
                 ))}
@@ -595,7 +590,7 @@ function RecordPaymentPanel({ initialPatientId }: { initialPatientId?: string | 
             {method !== 'CASH' && (
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Reference</label>
-                <input value={reference} onChange={(e) => setReference(e.target.value)} style={fieldStyle} />
+                <input className="clinical-control" value={reference} onChange={(e) => setReference(e.target.value)} style={fieldStyle} />
               </div>
             )}
             <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
@@ -623,9 +618,7 @@ function RecordPaymentPanel({ initialPatientId }: { initialPatientId?: string | 
 }
 
 function EmptyState({ message }: { message: string }) {
-  return (
-    <div style={{ padding: 'var(--space-10) var(--space-4)', textAlign: 'center', color: 'var(--text-muted)' }}>{message}</div>
-  );
+  return <FeedbackState loading={message.startsWith('Loading') || message.startsWith('Searching')}>{message}</FeedbackState>;
 }
 
 // Surface the real server reason instead of a catch-all. The most common

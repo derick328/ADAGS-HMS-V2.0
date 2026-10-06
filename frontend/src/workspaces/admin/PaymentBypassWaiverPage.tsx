@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { fetchOpenEncounterForPatient } from '../../shared/api/encounters';
@@ -51,15 +54,10 @@ export function PaymentBypassWaiverPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Payment bypass waivers</h1>
-        <p style={{ margin: 'var(--space-1) 0 0', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-          Charity, staff benefit, or ministry directive — unblocks payment for this patient's current visit. Scope
-          is the whole encounter, same as an emergency bypass.
-        </p>
-      </header>
+      <PageHeader title={<>Payment bypass waivers</>} description={<>Charity, staff benefit, or ministry directive — unblocks payment for this patient's current visit. Scope
+          is the whole encounter, same as an emergency bypass.</>} />
 
-      <form
+      <form className="clinical-filter-bar"
         onSubmit={(e) => {
           e.preventDefault();
           setSelectedPatientId(null);
@@ -67,7 +65,7 @@ export function PaymentBypassWaiverPage() {
         }}
         style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}
       >
-        <input
+        <input className="clinical-control"
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -90,7 +88,7 @@ export function PaymentBypassWaiverPage() {
         ) : !results || results.length === 0 ? (
           <EmptyState message={`No patients match "${submittedQuery}"`} />
         ) : (
-          <table className="table">
+          <TableRegion label="Patient search results"><table className="table">
             <caption className="sr-only">Patient search results</caption>
             <thead>
               <tr>
@@ -113,14 +111,14 @@ export function PaymentBypassWaiverPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </div>
 
       {selectedPatientId && (
         <div style={{ marginTop: 'var(--space-4)', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', maxWidth: 480 }}>
           {encounterLoading ? (
-            <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+            <FeedbackState loading>Loading…</FeedbackState>
           ) : !openEncounter ? (
             <p style={{ color: 'var(--text-muted)' }}>This patient has no open encounter — a waiver applies to a visit, not the patient generally.</p>
           ) : granted ? (
@@ -131,7 +129,7 @@ export function PaymentBypassWaiverPage() {
               <label htmlFor="waiver-reason" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
                 Reason (charity, staff benefit, ministry directive, or free text)
               </label>
-              <textarea
+              <textarea className="clinical-control"
                 id="waiver-reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -157,9 +155,5 @@ export function PaymentBypassWaiverPage() {
 }
 
 function EmptyState({ message }: { message: string }) {
-  return (
-    <div style={{ padding: 'var(--space-10) var(--space-4)', textAlign: 'center', color: 'var(--text-muted)' }}>
-      {message}
-    </div>
-  );
+  return <FeedbackState loading={message.startsWith('Loading') || message.startsWith('Searching')}>{message}</FeedbackState>;
 }

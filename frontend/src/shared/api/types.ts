@@ -212,6 +212,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/theatres/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["deactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/theatres/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/surgical-checklists": {
         parameters: {
             query?: never;
@@ -411,7 +443,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["list_3"];
         put?: never;
         post: operations["restock"];
         delete?: never;
@@ -715,7 +747,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["listRecent"];
         put?: never;
         post: operations["register"];
         delete?: never;
@@ -747,7 +779,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post: operations["add"];
         delete?: never;
@@ -973,7 +1005,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["activate"];
+        post: operations["activate_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1643,7 +1675,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post: operations["record_5"];
         delete?: never;
@@ -1675,7 +1707,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post: operations["record_7"];
         delete?: never;
@@ -1995,7 +2027,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2347,7 +2379,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2667,7 +2699,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2923,7 +2955,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3083,7 +3115,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3227,7 +3259,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3259,7 +3291,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3291,7 +3323,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_13"];
+        get: operations["list_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3894,7 +3926,7 @@ export interface components {
             /** Format: int32 */
             quantityPrepared?: number;
             /** Format: uuid */
-            batchId: string;
+            batchId?: string;
         };
         ProcedureItemResponse: {
             /** Format: uuid */
@@ -3918,12 +3950,15 @@ export interface components {
             batchId?: string;
             /** Format: uuid */
             preparedBy?: string;
+            preparedByName?: string;
             /** Format: date-time */
             preparedAt?: string;
             /** Format: uuid */
             reconciledBy?: string;
+            reconciledByName?: string;
             /** Format: uuid */
             attestedBy?: string;
+            attestedByName?: string;
             /** Format: date-time */
             reconciledAt?: string;
             deferred?: boolean;
@@ -5137,6 +5172,31 @@ export interface components {
             /** Format: date-time */
             occurredAt: string;
         };
+        RecordConsultationVitalsRequest: {
+            /** Format: double */
+            temperatureC: number;
+            /** Format: double */
+            systolicMmHg: number;
+            /** Format: double */
+            diastolicMmHg: number;
+            /** Format: double */
+            pulseBpm: number;
+            /** Format: double */
+            respiratoryRate: number;
+            /** Format: double */
+            spo2Pct: number;
+            /** Format: double */
+            weightKg: number;
+            /** Format: double */
+            heightCm: number;
+            avpu?: string;
+            /** Format: double */
+            bloodGlucoseMmol?: number;
+            /** Format: int32 */
+            painScore?: number;
+            /** Format: date-time */
+            occurredAt?: string;
+        };
         RecordShiftHandoverRequest: {
             /** Format: uuid */
             wardId: string;
@@ -5429,6 +5489,30 @@ export interface components {
             /** Format: int32 */
             quantity?: number;
         };
+        RestockLedgerEntry: {
+            /** Format: uuid */
+            batchId?: string;
+            /** Format: uuid */
+            itemId?: string;
+            itemName?: string;
+            batchNumber?: string;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int64 */
+            unitCostAmountMinor?: number;
+            /** Format: int64 */
+            totalCostMinor?: number;
+            currencyCode?: string;
+            /** Format: uuid */
+            supplierId?: string;
+            supplierName?: string;
+            deliveryNoteRef?: string;
+            /** Format: date-time */
+            receivedAt?: string;
+            /** Format: uuid */
+            receivedById?: string;
+            receivedByName?: string;
+        };
         RoleResponse: {
             /** Format: uuid */
             id?: string;
@@ -5629,6 +5713,20 @@ export interface components {
             /** Format: int64 */
             outstandingTotalMinor?: number;
             currencyCode?: string;
+        };
+        PatientListResult: {
+            /** Format: uuid */
+            id?: string;
+            hospitalNo?: string;
+            fullName?: string;
+            /** Format: date */
+            dateOfBirth?: string;
+            dobIsEstimated?: boolean;
+            phone?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            insuranceSchemeCode?: string;
+            insuranceSchemeName?: string;
         };
         VisitHistoryResponse: {
             /** Format: uuid */
@@ -5991,6 +6089,7 @@ export interface components {
             readings?: {
                 [key: string]: number;
             };
+            abnormalVitalTypes?: string[];
             /** Format: double */
             weightKg?: number;
             /** Format: double */
@@ -6083,7 +6182,7 @@ export interface components {
             /** @enum {string} */
             vitalType?: "TEMPERATURE" | "SYSTOLIC_BP" | "DIASTOLIC_BP" | "PULSE" | "RESPIRATORY_RATE" | "SPO2";
             /** @enum {string} */
-            ageBand?: "NEONATE" | "INFANT" | "TODDLER" | "CHILD" | "ADOLESCENT" | "ADULT" | "ELDERLY";
+            ageBand?: "NEONATE" | "INFANT" | "TODDLER" | "CHILD" | "PRESCHOOL" | "SCHOOL_AGE" | "ADOLESCENT" | "ADULT" | "ELDERLY";
             /** @enum {string} */
             sex?: "MALE" | "FEMALE" | "ANY";
             /** Format: double */
@@ -6605,6 +6704,7 @@ export interface operations {
         parameters: {
             query: {
                 facilityId: string;
+                includeInactive?: boolean;
             };
             header?: never;
             path?: never;
@@ -6638,6 +6738,50 @@ export interface operations {
         responses: {
             /** @description Created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TheatreResponse"];
+                };
+            };
+        };
+    };
+    deactivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TheatreResponse"];
+                };
+            };
+        };
+    };
+    activate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6995,6 +7139,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SubstitutionReviewResponse"];
+                };
+            };
+        };
+    };
+    list_3: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RestockLedgerEntry"][];
                 };
             };
         };
@@ -7510,6 +7677,31 @@ export interface operations {
             };
         };
     };
+    listRecent: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                payer?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PatientListResult"][];
+                };
+            };
+        };
+    };
     register: {
         parameters: {
             query?: never;
@@ -7582,7 +7774,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -7953,7 +8145,7 @@ export interface operations {
             };
         };
     };
-    activate: {
+    activate_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9132,7 +9324,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -9206,7 +9398,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -9668,7 +9860,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -10152,7 +10344,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -10579,7 +10771,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -10929,7 +11121,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -11139,7 +11331,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: {
                 payerCategory?: "CASH" | "NHIF" | "PRIVATE_SCHEME" | "CORPORATE" | "STAFF";
@@ -11330,7 +11522,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -11374,7 +11566,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_13: {
         parameters: {
             query?: never;
             header?: never;
@@ -11423,7 +11615,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_14: {
         parameters: {
             query?: never;
             header?: never;

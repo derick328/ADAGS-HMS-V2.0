@@ -17,6 +17,7 @@ import com.adags.modules.surgery.application.PrepareProcedureItemService;
 import com.adags.modules.surgery.domain.ProcedureItem;
 import com.adags.modules.surgery.domain.ProcedurePhase;
 import com.adags.modules.surgery.domain.SurgeryOrder;
+import com.adags.modules.surgery.domain.ProcedureItemStockUnavailableException;
 import com.adags.modules.surgery.domain.SurgeryOrderNotOpenException;
 import com.adags.modules.surgery.domain.SurgeryOrderRepository;
 import com.adags.modules.surgery.domain.SurgeryOrderStatus;
@@ -105,6 +106,52 @@ class PrepareProcedureItemServiceTest extends IntegrationTestSupport {
                         """,
                 new MapSqlParameterSource("procedureItemId", prepared.id()), Integer.class);
         assertThat(movementCount).isEqualTo(1);
+    }
+
+    // The frontend never sends a batchId — the circulating nurse doesn't type
+    // a UUID, so the service resolves the FEFO batch itself. That path (null
+    // batchId) was previously untested; every existing test passed an
+    // explicit batch. This proves a second prepare against the same item
+    // succeeds while stock lasts — the "can't add more than one item" report
+    // was NOT a real one-item cap.
+    @Test
+    void preparingWithoutABatchResolvesFefoAndAllowsMoreThanOneItem() {
+        UUID admin = bootstrapAdminId();
+        UUID storeId = insertFixtureStore();
+        UUID supplierId = insertFixtureSupplier();
+        UUID itemId = createFixtureItem(admin);
+        StockBatch batch = restock(itemId, storeId, supplierId, 10, admin);
+        SurgeryOrder order = insertFixtureSurgeryOrder(admin);
+
+        ProcedureItem first = prepareProcedureItemService.prepare(new PrepareProcedureItemCommand(
+                order.id(), itemId, ProcedurePhase.PRE_OP, 3, null, admin));
+        ProcedureItem second = prepareProcedureItemService.prepare(new PrepareProcedureItemCommand(
+                order.id(), itemId, ProcedurePhase.INTRA_OP, 4, null, admin));
+
+        assertThat(first.batchId()).isEqualTo(batch.id());
+        assertThat(second.batchId()).isEqualTo(batch.id());
+        Integer remaining = jdbcTemplate.queryForObject(
+                "SELECT quantity FROM stock_balance WHERE batch_id = :batchId",
+                new MapSqlParameterSource("batchId", batch.id()), Integer.class);
+        assertThat(remaining).isEqualTo(3);
+    }
+
+    // The bug behind the "Resource not found" report: with no batchId the
+    // FEFO resolver found no batch for an item that was never restocked and
+    // threw a bare NoSuchElementException, which the GlobalExceptionHandler
+    // renders as a generic 404 "Resource not found." It must be a stock
+    // condition instead, so the operator learns to restock.
+    @Test
+    void preparingAnItemWithNoStockReportsStockUnavailable() {
+        UUID admin = bootstrapAdminId();
+        insertFixtureStore();
+        insertFixtureSupplier();
+        UUID itemId = createFixtureItem(admin); // created and activated, but never restocked
+        SurgeryOrder order = insertFixtureSurgeryOrder(admin);
+
+        assertThatThrownBy(() -> prepareProcedureItemService.prepare(new PrepareProcedureItemCommand(
+                order.id(), itemId, ProcedurePhase.PRE_OP, 1, null, admin)))
+                .isInstanceOf(ProcedureItemStockUnavailableException.class);
     }
 
     @Test

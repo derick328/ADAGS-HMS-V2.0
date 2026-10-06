@@ -1,3 +1,5 @@
+import { Checkbox } from '../../shared/components/Checkbox';
+import { PageHeader } from '../../shared/components/PageHeader';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -6,10 +8,13 @@ import { ApiError } from '../../shared/api/client';
 import { fetchEncounterById } from '../../shared/api/encounters';
 import { fetchPatientById } from '../../shared/api/patients';
 import { searchPriceCatalog, type PriceCatalogItemResponse } from '../../shared/api/priceCatalog';
-import { scheduleSurgery, type SurgeryUrgency } from '../../shared/api/surgeryOrders';
+import { fetchActiveSurgeryOrders, scheduleSurgery, type SurgeryUrgency } from '../../shared/api/surgeryOrders';
 import { fetchTheatresByFacility } from '../../shared/api/theatres';
 import { useAuth } from '../../shared/auth/AuthProvider';
+import { useMe } from '../../shared/auth/useMe';
 import { Combobox } from '../../shared/components/Combobox';
+import { todayLocalDate } from '../../shared/format/date';
+import { SurgeryScheduleCalendar } from './SurgeryScheduleCalendar';
 
 // 07-doctor.md §7's "Schedule surgery" disposition. Reached from
 // ConsultationPage's disposition dropdown; on success it also finalizes
@@ -74,7 +79,9 @@ function composeTimeSlot(start: string, end: string): string {
 export function ScheduleSurgeryPage() {
   const { encounterId } = useParams<{ encounterId: string }>();
   const { accessToken } = useAuth();
+  const { data: me } = useMe();
   const navigate = useNavigate();
+  const today = todayLocalDate();
 
   const initial = loadDraft(encounterId);
 
@@ -124,6 +131,18 @@ export function ScheduleSurgeryPage() {
   const majorMinorTheatres = (theatres ?? []).filter(
     (t) => t.active !== false && /^(major|minor)( theatre)?$/i.test((t.name ?? '').trim()),
   );
+
+  // The doctor's own active surgeries, for the calendar overview and the
+  // selected-day detail. /api/surgery-orders returns every active order
+  // (bounded, small — 17-ward-nurse.md §10); we keep the ones this doctor
+  // scheduled, same client-side filter as My Scheduled Surgeries.
+  const { data: activeOrders } = useQuery({
+    queryKey: ['surgery-orders', 'active'],
+    queryFn: () => fetchActiveSurgeryOrders(accessToken as string),
+    enabled: accessToken != null,
+    refetchInterval: 30_000,
+  });
+  const mySurgeries = (activeOrders ?? []).filter((o) => o.scheduledBy === me?.userId);
 
   const composedTimeSlot = composeTimeSlot(startTime, endTime);
 
@@ -244,22 +263,18 @@ export function ScheduleSurgeryPage() {
 
   return (
     <div style={{ maxWidth: 720 }}>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <button
+      <PageHeader title={<>Schedule surgery</>}><button
           type="button"
           className="btn btn-ghost"
           onClick={() => navigate(`/doctor/consultation/${encounterId}`)}
           style={{ marginBottom: 'var(--space-2)' }}
         >
           ← Back to consultation
-        </button>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)' }}>Schedule surgery</h1>
-        {patient && (
+        </button>{patient && (
           <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>
             {patient.fullName} · {patient.hospitalNo}
           </p>
-        )}
-      </header>
+        )}</PageHeader>
 
       <form
         onSubmit={(event) => {
@@ -294,19 +309,19 @@ export function ScheduleSurgeryPage() {
         </div>
 
         <Field label="Surgery type" hint="e.g. Laparoscopic cholecystectomy, Open reduction internal fixation">
-          <input value={surgeryType} onChange={(e) => setSurgeryType(e.target.value)} style={inputStyle} />
+          <input className="clinical-control" value={surgeryType} onChange={(e) => setSurgeryType(e.target.value)} style={inputStyle} />
         </Field>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+        <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
           <Field label="Urgency">
-            <select value={urgency} onChange={(e) => setUrgency(e.target.value as SurgeryUrgency)} style={inputStyle}>
+            <select className="clinical-control" value={urgency} onChange={(e) => setUrgency(e.target.value as SurgeryUrgency)} style={inputStyle}>
               <option value="ELECTIVE">Elective</option>
               <option value="URGENT">Urgent</option>
               <option value="IMMEDIATE">Immediate (emergency)</option>
             </select>
           </Field>
           <Field label="Anaesthesia">
-            <select value={anesthesiaType} onChange={(e) => setAnesthesiaType(e.target.value)} style={inputStyle}>
+            <select className="clinical-control" value={anesthesiaType} onChange={(e) => setAnesthesiaType(e.target.value)} style={inputStyle}>
               <option value="GENERAL">General</option>
               <option value="REGIONAL">Regional</option>
               <option value="SPINAL">Spinal</option>
@@ -316,18 +331,30 @@ export function ScheduleSurgeryPage() {
           </Field>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 'var(--space-3)' }}>
+        <Field
+          label="Pick a date"
+          hint="Green days already have a surgery of yours. Select a day to see its times below, or use the date field."
+        >
+          <SurgeryScheduleCalendar
+            surgeries={mySurgeries}
+            selectedDate={scheduledDate}
+            minDate={today}
+            onSelectDate={setScheduledDate}
+          />
+        </Field>
+
+        <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 'var(--space-3)' }}>
           <Field label="Scheduled date">
-            <input
+            <input className="clinical-control"
               type="date"
-              min={new Date().toISOString().slice(0, 10)}
+              min={today}
               value={scheduledDate}
               onChange={(e) => setScheduledDate(e.target.value)}
               style={inputStyle}
             />
           </Field>
           <Field label="Start time">
-            <input
+            <input className="clinical-control"
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
@@ -335,7 +362,7 @@ export function ScheduleSurgeryPage() {
             />
           </Field>
           <Field label="End time (optional)">
-            <input
+            <input className="clinical-control"
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
@@ -343,7 +370,7 @@ export function ScheduleSurgeryPage() {
             />
           </Field>
           <Field label="Duration (min)">
-            <input
+            <input className="clinical-control"
               type="number"
               min={1}
               value={estimatedDurationMinutes}
@@ -372,7 +399,7 @@ export function ScheduleSurgeryPage() {
               No Major/Minor theatre configured for this facility. Ask an admin to add one.
             </span>
           ) : (
-            <select value={theatreId} onChange={(e) => setTheatreId(e.target.value)} style={inputStyle}>
+            <select className="clinical-control" value={theatreId} onChange={(e) => setTheatreId(e.target.value)} style={inputStyle}>
               <option value="">Select a theatre…</option>
               {majorMinorTheatres.map((t) => (
                 <option key={t.id} value={t.id as string}>
@@ -384,7 +411,7 @@ export function ScheduleSurgeryPage() {
         </Field>
 
         <Field label="Pre-op notes (optional)">
-          <textarea rows={3} value={preOpNotes} onChange={(e) => setPreOpNotes(e.target.value)} style={inputStyle} />
+          <textarea className="clinical-control" rows={3} value={preOpNotes} onChange={(e) => setPreOpNotes(e.target.value)} style={inputStyle} />
         </Field>
 
         <Field
@@ -419,22 +446,9 @@ export function ScheduleSurgeryPage() {
           </div>
         </Field>
 
-        <label
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: 'var(--space-3)',
-            background: consentObtained ? 'var(--green-100)' : 'var(--bg-subtle)',
-            borderRadius: 'var(--radius)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          <input type="checkbox" checked={consentObtained} onChange={(e) => setConsentObtained(e.target.checked)} />
-          <span>
+        <Checkbox  className="clinical-choice" checked={consentObtained} onChange={(e) => setConsentObtained(e.target.checked)} label={<><span>
             <strong>Consent obtained</strong> — the backend refuses to schedule without this. Leave unchecked to save a draft while you wait for the signed form.
-          </span>
-        </label>
+          </span></>} />
 
         {submit.error && (
           <div className="form-error">

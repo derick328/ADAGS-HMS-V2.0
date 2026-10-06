@@ -73,24 +73,47 @@ public class JdbcPatientRepository implements PatientRepository {
 
     @Override
     public List<PatientSearchResult> search(String query, int limit) {
+        // Token-based AND match. The query is split on whitespace and every
+        // token must appear somewhere in a searchable field. Matching each
+        // name column on the whole string instead would make a full-name
+        // query ("Derick Gabriel Mhidze") match nothing — no single column
+        // holds the entire string — while a single-word query still worked,
+        // the exact failure a receptionist hits when typing a patient's full
+        // name. Tokenising also makes word order irrelevant ("Mhidze Derick"
+        // finds the same person) and lets a name token and a hospital-number
+        // token be combined. The full concatenated name is included per token
+        // so an identifier typed alongside a name still matches.
+        String[] tokens = query == null ? new String[0] : query.trim().split("\\s+");
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("limit", limit);
+
+        StringBuilder where = new StringBuilder("merged_into_id IS NULL");
+        int i = 0;
+        for (String token : tokens) {
+            if (token.isEmpty()) {
+                continue;
+            }
+            String p = "tok" + i++;
+            params.addValue(p, "%" + token + "%");
+            where.append("""
+                      AND (
+                           hospital_no ILIKE :%1$s
+                        OR given_name ILIKE :%1$s
+                        OR middle_name ILIKE :%1$s
+                        OR family_name ILIKE :%1$s
+                        OR phone ILIKE :%1$s
+                        OR national_id ILIKE :%1$s
+                        OR concat_ws(' ', given_name, middle_name, family_name) ILIKE :%1$s
+                      )""".formatted(p));
+        }
+
         String sql = """
                 SELECT id, hospital_no, given_name, middle_name, family_name, date_of_birth,
                        dob_is_estimated, phone
                 FROM patient
-                WHERE merged_into_id IS NULL
-                  AND (
-                       hospital_no ILIKE :pattern
-                    OR given_name ILIKE :pattern
-                    OR family_name ILIKE :pattern
-                    OR phone ILIKE :pattern
-                    OR national_id ILIKE :pattern
-                  )
+                WHERE %s
                 ORDER BY family_name, given_name
                 LIMIT :limit
-                """;
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("pattern", "%" + query + "%")
-                .addValue("limit", limit);
+                """.formatted(where);
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
             String middleName = rs.getString("middle_name");
             String fullName = middleName == null || middleName.isBlank()

@@ -1,3 +1,5 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -46,12 +48,12 @@ export function PatientCareHubMarTab({ admission }: { admission: AdmissionRespon
     (a, b) => new Date(a.scheduledAt ?? 0).getTime() - new Date(b.scheduledAt ?? 0).getTime(),
   );
 
-  if (isLoading) return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
-  if (rows.length === 0) return <p style={{ color: 'var(--text-muted)' }}>No medication schedule generated yet.</p>;
+  if (isLoading) return <FeedbackState loading>Loading…</FeedbackState>;
+  if (rows.length === 0) return <FeedbackState>No medication schedule generated yet.</FeedbackState>;
 
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-      <table className="table">
+      <TableRegion label="Medication administration record"><table className="table">
         <caption className="sr-only">Medication administration record</caption>
         <thead>
           <tr>
@@ -67,7 +69,7 @@ export function PatientCareHubMarTab({ admission }: { admission: AdmissionRespon
             <MarRow key={row.id} admissionId={admission.id as string} row={row} />
           ))}
         </tbody>
-      </table>
+      </table></TableRegion>
     </div>
   );
 }
@@ -230,7 +232,7 @@ function MarkForm({
       <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
         <label style={{ fontSize: 'var(--text-sm)' }}>
           Outcome
-          <select {...register('status')} style={selectStyle}>
+          <select className="clinical-control" {...register('status')} style={selectStyle}>
             <option value="GIVEN">Given</option>
             {NON_GIVEN_STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -243,12 +245,12 @@ function MarkForm({
         {status === 'GIVEN' ? (
           <label style={{ fontSize: 'var(--text-sm)' }}>
             Dose given
-            <input type="text" {...register('doseGiven')} style={inputStyle} />
+            <input className="clinical-control" type="text" {...register('doseGiven')} style={inputStyle} />
           </label>
         ) : (
           <label style={{ fontSize: 'var(--text-sm)' }}>
             Reason
-            <select {...register('omissionReason')} style={selectStyle}>
+            <select className="clinical-control" {...register('omissionReason')} style={selectStyle}>
               <option value="">Select a reason</option>
               {OMISSION_REASONS.map((r) => (
                 <option key={r} value={r}>
@@ -263,7 +265,7 @@ function MarkForm({
         {status === 'GIVEN' && (
           <label style={{ fontSize: 'var(--text-sm)' }}>
             Batch (from the ward dispense, if known)
-            <input type="text" {...register('batchId')} style={inputStyle} placeholder="Batch ID" />
+            <input aria-label="Batch ID" className="clinical-control" type="text" {...register('batchId')} style={inputStyle} placeholder="Batch ID" />
           </label>
         )}
       </div>
@@ -273,7 +275,7 @@ function MarkForm({
           {canWitness ? (
             <label style={{ fontSize: 'var(--text-sm)', display: 'block' }}>
               Witness user ID — a second person, different from you
-              <input type="text" {...register('witnessUserId')} style={inputStyle} placeholder="Witnessing nurse's user ID" />
+              <input aria-label="Witnessing nurse's user ID" className="clinical-control" type="text" {...register('witnessUserId')} style={inputStyle} placeholder="Witnessing nurse's user ID" />
             </label>
           ) : (
             <p className="field-error" style={{ margin: 0 }}>
@@ -285,13 +287,13 @@ function MarkForm({
 
       <label style={{ fontSize: 'var(--text-sm)' }}>
         Remarks (optional)
-        <textarea rows={2} {...register('remarks')} style={inputStyle} />
+        <textarea className="clinical-control" rows={2} {...register('remarks')} style={inputStyle} />
       </label>
 
       {status !== 'GIVEN' && (
         <label style={{ fontSize: 'var(--text-sm)' }}>
           Notes (optional)
-          <textarea rows={2} {...register('omissionNotes')} style={inputStyle} />
+          <textarea className="clinical-control" rows={2} {...register('omissionNotes')} style={inputStyle} />
         </label>
       )}
 

@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import {
@@ -64,18 +67,16 @@ export function CashierShiftPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Cashier Shift</h1>
-      </header>
+      <PageHeader title={<>Cashier shift</>} description={<>Review collections and reconcile your current cashier shift.</>} />
 
       {isLoading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : !shift ? (
         <div style={cardStyle}>
           {justClosed ? (
             <ClosedShiftSummary shift={justClosed} />
           ) : (
-            <p style={{ color: 'var(--text-muted)' }}>No cashier shift open.</p>
+            <FeedbackState>No cashier shift open.</FeedbackState>
           )}
           {canOpen && (
             <button type="button" className="btn btn-primary" style={{ marginTop: 'var(--space-3)' }} disabled={open.isPending} onClick={() => open.mutate()}>
@@ -96,9 +97,9 @@ export function CashierShiftPage() {
           <section style={sectionStyle}>
             <h2 style={sectionTitleStyle}>By method</h2>
             {totalsByMethod.size === 0 ? (
-              <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No payments recorded yet.</p>
+              <FeedbackState>No payments recorded yet.</FeedbackState>
             ) : (
-              <table className="table">
+              <TableRegion label="Totals by payment method"><table className="table">
                 <caption className="sr-only">Totals by payment method</caption>
                 <thead><tr><th>Method</th><th>Total</th></tr></thead>
                 <tbody>
@@ -109,7 +110,7 @@ export function CashierShiftPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></TableRegion>
             )}
           </section>
 
@@ -119,7 +120,7 @@ export function CashierShiftPage() {
               <label htmlFor="counted-cash" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
                 Counted cash (TZS)
               </label>
-              <input
+              <input className="clinical-control"
                 id="counted-cash"
                 type="number"
                 min={0}

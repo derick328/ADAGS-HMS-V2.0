@@ -93,7 +93,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="login-page">
+    <main className="login-page"><div className="login-layout">
       <div className="login-hero">
         <div className="login-hero-pattern" aria-hidden="true" />
         <div className="login-hero-content">
@@ -105,7 +105,13 @@ export function LoginPage() {
             <span className="login-tagline">Hospital management system</span>
           </div>
         </div>
-        <p className="login-trust">Secure clinical workspace</p>
+        <div className="login-introduction">
+          <span className="login-eyebrow">Hospital management system</span>
+          <h2>Care starts with<br />a connected team.</h2>
+          <p>Your workspace for patient care, hospital operations, and the next step in every visit.</p>
+        </div>
+        <div className="login-capabilities"><span>Patient care</span><span>Clinical services</span><span>Hospital operations</span></div>
+        <p className="login-trust"><Lock size={14} aria-hidden="true" /> Authorized staff access</p>
       </div>
 
       <div className="login-form-panel">
@@ -118,7 +124,7 @@ export function LoginPage() {
 
         <form className="login-card" onSubmit={onSubmit} noValidate>
           <h1>Welcome back</h1>
-          <p className="login-subtitle">Sign in to your workspace</p>
+          <p className="login-subtitle">Use your staff account to access your workspace.</p>
 
           {formError && (
             <div className="form-banner" role="alert">
@@ -195,6 +201,6 @@ export function LoginPage() {
           </p>
         </form>
       </div>
-    </div>
+    </div></main>
   );
 }

@@ -1,3 +1,4 @@
+import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
 import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
 import { fetchPendingLabStockRequests } from '../../shared/api/labStockRequests';
@@ -21,10 +22,11 @@ export function PharmacyShell() {
 
   return (
     <div className="pharmacy-shell-outer">
-      <div className="pharmacy-shell">
-        <aside className="pharmacy-sidebar">
-          <div className="pharmacy-sidebar-brand">ADAGS</div>
-          <nav className="pharmacy-nav">
+      <div className="pharmacy-shell app-shell">
+        <a className="skip-link" href="#workspace-main">Skip to content</a>
+        <aside className="pharmacy-sidebar app-sidebar">
+          <WorkspaceBrand workspace="Pharmacy" />
+          <nav className="pharmacy-nav app-nav" aria-label="Pharmacy navigation">
             <DashboardLink />
             <DispensingQueueLink />
             <HistoryLink />
@@ -38,15 +40,15 @@ export function PharmacyShell() {
               Profile
             </NavLink>
           </nav>
-          <div className="pharmacy-sidebar-footer">
+          <div className="pharmacy-sidebar-footer app-sidebar-footer">
             <div className="pharmacy-user">{me?.username}</div>
-            <button type="button" className="pharmacy-logout" onClick={() => logout()}>
+            <button type="button" className="pharmacy-logout app-logout" onClick={() => logout()}>
               Sign out
             </button>
           </div>
         </aside>
-        <main className="pharmacy-content">
-          <Outlet />
+        <main id="workspace-main" tabIndex={-1} className="pharmacy-content app-content">
+          <div className="workspace-body"><Outlet /></div>
         </main>
       </div>
     </div>

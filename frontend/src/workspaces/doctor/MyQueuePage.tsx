@@ -1,3 +1,4 @@
+import { PageHeader } from '../../shared/components/PageHeader';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchEncounterById, searchEncounters, type EncounterResponse } from '../../shared/api/encounters';
@@ -67,6 +68,7 @@ export function MyQueuePage() {
 
   return (
     <div>
+      <PageHeader title="My queue" description="Continue consultations in progress or open the next waiting patient." />
       {location.state?.consultationError && (
         <div className="form-error" style={{ marginBottom: 'var(--space-3)' }}>
           {location.state.consultationError}
@@ -74,7 +76,7 @@ export function MyQueuePage() {
       )}
       {inProgressRows.length > 0 && (
         <div style={{ marginBottom: 'var(--space-4)' }}>
-          <QueueShell
+          <QueueShell headingLevel={2}
             title="In progress"
             rows={inProgressRows}
             isLoading={false}
@@ -82,7 +84,7 @@ export function MyQueuePage() {
           />
         </div>
       )}
-      <QueueShell
+      <QueueShell headingLevel={2}
         title="Waiting"
         rows={waitingRows}
         isLoading={isLoading}

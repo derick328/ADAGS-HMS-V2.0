@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Fragment, useState } from 'react';
@@ -38,20 +41,15 @@ export function LabStockRequestsPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Lab Stock Requests</h1>
-        <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>
-          Reagent requests from lab technicians, oldest first.
-        </p>
-      </header>
+      <PageHeader title={<>Lab stock requests</>} description={<>Reagent requests from lab technicians, oldest first.</>} />
 
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {isLoading ? (
-          <p style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</p>
+          <FeedbackState loading>Loading…</FeedbackState>
         ) : rows.length === 0 ? (
-          <p style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--text-muted)' }}>No open requests.</p>
+          <FeedbackState>No open requests.</FeedbackState>
         ) : (
-          <table className="table">
+          <TableRegion label="Pending lab stock requests"><table className="table">
             <caption className="sr-only">Pending lab stock requests</caption>
             <thead>
               <tr>
@@ -93,7 +91,7 @@ export function LabStockRequestsPage() {
                 </Fragment>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </div>
     </div>
@@ -150,7 +148,7 @@ function RespondPanel({ row, onDone }: { row: LabStockRequestQueueRowResponse; o
         <form onSubmit={releaseForm.handleSubmit((v) => releaseSubmit.mutate(v))} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <div>
             <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>Batch</label>
-            <select {...releaseForm.register('batchId')} style={inputStyle}>
+            <select className="clinical-control" {...releaseForm.register('batchId')} style={inputStyle}>
               <option value="">Select a batch</option>
               {batchesForItem.map((b) => (
                 <option key={b.batchId} value={b.batchId}>
@@ -162,7 +160,7 @@ function RespondPanel({ row, onDone }: { row: LabStockRequestQueueRowResponse; o
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>Quantity (≤ {row.remaining} remaining)</label>
-            <input type="text" inputMode="numeric" {...releaseForm.register('quantity')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="numeric" {...releaseForm.register('quantity')} style={inputStyle} />
             {releaseForm.formState.errors.quantity && <span className="field-error">{releaseForm.formState.errors.quantity.message}</span>}
           </div>
           {releaseSubmit.error && <div className="form-error">Something went wrong. Try again.</div>}
@@ -176,7 +174,7 @@ function RespondPanel({ row, onDone }: { row: LabStockRequestQueueRowResponse; o
         <form onSubmit={rejectForm.handleSubmit((v) => rejectSubmit.mutate(v))} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <div>
             <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>Reason</label>
-            <textarea rows={2} {...rejectForm.register('responseNotes')} style={inputStyle} />
+            <textarea className="clinical-control" rows={2} {...rejectForm.register('responseNotes')} style={inputStyle} />
             {rejectForm.formState.errors.responseNotes && <span className="field-error">{rejectForm.formState.errors.responseNotes.message}</span>}
           </div>
           {rejectSubmit.error && <div className="form-error">Something went wrong. Try again.</div>}

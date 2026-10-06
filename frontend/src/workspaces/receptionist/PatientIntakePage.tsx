@@ -1,3 +1,10 @@
+import { FormSection } from '../../shared/components/FormSection';
+import { Checkbox } from '../../shared/components/Checkbox';
+import { Radio } from '../../shared/components/Radio';
+import { FormField as FormRow } from '../../shared/components/FormField';
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type CSSProperties } from 'react';
@@ -10,6 +17,7 @@ import { fetchInsuranceSchemes } from '../../shared/api/insuranceSchemes';
 import {
   DuplicatePatientError,
   fetchPatientById,
+  fetchVisitHistory,
   registerPatient,
   searchPatients,
   type DuplicateCandidate,
@@ -19,8 +27,9 @@ import {
 } from '../../shared/api/patients';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
-import { formatDate } from '../../shared/format/date';
+import { formatDate, formatWeekdayDate } from '../../shared/format/date';
 import { formatPhone } from '../../shared/format/phone';
+import { Modal } from '../../shared/components/Modal';
 import { BOOTSTRAP_FACILITY_ID } from '../../shared/facility';
 
 // 05-receptionist.md §4/§5.2. Two things this screen deliberately does
@@ -47,15 +56,13 @@ export function PatientIntakePage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Patient Intake</h1>
-      </header>
+      <PageHeader title={<>Patient intake</>} description={<>Find or register a patient, then prepare their visit.</>} />
 
       <HereNowPanel />
 
       <section style={{ marginTop: 'var(--space-6)' }}>
         <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)' }}>Find a patient</h2>
-        <form
+        <form className="clinical-filter-bar"
           onSubmit={(e) => {
             e.preventDefault();
             setSubmittedQuery(query.trim());
@@ -63,7 +70,7 @@ export function PatientIntakePage() {
           }}
           style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}
         >
-          <input
+          <input className="clinical-control"
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -151,11 +158,11 @@ function HereNowPanel() {
         Here now
       </h2>
       {isLoading ? (
-        <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : !encounters || encounters.length === 0 ? (
-        <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No patients in the building.</p>
+        <FeedbackState>No patients in the building.</FeedbackState>
       ) : (
-        <table className="table">
+        <TableRegion label="Encounters currently open"><table className="table">
           <caption className="sr-only">Encounters currently open</caption>
           <thead>
             <tr>
@@ -179,7 +186,7 @@ function HereNowPanel() {
               )),
             )}
           </tbody>
-        </table>
+        </table></TableRegion>
       )}
     </section>
   );
@@ -238,7 +245,7 @@ function SendToTriageControl({ patientId, onSent }: { patientId: string; onSent?
 
   if (picking) {
     return (
-      <select
+      <select className="clinical-control"
         autoFocus
         onChange={(e) => sendToTriage.mutate(e.target.value)}
         style={{ font: 'inherit' }}
@@ -264,9 +271,17 @@ function SendToTriageControl({ patientId, onSent }: { patientId: string; onSent?
 }
 
 function SearchResultsTable({ results }: { results: PatientSearchResult[] }) {
+  const canOpenEncounter = usePermission('ENCOUNTER_OPEN');
+  // The patient whose "start a new encounter" prompt is open. A registered
+  // patient found in search doesn't get sent to triage on a single click —
+  // the receptionist confirms in a dialog that also surfaces when this
+  // patient last visited, so a repeat attendance or a same-day duplicate
+  // encounter is visible before a new one is opened.
+  const [startEncounterFor, setStartEncounterFor] = useState<PatientSearchResult | null>(null);
+
   return (
     <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-      <table className="table">
+      <TableRegion label="Patient search results"><table className="table">
         <caption className="sr-only">Patient search results</caption>
         <thead>
           <tr>
@@ -292,18 +307,93 @@ function SearchResultsTable({ results }: { results: PatientSearchResult[] }) {
               <td>{ageFromDob(patient.dateOfBirth)}</td>
               <td>{formatPhone(patient.phone)}</td>
               <td style={{ width: 1, whiteSpace: 'nowrap' }}>
-                <SendToTriageControl patientId={patient.id as string} />
+                {canOpenEncounter && (
+                  <button type="button" className="btn btn-primary" onClick={() => setStartEncounterFor(patient)}>
+                    Start encounter
+                  </button>
+                )}
               </td>
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></TableRegion>
+
+      <StartEncounterModal patient={startEncounterFor} onClose={() => setStartEncounterFor(null)} />
     </div>
   );
 }
 
-const relationshipOptions = ['SPOUSE', 'PARENT', 'CHILD', 'SIBLING', 'GUARDIAN', 'FRIEND', 'OTHER'] as const;
-const genderOptions = ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY'] as const;
+// 05-receptionist.md §5.2. The "patient is already registered — start a new
+// encounter and send them to triage" prompt. It also answers "has this
+// person been here before, and when?" inline: PATIENT_READ_VISIT_HISTORY
+// is a receptionist permission (V5), and seeing the last visit day/date
+// before opening a fresh encounter is how the front desk catches a
+// same-day duplicate or recognises a returning patient.
+function StartEncounterModal({ patient, onClose }: { patient: PatientSearchResult | null; onClose: () => void }) {
+  const { accessToken } = useAuth();
+  const canReadVisitHistory = usePermission('PATIENT_READ_VISIT_HISTORY');
+  const patientId = patient?.id;
+
+  const { data: history, isLoading } = useQuery({
+    queryKey: ['patient', patientId, 'visit-history'],
+    queryFn: () => fetchVisitHistory(patientId as string, accessToken as string),
+    enabled: accessToken != null && patientId != null && canReadVisitHistory,
+  });
+
+  return (
+    <Modal
+      open={patient != null}
+      onClose={onClose}
+      size="md"
+      title={<>Start a new encounter</>}
+      description={
+        patient ? (
+          <>
+            {patient.fullName} · {patient.hospitalNo ?? '—'} is already registered. Opening an encounter sends them
+            to triage.
+          </>
+        ) : undefined
+      }
+      footer={
+        <>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          {patientId && <SendToTriageControl patientId={patientId} onSent={onClose} />}
+        </>
+      }
+    >
+      <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', margin: '0 0 var(--space-2)', color: 'var(--text-secondary)' }}>
+        Previous visits
+      </h3>
+      {!canReadVisitHistory ? (
+        <p style={{ color: 'var(--text-muted)', margin: 0 }}>You don't hold PATIENT_READ_VISIT_HISTORY.</p>
+      ) : isLoading ? (
+        <FeedbackState loading>Loading visit history…</FeedbackState>
+      ) : !history || history.length === 0 ? (
+        <p style={{ color: 'var(--text-muted)', margin: 0 }}>No previous visits — this is their first time at the facility.</p>
+      ) : (
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          {history.map((h) => (
+            <li
+              key={h.encounterId}
+              style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', fontSize: 'var(--text-sm)' }}
+            >
+              <span style={{ fontWeight: 'var(--weight-medium)' }}>{formatWeekdayDate(h.encounterDate)}</span>
+              <span style={{ color: 'var(--text-secondary)', textAlign: 'right' }}>
+                {h.departmentName ?? '—'}
+                {h.encounterState ? ` · ${h.encounterState.replaceAll('_', ' ').toLowerCase()}` : ''}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Modal>
+  );
+}
+
+const relationshipOptions = ['SPOUSE', 'PARENT', 'CHILD', 'SIBLING', 'GUARDIAN', 'FRIEND', 'RELATIVE', 'OTHER'] as const;
+const genderOptions = ['MALE', 'FEMALE'] as const;
 const maritalStatusOptions = ['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED', 'WIDOWER'] as const;
 const MINOR_MAX_AGE = 15;
 
@@ -326,10 +416,10 @@ const registrationSchema = z
     nokRelationship: z.enum(relationshipOptions),
     nokRelationshipOther: z.string().optional(),
     nokPhone: z.string().min(1, "Enter the next of kin's phone number"),
-    currentRegion: z.string().optional(),
-    currentDistrict: z.string().optional(),
-    currentWard: z.string().optional(),
-    currentStreetOrVillage: z.string().optional(),
+    currentRegion: z.string().min(1, 'Enter a region'),
+    currentDistrict: z.string().min(1, 'Enter a district'),
+    currentWard: z.string().min(1, 'Enter a ward'),
+    currentStreetOrVillage: z.string().min(1, 'Enter a street or village'),
     currentLandmark: z.string().optional(),
     permanentSameAsCurrent: z.boolean(),
     permanentRegion: z.string().optional(),
@@ -356,6 +446,18 @@ const registrationSchema = z
   })
   .refine((v) => v.nokRelationship !== 'OTHER' || (v.nokRelationshipOther ?? '').trim() !== '', {
     message: 'Describe the relationship', path: ['nokRelationshipOther'],
+  })
+  .refine((v) => v.permanentSameAsCurrent || (v.permanentRegion ?? '').trim() !== '', {
+    message: 'Enter a region', path: ['permanentRegion'],
+  })
+  .refine((v) => v.permanentSameAsCurrent || (v.permanentDistrict ?? '').trim() !== '', {
+    message: 'Enter a district', path: ['permanentDistrict'],
+  })
+  .refine((v) => v.permanentSameAsCurrent || (v.permanentWard ?? '').trim() !== '', {
+    message: 'Enter a ward', path: ['permanentWard'],
+  })
+  .refine((v) => v.permanentSameAsCurrent || (v.permanentStreetOrVillage ?? '').trim() !== '', {
+    message: 'Enter a street or village', path: ['permanentStreetOrVillage'],
   })
   .refine((v) => normalizePhone(v.nokPhone) !== normalizePhone(v.phone), {
     message: 'Enter a different phone from the patient’s', path: ['nokPhone'],
@@ -427,29 +529,25 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
   });
 
   function toRequest(values: RegistrationValues): RegisterPatientRequest {
-    const addresses = [];
-    if (values.currentRegion || values.currentDistrict || values.currentWard || values.currentStreetOrVillage || values.currentLandmark) {
-      addresses.push({
-        addressType: 'CURRENT',
-        region: values.currentRegion,
-        district: values.currentDistrict,
-        ward: values.currentWard,
-        streetOrVillage: values.currentStreetOrVillage,
-        landmark: values.currentLandmark,
-      });
-    }
-    if (!values.permanentSameAsCurrent && (values.permanentRegion || values.permanentDistrict || values.permanentWard || values.permanentStreetOrVillage || values.permanentLandmark)) {
-      addresses.push({
-        addressType: 'PERMANENT',
-        region: values.permanentRegion,
-        district: values.permanentDistrict,
-        ward: values.permanentWard,
-        streetOrVillage: values.permanentStreetOrVillage,
-        landmark: values.permanentLandmark,
-      });
-    } else if (values.permanentSameAsCurrent && addresses.length > 0) {
-      addresses.push({ ...addresses[0], addressType: 'PERMANENT' });
-    }
+    const current = {
+      addressType: 'CURRENT',
+      region: values.currentRegion,
+      district: values.currentDistrict,
+      ward: values.currentWard,
+      streetOrVillage: values.currentStreetOrVillage,
+      landmark: values.currentLandmark || undefined,
+    };
+    const permanent = values.permanentSameAsCurrent
+      ? { ...current, addressType: 'PERMANENT' }
+      : {
+          addressType: 'PERMANENT',
+          region: values.permanentRegion,
+          district: values.permanentDistrict,
+          ward: values.permanentWard,
+          streetOrVillage: values.permanentStreetOrVillage,
+          landmark: values.permanentLandmark || undefined,
+        };
+    const addresses = [current, permanent];
 
     return {
       givenName: values.givenName,
@@ -515,7 +613,7 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
   const hardBlock = duplicateCandidates?.some((c) => c.reasons.includes('NATIONAL_ID_EXACT'));
 
   return (
-    <form onSubmit={onSubmit} noValidate style={{ ...cardStyle, marginTop: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+    <form onSubmit={onSubmit} noValidate className="clinical-form-layout intake-form">
       {duplicateCandidates && (
         <div
           role="alert"
@@ -536,7 +634,7 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
               <label htmlFor="not-same-person" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
                 Reason this is not the same person
               </label>
-              <textarea id="not-same-person" rows={2} {...register('notSamePersonConfirmationReason')} style={fieldStyle} />
+              <textarea className="clinical-control" id="not-same-person" rows={2} {...register('notSamePersonConfirmationReason')} style={fieldStyle} />
               <button type="button" className="btn btn-danger" style={{ marginTop: 'var(--space-2)' }} onClick={onSubmit}>
                 Confirm not the same person and register
               </button>
@@ -545,41 +643,37 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
         </div>
       )}
 
-      <fieldset style={fieldsetStyle}>
-        <legend style={legendStyle}>Identity</legend>
+      <FormSection title="Identity" columns={2} className="form-section--wide">
+
         <FormRow label="Given name" error={errors.givenName?.message}>
-          <input {...register('givenName')} style={fieldStyle} />
+          <input className="clinical-control" {...register('givenName')} style={fieldStyle} />
         </FormRow>
         <FormRow label="Middle name (optional)">
-          <input {...register('middleName')} style={fieldStyle} />
+          <input className="clinical-control" {...register('middleName')} style={fieldStyle} />
         </FormRow>
         <FormRow label="Family name" error={errors.familyName?.message}>
-          <input {...register('familyName')} style={fieldStyle} />
+          <input className="clinical-control" {...register('familyName')} style={fieldStyle} />
         </FormRow>
         <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: 'var(--text-sm)' }}>
-            <input type="radio" value="exact" {...register('dobKnown')} /> Exact date of birth
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: 'var(--text-sm)' }}>
-            <input type="radio" value="estimated" {...register('dobKnown')} /> Estimated age
-          </label>
+          <Radio  className="clinical-choice" value="exact" {...register('dobKnown')} label={<>Exact date of birth</>} />
+          <Radio  className="clinical-choice" value="estimated" {...register('dobKnown')} label={<>Estimated age</>} />
         </div>
         {dobKnown === 'exact' ? (
           <FormRow label="Date of birth" error={errors.dateOfBirth?.message}>
-            <input type="date" {...register('dateOfBirth')} style={fieldStyle} />
+            <input className="clinical-control" type="date" {...register('dateOfBirth')} style={fieldStyle} />
           </FormRow>
         ) : (
           <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
             <FormRow label="Age (years)" error={errors.ageYears?.message}>
-              <input type="number" min={0} {...register('ageYears')} style={fieldStyle} />
+              <input className="clinical-control" type="number" min={0} {...register('ageYears')} style={fieldStyle} />
             </FormRow>
             <FormRow label="Months (optional)">
-              <input type="number" min={0} max={11} {...register('ageMonths')} style={fieldStyle} />
+              <input className="clinical-control" type="number" min={0} max={11} {...register('ageMonths')} style={fieldStyle} />
             </FormRow>
           </div>
         )}
         <FormRow label="Gender" error={errors.gender?.message}>
-          <select {...register('gender')} style={fieldStyle}>
+          <select className="clinical-control" {...register('gender')} style={fieldStyle}>
             {genderOptions.map((g) => (
               <option key={g} value={g}>
                 {g.replaceAll('_', ' ').toLowerCase()}
@@ -589,7 +683,7 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
         </FormRow>
         {!isMinor && (
           <FormRow label="Marital status (optional)">
-            <select {...register('maritalStatus')} style={fieldStyle} defaultValue="">
+            <select className="clinical-control" {...register('maritalStatus')} style={fieldStyle} defaultValue="">
               <option value="">—</option>
               {maritalStatusOptions.map((m) => (
                 <option key={m} value={m}>
@@ -600,30 +694,30 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
           </FormRow>
         )}
         <FormRow label="National ID (optional)">
-          <input {...register('nationalId')} style={fieldStyle} />
+          <input className="clinical-control" {...register('nationalId')} style={fieldStyle} />
         </FormRow>
-      </fieldset>
+      </FormSection>
 
-      <fieldset style={fieldsetStyle}>
-        <legend style={legendStyle}>Contact</legend>
+      <FormSection title="Contact" columns={1}>
+
         <FormRow label="Phone" error={errors.phone?.message}>
-          <input {...register('phone')} style={fieldStyle} placeholder="0700000000" />
+          <input aria-label="0700000000" className="clinical-control" {...register('phone')} style={fieldStyle} placeholder="0700000000" />
         </FormRow>
         <FormRow label="Email (optional)">
-          <input type="email" {...register('email')} style={fieldStyle} />
+          <input className="clinical-control" type="email" {...register('email')} style={fieldStyle} />
         </FormRow>
         <FormRow label="Occupation (optional)">
-          <input {...register('occupation')} style={fieldStyle} />
+          <input className="clinical-control" {...register('occupation')} style={fieldStyle} />
         </FormRow>
-      </fieldset>
+      </FormSection>
 
-      <fieldset style={fieldsetStyle}>
-        <legend style={legendStyle}>Next of kin</legend>
+      <FormSection title="Next of kin" columns={1}>
+
         <FormRow label="Full name" error={errors.nokFullName?.message}>
-          <input {...register('nokFullName')} style={fieldStyle} />
+          <input className="clinical-control" {...register('nokFullName')} style={fieldStyle} />
         </FormRow>
         <FormRow label="Relationship" error={errors.nokRelationship?.message}>
-          <select {...register('nokRelationship')} style={fieldStyle}>
+          <select className="clinical-control" {...register('nokRelationship')} style={fieldStyle}>
             {relationshipOptions.map((r) => (
               <option key={r} value={r}>
                 {r.toLowerCase()}
@@ -633,48 +727,44 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
         </FormRow>
         {nokRelationship === 'OTHER' && (
           <FormRow label="Specify relationship" error={errors.nokRelationshipOther?.message}>
-            <input {...register('nokRelationshipOther')} style={fieldStyle} />
+            <input className="clinical-control" {...register('nokRelationshipOther')} style={fieldStyle} />
           </FormRow>
         )}
         <FormRow label="Phone" error={errors.nokPhone?.message}>
-          <input {...register('nokPhone')} style={fieldStyle} placeholder="0700000000" />
+          <input aria-label="0700000000" className="clinical-control" {...register('nokPhone')} style={fieldStyle} placeholder="0700000000" />
         </FormRow>
-      </fieldset>
+      </FormSection>
 
-      <fieldset style={fieldsetStyle}>
-        <legend style={legendStyle}>Current address (optional)</legend>
-        <FormRow label="Region"><input {...register('currentRegion')} style={fieldStyle} /></FormRow>
-        <FormRow label="District"><input {...register('currentDistrict')} style={fieldStyle} /></FormRow>
-        <FormRow label="Ward"><input {...register('currentWard')} style={fieldStyle} /></FormRow>
-        <FormRow label="Street or village"><input {...register('currentStreetOrVillage')} style={fieldStyle} /></FormRow>
-        <FormRow label="Landmark"><input {...register('currentLandmark')} style={fieldStyle} /></FormRow>
-      </fieldset>
+      <FormSection title="Current address" columns={2}>
 
-      <fieldset style={fieldsetStyle}>
-        <legend style={legendStyle}>Permanent address</legend>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>
-          <input type="checkbox" {...register('permanentSameAsCurrent')} /> Same as current
-        </label>
+        <FormRow label="Region" error={errors.currentRegion?.message}><input className="clinical-control" {...register('currentRegion')} style={fieldStyle} /></FormRow>
+        <FormRow label="District" error={errors.currentDistrict?.message}><input className="clinical-control" {...register('currentDistrict')} style={fieldStyle} /></FormRow>
+        <FormRow label="Ward" error={errors.currentWard?.message}><input className="clinical-control" {...register('currentWard')} style={fieldStyle} /></FormRow>
+        <FormRow label="Street or village" error={errors.currentStreetOrVillage?.message}><input className="clinical-control" {...register('currentStreetOrVillage')} style={fieldStyle} /></FormRow>
+        <FormRow label="Landmark (optional)"><input className="clinical-control" {...register('currentLandmark')} style={fieldStyle} /></FormRow>
+      </FormSection>
+
+      <FormSection title="Permanent address" columns={2}>
+
+        <Checkbox  className="clinical-choice" {...register('permanentSameAsCurrent')} label={<>Same as current</>} />
         {!permanentSameAsCurrent && (
           <>
-            <FormRow label="Region"><input {...register('permanentRegion')} style={fieldStyle} /></FormRow>
-            <FormRow label="District"><input {...register('permanentDistrict')} style={fieldStyle} /></FormRow>
-            <FormRow label="Ward"><input {...register('permanentWard')} style={fieldStyle} /></FormRow>
-            <FormRow label="Street or village"><input {...register('permanentStreetOrVillage')} style={fieldStyle} /></FormRow>
-            <FormRow label="Landmark"><input {...register('permanentLandmark')} style={fieldStyle} /></FormRow>
+            <FormRow label="Region" error={errors.permanentRegion?.message}><input className="clinical-control" {...register('permanentRegion')} style={fieldStyle} /></FormRow>
+            <FormRow label="District" error={errors.permanentDistrict?.message}><input className="clinical-control" {...register('permanentDistrict')} style={fieldStyle} /></FormRow>
+            <FormRow label="Ward" error={errors.permanentWard?.message}><input className="clinical-control" {...register('permanentWard')} style={fieldStyle} /></FormRow>
+            <FormRow label="Street or village" error={errors.permanentStreetOrVillage?.message}><input className="clinical-control" {...register('permanentStreetOrVillage')} style={fieldStyle} /></FormRow>
+            <FormRow label="Landmark (optional)"><input className="clinical-control" {...register('permanentLandmark')} style={fieldStyle} /></FormRow>
           </>
         )}
-      </fieldset>
+      </FormSection>
 
-      <fieldset style={fieldsetStyle}>
-        <legend style={legendStyle}>Insurance (optional)</legend>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>
-          <input type="checkbox" {...register('hasInsurance')} /> Patient has insurance
-        </label>
+      <FormSection title="Insurance (optional)" columns={1}>
+
+        <Checkbox  className="clinical-choice" {...register('hasInsurance')} label={<>Patient has insurance</>} />
         {hasInsurance && (
           <>
             <FormRow label="Scheme">
-              <select {...register('schemeId')} style={fieldStyle} defaultValue="">
+              <select className="clinical-control" {...register('schemeId')} style={fieldStyle} defaultValue="">
                 <option value="" disabled>
                   Choose a scheme
                 </option>
@@ -686,27 +776,21 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
               </select>
             </FormRow>
             <FormRow label="Policy number">
-              <input {...register('policyNumber')} style={fieldStyle} />
+              <input className="clinical-control" {...register('policyNumber')} style={fieldStyle} />
             </FormRow>
             <FormRow label="Member number (optional)">
-              <input {...register('memberNumber')} style={fieldStyle} />
+              <input className="clinical-control" {...register('memberNumber')} style={fieldStyle} />
             </FormRow>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: 'var(--text-sm)' }}>
-              <input
-                type="checkbox"
-                checked={isPrincipal}
-                onChange={(e) => setValue('isPrincipal', e.target.checked)}
-              />{' '}
-              Patient is the principal member
-            </label>
+            <Checkbox  className="clinical-choice" checked={isPrincipal} onChange={(e) => setValue('isPrincipal', e.target.checked)} label={<>{' '}
+              Patient is the principal member</>} />
             {!isPrincipal && (
               <FormRow label="Principal member's name" error={errors.principalName?.message}>
-                <input {...register('principalName')} style={fieldStyle} />
+                <input className="clinical-control" {...register('principalName')} style={fieldStyle} />
               </FormRow>
             )}
           </>
         )}
-      </fieldset>
+      </FormSection>
 
       {submit.error && !duplicateCandidates && (
         <div className="form-error">Something went wrong. Check the values and try again.</div>
@@ -719,15 +803,6 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
   );
 }
 
-function FormRow({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 'var(--space-2)' }}>
-      <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>{label}</label>
-      {children}
-      {error && <span className="field-error">{error}</span>}
-    </div>
-  );
-}
 
 function ageFromDob(dob: string | undefined): string {
   if (!dob) return '—';
@@ -743,11 +818,7 @@ function ageFromDobString(dob: string | undefined): number | undefined {
 }
 
 function EmptyState({ message }: { message: string }) {
-  return (
-    <div style={{ padding: 'var(--space-10) var(--space-4)', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
-      {message}
-    </div>
-  );
+  return <FeedbackState loading={message.startsWith('Loading') || message.startsWith('Searching')}>{message}</FeedbackState>;
 }
 
 const cardStyle: CSSProperties = {
@@ -758,8 +829,6 @@ const cardStyle: CSSProperties = {
   maxWidth: 560,
 };
 
-const fieldsetStyle: CSSProperties = { border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 'var(--space-3)' };
-const legendStyle: CSSProperties = { fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', padding: '0 var(--space-2)' };
 
 const fieldStyle: CSSProperties = {
   width: '100%',

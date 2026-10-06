@@ -36,7 +36,7 @@
    */
   --critical:      #C4183C;   /* IMMEDIATE, critical results, overdue doses. This system's danger/error token — do not add a separate --danger token */
   --critical-bg:   #FCEBEE;
-  --warning:       #B8690A;   /* URGENT, expiring stock, unpaid */
+  --warning:       #8C4D08;   /* URGENT, expiring stock, unpaid */
   --warning-bg:    #FDF4E7;
   --info:          #1B6E9E;
   --info-bg:       #EBF4F9;
@@ -55,7 +55,7 @@
   /* ---- text ---------------------------------------------------------- */
   --text-primary:   var(--gray-900);
   --text-secondary: var(--gray-700);
-  --text-muted:     var(--gray-500);
+  --text-muted:     #646B60;
   --text-on-dark:   var(--white);
   --text-on-dark-muted: var(--green-200);
   --text-link:      var(--green-600);
@@ -67,8 +67,8 @@
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 
-  --text-xs:   11px;
-  --text-sm:   12px;
+  --text-xs:   12px;
+  --text-sm:   13px;
   --text-base: 14px;
   --text-lg:   16px;
   --text-xl:   20px;
@@ -109,11 +109,16 @@
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ---- layout -------------------------------------------------------- */
-  --sidebar-width: 216px;
+  --sidebar-width: 240px;
+  --content-width: 1280px;
   --header-height: 56px;
+  --control-height: 46px;
+  --control-border: #B8C4B1;
+  --control-shadow: inset 0 1px 2px rgb(23 52 4 / 0.035);
   --row-height:    44px;   /* touch-safe; ward staff use tablets */
 
-  --focus-ring: 0 0 0 3px rgb(127 255 0 / 0.45);
+  --focus-ring: 0 0 0 3px rgb(59 109 17 / 0.3);
+  --sidebar-active: rgb(127 255 0 / 0.10);
 }
 
 /* --------------------------------------------------------------------------
@@ -128,6 +133,7 @@ body {
   font-size: var(--text-base);
   color: var(--text-primary);
   background: var(--bg-page);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -159,22 +165,23 @@ body {
 
 .btn {
   display: inline-flex; align-items: center; gap: var(--space-2);
-  height: 34px; padding: 0 var(--space-4);
+  min-height: var(--row-height); height: auto; padding: var(--space-2) var(--space-4);
   font: inherit; font-size: var(--text-base); font-weight: var(--weight-medium);
   border-radius: var(--radius); border: 1px solid transparent;
   cursor: pointer; white-space: nowrap;
 }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled,
+.btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
 
 /* Primary uses green-600, NOT the signal green — white text needs 4.5:1. */
 .btn-primary { background: var(--green-600); color: var(--white); }
-.btn-primary:hover:not(:disabled) { background: var(--green-800); }
+.btn-primary:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--green-800); }
 
 .btn-secondary {
   background: var(--bg-surface); color: var(--text-primary);
   border-color: var(--border-strong);
 }
-.btn-secondary:hover:not(:disabled) { background: var(--gray-50); }
+.btn-secondary:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--gray-50); }
 
 .btn-danger { background: var(--critical); color: var(--white); }
 
@@ -186,7 +193,7 @@ body {
 
 .badge {
   display: inline-flex; align-items: center; gap: var(--space-1);
-  padding: 1px var(--space-2); border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-2); border-radius: var(--radius-full);
   font-size: var(--text-xs); font-weight: var(--weight-medium);
   white-space: nowrap;
 }
@@ -208,8 +215,8 @@ body {
 .table th {
   text-align: left; padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm); font-weight: var(--weight-medium);
-  color: var(--text-muted); border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; background: var(--bg-surface); z-index: 1;
+  color: var(--text-secondary); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--bg-raised); z-index: 1;
 }
 
 .table td {
@@ -217,7 +224,11 @@ body {
   vertical-align: middle;
 }
 
-.table tbody tr:hover { background: var(--gray-25); }
+.table tbody tr:hover { background: var(--gray-50); }
+.table tbody tr.row-critical:hover { background: var(--critical-bg); }
+.table tbody tr.row-selected:hover { background: var(--green-100); }
+.table tbody tr:last-child td { border-bottom: 0; }
+.table th.money { text-align: right; }
 
 /* Row severity: a left bar plus an icon in the cell. NEVER colour alone —
  * accessibility, and a colour-only cue on a critical patient is a safety bug. */

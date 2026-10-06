@@ -6,7 +6,6 @@ import com.adags.modules.billing.application.PostPaymentService;
 import com.adags.modules.billing.domain.BillingGate;
 import com.adags.modules.billing.domain.BillingGateRejectedException;
 import com.adags.modules.billing.domain.PaymentMethod;
-import com.adags.modules.encounters.application.MoveToAwaitingConsultService;
 import com.adags.modules.encounters.application.OpenEncounterCommand;
 import com.adags.modules.encounters.application.OpenEncounterService;
 import com.adags.modules.encounters.application.SubmitTriageAssessmentCommand;
@@ -83,8 +82,6 @@ class EndToEndBillingTest extends IntegrationTestSupport {
     @Autowired
     private SubmitTriageAssessmentService submitTriageAssessmentService;
     @Autowired
-    private MoveToAwaitingConsultService moveToAwaitingConsultService;
-    @Autowired
     private OpenCashierShiftService openCashierShiftService;
     @Autowired
     private PostPaymentService postPaymentService;
@@ -152,9 +149,10 @@ class EndToEndBillingTest extends IntegrationTestSupport {
 
         assertThat(billingGate.isSatisfied(invoiceLineId)).as("paid in full — now satisfied").isTrue();
 
-        Encounter afterGate = moveToAwaitingConsultService.moveToAwaitingConsult(checkedIn.id(), admin);
-
-        assertThat(afterGate.state()).isEqualTo(EncounterState.AWAITING_CONSULT);
+        String afterPaymentState = jdbcTemplate.queryForObject("SELECT state FROM encounter WHERE id = :id",
+                new MapSqlParameterSource("id", checkedIn.id()), String.class);
+        assertThat(afterPaymentState).as("settlement automatically moves the encounter to consultation")
+                .isEqualTo(EncounterState.AWAITING_CONSULT.name());
     }
 
     // 02-billing-architecture.md §5: the whole design in one sentence —

@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type CSSProperties } from 'react';
@@ -72,23 +75,11 @@ export function UsersPage() {
 
   return (
     <div>
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'baseline',
-          justifyContent: 'space-between',
-          marginBottom: 'var(--space-4)',
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>
-          Users / add nurse / staff
-        </h1>
-        {canManageUsers && (
+      <PageHeader title={<>Users / add nurse / staff</>}>{canManageUsers && (
           <button type="button" className="btn btn-primary" onClick={() => setShowCreateForm((v) => !v)}>
             {showCreateForm ? 'Cancel' : 'Add user'}
           </button>
-        )}
-      </header>
+        )}</PageHeader>
 
       {showCreateForm && (
         <CreateUserForm
@@ -112,7 +103,7 @@ export function UsersPage() {
         ) : !users || users.length === 0 ? (
           <EmptyState message="No users yet." />
         ) : (
-          <table className="table">
+          <TableRegion label="Users"><table className="table">
             <caption className="sr-only">Users</caption>
             <thead>
               <tr>
@@ -130,7 +121,7 @@ export function UsersPage() {
                   style={{ cursor: 'pointer' }}
                   className={user.id === selectedUserId ? 'row-selected' : ''}
                 >
-                  <td style={{ fontWeight: 'var(--weight-medium)' }}>{user.username}</td>
+                  <td><button type="button" className="workspace-name" onClick={() => setSelectedUserId(user.id ?? null)}>{user.username}</button></td>
                   <td>
                     <span className={user.status === 'ACTIVE' ? 'badge badge-success' : 'badge badge-neutral'}>
                       {(user.status ?? '').toLowerCase()}
@@ -143,7 +134,7 @@ export function UsersPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </div>
 
@@ -246,11 +237,11 @@ function RoleAssignmentsPanel({
         {!canAssignRoles ? (
           <p style={{ color: 'var(--text-muted)' }}>You don't hold ROLE_ASSIGN — assignments are hidden.</p>
         ) : isLoading ? (
-          <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+          <FeedbackState loading>Loading…</FeedbackState>
         ) : !assignments || assignments.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)' }}>No role assignments yet.</p>
+          <FeedbackState>No role assignments yet.</FeedbackState>
         ) : (
-          <table className="table">
+          <TableRegion><table className="table">
             <caption className="sr-only">Role assignments for {user.username}</caption>
             <thead>
               <tr>
@@ -267,7 +258,7 @@ function RoleAssignmentsPanel({
                 <AssignmentRow key={assignment.id} assignment={assignment} onEnd={() => end.mutate(assignment.id as string)} isEnding={end.isPending} />
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </div>
     </section>
@@ -335,14 +326,14 @@ function CreateUserForm({
         <label htmlFor="new-user-username" style={labelStyle}>
           Username
         </label>
-        <input id="new-user-username" {...register('username')} style={fieldStyle} />
+        <input className="clinical-control" id="new-user-username" {...register('username')} style={fieldStyle} />
         {errors.username && <span className="field-error">{errors.username.message}</span>}
       </div>
       <div>
         <label htmlFor="new-user-password" style={labelStyle}>
           Temporary password
         </label>
-        <input id="new-user-password" type="text" {...register('temporaryPassword')} style={fieldStyle} />
+        <input className="clinical-control" id="new-user-password" type="text" {...register('temporaryPassword')} style={fieldStyle} />
         {errors.temporaryPassword && <span className="field-error">{errors.temporaryPassword.message}</span>}
         <p style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
           The user must change this on first login.
@@ -381,7 +372,7 @@ function GrantRoleForm({
         <label htmlFor="grant-role-code" style={labelStyle}>
           Role
         </label>
-        <select id="grant-role-code" {...register('roleCode')} style={fieldStyle} defaultValue="">
+        <select className="clinical-control" id="grant-role-code" {...register('roleCode')} style={fieldStyle} defaultValue="">
           <option value="" disabled>
             Choose a role
           </option>
@@ -397,7 +388,7 @@ function GrantRoleForm({
         <label htmlFor="grant-scope-type" style={labelStyle}>
           Scope
         </label>
-        <select id="grant-scope-type" {...register('scopeType')} style={fieldStyle}>
+        <select className="clinical-control" id="grant-scope-type" {...register('scopeType')} style={fieldStyle}>
           {SCOPE_TYPES.map((type) => (
             <option key={type} value={type}>
               {type}
@@ -410,7 +401,7 @@ function GrantRoleForm({
           <label htmlFor="grant-scope-id" style={labelStyle}>
             {scopeType.charAt(0) + scopeType.slice(1).toLowerCase()} ID
           </label>
-          <input id="grant-scope-id" {...register('scopeId')} style={fieldStyle} placeholder="UUID" />
+          <input className="clinical-control" id="grant-scope-id" {...register('scopeId')} style={fieldStyle} placeholder="UUID" />
           {errors.scopeId && <span className="field-error">{errors.scopeId.message}</span>}
         </div>
       )}
@@ -418,13 +409,13 @@ function GrantRoleForm({
         <label htmlFor="grant-valid-from" style={labelStyle}>
           Valid from (optional — defaults to now)
         </label>
-        <input id="grant-valid-from" type="date" {...register('validFrom')} style={fieldStyle} />
+        <input className="clinical-control" id="grant-valid-from" type="date" {...register('validFrom')} style={fieldStyle} />
       </div>
       <div>
         <label htmlFor="grant-valid-to" style={labelStyle}>
           Valid to (optional — a locum's end date)
         </label>
-        <input id="grant-valid-to" type="date" {...register('validTo')} style={fieldStyle} />
+        <input className="clinical-control" id="grant-valid-to" type="date" {...register('validTo')} style={fieldStyle} />
       </div>
       {error && <div className="form-error">{error}</div>}
       <button type="submit" className="btn btn-primary" disabled={isSubmitting} style={{ alignSelf: 'flex-start' }}>
@@ -435,11 +426,7 @@ function GrantRoleForm({
 }
 
 function EmptyState({ message }: { message: string }) {
-  return (
-    <div style={{ padding: 'var(--space-10) var(--space-4)', textAlign: 'center', color: 'var(--text-muted)' }}>
-      {message}
-    </div>
-  );
+  return <FeedbackState loading={message.startsWith('Loading') || message.startsWith('Searching')}>{message}</FeedbackState>;
 }
 
 function errorMessage(error: unknown): string {

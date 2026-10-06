@@ -1,3 +1,4 @@
+import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
 import { useQueries } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
 import { fetchShiftHandovers } from '../../shared/api/shiftHandovers';
@@ -29,9 +30,10 @@ function WardNurseShellInner() {
 
   return (
     <div className="ward-shell-outer">
-      <div className="ward-shell">
-        <aside className="ward-sidebar">
-          <div className="ward-sidebar-brand">ADAGS</div>
+      <div className="ward-shell app-shell">
+        <a className="skip-link" href="#workspace-main">Skip to content</a>
+        <aside className="ward-sidebar app-sidebar">
+          <WorkspaceBrand workspace="Ward nursing" />
 
           {wardIds.length === 0 ? (
             <div className="ward-sidebar-ward">
@@ -58,7 +60,7 @@ function WardNurseShellInner() {
             </div>
           )}
 
-          <nav className="ward-nav">
+          <nav className="ward-nav app-nav" aria-label="Ward nursing navigation">
             <DashboardLink />
             <WardPatientsLink />
             <SurgeryQueueLink />
@@ -74,15 +76,15 @@ function WardNurseShellInner() {
             </NavLink>
             <TriageLink />
           </nav>
-          <div className="ward-sidebar-footer">
+          <div className="ward-sidebar-footer app-sidebar-footer">
             <div className="ward-user">{me?.username}</div>
-            <button type="button" className="ward-logout" onClick={() => logout()}>
+            <button type="button" className="ward-logout app-logout" onClick={() => logout()}>
               Sign out
             </button>
           </div>
         </aside>
-        <main className="ward-content">
-          <Outlet />
+        <main id="workspace-main" tabIndex={-1} className="ward-content app-content">
+          <div className="workspace-body"><Outlet /></div>
         </main>
       </div>
     </div>

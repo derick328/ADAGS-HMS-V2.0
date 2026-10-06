@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -131,17 +134,14 @@ export function ResultEntryPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Result entry</h1>
-        {form && (
+      <PageHeader title={<>Result entry</>}>{form && (
           <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>
             {form.patientName} · {form.hospitalNumber} · {form.labTestName} · {form.accessionNo}
           </p>
-        )}
-      </header>
+        )}</PageHeader>
 
       {isLoading || !form ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : (
         <form
           onSubmit={handleSubmit((values) => {
@@ -170,7 +170,7 @@ export function ResultEntryPage() {
               overflow: 'hidden',
             }}
           >
-            <table className="table">
+            <TableRegion label="Result parameters"><table className="table">
               <caption className="sr-only">Result parameters</caption>
               <thead>
                 <tr>
@@ -198,7 +198,7 @@ export function ResultEntryPage() {
                           : '—'}
                       </td>
                       <td>
-                        <input
+                        <input className="clinical-control"
                           type="text"
                           inputMode="decimal"
                           {...register(`parameters.${index}.resultValue` as const)}
@@ -209,7 +209,7 @@ export function ResultEntryPage() {
                         )}
                       </td>
                       <td>
-                        <select
+                        <select className="clinical-control"
                           {...register(`parameters.${index}.overrideFlag` as const)}
                           style={{ padding: 'var(--space-1)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius)', font: 'inherit' }}
                         >
@@ -221,7 +221,7 @@ export function ResultEntryPage() {
                           ))}
                         </select>
                         {rowValue?.overrideFlag && (
-                          <input
+                          <input aria-label="Reason for override" className="clinical-control"
                             type="text"
                             placeholder="Reason for override"
                             {...register(`parameters.${index}.overrideReason` as const)}
@@ -243,10 +243,10 @@ export function ResultEntryPage() {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </table></TableRegion>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+          <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
             <TextField label="Methodology" name="methodology" register={register} />
             <TextField label="Reagents used" name="reagentsUsedNote" register={register} />
             <TextField label="Findings" name="findings" register={register} />
@@ -301,7 +301,7 @@ function TextField({
       <label htmlFor={name} style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
         {label}
       </label>
-      <textarea
+      <textarea className="clinical-control"
         id={name}
         rows={2}
         {...register(name)}

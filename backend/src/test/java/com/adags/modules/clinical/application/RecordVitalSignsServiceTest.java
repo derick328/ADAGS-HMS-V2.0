@@ -2,7 +2,6 @@ package com.adags.modules.clinical.application;
 
 import com.adags.modules.clinical.domain.Avpu;
 import com.adags.modules.clinical.domain.ImplausibleVitalException;
-import com.adags.modules.clinical.domain.VitalReferenceRangeNotConfiguredException;
 import com.adags.modules.clinical.domain.VitalSigns;
 import com.adags.modules.clinical.domain.VitalSignsContext;
 import com.adags.modules.clinical.domain.VitalType;
@@ -94,21 +93,26 @@ class RecordVitalSignsServiceTest extends IntegrationTestSupport {
         assertThat(count).isEqualTo(0);
     }
 
-    // 06-triage.md §2.2 correction: paediatric bands are seeded with NULL
-    // bounds (V9), so a child's vitals must refuse rather than fall back to
-    // adult bounds — ClinicalStartupChecks warns about exactly this gap.
+    // V78 seeded paediatric bounds — a school-age child's vitals now record
+    // (and get flagged abnormal per-vital) rather than throwing NotConfigured.
+    // Values chosen to be within-range for SCHOOL_AGE (6-12y): HR 90, RR 20,
+    // SpO2 99, BP 100/65, temp 37.0 — all inside V78's abnormal bounds.
     @Test
-    void aChildWithUnconfiguredPaediatricBoundsIsRefusedRatherThanFallingBackToAdultBounds() {
-        UUID patientId = insertFixturePatient(LocalDate.now().minusYears(6), "FEMALE");
+    void aSchoolAgeChildIsEvaluatedAgainstPaediatricBoundsRatherThanRefused() {
+        UUID patientId = insertFixturePatient(LocalDate.now().minusYears(8), "FEMALE");
         UUID encounterId = insertFixtureEncounter(patientId);
 
         RecordVitalSignsCommand command = new RecordVitalSignsCommand(
                 encounterId, patientId, VitalSignsContext.TRIAGE, UUID.randomUUID(),
-                37.0, 100, 65, 90, 18, 99,
-                20, 110, null, null, null, null, null, bootstrapAdminId(), Instant.now());
+                37.0, 100, 65, 90, 20, 99,
+                25, 125, null, null, null, null, null, bootstrapAdminId(), Instant.now());
 
-        assertThatThrownBy(() -> service.record(command))
-                .isInstanceOf(VitalReferenceRangeNotConfiguredException.class);
+        service.record(command);
+
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM vital_signs WHERE encounter_id = :encounterId",
+                new MapSqlParameterSource("encounterId", encounterId), Integer.class);
+        assertThat(count).isEqualTo(1);
     }
 
     private RecordVitalSignsCommand adultCommand(UUID encounterId, UUID patientId) {

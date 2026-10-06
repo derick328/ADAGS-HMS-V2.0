@@ -122,6 +122,21 @@
 
 .doctor-content {
   flex: 1;
+  min-width: 0;
   padding: 2rem;
   background: var(--bg-page);
+}
+
+.doctor-sidebar .nav-item { min-height: var(--row-height); }
+.doctor-logout { min-height: var(--row-height); }
+
+@media (max-width: 768px) {
+  .doctor-shell { flex-direction: column; }
+  .doctor-sidebar { width: 100%; padding: var(--space-3); gap: var(--space-3); }
+  .doctor-sidebar-brand { padding: var(--space-1) var(--space-2); }
+  .doctor-nav { flex-direction: row; overflow-x: auto; gap: var(--space-2); padding: var(--space-1); }
+  .doctor-nav .nav-item { flex-shrink: 0; }
+  .doctor-nav .nav-divider { display: none; }
+  .doctor-sidebar-footer { flex-direction: row; justify-content: space-between; align-items: center; padding-top: var(--space-2); }
+  .doctor-content { padding: var(--space-5) var(--space-4); }
 }

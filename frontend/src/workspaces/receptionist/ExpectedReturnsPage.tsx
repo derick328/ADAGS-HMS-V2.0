@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { EncounterResponse } from '../../shared/api/encounters';
 import { resumeEncounter, searchEncounters } from '../../shared/api/encounters';
@@ -17,9 +20,7 @@ export function ExpectedReturnsPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Expected Returns</h1>
-      </header>
+      <PageHeader title={<>Expected returns</>} />
 
       {!canReadEncounters ? (
         <p style={{ color: 'var(--text-muted)' }}>You don't hold PATIENT_READ_VISIT_HISTORY.</p>
@@ -60,11 +61,11 @@ function AwaitingResultsSection() {
         Consultation unfinished, labs outstanding — no charge, no re-triage on return.
       </p>
       {isLoading ? (
-        <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : !encounters || encounters.length === 0 ? (
-        <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No patients awaiting results.</p>
+        <FeedbackState>No patients awaiting results.</FeedbackState>
       ) : (
-        <table className="table">
+        <TableRegion label="Encounters awaiting results"><table className="table">
           <caption className="sr-only">Encounters awaiting results</caption>
           <thead>
             <tr>
@@ -78,7 +79,7 @@ function AwaitingResultsSection() {
               <AwaitingResultsRow key={e.id} encounter={e} canResume={canResume} onResume={() => resume.mutate(e.id as string)} isResuming={resume.isPending} />
             ))}
           </tbody>
-        </table>
+        </table></TableRegion>
       )}
     </section>
   );
@@ -144,11 +145,11 @@ function FollowUpAppointmentsSection() {
         Doctor-booked reviews — checking in opens a new encounter and routes through triage. Check in through Patient Intake.
       </p>
       {isLoading ? (
-        <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : !appointments || appointments.length === 0 ? (
-        <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No follow-ups due.</p>
+        <FeedbackState>No follow-ups due.</FeedbackState>
       ) : (
-        <table className="table">
+        <TableRegion label="Follow-up appointments"><table className="table">
           <caption className="sr-only">Follow-up appointments</caption>
           <thead>
             <tr>
@@ -163,7 +164,7 @@ function FollowUpAppointmentsSection() {
               <FollowUpRow key={a.id} appointment={a} />
             ))}
           </tbody>
-        </table>
+        </table></TableRegion>
       )}
     </section>
   );

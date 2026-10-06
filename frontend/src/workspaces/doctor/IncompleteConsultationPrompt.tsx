@@ -78,7 +78,14 @@ export function IncompleteConsultationPrompt() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', margin: 'var(--space-4) 0' }}>
           {incomplete!.map((record) => (
-            <IncompleteRow key={record.id} record={record} />
+            <IncompleteRow
+              key={record.id}
+              record={record}
+              onGoToConsultation={(encounterId) => {
+                setDismissed(true);
+                navigate(`/doctor/consultation/${encounterId}`);
+              }}
+            />
           ))}
         </div>
 
@@ -116,9 +123,14 @@ function missingRequiredFields(record: ConsultationRecordResponse): string[] {
   return fields;
 }
 
-function IncompleteRow({ record }: { record: ConsultationRecordResponse }) {
+function IncompleteRow({
+  record,
+  onGoToConsultation,
+}: {
+  record: ConsultationRecordResponse;
+  onGoToConsultation: (encounterId: string) => void;
+}) {
   const { accessToken } = useAuth();
-  const navigate = useNavigate();
   const encounterId = record.encounterId as string;
 
   const { data: encounter } = useQuery({
@@ -146,7 +158,7 @@ function IncompleteRow({ record }: { record: ConsultationRecordResponse }) {
         <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
           Missing: {missing.length > 0 ? missing.join(', ') : 'a diagnosis or disposition'}
         </span>
-        <button type="button" className="btn btn-secondary" onClick={() => navigate(`/doctor/consultation/${encounterId}`)}>
+        <button type="button" className="btn btn-secondary" onClick={() => onGoToConsultation(encounterId)}>
           Complete
         </button>
       </div>

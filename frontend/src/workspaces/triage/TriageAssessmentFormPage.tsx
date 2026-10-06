@@ -1,3 +1,10 @@
+import { FormSection } from '../../shared/components/FormSection';
+import { Radio } from '../../shared/components/Radio';
+import { Checkbox } from '../../shared/components/Checkbox';
+import { FormField as FormRow } from '../../shared/components/FormField';
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { Modal } from '../../shared/components/Modal';
+import { PageHeader } from '../../shared/components/PageHeader';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
@@ -247,7 +254,10 @@ export function TriageAssessmentFormPage() {
       fallScore: values.fallRisk ? values.fallScore : undefined,
       infectionRisk: values.infectionRisk,
       pregnancyStatus: pregnancyApplicable ? values.pregnancyStatus : undefined,
-      priority: values.priority,
+      // Priority is optional in the UI — the backend column is NOT NULL and
+      // downstream queue ordering assumes a value, so we default a blank
+      // selection to NON_URGENT rather than reject on submit.
+      priority: values.priority ?? 'NON_URGENT',
       immediateReason: values.priority === 'IMMEDIATE' ? values.immediateReason : undefined,
       immediateReasonOtherText: values.immediateReason === 'OTHER' ? values.immediateReasonOtherText : undefined,
       notes: values.notes || undefined,
@@ -286,57 +296,45 @@ export function TriageAssessmentFormPage() {
     return <p style={{ color: 'var(--text-muted)' }}>You don't hold TRIAGE_ASSESS.</p>;
   }
   if (encounterLoading || patientLoading || candidatesLoading || !hydrated) {
-    return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
+    return <FeedbackState loading>Loading…</FeedbackState>;
   }
 
   const bmi = weightKg && heightCm ? weightKg / Math.pow(heightCm / 100, 2) : undefined;
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Triage assessment</h1>
-        <p style={{ color: 'var(--text-secondary)', margin: 'var(--space-1) 0 0' }}>
-          {patient?.fullName} · {patient?.hospitalNo} · {patientAge != null ? `${patientAge}y` : '—'}
-        </p>
-      </header>
+      <PageHeader title={<>Triage assessment</>} description={<>{patient?.fullName} · {patient?.hospitalNo} · {patientAge != null ? `${patientAge}y` : '—'}</>} />
 
-      <form onSubmit={onSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', maxWidth: 720 }}>
-        <fieldset style={{ ...fieldsetStyle, borderColor: 'var(--critical)' }}>
-          <legend style={legendStyle}>Danger signs — any tick escalates to IMMEDIATE</legend>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+      <form onSubmit={onSubmit} noValidate className="clinical-form-layout">
+        <FormSection title="Danger signs — any tick escalates to IMMEDIATE" columns={1} className="form-section--wide" tone="critical">
+
+          <div className="choice-grid">
             {immediateReasonOptions.map((opt) => (
-              <label key={opt.value} style={checkboxLabelStyle}>
-                <input
-                  type="checkbox"
-                  checked={dangerSigns.includes(opt.value)}
-                  onChange={(e) => {
+              <Checkbox key={opt.value} className="clinical-choice" checked={dangerSigns.includes(opt.value)} onChange={(e) => {
                     const next = e.target.checked
                       ? [...dangerSigns, opt.value]
                       : dangerSigns.filter((v) => v !== opt.value);
                     setValue('dangerSigns', next);
-                  }}
-                />
-                {opt.label}
-              </label>
+                  }} label={<>{opt.label}</>} />
             ))}
           </div>
-        </fieldset>
+        </FormSection>
 
-        <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Presenting complaint</legend>
+        <FormSection title="Presenting complaint" columns={2} className="form-section--wide">
+
           <FormRow label="Chief complaint" error={errors.chiefComplaint?.message}>
-            <textarea rows={2} {...register('chiefComplaint')} style={fieldStyle} />
+            <textarea className="clinical-control" rows={2} {...register('chiefComplaint')} style={fieldStyle} />
           </FormRow>
           <FormRow label="Current symptoms" error={errors.currentSymptoms?.message}>
-            <textarea rows={2} {...register('currentSymptoms')} style={fieldStyle} />
+            <textarea className="clinical-control" rows={2} {...register('currentSymptoms')} style={fieldStyle} />
           </FormRow>
-        </fieldset>
+        </FormSection>
 
-        <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Vital signs</legend>
+        <FormSection title="Vital signs" columns={3} className="form-section--wide">
+
           {VITAL_FIELDS.map((v) => (
             <FormRow key={v.key} label={`${v.label} (${v.unit})`} error={errors[v.key]?.message as string | undefined}>
-              <input
+              <input className="clinical-control"
                 type="number"
                 step="any"
                 {...register(v.key, { valueAsNumber: true, onBlur: () => handleVitalBlur(v.key, v.vitalType, v.label) })}
@@ -347,25 +345,25 @@ export function TriageAssessmentFormPage() {
               )}
             </FormRow>
           ))}
-        </fieldset>
+        </FormSection>
 
-        <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Anthropometric</legend>
+        <FormSection title="Anthropometric" columns={2} className="form-section--wide">
+
           <FormRow label="Weight (kg)" error={errors.weightKg?.message}>
-            <input type="number" step="any" {...register('weightKg', { valueAsNumber: true })} style={fieldStyle} />
+            <input className="clinical-control" type="number" step="any" {...register('weightKg', { valueAsNumber: true })} style={fieldStyle} />
           </FormRow>
           <FormRow label="Height (cm)" error={errors.heightCm?.message}>
-            <input type="number" step="any" {...register('heightCm', { valueAsNumber: true })} style={fieldStyle} />
+            <input className="clinical-control" type="number" step="any" {...register('heightCm', { valueAsNumber: true })} style={fieldStyle} />
           </FormRow>
           {!suppressBmi && bmi != null && !Number.isNaN(bmi) && (
             <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>BMI: {bmi.toFixed(1)} (computed, not enterable)</p>
           )}
-        </fieldset>
+        </FormSection>
 
-        <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Medical history</legend>
+        <FormSection title="Medical history" columns={2} className="form-section--wide">
+
           <FormRow label="Allergies" error={errors.allergies?.message}>
-            <textarea
+            <textarea className="clinical-control"
               rows={2}
               {...register('allergies')}
               style={{ ...fieldStyle, background: 'var(--warning-bg)', borderColor: 'var(--warning)' }}
@@ -373,10 +371,10 @@ export function TriageAssessmentFormPage() {
             />
           </FormRow>
           <FormRow label="Comorbidities" error={errors.comorbidities?.message}>
-            <textarea rows={2} {...register('comorbidities')} style={fieldStyle} placeholder='Free text — enter "none known" if there are none' />
+            <textarea className="clinical-control" rows={2} {...register('comorbidities')} style={fieldStyle} placeholder='Free text — enter "none known" if there are none' />
           </FormRow>
           <FormRow label="Mode of ambulation" error={errors.modeOfAmbulation?.message}>
-            <select {...register('modeOfAmbulation')} style={fieldStyle} defaultValue="">
+            <select className="clinical-control" {...register('modeOfAmbulation')} style={fieldStyle} defaultValue="">
               <option value="" disabled>
                 Choose…
               </option>
@@ -387,45 +385,39 @@ export function TriageAssessmentFormPage() {
               ))}
             </select>
           </FormRow>
-        </fieldset>
+        </FormSection>
 
-        <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Pain assessment</legend>
-          <label style={checkboxLabelStyle}>
-            <input type="checkbox" {...register('hasPain')} /> Patient has pain
-          </label>
+        <FormSection title="Pain assessment" columns={1}>
+
+          <Checkbox  className="clinical-choice" {...register('hasPain')} label={<>Patient has pain</>} />
           {hasPain && (
             <>
               <FormRow label="Pain score (0–10)" error={errors.painScore?.message}>
-                <input type="number" min={0} max={10} {...register('painScore', { valueAsNumber: true })} style={fieldStyle} />
+                <input className="clinical-control" type="number" min={0} max={10} {...register('painScore', { valueAsNumber: true })} style={fieldStyle} />
               </FormRow>
               <FormRow label="Pain location" error={errors.painLocation?.message}>
-                <input {...register('painLocation')} style={fieldStyle} />
+                <input className="clinical-control" {...register('painLocation')} style={fieldStyle} />
               </FormRow>
             </>
           )}
-        </fieldset>
+        </FormSection>
 
-        <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Risk assessment</legend>
-          <label style={checkboxLabelStyle}>
-            <input type="checkbox" {...register('fallRisk')} /> Fall risk
-          </label>
+        <FormSection title="Risk assessment" columns={1}>
+
+          <Checkbox  className="clinical-choice" {...register('fallRisk')} label={<>Fall risk</>} />
           {fallRisk && (
             <FormRow label="Fall risk score" error={errors.fallScore?.message}>
-              <input type="number" {...register('fallScore', { valueAsNumber: true })} style={fieldStyle} />
+              <input className="clinical-control" type="number" {...register('fallScore', { valueAsNumber: true })} style={fieldStyle} />
             </FormRow>
           )}
-          <label style={checkboxLabelStyle}>
-            <input type="checkbox" {...register('infectionRisk')} /> Infection risk
-          </label>
-        </fieldset>
+          <Checkbox  className="clinical-choice" {...register('infectionRisk')} label={<>Infection risk</>} />
+        </FormSection>
 
         {pregnancyApplicable && (
-          <fieldset style={fieldsetStyle}>
-            <legend style={legendStyle}>Pregnancy status</legend>
+          <FormSection title="Pregnancy status" columns={1}>
+
             <FormRow label="Pregnancy status" error={errors.pregnancyStatus?.message}>
-              <select {...register('pregnancyStatus')} style={fieldStyle} defaultValue="">
+              <select className="clinical-control" {...register('pregnancyStatus')} style={fieldStyle} defaultValue="">
                 <option value="" disabled>
                   Choose…
                 </option>
@@ -436,16 +428,17 @@ export function TriageAssessmentFormPage() {
                 ))}
               </select>
             </FormRow>
-          </fieldset>
+          </FormSection>
         )}
 
-        <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Triage priority</legend>
+        <FormSection title="Triage priority (optional)" columns={1}>
+
+          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', margin: '0 0 var(--space-2)' }}>
+            Leave blank to submit as non-urgent — the default assumed downstream.
+          </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
             {(['IMMEDIATE', 'URGENT', 'LESS_URGENT', 'NON_URGENT'] as const).map((p) => (
-              <label key={p} style={checkboxLabelStyle}>
-                <input type="radio" value={p} {...register('priority')} /> {p.replaceAll('_', ' ').toLowerCase()}
-              </label>
+              <Radio key={p} className="clinical-choice" value={p} {...register('priority')} label={<>{p.replaceAll('_', ' ').toLowerCase()}</>} />
             ))}
           </div>
           {errors.priority && <span className="field-error">{errors.priority.message}</span>}
@@ -460,10 +453,10 @@ export function TriageAssessmentFormPage() {
               Reason: {immediateReason ? immediateReasonOptions.find((o) => o.value === immediateReason)?.label : '—'}
             </p>
           )}
-        </fieldset>
+        </FormSection>
 
-        <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Referral (required)</legend>
+        <FormSection title="Referral (required)" columns={1} className="form-section--wide">
+
           {errors.assignedProviderId && <span className="field-error">{errors.assignedProviderId.message}</span>}
           <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginTop: 0 }}>
             On-duty status isn't tracked yet — every provider below is shown without one.
@@ -477,21 +470,21 @@ export function TriageAssessmentFormPage() {
                 onSelect={() => setValue('assignedProviderId', candidate.providerId as string, { shouldValidate: true })}
               />
             ))}
-            {(referralCandidates ?? []).length === 0 && <p style={{ color: 'var(--text-muted)' }}>No providers available.</p>}
+            {(referralCandidates ?? []).length === 0 && <FeedbackState>No providers available.</FeedbackState>}
           </div>
-        </fieldset>
+        </FormSection>
 
-        <fieldset style={fieldsetStyle}>
-          <legend style={legendStyle}>Notes (optional)</legend>
-          <textarea rows={3} {...register('notes')} style={fieldStyle} />
-        </fieldset>
+        <FormSection title="Notes (optional)" columns={1} className="form-section--wide">
+
+          <textarea aria-label="Additional triage notes" className="clinical-control" rows={3} {...register('notes')} style={fieldStyle} />
+        </FormSection>
 
         {formError && <div className="form-error">{formError}</div>}
         {submit.error && <div className="form-error">{submitErrorMessage(submit.error)}</div>}
 
-        <button type="submit" className="btn btn-primary" disabled={submit.isPending} style={{ alignSelf: 'flex-start' }}>
+        <div className="form-actions"><p>Review the assessment and referral before submitting.</p><button type="submit" className="btn btn-primary" disabled={submit.isPending}>
           {submit.isPending ? 'Submitting…' : 'Submit assessment'}
-        </button>
+        </button></div>
       </form>
 
       {showImmediateModal && (
@@ -518,6 +511,8 @@ function ReferralCard({
     <button
       type="button"
       onClick={onSelect}
+      aria-pressed={selected}
+      className="referral-choice"
       style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -566,46 +561,21 @@ function ImmediateConfirmationModal({
   const canConfirm = reason != null && (reason !== 'OTHER' || otherText.trim() !== '');
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.4)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 100,
-      }}
-    >
-      <div
-        style={{
-          background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-lg)',
-          padding: 'var(--space-4)',
-          maxWidth: 480,
-          width: '90%',
-        }}
-      >
-        <h2 style={{ marginTop: 0, fontSize: 'var(--text-lg)', color: 'var(--critical)' }}>Classifying as IMMEDIATE</h2>
+    <Modal open onClose={onCancel} title="Classifying as IMMEDIATE" closeOnBackdropClick={false}>
         <p style={{ color: 'var(--text-secondary)' }}>
           This patient will be given top priority everywhere and will not be blocked by payment. Choose the reason.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', marginBottom: 'var(--space-3)' }}>
           {immediateReasonOptions.map((opt) => (
-            <label key={opt.value} style={checkboxLabelStyle}>
-              <input type="radio" checked={reason === opt.value} onChange={() => setReason(opt.value)} /> {opt.label}
-            </label>
+            <Radio key={opt.value} className="clinical-choice" checked={reason === opt.value} onChange={() => setReason(opt.value)} label={<>{opt.label}</>} />
           ))}
         </div>
         {reason === 'OTHER' && (
           <FormRow label="Describe the reason">
-            <input value={otherText} onChange={(e) => setOtherText(e.target.value)} style={fieldStyle} />
+            <input className="clinical-control" value={otherText} onChange={(e) => setOtherText(e.target.value)} style={fieldStyle} />
           </FormRow>
         )}
-        <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
           <button type="button" className="btn btn-ghost" onClick={onCancel}>
             Not immediate — clear
           </button>
@@ -618,20 +588,10 @@ function ImmediateConfirmationModal({
             Confirm IMMEDIATE
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
-function FormRow({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 'var(--space-2)' }}>
-      <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>{label}</label>
-      {children}
-      {error && <span className="field-error">{error}</span>}
-    </div>
-  );
-}
 
 function submitErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -725,9 +685,15 @@ function buildSchema(pregnancyApplicable: boolean) {
       fallScore: z.number().optional(),
       infectionRisk: z.boolean(),
       pregnancyStatus: z.enum(['YES', 'NO', 'UNKNOWN']).optional(),
-      priority: z.enum(['IMMEDIATE', 'URGENT', 'LESS_URGENT', 'NON_URGENT'], {
-        errorMap: () => ({ message: 'Choose a triage priority' }),
-      }),
+      // Optional. An untouched radio group hands react-hook-form `null`, and
+      // cancelling the IMMEDIATE modal sets it to '' — neither of which a bare
+      // `.optional()` enum accepts ("Expected '…', received null"). Coerce both
+      // empties to undefined so a blank selection validates; submit then
+      // defaults it to NON_URGENT (the value downstream queue ordering assumes).
+      priority: z.preprocess(
+        (v) => (v === '' || v == null ? undefined : v),
+        z.enum(['IMMEDIATE', 'URGENT', 'LESS_URGENT', 'NON_URGENT']).optional(),
+      ),
       immediateReason: z
         .enum([
           'THREATENED_OR_OBSTRUCTED_AIRWAY', 'SEVERE_RESPIRATORY_DISTRESS', 'SHOCK_OR_CIRCULATORY_COLLAPSE',
@@ -749,9 +715,9 @@ function buildSchema(pregnancyApplicable: boolean) {
           ctx.addIssue({ path: ['painLocation'], code: z.ZodIssueCode.custom, message: 'Enter where the pain is' });
         }
       }
-      if (v.fallRisk && (v.fallScore == null || Number.isNaN(v.fallScore))) {
-        ctx.addIssue({ path: ['fallScore'], code: z.ZodIssueCode.custom, message: 'Enter a fall risk score' });
-      }
+      // fallScore is optional even when fallRisk is true — mirrors the pain
+      // score relaxation (V77): the nurse can flag the risk without pinning
+      // a numeric on it. Backend + DB CHECK relaxed to match (V79).
       if (v.priority === 'IMMEDIATE') {
         if (!v.immediateReason) {
           ctx.addIssue({ path: ['immediateReason'], code: z.ZodIssueCode.custom, message: 'Choose a reason' });
@@ -765,9 +731,6 @@ function buildSchema(pregnancyApplicable: boolean) {
     });
 }
 
-const fieldsetStyle: CSSProperties = { border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 'var(--space-3)' };
-const legendStyle: CSSProperties = { fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', padding: '0 var(--space-2)' };
-const checkboxLabelStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', padding: '2px 0' };
 const fieldStyle: CSSProperties = {
   width: '100%',
   marginTop: 'var(--space-1)',

@@ -3,9 +3,9 @@ package com.adags.modules.encounters;
 import com.adags.modules.billing.application.OpenCashierShiftService;
 import com.adags.modules.billing.application.PostPaymentCommand;
 import com.adags.modules.billing.application.PostPaymentService;
-import com.adags.modules.billing.domain.InvoiceCannotBeVoidedException;
 import com.adags.modules.billing.domain.PaymentMethod;
 import com.adags.modules.encounters.application.AbandonUnpaidEncounterService;
+import com.adags.modules.encounters.application.InvalidEncounterTransitionException;
 import com.adags.modules.encounters.application.MissingAbandonmentReasonException;
 import com.adags.modules.encounters.application.OpenEncounterCommand;
 import com.adags.modules.encounters.application.OpenEncounterService;
@@ -98,8 +98,8 @@ class AbandonUnpaidEncounterServiceTest extends IntegrationTestSupport {
         assertThat(row[1]).isEqualTo("Could not pay, left");
     }
 
-    // The whole point of voidUnpaid's own guard: an abandonment attempted
-    // after the charge was actually paid must not silently succeed.
+    // Settlement already moved the encounter to AWAITING_CONSULT, so
+    // abandonment must fail at the encounter transition guard.
     @Test
     void cannotAbandonAnEncounterWhoseChargeWasActuallyPaid() {
         UUID admin = bootstrapAdminId();
@@ -119,11 +119,15 @@ class AbandonUnpaidEncounterServiceTest extends IntegrationTestSupport {
                 List.of(new PostPaymentCommand.LineAllocationRequest(invoiceLineId, 10_000)), admin));
 
         assertThatThrownBy(() -> abandonUnpaidEncounterService.abandon(encounter.id(), "Changed their mind", admin))
-                .isInstanceOf(InvoiceCannotBeVoidedException.class);
+                .isInstanceOf(InvalidEncounterTransitionException.class);
 
         String state = jdbcTemplate.queryForObject("SELECT state FROM encounter WHERE id = :id",
                 new MapSqlParameterSource("id", encounter.id()), String.class);
-        assertThat(state).isEqualTo(EncounterState.AWAITING_PAYMENT.name());
+        assertThat(state).isEqualTo(EncounterState.AWAITING_CONSULT.name());
+
+        String invoiceState = jdbcTemplate.queryForObject("SELECT state FROM invoice WHERE encounter_id = :id",
+                new MapSqlParameterSource("id", encounter.id()), String.class);
+        assertThat(invoiceState).isEqualTo("PATIENT_PORTION_SETTLED");
     }
 
     private SubmitTriageAssessmentCommand triageCommand(Encounter encounter, UUID providerId) {

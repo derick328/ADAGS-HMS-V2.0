@@ -1,3 +1,5 @@
+import { PageHeader } from '../../shared/components/PageHeader';
+import { FeedbackState } from '../../shared/components/FeedbackState';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchAllergiesByPatient, fetchConsultationRecordsByEncounter, fetchDiagnosesByEncounter } from '../../shared/api/clinical';
@@ -48,7 +50,7 @@ export function PatientPage() {
       </button>
 
       {patientLoading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading patient…</p>
+        <FeedbackState loading>Loading patient…</FeedbackState>
       ) : !patient ? (
         <p className="form-error">Could not load this patient.</p>
       ) : (
@@ -68,9 +70,9 @@ export function PatientPage() {
       </h2>
 
       {encountersLoading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading encounters…</p>
+        <FeedbackState loading>Loading encounters…</FeedbackState>
       ) : sortedEncounters.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No encounters on record.</p>
+        <FeedbackState>No encounters on record.</FeedbackState>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           {sortedEncounters.map((e) => (
@@ -95,15 +97,12 @@ function PatientHeader({
 }) {
   const age = dateOfBirth ? ageFromDob(dateOfBirth) : null;
   return (
-    <div style={{ marginBottom: 'var(--space-2)' }}>
-      <h1 style={{ fontSize: 'var(--text-2xl)', margin: 0, fontWeight: 'var(--weight-medium)' }}>{fullName ?? '—'}</h1>
-      <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
-        Patient No: {hospitalNo ?? '—'}
-        {gender && ` · ${genderLabel(gender)}`}
-        {age != null && ` · ${age} y`}
-        {dateOfBirth && ` (DOB ${formatDate(dateOfBirth)})`}
-      </p>
-    </div>
+    <PageHeader title={fullName ?? '—'} description={<>
+      Patient no: {hospitalNo ?? '—'}
+      {gender && ` · ${genderLabel(gender)}`}
+      {age != null && ` · ${age} y`}
+      {dateOfBirth && ` (DOB ${formatDate(dateOfBirth)})`}
+    </>} />
   );
 }
 

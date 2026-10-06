@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { fetchActiveSurgeryOrders, type SurgeryOrderResponse } from '../../shared/api/surgeryOrders';
@@ -30,17 +33,15 @@ export function SurgeryQueuePage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Surgery Queue</h1>
-      </header>
+      <PageHeader title={<>Surgery queue</>} description={<>Track scheduled procedures, urgency, and consent status.</>} />
 
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {isLoading ? (
-          <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+          <FeedbackState loading>Loading…</FeedbackState>
         ) : rows.length === 0 ? (
-          <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No open surgical episodes.</p>
+          <FeedbackState>No open surgical episodes.</FeedbackState>
         ) : (
-          <table className="table">
+          <TableRegion label="Surgery queue"><table className="table">
             <caption className="sr-only">Surgery queue</caption>
             <thead>
               <tr>
@@ -56,7 +57,7 @@ export function SurgeryQueuePage() {
                 <SurgeryRow key={order.id} order={order} assignedToMe={(order.assignedNurses ?? []).includes(me?.userId ?? '')} onOpen={() => navigate(`/ward-nurse/surgery/${order.id}`)} />
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </div>
     </div>

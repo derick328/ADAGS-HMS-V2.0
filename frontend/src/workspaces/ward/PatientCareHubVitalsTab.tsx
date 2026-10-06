@@ -1,3 +1,5 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -86,31 +88,31 @@ export function PatientCareHubVitalsTab({ admission }: { admission: AdmissionRes
           style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-3)', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', marginBottom: 'var(--space-5)' }}
         >
           <Field label="Temperature (°C)" error={errors.temperatureC?.message}>
-            <input type="text" inputMode="decimal" {...register('temperatureC')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('temperatureC')} style={inputStyle} />
           </Field>
           <Field label="Systolic (mmHg)" error={errors.systolicMmHg?.message}>
-            <input type="text" inputMode="decimal" {...register('systolicMmHg')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('systolicMmHg')} style={inputStyle} />
           </Field>
           <Field label="Diastolic (mmHg)" error={errors.diastolicMmHg?.message}>
-            <input type="text" inputMode="decimal" {...register('diastolicMmHg')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('diastolicMmHg')} style={inputStyle} />
           </Field>
           <Field label="Pulse (bpm)" error={errors.pulseBpm?.message}>
-            <input type="text" inputMode="decimal" {...register('pulseBpm')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('pulseBpm')} style={inputStyle} />
           </Field>
           <Field label="Respiratory rate" error={errors.respiratoryRate?.message}>
-            <input type="text" inputMode="decimal" {...register('respiratoryRate')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('respiratoryRate')} style={inputStyle} />
           </Field>
           <Field label="SpO2 (%)" error={errors.spo2Pct?.message}>
-            <input type="text" inputMode="decimal" {...register('spo2Pct')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('spo2Pct')} style={inputStyle} />
           </Field>
           <Field label="Weight (kg)" error={errors.weightKg?.message}>
-            <input type="text" inputMode="decimal" {...register('weightKg')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('weightKg')} style={inputStyle} />
           </Field>
           <Field label="Height (cm)" error={errors.heightCm?.message}>
-            <input type="text" inputMode="decimal" {...register('heightCm')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('heightCm')} style={inputStyle} />
           </Field>
           <Field label="AVPU">
-            <select {...register('avpu')} style={inputStyle}>
+            <select className="clinical-control" {...register('avpu')} style={inputStyle}>
               <option value="">—</option>
               <option value="ALERT">Alert</option>
               <option value="VOICE">Voice</option>
@@ -119,16 +121,16 @@ export function PatientCareHubVitalsTab({ admission }: { admission: AdmissionRes
             </select>
           </Field>
           <Field label="Blood glucose (mmol/L)">
-            <input type="text" inputMode="decimal" {...register('bloodGlucoseMmol')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('bloodGlucoseMmol')} style={inputStyle} />
           </Field>
           <Field label="Pain score (0–10)">
-            <input type="text" inputMode="numeric" {...register('painScore')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="numeric" {...register('painScore')} style={inputStyle} />
           </Field>
           <Field label="Intake (mL)">
-            <input type="text" inputMode="numeric" {...register('intakeMl')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="numeric" {...register('intakeMl')} style={inputStyle} />
           </Field>
           <Field label="Output (mL)">
-            <input type="text" inputMode="numeric" {...register('outputMl')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="numeric" {...register('outputMl')} style={inputStyle} />
           </Field>
 
           <div style={{ gridColumn: '1 / -1' }}>
@@ -142,11 +144,11 @@ export function PatientCareHubVitalsTab({ admission }: { admission: AdmissionRes
 
       <section style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {isLoading ? (
-          <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+          <FeedbackState loading>Loading…</FeedbackState>
         ) : rows.length === 0 ? (
-          <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No ward-rounds vitals recorded yet.</p>
+          <FeedbackState>No ward-rounds vitals recorded yet.</FeedbackState>
         ) : (
-          <table className="table">
+          <TableRegion label="Vitals history"><table className="table">
             <caption className="sr-only">Vitals history</caption>
             <thead>
               <tr>
@@ -168,7 +170,7 @@ export function PatientCareHubVitalsTab({ admission }: { admission: AdmissionRes
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </section>
     </div>

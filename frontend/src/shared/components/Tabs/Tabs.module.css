@@ -145,3 +145,7 @@
     transition: none;
   }
 }
+
+.tablist { flex-wrap: wrap; }
+.tab { min-height: var(--row-height); }
+.panel { min-width: 0; }

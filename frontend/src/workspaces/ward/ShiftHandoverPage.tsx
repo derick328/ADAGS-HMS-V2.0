@@ -1,3 +1,5 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -32,15 +34,12 @@ export function ShiftHandoverPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Shift Handover</h1>
-        <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>{wardName ?? 'Your ward'}</p>
-      </header>
+      <PageHeader title={<>Shift handover</>} description={<>{wardName ?? 'Your ward'}</>} />
 
       {isLoading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : rows.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No patients currently on this ward.</p>
+        <FeedbackState>No patients currently on this ward.</FeedbackState>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           {rows.map((row) => (
@@ -233,7 +232,7 @@ function HandoverForm({ admissionId, onDone }: { admissionId: string; onDone: ()
       <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
         <label style={{ fontSize: 'var(--text-sm)', flex: 1 }}>
           Outgoing shift
-          <select {...register('shiftFrom')} style={inputStyle}>
+          <select className="clinical-control" {...register('shiftFrom')} style={inputStyle}>
             <option value="">Select</option>
             {(workShifts ?? []).map((s) => (
               <option key={s.id} value={s.id}>
@@ -245,7 +244,7 @@ function HandoverForm({ admissionId, onDone }: { admissionId: string; onDone: ()
         </label>
         <label style={{ fontSize: 'var(--text-sm)', flex: 1 }}>
           Incoming shift (optional)
-          <select {...register('shiftTo')} style={inputStyle}>
+          <select className="clinical-control" {...register('shiftTo')} style={inputStyle}>
             <option value="">—</option>
             {(workShifts ?? []).map((s) => (
               <option key={s.id} value={s.id}>
@@ -258,22 +257,22 @@ function HandoverForm({ admissionId, onDone }: { admissionId: string; onDone: ()
 
       <label style={{ fontSize: 'var(--text-sm)' }}>
         Situation
-        <textarea rows={2} {...register('situation')} style={inputStyle} />
+        <textarea className="clinical-control" rows={2} {...register('situation')} style={inputStyle} />
         {errors.situation && <div className="field-error">{errors.situation.message}</div>}
       </label>
       <label style={{ fontSize: 'var(--text-sm)' }}>
         Background
-        <textarea rows={2} {...register('background')} style={inputStyle} />
+        <textarea className="clinical-control" rows={2} {...register('background')} style={inputStyle} />
         {errors.background && <div className="field-error">{errors.background.message}</div>}
       </label>
       <label style={{ fontSize: 'var(--text-sm)' }}>
         Assessment
-        <textarea rows={2} {...register('assessment')} style={inputStyle} />
+        <textarea className="clinical-control" rows={2} {...register('assessment')} style={inputStyle} />
         {errors.assessment && <div className="field-error">{errors.assessment.message}</div>}
       </label>
       <label style={{ fontSize: 'var(--text-sm)' }}>
         Recommendation
-        <textarea rows={2} {...register('recommendation')} style={inputStyle} />
+        <textarea className="clinical-control" rows={2} {...register('recommendation')} style={inputStyle} />
         {errors.recommendation && <div className="field-error">{errors.recommendation.message}</div>}
       </label>
 
@@ -281,7 +280,7 @@ function HandoverForm({ admissionId, onDone }: { admissionId: string; onDone: ()
         <div style={{ fontSize: 'var(--text-sm)', marginBottom: 4 }}>Outstanding tasks</div>
         {fields.map((field, index) => (
           <div key={field.id} style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 4 }}>
-            <input type="text" {...register(`outstandingTasks.${index}.value` as const)} style={{ ...inputStyle, marginTop: 0 }} />
+            <input className="clinical-control" type="text" {...register(`outstandingTasks.${index}.value` as const)} style={{ ...inputStyle, marginTop: 0 }} />
             <button type="button" className="btn btn-ghost" onClick={() => remove(index)}>
               Remove
             </button>

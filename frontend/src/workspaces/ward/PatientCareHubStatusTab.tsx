@@ -37,7 +37,7 @@ export function PatientCareHubStatusTab({ admission }: { admission: AdmissionRes
   const canDischarge = usePermission('DISCHARGE_ORDER');
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+    <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
       <section style={panelStyle}>
         <h2 style={panelTitleStyle}>Status</h2>
         <p style={{ margin: '0 0 var(--space-3)' }}>
@@ -89,7 +89,7 @@ function StatusForm({ admission }: { admission: AdmissionResponse }) {
 
   return (
     <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-      <select value={selected} onChange={(e) => setSelected(e.target.value as WardStatus)} style={inputStyle}>
+      <select className="clinical-control" value={selected} onChange={(e) => setSelected(e.target.value as WardStatus)} style={inputStyle}>
         {SETTABLE_STATUSES.map((s) => (
           <option key={s} value={s}>
             {s}
@@ -142,7 +142,7 @@ function BedForm({ admission }: { admission: AdmissionResponse }) {
     <form onSubmit={handleSubmit((v) => submit.mutate(v))} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
       <label style={{ fontSize: 'var(--text-sm)' }}>
         Bed
-        <select {...register('bedId')} style={inputStyle}>
+        <select className="clinical-control" {...register('bedId')} style={inputStyle}>
           <option value="">Select a free bed</option>
           {(freeBeds ?? []).map((b) => (
             <option key={b.id} value={b.id}>
@@ -155,7 +155,7 @@ function BedForm({ admission }: { admission: AdmissionResponse }) {
 
       <label style={{ fontSize: 'var(--text-sm)' }}>
         Placement reason (required only if this ward is above the ordered class)
-        <select {...register('placementReason')} style={inputStyle}>
+        <select className="clinical-control" {...register('placementReason')} style={inputStyle}>
           <option value="">—</option>
           {PLACEMENT_REASONS.map((r) => (
             <option key={r} value={r}>
@@ -236,7 +236,7 @@ function DischargeSection({ admission }: { admission: AdmissionResponse }) {
 
           {reversing && (
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-start' }}>
-              <textarea
+              <textarea className="clinical-control"
                 rows={2}
                 placeholder="Reason the discharge is being reversed"
                 value={reason}

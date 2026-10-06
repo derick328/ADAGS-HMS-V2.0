@@ -5,6 +5,7 @@ import com.adags.modules.billing.application.PostPaymentCommand;
 import com.adags.modules.billing.application.PostPaymentService;
 import com.adags.modules.billing.domain.BillingGateRejectedException;
 import com.adags.modules.billing.domain.PaymentMethod;
+import com.adags.modules.encounters.application.InvalidEncounterTransitionException;
 import com.adags.modules.encounters.application.MoveToAwaitingConsultService;
 import com.adags.modules.encounters.application.OpenEncounterCommand;
 import com.adags.modules.encounters.application.OpenEncounterService;
@@ -81,7 +82,7 @@ class MoveToAwaitingConsultServiceTest extends IntegrationTestSupport {
     }
 
     @Test
-    void succeedsOnceTheConsultationLineIsPaidInFull() {
+    void rejectsDuplicateTransitionAfterPaymentAutomaticallyMovesToAwaitingConsult() {
         UUID admin = bootstrapAdminId();
         UUID doctorId = insertFixtureDoctor();
         UUID patientId = insertFixturePatient();
@@ -98,9 +99,12 @@ class MoveToAwaitingConsultServiceTest extends IntegrationTestSupport {
                 patientId, PaymentMethod.CASH, null, "idem-" + UUID.randomUUID(),
                 List.of(new PostPaymentCommand.LineAllocationRequest(invoiceLineId, 10_000)), admin));
 
-        Encounter updated = moveToAwaitingConsultService.moveToAwaitingConsult(encounter.id(), admin);
+        String state = jdbcTemplate.queryForObject("SELECT state FROM encounter WHERE id = :id",
+                new MapSqlParameterSource("id", encounter.id()), String.class);
+        assertThat(state).isEqualTo(EncounterState.AWAITING_CONSULT.name());
 
-        assertThat(updated.state()).isEqualTo(EncounterState.AWAITING_CONSULT);
+        assertThatThrownBy(() -> moveToAwaitingConsultService.moveToAwaitingConsult(encounter.id(), admin))
+                .isInstanceOf(InvalidEncounterTransitionException.class);
     }
 
     private SubmitTriageAssessmentCommand triageCommand(Encounter encounter, UUID providerId, TriagePriority priority) {

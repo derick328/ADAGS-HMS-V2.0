@@ -1,3 +1,5 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -67,31 +69,31 @@ export function SurgeryEpisodeVitals({ surgeryOrderId, encounterId }: { surgeryO
           style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-3)', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', marginBottom: 'var(--space-4)' }}
         >
           <Field label="Temperature (°C)" error={errors.temperatureC?.message}>
-            <input type="text" inputMode="decimal" {...register('temperatureC')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('temperatureC')} style={inputStyle} />
           </Field>
           <Field label="Systolic (mmHg)" error={errors.systolicMmHg?.message}>
-            <input type="text" inputMode="decimal" {...register('systolicMmHg')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('systolicMmHg')} style={inputStyle} />
           </Field>
           <Field label="Diastolic (mmHg)" error={errors.diastolicMmHg?.message}>
-            <input type="text" inputMode="decimal" {...register('diastolicMmHg')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('diastolicMmHg')} style={inputStyle} />
           </Field>
           <Field label="Pulse (bpm)" error={errors.pulseBpm?.message}>
-            <input type="text" inputMode="decimal" {...register('pulseBpm')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('pulseBpm')} style={inputStyle} />
           </Field>
           <Field label="Respiratory rate" error={errors.respiratoryRate?.message}>
-            <input type="text" inputMode="decimal" {...register('respiratoryRate')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('respiratoryRate')} style={inputStyle} />
           </Field>
           <Field label="SpO2 (%)" error={errors.spo2Pct?.message}>
-            <input type="text" inputMode="decimal" {...register('spo2Pct')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('spo2Pct')} style={inputStyle} />
           </Field>
           <Field label="Weight (kg)" error={errors.weightKg?.message}>
-            <input type="text" inputMode="decimal" {...register('weightKg')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('weightKg')} style={inputStyle} />
           </Field>
           <Field label="Height (cm)" error={errors.heightCm?.message}>
-            <input type="text" inputMode="decimal" {...register('heightCm')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('heightCm')} style={inputStyle} />
           </Field>
           <Field label="AVPU (consciousness level)">
-            <select {...register('avpu')} style={inputStyle}>
+            <select className="clinical-control" {...register('avpu')} style={inputStyle}>
               <option value="">—</option>
               <option value="ALERT">Alert</option>
               <option value="VOICE">Voice</option>
@@ -100,7 +102,7 @@ export function SurgeryEpisodeVitals({ surgeryOrderId, encounterId }: { surgeryO
             </select>
           </Field>
           <Field label="Blood glucose (mmol/L)">
-            <input type="text" inputMode="decimal" {...register('bloodGlucoseMmol')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('bloodGlucoseMmol')} style={inputStyle} />
           </Field>
           <div style={{ gridColumn: '1 / -1' }}>
             {submit.error && <div className="form-error" style={{ marginBottom: 'var(--space-2)' }}>Something went wrong. Try again.</div>}
@@ -112,9 +114,9 @@ export function SurgeryEpisodeVitals({ surgeryOrderId, encounterId }: { surgeryO
       )}
 
       {rows.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No post-op vitals recorded yet.</p>
+        <FeedbackState>No post-op vitals recorded yet.</FeedbackState>
       ) : (
-        <table className="table">
+        <TableRegion label="Post-op vitals"><table className="table">
           <caption className="sr-only">Post-op vitals</caption>
           <thead>
             <tr>
@@ -136,7 +138,7 @@ export function SurgeryEpisodeVitals({ surgeryOrderId, encounterId }: { surgeryO
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></TableRegion>
       )}
     </div>
   );

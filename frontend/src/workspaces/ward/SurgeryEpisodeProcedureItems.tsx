@@ -1,3 +1,5 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -42,12 +44,12 @@ export function SurgeryEpisodeProcedureItems({ surgeryOrderId }: { surgeryOrderI
       {showPrepareForm && <PrepareForm surgeryOrderId={surgeryOrderId} onDone={() => setShowPrepareForm(false)} />}
 
       {isLoading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : rows.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No items prepared yet.</p>
+        <FeedbackState>No items prepared yet.</FeedbackState>
       ) : (
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-          <table className="table">
+          <TableRegion label="Procedure items"><table className="table">
             <caption className="sr-only">Procedure items</caption>
             <thead>
               <tr>
@@ -65,7 +67,7 @@ export function SurgeryEpisodeProcedureItems({ surgeryOrderId }: { surgeryOrderI
                 <ProcedureItemRow key={item.id} surgeryOrderId={surgeryOrderId} item={item} />
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         </div>
       )}
     </div>
@@ -262,7 +264,7 @@ function PrepareForm({ surgeryOrderId, onDone }: { surgeryOrderId: string; onDon
       <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
         <label style={{ fontSize: 'var(--text-sm)', flex: 1 }}>
           Phase
-          <select {...register('phase')} style={inputStyle}>
+          <select className="clinical-control" {...register('phase')} style={inputStyle}>
             {PHASES.map((p) => (
               <option key={p} value={p}>
                 {p}
@@ -272,7 +274,7 @@ function PrepareForm({ surgeryOrderId, onDone }: { surgeryOrderId: string; onDon
         </label>
         <label style={{ fontSize: 'var(--text-sm)', flex: 1 }}>
           Quantity prepared
-          <input type="text" inputMode="numeric" {...register('quantityPrepared')} style={inputStyle} />
+          <input className="clinical-control" type="text" inputMode="numeric" {...register('quantityPrepared')} style={inputStyle} />
           {errors.quantityPrepared && <div className="field-error">{errors.quantityPrepared.message}</div>}
         </label>
       </div>
@@ -342,21 +344,21 @@ function ReconcileForm({ surgeryOrderId, item, onDone }: { surgeryOrderId: strin
       <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
         <label style={{ fontSize: 'var(--text-sm)' }}>
           Used
-          <input type="text" inputMode="numeric" {...register('quantityUsed')} style={inputStyle} />
+          <input className="clinical-control" type="text" inputMode="numeric" {...register('quantityUsed')} style={inputStyle} />
         </label>
         <label style={{ fontSize: 'var(--text-sm)' }}>
           Returned
-          <input type="text" inputMode="numeric" {...register('quantityReturned')} style={inputStyle} />
+          <input className="clinical-control" type="text" inputMode="numeric" {...register('quantityReturned')} style={inputStyle} />
         </label>
         <label style={{ fontSize: 'var(--text-sm)' }}>
           Wasted
-          <input type="text" inputMode="numeric" {...register('quantityWasted')} style={inputStyle} />
+          <input className="clinical-control" type="text" inputMode="numeric" {...register('quantityWasted')} style={inputStyle} />
         </label>
       </div>
       {(values.quantityWasted ?? 0) > 0 && (
         <label style={{ fontSize: 'var(--text-sm)' }}>
           Wastage reason
-          <input type="text" {...register('wastageReason')} style={inputStyle} />
+          <input className="clinical-control" type="text" {...register('wastageReason')} style={inputStyle} />
           {errors.wastageReason && <div className="field-error">{errors.wastageReason.message}</div>}
         </label>
       )}

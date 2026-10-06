@@ -1,6 +1,10 @@
+import { PageHeader } from '../../shared/components/PageHeader';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import type { CSSProperties, ReactNode } from 'react';
+import { MetricCard as StatCard } from '../../shared/components/MetricCard';
+import { QueryState } from '../../shared/components/WorkspacePage';
+import { ArrowUpRight, Users, Tags, Building2, Receipt } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { fetchPendingCancellationRequests } from '../../shared/api/billing';
 import {
   fetchExpensesByStatus,
@@ -33,41 +37,46 @@ export function AdminDashboard() {
 
   const monthRange = getCurrentMonthRange();
 
-  const { data: pendingCancellations } = useQuery({
+  const { data: pendingCancellations, isError: cancellationError, refetch: retryCancellations } = useQuery({
     queryKey: ['cancellation-requests', 'pending'],
     queryFn: () => fetchPendingCancellationRequests(accessToken as string),
     enabled: accessToken != null && canApproveCancellations,
   });
 
-  const { data: pendingExpenses } = useQuery({
+  const { data: pendingExpenses, isError: expenseError, refetch: retryExpenses } = useQuery({
     queryKey: ['expenses', 'PENDING_APPROVAL'],
     queryFn: () => fetchExpensesByStatus('PENDING_APPROVAL', accessToken as string),
     enabled: accessToken != null && canApproveExpenses,
   });
 
-  const { data: revenue } = useQuery({
+  const { data: revenue, isError: revenueError, refetch: retryRevenue } = useQuery({
     queryKey: ['reporting', 'revenue', monthRange.from, monthRange.to, facilityId],
     queryFn: () =>
       fetchRevenueReport(monthRange.from, monthRange.to, facilityId as string, accessToken as string),
     enabled: accessToken != null && canReadReports && !!facilityId,
   });
 
-  const { data: receivables } = useQuery({
+  const { data: receivables, isError: receivablesError, refetch: retryReceivables } = useQuery({
     queryKey: ['reporting', 'receivables-overview', facilityId],
     queryFn: () => fetchReceivablesOverview(facilityId as string, accessToken as string),
     enabled: accessToken != null && canReadReports && !!facilityId,
   });
 
   return (
-    <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>
-          Welcome{me?.username ? `, ${me.username}` : ''}
-        </h1>
-        <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
-          {formatMonthLabel(monthRange.from)}
-        </p>
-      </header>
+    <div className="admin-overview">
+      <PageHeader title="Hospital overview" description={`Welcome${me?.username ? `, ${me.username}` : ''}. Review hospital finances and work awaiting your attention.`}>
+        <span className="dashboard-period">{formatMonthLabel(monthRange.from)}</span>
+      </PageHeader>
+      {(cancellationError || expenseError || revenueError || receivablesError) && <QueryState title="Some dashboard information could not be loaded" description="Available figures remain visible below. Retry to refresh the missing information." onRetry={() => {
+        if (cancellationError) void retryCancellations(); if (expenseError) void retryExpenses();
+        if (revenueError) void retryRevenue(); if (receivablesError) void retryReceivables();
+      }} />}
+      <div className="dashboard-actions" aria-label="Administrative actions">
+        <DashboardAction to="/admin/users" permission="USER_MANAGE" title="Staff & access" description="Manage accounts and role assignments" icon={Users} />
+        <DashboardAction to="/admin/pricing" permission="PHARMACY_ITEM_APPROVE" title="Catalogue & pricing" description="Review items and price proposals" icon={Tags} />
+        <DashboardAction to="/admin/theatres" permission="THEATRE_MANAGE" title="Operating theatres" description="Manage theatre availability" icon={Building2} />
+        <DashboardAction to="/admin/revenue" permission="INVOICE_CANCEL_APPROVE" title="Revenue & invoices" description="Review collections and cancellations" icon={Receipt} />
+      </div>
 
       {me?.mustChangePassword && (
         <p
@@ -86,9 +95,9 @@ export function AdminDashboard() {
         </p>
       )}
 
-      <section style={{ marginBottom: 'var(--space-6)' }}>
-        <h2 style={sectionHeadingStyle}>Needs your attention</h2>
-        <div style={cardGridStyle}>
+      {(canApproveCancellations || canApproveExpenses) && <section className="dashboard-section dashboard-section--attention">
+        <h2>Needs your attention</h2>
+        <div className="metric-grid">
           {canApproveCancellations && (
             <StatCard
               to="/admin/revenue"
@@ -108,17 +117,17 @@ export function AdminDashboard() {
             />
           )}
         </div>
-      </section>
+      </section>}
 
       {canReadReports && (
-        <section style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={sectionHeadingStyle}>This month</h2>
+        <section className="dashboard-section">
+          <h2>This month</h2>
           {!facilityId ? (
             <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
               Grant yourself a facility-scoped role to see financial totals.
             </p>
           ) : (
-            <div style={cardGridStyle}>
+            <div className="metric-grid">
               <StatCard
                 label="Cash collected"
                 value={revenue ? formatMoney(revenue.collectedCashMinor, revenue.currencyCode) : '—'}
@@ -140,9 +149,9 @@ export function AdminDashboard() {
       )}
 
       {canReadReports && facilityId && (
-        <section>
-          <h2 style={sectionHeadingStyle}>Receivables</h2>
-          <div style={cardGridStyle}>
+        <section className="dashboard-section">
+          <h2>Receivables</h2>
+          <div className="metric-grid">
             <StatCard
               label="Post-discharge outstanding"
               value={
@@ -179,68 +188,11 @@ export function AdminDashboard() {
   );
 }
 
-function StatCard({
-  to,
-  label,
-  value,
-  hint,
-  tone = 'neutral',
-}: {
-  to?: string;
-  label: string;
-  value: ReactNode;
-  hint?: ReactNode;
-  tone?: 'neutral' | 'warning';
-}) {
-  const body = (
-    <div style={statCardStyle(tone, !!to)}>
-      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{label}</div>
-      <div
-        style={{
-          marginTop: 'var(--space-2)',
-          fontSize: 'var(--text-2xl)',
-          fontWeight: 'var(--weight-medium)',
-          color: tone === 'warning' ? 'var(--warning)' : 'var(--text-primary)',
-        }}
-      >
-        {value}
-      </div>
-      {hint && (
-        <div style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-          {hint}
-        </div>
-      )}
-    </div>
-  );
-  return to ? (
-    <Link to={to} style={{ textDecoration: 'none', color: 'inherit' }}>
-      {body}
-    </Link>
-  ) : (
-    body
-  );
-}
-
-const sectionHeadingStyle: CSSProperties = {
-  fontSize: 'var(--text-lg)',
-  fontWeight: 'var(--weight-medium)',
-  margin: '0 0 var(--space-3)',
-};
-
-const cardGridStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-  gap: 'var(--space-3)',
-};
-
-function statCardStyle(tone: 'neutral' | 'warning', clickable: boolean): CSSProperties {
-  return {
-    background: 'var(--bg-surface)',
-    border: `1px solid ${tone === 'warning' ? 'var(--warning)' : 'var(--border)'}`,
-    borderRadius: 'var(--radius-lg)',
-    padding: 'var(--space-4)',
-    cursor: clickable ? 'pointer' : 'default',
-  };
+function DashboardAction({ to, permission, title, description, icon: Icon }: { to: string; permission: string; title: string; description: string; icon: LucideIcon }) {
+  const allowed = usePermission(permission);
+  if (!allowed) return null;
+  return <Link to={to} className="dashboard-action"><span className="dashboard-action-icon"><Icon size={20} aria-hidden="true" /></span>
+    <span><strong>{title}</strong><small>{description}</small></span><ArrowUpRight size={16} aria-hidden="true" /></Link>;
 }
 
 function getCurrentMonthRange(): { from: string; to: string } {

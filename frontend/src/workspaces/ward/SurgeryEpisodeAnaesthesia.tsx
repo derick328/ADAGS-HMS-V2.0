@@ -1,3 +1,4 @@
+import { Checkbox } from '../../shared/components/Checkbox';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -64,21 +65,18 @@ export function SurgeryEpisodeAnaesthesia({ surgeryOrderId }: { surgeryOrderId: 
           noValidate
           style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', maxWidth: 480, marginTop: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}
         >
-          <label style={{ fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <input type="checkbox" {...register('noAnaesthesia')} />
-            No anaesthesia given
-          </label>
+          <Checkbox  className="clinical-choice" {...register('noAnaesthesia')} label={<>No anaesthesia given</>} />
           <label style={{ fontSize: 'var(--text-sm)' }}>
             Anaesthetist
-            <input type="text" {...register('anaesthetistNameText')} style={inputStyle} />
+            <input className="clinical-control" type="text" {...register('anaesthetistNameText')} style={inputStyle} />
           </label>
           <label style={{ fontSize: 'var(--text-sm)' }}>
             Anaesthesia type
-            <input type="text" {...register('anaesthesiaTypeText')} style={inputStyle} />
+            <input className="clinical-control" type="text" {...register('anaesthesiaTypeText')} style={inputStyle} />
           </label>
           <label style={{ fontSize: 'var(--text-sm)' }}>
             Paper record reference
-            <input type="text" {...register('paperRecordReference')} style={inputStyle} />
+            <input className="clinical-control" type="text" {...register('paperRecordReference')} style={inputStyle} />
           </label>
           {submit.error && <div className="form-error">Something went wrong. Try again.</div>}
           <button type="submit" className="btn btn-primary" disabled={submit.isPending} style={{ alignSelf: 'flex-start' }}>

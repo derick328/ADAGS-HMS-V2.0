@@ -1,0 +1,45 @@
+/* Shared form language: applies to native compatibility controls and composed fields. */
+.clinical-control { min-height: var(--control-height); border-color: var(--control-border); background-color: var(--bg-surface); border-radius: var(--radius); box-shadow: var(--control-shadow); }
+.clinical-control:hover:not(:disabled) { border-color: var(--text-muted); }
+.clinical-control:focus-visible { outline: 2px solid var(--green-600); outline-offset: 2px; box-shadow: var(--focus-ring); }
+.clinical-control::placeholder { color: var(--text-muted); opacity: 1; }
+select.clinical-control { appearance: none; padding-right: var(--space-8) !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right var(--space-3) center; }
+textarea.clinical-control { line-height: 1.6; padding: var(--space-3); }
+.form-field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: 0; }
+.form-field > label { color: var(--text-primary); font-size: var(--text-base); margin: 0; }
+.form-field > .clinical-control { width: 100%; }
+.form-field:has([aria-invalid="true"]) > label { color: var(--critical); }
+.form-field .field-error { display: block; line-height: 1.5; }
+.form-section { margin: 0; min-width: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.form-section > legend { float: left; width: 100%; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); font-size: var(--text-lg); font-weight: var(--weight-bold); color: var(--text-primary); }
+.form-section-body { clear: both; padding: var(--space-5); display: grid; gap: var(--space-4); min-width: 0; }
+.form-section-body > * { min-width: 0; }
+.form-section--critical { border-color: var(--critical); }
+.form-section--critical > legend { color: var(--critical); background: var(--critical-bg); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.form-section-columns-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.form-section-columns-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.form-section-body > :is(p, .field-error, .form-error, .feedback-state, .clinical-choice) { grid-column: 1 / -1; }
+.clinical-choice { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); }
+.clinical-choice > label { padding: var(--space-3); min-height: var(--control-height); width: 100%; align-items: flex-start; font-size: var(--text-base); }
+.clinical-choice:has(input:checked) { background: var(--green-100); border-color: var(--green-600); }
+.clinical-choice:has(input:focus-visible) { outline: 2px solid var(--green-600); outline-offset: 2px; }
+.form-section--critical .clinical-choice:has(input:checked) { background: var(--critical-bg); border-color: var(--critical); }
+.choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+.clinical-form-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); align-items: start; }
+.clinical-form-layout > .form-section--wide, .clinical-form-layout > .form-error, .clinical-form-layout > .form-actions { grid-column: 1 / -1; }
+.form-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); padding: var(--space-5); background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.form-actions > p { margin: 0; color: var(--text-secondary); flex: 1 1 240px; }
+@media (max-width: 1000px) { .clinical-form-layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) {
+  .form-section-columns-2, .form-section-columns-3, .choice-grid { grid-template-columns: minmax(0, 1fr); }
+  .form-section > legend, .form-section-body { padding: var(--space-4); }
+  .form-actions > .btn { width: 100%; justify-content: center; }
+}
+@media (forced-colors: active) { select.clinical-control { appearance: auto; background-image: none; } }
+
+.intake-form { margin-top: var(--space-5); }
+.intake-form > [role="alert"], .intake-form > button[type="submit"] { grid-column: 1 / -1; }
+.referral-choice { gap: var(--space-3); flex-wrap: wrap; }
+.referral-choice[aria-pressed="true"] { background: var(--green-100) !important; }
+
+.form-section-body > div:has(> .clinical-choice) { grid-column: 1 / -1; flex-wrap: wrap; }

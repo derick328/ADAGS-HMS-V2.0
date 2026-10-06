@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { fetchInvoiceById, fetchInvoiceLines, searchInvoices } from '../../shared/api/invoices';
@@ -19,17 +22,14 @@ export function SurgeryBillsPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Surgery Bills</h1>
-        <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>Read-only</p>
-      </header>
+      <PageHeader title={<>Surgery bills</>} description={<>Read-only</>} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 'var(--space-4)' }}>
+      <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 'var(--space-4)' }}>
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
           {isLoading ? (
-            <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+            <FeedbackState loading>Loading…</FeedbackState>
           ) : (orders ?? []).length === 0 ? (
-            <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No open surgical episodes.</p>
+            <FeedbackState>No open surgical episodes.</FeedbackState>
           ) : (
             <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
               {(orders ?? []).map((order) => (
@@ -74,8 +74,8 @@ function SurgeryInvoices({ encounterId }: { encounterId: string }) {
     enabled: accessToken != null,
   });
 
-  if (isLoading) return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
-  if (!invoices || invoices.length === 0) return <p style={{ color: 'var(--text-muted)' }}>No invoices for this encounter yet.</p>;
+  if (isLoading) return <FeedbackState loading>Loading…</FeedbackState>;
+  if (!invoices || invoices.length === 0) return <FeedbackState>No invoices for this encounter yet.</FeedbackState>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
@@ -112,7 +112,7 @@ function InvoiceCard({ invoiceId }: { invoiceId: string }) {
           {formatMoney(invoice?.outstandingTotalMinor, invoice?.currencyCode)} outstanding
         </div>
       </div>
-      <table className="table">
+      <TableRegion label="Invoice lines"><table className="table">
         <caption className="sr-only">Invoice lines</caption>
         <thead>
           <tr>
@@ -132,7 +132,7 @@ function InvoiceCard({ invoiceId }: { invoiceId: string }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></TableRegion>
     </section>
   );
 }

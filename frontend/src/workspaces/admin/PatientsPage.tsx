@@ -1,3 +1,7 @@
+import { Checkbox } from '../../shared/components/Checkbox';
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { searchInvoices, type InvoiceResponse } from '../../shared/api/invoices';
@@ -78,12 +82,7 @@ export function PatientsPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Patients</h1>
-        <p style={{ margin: 'var(--space-1) 0 0', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-          Identity, hospital number, and invoice history. No clinical detail (spec 18-admin.md §3.1 R2).
-        </p>
-      </header>
+      <PageHeader title={<>Patients</>} description={<>Identity, hospital number, and invoice history. Clinical detail is restricted to clinical workspaces.</>} />
 
       <PatientSummary accessToken={accessToken} />
 
@@ -100,7 +99,7 @@ export function PatientsPage() {
           Search & filters
         </h2>
 
-        <form
+        <form className="clinical-filter-bar"
           onSubmit={(e) => {
             e.preventDefault();
             setSelectedId(null);
@@ -108,7 +107,7 @@ export function PatientsPage() {
           }}
           style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}
         >
-          <input
+          <input className="clinical-control"
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -154,7 +153,7 @@ export function PatientsPage() {
             <label htmlFor="payer-filter" style={{ display: 'block', fontSize: 'var(--text-xs)' }}>
               Payment method
             </label>
-            <select
+            <select className="clinical-control"
               id="payer-filter"
               value={payerFilter}
               onChange={(e) => setPayerFilter(e.target.value as PayerFilter)}
@@ -171,7 +170,7 @@ export function PatientsPage() {
             <label htmlFor="invoices-from" style={{ display: 'block', fontSize: 'var(--text-xs)' }}>
               From
             </label>
-            <input
+            <input className="clinical-control"
               id="invoices-from"
               type="date"
               value={from}
@@ -183,7 +182,7 @@ export function PatientsPage() {
             <label htmlFor="invoices-to" style={{ display: 'block', fontSize: 'var(--text-xs)' }}>
               To
             </label>
-            <input
+            <input className="clinical-control"
               id="invoices-to"
               type="date"
               value={to}
@@ -191,14 +190,7 @@ export function PatientsPage() {
               style={filterFieldStyle}
             />
           </div>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: 'var(--text-sm)' }}>
-            <input
-              type="checkbox"
-              checked={outstandingOnly}
-              onChange={(e) => setOutstandingOnly(e.target.checked)}
-            />
-            Outstanding only
-          </label>
+          <Checkbox  className="clinical-choice" checked={outstandingOnly} onChange={(e) => setOutstandingOnly(e.target.checked)} label={<>Outstanding only</>} />
           {filtersActive && (
             <button
               type="button"
@@ -266,7 +258,7 @@ export function PatientsPage() {
             }
           />
         ) : (
-          <table className="table">
+          <TableRegion><table className="table">
             <caption className="sr-only">
               {searchActive ? 'Patient search results' : 'Recently registered patients'}
             </caption>
@@ -310,7 +302,7 @@ export function PatientsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </div>
 
@@ -349,7 +341,7 @@ function PatientSummary({ accessToken }: { accessToken: string | null }) {
   });
 
   return (
-    <section
+    <section className="clinical-grid"
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
@@ -534,7 +526,7 @@ function PatientInvoiceHistory({
       </div>
 
       {isLoading ? (
-        <p style={{ color: 'var(--text-muted)', margin: 0 }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : isError ? (
         <p style={{ color: 'var(--text-muted)', margin: 0 }}>Couldn't load invoices for this patient.</p>
       ) : rows.length === 0 ? (
@@ -544,7 +536,7 @@ function PatientInvoiceHistory({
             : 'No invoices on file.'}
         </p>
       ) : (
-        <table className="table">
+        <TableRegion><table className="table">
           <thead>
             <tr>
               <th>Invoice</th>
@@ -563,7 +555,7 @@ function PatientInvoiceHistory({
                 <InvoiceRow key={invoice.id} invoice={invoice} />
               ))}
           </tbody>
-        </table>
+        </table></TableRegion>
       )}
     </div>
   );

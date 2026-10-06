@@ -117,12 +117,37 @@ class TriageAssessmentRepositoryTest extends IntegrationTestSupport {
     }
 
     @Test
-    void checkConstraintRejectsHasPainTrueWithNoPainScore() {
+    void checkConstraintAllowsHasPainTrueWithNoPainScore() {
+        UUID encounterId = insertFixtureEncounter();
+
+        rawInsert(encounterId, Map.of(
+                "has_pain", "true", "pain_score", "NULL", "pain_location", "'forehead'"));
+
+        assertThat(repository.findByEncounterId(encounterId)).singleElement().satisfies(assessment -> {
+            assertThat(assessment.hasPain()).isTrue();
+            assertThat(assessment.painScore()).isNull();
+            assertThat(assessment.painLocation()).isEqualTo("forehead");
+        });
+    }
+
+    @Test
+    void checkConstraintRejectsHasPainTrueWithNoPainLocation() {
         UUID encounterId = insertFixtureEncounter();
 
         assertThatThrownBy(() -> rawInsert(encounterId, Map.of(
-                "has_pain", "true", "pain_score", "NULL", "pain_location", "'forehead'")))
+                "has_pain", "true", "pain_score", "NULL", "pain_location", "NULL")))
                 .isInstanceOf(DataAccessException.class);
+    }
+
+    @Test
+    void checkConstraintRejectsPainScoresOutsideZeroToTen() {
+        UUID encounterId = insertFixtureEncounter();
+
+        for (String score : List.of("-1", "11")) {
+            assertThatThrownBy(() -> rawInsert(encounterId, Map.of(
+                    "has_pain", "true", "pain_score", score, "pain_location", "'forehead'")))
+                    .isInstanceOf(DataAccessException.class);
+        }
     }
 
     @Test

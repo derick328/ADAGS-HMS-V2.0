@@ -79,6 +79,7 @@ import com.adags.modules.surgery.domain.ProcedureItemAlreadyReconciledException;
 import com.adags.modules.surgery.domain.ProcedureItemNotBalancedException;
 import com.adags.modules.surgery.domain.ProcedureItemNotReconciledException;
 import com.adags.modules.surgery.domain.ProcedureItemSelfReconciliationNotAllowedException;
+import com.adags.modules.surgery.domain.ProcedureItemStockUnavailableException;
 import com.adags.modules.surgery.domain.SurgeryOrderNotOpenException;
 import com.adags.modules.surgery.domain.SurgeryReconciliationIncompleteException;
 import com.adags.modules.surgery.domain.TheatreSlotNotAvailableException;
@@ -507,6 +508,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingWastageReasonException.class)
     public ProblemDetail handleMissingWastageReason(MissingWastageReasonException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // Preparing an item the theatre has no stock of — the same 409 CONFLICT
+    // family as InsufficientStockException, not a 404. Carries itemId so the
+    // UI could deep-link to restock without re-parsing the message.
+    @ExceptionHandler(ProcedureItemStockUnavailableException.class)
+    public ProblemDetail handleProcedureItemStockUnavailable(ProcedureItemStockUnavailableException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setProperty("itemId", ex.itemId());
+        return problem;
     }
 
     // 04-procedure-bedday-rules.md §2.3: "prepared == used + returned +

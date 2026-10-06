@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { fetchMyNursingAssignments } from '../../shared/api/nursingAssignments';
@@ -20,17 +23,15 @@ export function MyHistoryPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>My History</h1>
-      </header>
+      <PageHeader title={<>My history</>} description={<>Review your previous patient assignments.</>} />
 
       <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
         {isLoading ? (
-          <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+          <FeedbackState loading>Loading…</FeedbackState>
         ) : rows.length === 0 ? (
-          <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No roster assignments yet.</p>
+          <FeedbackState>No roster assignments yet.</FeedbackState>
         ) : (
-          <table className="table">
+          <TableRegion label="My assignment history"><table className="table">
             <caption className="sr-only">My assignment history</caption>
             <thead>
               <tr>
@@ -59,7 +60,7 @@ export function MyHistoryPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         )}
       </div>
     </div>

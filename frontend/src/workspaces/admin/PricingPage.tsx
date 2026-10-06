@@ -1,3 +1,6 @@
+import { Checkbox } from '../../shared/components/Checkbox';
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { ApiError } from '../../shared/api/client';
@@ -155,7 +158,7 @@ function ReviewPanel({
       <label htmlFor="proposal-review-note" style={{ display: 'block', marginTop: 'var(--space-3)', fontSize: 'var(--text-sm)' }}>
         Review note
       </label>
-      <textarea
+      <textarea className="clinical-control"
         id="proposal-review-note"
         value={reviewNote}
         onChange={(e) => onNoteChange(e.target.value)}
@@ -372,7 +375,7 @@ function PreviewSummary({
       {preview.priceChanges.length > 0 && (
         <details style={{ marginTop: 'var(--space-2)' }}>
           <summary style={{ cursor: 'pointer' }}>Price changes ({preview.priceChanges.length})</summary>
-          <table className="table" style={{ marginTop: 'var(--space-2)' }}>
+          <TableRegion><table className="table" style={{ marginTop: 'var(--space-2)' }}>
             <thead>
               <tr>
                 <th>Row</th>
@@ -393,7 +396,7 @@ function PreviewSummary({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
           {preview.priceChanges.length > 50 && (
             <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
               Showing first 50 of {preview.priceChanges.length}.
@@ -405,7 +408,7 @@ function PreviewSummary({
       {preview.newItems.length > 0 && (
         <details style={{ marginTop: 'var(--space-2)' }}>
           <summary style={{ cursor: 'pointer' }}>New items ({preview.newItems.length})</summary>
-          <table className="table" style={{ marginTop: 'var(--space-2)' }}>
+          <TableRegion><table className="table" style={{ marginTop: 'var(--space-2)' }}>
             <thead>
               <tr>
                 <th>Row</th>
@@ -430,7 +433,7 @@ function PreviewSummary({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
           {preview.newItems.length > 50 && (
             <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
               Showing first 50 of {preview.newItems.length}.
@@ -506,7 +509,7 @@ function CatalogueItemsBrowser() {
         </div>
       </div>
 
-      <form
+      <form className="clinical-filter-bar"
         onSubmit={(e) => {
           e.preventDefault();
           setPage(0);
@@ -514,7 +517,7 @@ function CatalogueItemsBrowser() {
         }}
         style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginTop: 'var(--space-3)' }}
       >
-        <input
+        <input aria-label="Search product name or code" className="clinical-control"
           type="text"
           placeholder="Search product name or code"
           value={q}
@@ -527,7 +530,7 @@ function CatalogueItemsBrowser() {
             font: 'inherit',
           }}
         />
-        <select
+        <select className="clinical-control"
           value={type}
           onChange={(e) => {
             setType(e.target.value);
@@ -540,7 +543,7 @@ function CatalogueItemsBrowser() {
             <option key={t} value={t}>{t.replaceAll('_', ' ').toLowerCase()}</option>
           ))}
         </select>
-        <select
+        <select className="clinical-control"
           value={billingCategory}
           onChange={(e) => {
             setBillingCategory(e.target.value);
@@ -562,20 +565,17 @@ function CatalogueItemsBrowser() {
             <option key={c} value={c}>{c.replaceAll('_', ' ').toLowerCase()}</option>
           ))}
         </select>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: 'var(--text-sm)' }}>
-          <input type="checkbox" checked={activeOnly} onChange={(e) => { setActiveOnly(e.target.checked); setPage(0); }} />
-          Active only
-        </label>
+        <Checkbox  className="clinical-choice" checked={activeOnly} onChange={(e) => { setActiveOnly(e.target.checked); setPage(0); }} label={<>Active only</>} />
         <button type="submit" className="btn btn-secondary">Search</button>
       </form>
 
       {isLoading ? (
-        <p style={{ color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>Loading…</p>
+        <FeedbackState loading>Loading…</FeedbackState>
       ) : !data || data.items.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)', marginTop: 'var(--space-3)' }}>No items match those filters.</p>
+        <FeedbackState>No items match those filters.</FeedbackState>
       ) : (
         <div style={{ overflowX: 'auto', marginTop: 'var(--space-3)' }}>
-          <table className="table" style={{ width: '100%' }}>
+          <TableRegion label="Catalogue items"><table className="table" style={{ width: '100%' }}>
             <caption className="sr-only">Catalogue items</caption>
             <thead>
               <tr>
@@ -609,7 +609,7 @@ function CatalogueItemsBrowser() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableRegion>
         </div>
       )}
 
@@ -693,7 +693,7 @@ function DeactivateAllPanel({ onClose }: { onClose: () => void }) {
       <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginTop: 'var(--space-2)' }}>
         To confirm, type: <code style={{ background: 'var(--bg-surface)', padding: '0 var(--space-1)', borderRadius: 2 }}>{DEACTIVATE_ALL_CONFIRMATION}</code>
       </label>
-      <input
+      <input aria-label="Type the phrase exactly" className="clinical-control"
         type="text"
         value={typed}
         onChange={(e) => setTyped(e.target.value)}
@@ -739,7 +739,7 @@ function RecentBatches({ batches }: { batches: CatalogImportBatch[] }) {
       <h3 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-base)', fontWeight: 'var(--weight-medium)' }}>
         Recent imports
       </h3>
-      <table className="table" style={{ width: '100%' }}>
+      <TableRegion><table className="table" style={{ width: '100%' }}>
         <thead>
           <tr>
             <th>Filename</th>
@@ -772,7 +772,7 @@ function RecentBatches({ batches }: { batches: CatalogImportBatch[] }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></TableRegion>
     </div>
   );
 }

@@ -1,3 +1,7 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { TableRegion } from '../../shared/components/TableRegion';
+import { WorkspacePage, QueryState } from '../../shared/components/WorkspacePage';
+import { EmptyState } from '../../shared/components/EmptyState';
 import { useQuery } from '@tanstack/react-query';
 import { Fragment, useState } from 'react';
 import { fetchDispensesByPrescriptionLine, type DispenseHistoryResponse } from '../../shared/api/dispenses';
@@ -30,13 +34,13 @@ export function RequestHistoryPage() {
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'LAB' | 'RX'>('ALL');
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const { data: labs } = useQuery({
+  const { data: labs, isPending: labsPending, isError: labsError, refetch: retryLabs } = useQuery({
     queryKey: ['lab-orders', 'mine'],
     queryFn: () => fetchMyLabOrders(accessToken as string),
     enabled: accessToken != null,
     refetchInterval: 30_000,
   });
-  const { data: rx } = useQuery({
+  const { data: rx, isPending: rxPending, isError: rxError, refetch: retryRx } = useQuery({
     queryKey: ['prescriptions', 'mine'],
     queryFn: () => fetchMyPrescriptions(accessToken as string),
     enabled: accessToken != null,
@@ -66,16 +70,15 @@ export function RequestHistoryPage() {
     .sort((a, b) => new Date(b.occurredAt ?? 0).getTime() - new Date(a.occurredAt ?? 0).getTime());
 
   return (
-    <div>
-      <h1 style={{ fontSize: 'var(--text-xl)' }}>Request History</h1>
+    <WorkspacePage title="Request history" description="Track your lab requests and prescriptions, and open a request to review its details.">
 
-      <div style={{ display: 'flex', gap: 'var(--space-3)', margin: 'var(--space-3) 0' }}>
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)} style={selectStyle}>
+      <div className="workspace-toolbar">
+        <select className="clinical-control" aria-label="Request type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)} style={selectStyle}>
           <option value="ALL">All types</option>
           <option value="LAB">Lab</option>
           <option value="RX">Prescription</option>
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={selectStyle}>
+        <select className="clinical-control" aria-label="Request status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={selectStyle}>
           <option value="ALL">All statuses</option>
           <option value="PENDING_PAYMENT">Pending payment</option>
           <option value="AWAITING_COLLECTION">Awaiting collection</option>
@@ -85,11 +88,15 @@ export function RequestHistoryPage() {
         </select>
       </div>
 
-      {rows.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No requests match this filter.</p>
+      {labsError || rxError ? (
+        <QueryState title="Unable to load request history" description="Retry to load your lab requests and prescriptions." onRetry={() => { void retryLabs(); void retryRx(); }} />
+      ) : labsPending || rxPending ? (
+        <QueryState loading title="Loading request history…" />
+      ) : rows.length === 0 ? (
+        <div className="workspace-panel"><EmptyState role="status" title="No requests match these filters" description="Choose another type or status to review other requests." /></div>
       ) : (
-        <table className="table">
-          <tbody>
+        <div className="workspace-table" role="region" aria-label="Request history" tabIndex={0}><TableRegion><table className="table">
+          <thead><tr><th scope="col">Request details</th><th scope="col">Status</th></tr></thead><tbody>
             {rows.map((row) => {
               const rowKey = `${row.type}-${row.id}`;
               const isOpen = expanded === rowKey;
@@ -137,9 +144,9 @@ export function RequestHistoryPage() {
               );
             })}
           </tbody>
-        </table>
+        </table></TableRegion></div>
       )}
-    </div>
+    </WorkspacePage>
   );
 }
 
@@ -155,7 +162,7 @@ function LabDetail({ labOrderId }: { labOrderId: string }) {
     enabled: accessToken != null,
   });
 
-  if (isLoading) return <p style={{ color: 'var(--text-muted)' }}>Loading result…</p>;
+  if (isLoading) return <FeedbackState loading>Loading result…</FeedbackState>;
   if (isError) return <p style={{ color: 'var(--critical)' }}>Could not load the result.</p>;
   const results = data ?? [];
   if (results.length === 0) {
@@ -204,7 +211,7 @@ function LabResultCard({ result, superseded }: { result: LabResultDetailResponse
       )}
 
       {(result.parameterValues?.length ?? 0) > 0 && (
-        <table className="table" style={{ marginBottom: 'var(--space-3)' }}>
+        <TableRegion><table className="table" style={{ marginBottom: 'var(--space-3)' }}>
           <thead>
             <tr>
               <th>Parameter</th>
@@ -218,7 +225,7 @@ function LabResultCard({ result, superseded }: { result: LabResultDetailResponse
               <ParameterRow key={p.parameterId ?? i} p={p} />
             ))}
           </tbody>
-        </table>
+        </table></TableRegion>
       )}
 
       <NotesBlock result={result} />
@@ -263,10 +270,10 @@ function NotesBlock({ result }: { result: LabResultDetailResponse }) {
   ];
   const populated = notes.filter(([, value]) => value && value.trim().length > 0);
   if (populated.length === 0) {
-    return <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>No notes recorded.</p>;
+    return <FeedbackState>No notes recorded.</FeedbackState>;
   }
   return (
-    <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '4px var(--space-3)', margin: 0 }}>
+    <dl className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '4px var(--space-3)', margin: 0 }}>
       {populated.map(([label, value]) => (
         <div key={label} style={{ display: 'contents' }}>
           <dt style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{label}</dt>
@@ -285,7 +292,7 @@ function DispenseDetail({ prescriptionLineId }: { prescriptionLineId: string }) 
     enabled: accessToken != null,
   });
 
-  if (isLoading) return <p style={{ color: 'var(--text-muted)' }}>Loading dispense record…</p>;
+  if (isLoading) return <FeedbackState loading>Loading dispense record…</FeedbackState>;
   if (isError) return <p style={{ color: 'var(--critical)' }}>Could not load the dispense record.</p>;
   const dispenses = data ?? [];
   if (dispenses.length === 0) {

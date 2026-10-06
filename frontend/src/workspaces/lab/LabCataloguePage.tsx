@@ -1,3 +1,5 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -60,12 +62,7 @@ export function LabCataloguePage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Lab Catalogue</h1>
-        <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>
-          Propose a new test for the catalogue. Goes to admin for approval — pricing and sensitivity are decided there.
-        </p>
-      </header>
+      <PageHeader title={<>Lab catalogue</>} description={<>Propose a new test for the catalogue. Goes to admin for approval — pricing and sensitivity are decided there.</>} />
 
       {submit.isSuccess && (
         <div style={{ background: 'var(--green-100)', color: 'var(--green-800)', padding: 'var(--space-3)', borderRadius: 'var(--radius)', marginBottom: 'var(--space-4)', maxWidth: 640 }}>
@@ -79,11 +76,11 @@ export function LabCataloguePage() {
         style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', maxWidth: 640, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)' }}
       >
         <Field label="Product name" error={errors.proposedName?.message}>
-          <input {...register('proposedName')} style={inputStyle} />
+          <input className="clinical-control" {...register('proposedName')} style={inputStyle} />
         </Field>
 
         <Field label="Classification" error={errors.customClassification?.message}>
-          <select {...register('classification')} style={inputStyle}>
+          <select className="clinical-control" {...register('classification')} style={inputStyle}>
             {CLASSIFICATIONS.map((c) => (
               <option key={c} value={c}>
                 {c === 'OTHERS' ? 'Other' : c.charAt(0) + c.slice(1).toLowerCase()}
@@ -91,27 +88,27 @@ export function LabCataloguePage() {
             ))}
           </select>
           {classification === 'OTHERS' && (
-            <input placeholder="Specify classification" {...register('customClassification')} style={{ ...inputStyle, marginTop: 'var(--space-2)' }} />
+            <input aria-label="Specify classification" className="clinical-control" placeholder="Specify classification" {...register('customClassification')} style={{ ...inputStyle, marginTop: 'var(--space-2)' }} />
           )}
         </Field>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+        <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
           <Field label="Price (TZS)" error={errors.proposedPriceMinor?.message}>
-            <input type="text" inputMode="numeric" {...register('proposedPriceMinor')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="numeric" {...register('proposedPriceMinor')} style={inputStyle} />
           </Field>
           <Field label="Expected turnaround (hours)" error={errors.expectedTatHours?.message}>
-            <input type="text" inputMode="numeric" {...register('expectedTatHours')} style={inputStyle} />
+            <input className="clinical-control" type="text" inputMode="numeric" {...register('expectedTatHours')} style={inputStyle} />
           </Field>
           <Field label="Specimen type" error={errors.specimenType?.message}>
-            <input {...register('specimenType')} style={inputStyle} />
+            <input className="clinical-control" {...register('specimenType')} style={inputStyle} />
           </Field>
           <Field label="Container type" error={errors.containerType?.message}>
-            <input {...register('containerType')} style={inputStyle} />
+            <input className="clinical-control" {...register('containerType')} style={inputStyle} />
           </Field>
         </div>
 
         <Field label="Notes">
-          <textarea rows={2} {...register('notes')} style={inputStyle} />
+          <textarea className="clinical-control" rows={2} {...register('notes')} style={inputStyle} />
         </Field>
 
         <div>
@@ -122,18 +119,16 @@ export function LabCataloguePage() {
             </button>
           </div>
           {fields.length === 0 && (
-            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-              No parameters — a test approved with none generates an empty result form (manual/qualitative tests).
-            </p>
+            <FeedbackState>No parameters — a test approved with none generates an empty result form (manual/qualitative tests).</FeedbackState>
           )}
           {fields.map((field, index) => (
             <div key={field.id} style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', alignItems: 'flex-start' }}>
               <div style={{ flex: 2 }}>
-                <input placeholder="Name" {...register(`parameters.${index}.name` as const)} style={inputStyle} />
+                <input aria-label="Name" className="clinical-control" placeholder="Name" {...register(`parameters.${index}.name` as const)} style={inputStyle} />
                 {errors.parameters?.[index]?.name && <span className="field-error">{errors.parameters[index]?.name?.message}</span>}
               </div>
-              <input placeholder="Unit" {...register(`parameters.${index}.unit` as const)} style={{ ...inputStyle, flex: 1 }} />
-              <input placeholder="Method" {...register(`parameters.${index}.method` as const)} style={{ ...inputStyle, flex: 1 }} />
+              <input aria-label="Unit" className="clinical-control" placeholder="Unit" {...register(`parameters.${index}.unit` as const)} style={{ ...inputStyle, flex: 1 }} />
+              <input aria-label="Method" className="clinical-control" placeholder="Method" {...register(`parameters.${index}.method` as const)} style={{ ...inputStyle, flex: 1 }} />
               <button type="button" className="btn btn-ghost" onClick={() => remove(index)}>
                 Remove
               </button>
@@ -142,7 +137,7 @@ export function LabCataloguePage() {
         </div>
 
         <Field label="Justification" error={errors.justification?.message}>
-          <textarea rows={2} {...register('justification')} style={inputStyle} />
+          <textarea className="clinical-control" rows={2} {...register('justification')} style={inputStyle} />
         </Field>
 
         {submit.error && (

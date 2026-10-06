@@ -1,3 +1,6 @@
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { PageHeader } from '../../shared/components/PageHeader';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { fetchInvoiceById, fetchInvoiceLines, searchInvoices } from '../../shared/api/invoices';
@@ -19,17 +22,14 @@ export function WardBillsPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Ward Bills</h1>
-        <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>{wardName ?? 'Your ward'} — read-only</p>
-      </header>
+      <PageHeader title={<>Ward bills</>} description={<>{wardName ?? 'Your ward'} — read-only</>} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 'var(--space-4)' }}>
+      <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 'var(--space-4)' }}>
         <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
           {isLoading ? (
-            <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading…</p>
+            <FeedbackState loading>Loading…</FeedbackState>
           ) : (patients ?? []).length === 0 ? (
-            <p style={{ padding: 'var(--space-4)', color: 'var(--text-muted)' }}>No patients on this ward.</p>
+            <FeedbackState>No patients on this ward.</FeedbackState>
           ) : (
             <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
               {(patients ?? []).map((row) => (
@@ -72,8 +72,8 @@ function PatientBills({ row }: { row: WardPatientRowResponse }) {
     enabled: accessToken != null && row.encounterId != null,
   });
 
-  if (isLoading) return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
-  if (!invoices || invoices.length === 0) return <p style={{ color: 'var(--text-muted)' }}>No invoices for this encounter yet.</p>;
+  if (isLoading) return <FeedbackState loading>Loading…</FeedbackState>;
+  if (!invoices || invoices.length === 0) return <FeedbackState>No invoices for this encounter yet.</FeedbackState>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
@@ -110,7 +110,7 @@ function InvoiceCard({ invoiceId }: { invoiceId: string }) {
           {formatMoney(invoices?.outstandingTotalMinor, invoices?.currencyCode)} outstanding
         </div>
       </div>
-      <table className="table">
+      <TableRegion label="Invoice lines"><table className="table">
         <caption className="sr-only">Invoice lines</caption>
         <thead>
           <tr>
@@ -130,7 +130,7 @@ function InvoiceCard({ invoiceId }: { invoiceId: string }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></TableRegion>
     </section>
   );
 }

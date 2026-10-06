@@ -40,10 +40,14 @@ class VitalReferenceRangeRepositoryTest extends IntegrationTestSupport {
     }
 
     @Test
-    void paediatricBandsExistButAreUnconfigured() {
-        for (AgeBand band : List.of(AgeBand.NEONATE, AgeBand.INFANT, AgeBand.TODDLER, AgeBand.CHILD, AgeBand.ADOLESCENT)) {
+    void paediatricBandsAreConfiguredAfterV78() {
+        // V78 seeded configured rows for every paediatric band that forAge
+        // can actually return. CHILD is retired (forAge routes 3-12y through
+        // PRESCHOOL / SCHOOL_AGE now) and its V9 placeholder was closed.
+        for (AgeBand band : List.of(AgeBand.NEONATE, AgeBand.INFANT, AgeBand.TODDLER,
+                                     AgeBand.PRESCHOOL, AgeBand.SCHOOL_AGE, AgeBand.ADOLESCENT)) {
             VitalReferenceRange range = repository.findCurrent(VitalType.PULSE, band, Sex.ANY).orElseThrow();
-            assertThat(range.isConfigured()).as("%s should exist but be unconfigured", band).isFalse();
+            assertThat(range.isConfigured()).as("%s should be configured", band).isTrue();
         }
     }
 
@@ -55,13 +59,12 @@ class VitalReferenceRangeRepositoryTest extends IntegrationTestSupport {
     }
 
     @Test
-    void findUnconfiguredReturnsExactlyTheThirtyPaediatricRows() {
+    void findUnconfiguredIsEmptyAfterV78() {
+        // Every paediatric band forAge can return now carries configured bounds
+        // (see V78__paediatric_vital_reference_ranges.sql). The retired CHILD
+        // rows were closed with effective_to and are excluded from "current".
         List<VitalReferenceRange> unconfigured = repository.findUnconfigured();
-        assertThat(unconfigured).hasSize(6 * 5); // 6 vitals x 5 paediatric bands
-        assertThat(unconfigured).allSatisfy(range -> {
-            assertThat(range.ageBand()).isIn(AgeBand.NEONATE, AgeBand.INFANT, AgeBand.TODDLER, AgeBand.CHILD, AgeBand.ADOLESCENT);
-            assertThat(range.isConfigured()).isFalse();
-        });
+        assertThat(unconfigured).isEmpty();
     }
 
     @Test

@@ -38,14 +38,15 @@ class TriageAssessmentTest {
     }
 
     @Test
-    void painScoreIsRequiredWhenHasPainIsTrue() {
+    void painScoreIsOptionalWhenHasPainIsTrue() {
         Builder b = builder();
         b.hasPain = true;
         b.painLocation = "left knee";
 
-        assertThatThrownBy(() -> create(b))
-                .isInstanceOf(InvalidTriageAssessmentException.class)
-                .hasMessageContaining("pain_score");
+        TriageAssessment assessment = create(b);
+        assertThat(assessment.hasPain()).isTrue();
+        assertThat(assessment.painScore()).isNull();
+        assertThat(assessment.painLocation()).isEqualTo("left knee");
     }
 
     @Test
@@ -95,13 +96,13 @@ class TriageAssessmentTest {
     }
 
     @Test
-    void fallScoreIsRequiredWhenFallRiskIsTrue() {
+    void fallScoreIsOptionalWhenFallRiskIsTrue() {
         Builder b = builder();
         b.fallRisk = true;
 
-        assertThatThrownBy(() -> create(b))
-                .isInstanceOf(InvalidTriageAssessmentException.class)
-                .hasMessageContaining("fall_score");
+        TriageAssessment assessment = create(b);
+        assertThat(assessment.fallRisk()).isTrue();
+        assertThat(assessment.fallScore()).isNull();
     }
 
     // §4.1/§4.2: IMMEDIATE always carries a reason from the fixed list.

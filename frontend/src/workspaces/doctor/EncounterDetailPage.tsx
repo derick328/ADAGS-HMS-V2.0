@@ -1,5 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
-import { Fragment, useMemo, type CSSProperties } from 'react';
+import { FeedbackState } from '../../shared/components/FeedbackState';
+import { TableRegion } from '../../shared/components/TableRegion';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Fragment, useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   fetchAllergiesByPatient,
@@ -15,9 +17,15 @@ import { fetchLabOrdersByEncounter } from '../../shared/api/labOrders';
 import { fetchPatientById } from '../../shared/api/patients';
 import { fetchPrescriptionsByEncounter } from '../../shared/api/prescriptions';
 import { searchCompletedAssessments, type CompletedTriageAssessmentResponse } from '../../shared/api/triage';
-import { fetchVitalSignsByEncounter, type VitalSignsResponse } from '../../shared/api/vitalSigns';
+import {
+  fetchVitalSignsByEncounter,
+  recordConsultationVitals,
+  type RecordConsultationVitalsRequest,
+  type VitalSignsResponse,
+} from '../../shared/api/vitalSigns';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { useMe } from '../../shared/auth/useMe';
+import { usePermission } from '../../shared/auth/usePermission';
 import { formatDate, formatDateTime } from '../../shared/format/date';
 import { formatMoney } from '../../shared/format/money';
 
@@ -102,7 +110,7 @@ export function EncounterDetailPage() {
   const triage = (triageAll ?? []).find((t) => t.encounterId === encounterId);
 
   if (encounterLoading) {
-    return <p style={{ color: 'var(--text-muted)' }}>Loading encounter…</p>;
+    return <FeedbackState loading>Loading encounter…</FeedbackState>;
   }
   if (encounterError || !encounter) {
     return (
@@ -134,7 +142,7 @@ export function EncounterDetailPage() {
           <span style={{ color: 'var(--text-secondary)' }}>{formatDate(encounter.createdAt)}</span>
           <EncounterStateBadge state={encounter.state} />
         </div>
-        <dl style={metaGridStyle}>
+        <dl className="clinical-grid" style={metaGridStyle}>
           <MetaItem label="Encounter" value={shortId(encounter.id)} />
           <MetaItem label="Department" value={departmentName} />
           <MetaItem label="Assigned to" value={providerLabel} />
@@ -198,9 +206,10 @@ export function EncounterDetailPage() {
       )}
 
       {/* Clinical summary — two columns on desktop, one on mobile */}
-      <div style={twoColStyle}>
+      <div className="clinical-grid" style={twoColStyle}>
         <SectionCard title="Vitals & Triage">
           <VitalsBlock triageVitals={triageVitals} consultVitals={consultVitals} triage={triage} />
+          {encounterId && <RecordConsultationVitals encounterId={encounterId} hasConsultVitals={!!consultVitals} />}
         </SectionCard>
         <SectionCard title="Consultation">
           <ConsultationBlock note={latestNote} triage={triage} />
@@ -459,34 +468,174 @@ function VitalsBlock({
   const temp = readingOf(v, 'TEMPERATURE');
   const spo2 = readingOf(v, 'SPO2');
   const rr = readingOf(v, 'RESPIRATORY_RATE');
-  const rows: [string, string | null][] = [
-    ['BP', bp],
-    ['Pulse', pulse ? `${pulse} bpm` : null],
-    ['Temp', temp ? `${temp} °C` : null],
-    ['SpO₂', spo2 ? `${spo2} %` : null],
-    ['Resp rate', rr ? `${rr}/min` : null],
-    ['Weight', v?.weightKg ? `${v.weightKg} kg` : null],
-    ['Height', v?.heightCm ? `${v.heightCm} cm` : null],
-    ['BMI', v?.bmi ? `${v.bmi}` : null],
-    ['AVPU', v?.avpu ?? null],
-    ['Glucose', v?.bloodGlucoseMmol ? `${v.bloodGlucoseMmol} mmol/L` : null],
-    ['Triage priority', triage?.priority ?? null],
-    ['Chief complaint', triage?.chiefComplaint ?? null],
-    ['Pain', triage?.hasPain ? `Yes (${triage.painScore ?? '—'}/10${triage.painLocation ? `, ${triage.painLocation}` : ''})` : null],
+  const abnormal = new Set(v?.abnormalVitalTypes ?? []);
+  const rows: { label: string; value: string | null; abnormalKeys?: string[] }[] = [
+    { label: 'BP', value: bp, abnormalKeys: ['SYSTOLIC_BP', 'DIASTOLIC_BP'] },
+    { label: 'Pulse', value: pulse ? `${pulse} bpm` : null, abnormalKeys: ['PULSE'] },
+    { label: 'Temp', value: temp ? `${temp} °C` : null, abnormalKeys: ['TEMPERATURE'] },
+    { label: 'SpO₂', value: spo2 ? `${spo2} %` : null, abnormalKeys: ['SPO2'] },
+    { label: 'Resp rate', value: rr ? `${rr}/min` : null, abnormalKeys: ['RESPIRATORY_RATE'] },
+    { label: 'Weight', value: v?.weightKg ? `${v.weightKg} kg` : null },
+    { label: 'Height', value: v?.heightCm ? `${v.heightCm} cm` : null },
+    { label: 'BMI', value: v?.bmi != null ? v.bmi.toFixed(1) : null },
+    { label: 'AVPU', value: v?.avpu ?? null },
+    { label: 'Glucose', value: v?.bloodGlucoseMmol ? `${v.bloodGlucoseMmol} mmol/L` : null },
+    { label: 'Triage priority', value: triage?.priority ?? null },
+    { label: 'Chief complaint', value: triage?.chiefComplaint ?? null },
+    {
+      label: 'Pain',
+      value: triage?.hasPain ? `Yes (${triage.painScore ?? '—'}/10${triage.painLocation ? `, ${triage.painLocation}` : ''})` : null,
+    },
   ];
-  const present = rows.filter(([, val]) => val != null && val !== '');
+  const present = rows.filter((r) => r.value != null && r.value !== '');
   if (present.length === 0) {
     return <Empty>No vitals or triage assessment recorded.</Empty>;
   }
+  const abnormalLabels = present
+    .filter((row) => (row.abnormalKeys ?? []).some((k) => abnormal.has(k)))
+    .map((row) => row.label);
   return (
-    <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px var(--space-3)', margin: 0 }}>
-      {present.map(([k, val]) => (
-        <Fragment key={k}>
-          <dt style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>{k}</dt>
-          <dd style={{ margin: 0, fontSize: 'var(--text-sm)' }}>{val}</dd>
-        </Fragment>
-      ))}
-    </dl>
+    <>
+      {abnormalLabels.length > 0 && (
+        <div
+          role="alert"
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 'var(--space-2)',
+            padding: 'var(--space-3)',
+            marginBottom: 'var(--space-3)',
+            border: '1px solid var(--warning)',
+            background: 'var(--warning-bg)',
+            borderRadius: 'var(--radius)',
+            color: 'var(--warning)',
+            fontSize: 'var(--text-sm)',
+          }}
+        >
+          <span aria-hidden="true" style={{ fontWeight: 'var(--weight-bold)' }}>⚠</span>
+          <span>
+            <strong>{abnormalLabels.length}</strong> vital {abnormalLabels.length === 1 ? 'sign is' : 'signs are'} outside the reference range
+            for this patient&rsquo;s age band: <strong>{abnormalLabels.join(', ')}</strong>.
+          </span>
+        </div>
+      )}
+      <dl className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px var(--space-3)', margin: 0 }}>
+        {present.map((row) => {
+        const isAbnormal = (row.abnormalKeys ?? []).some((k) => abnormal.has(k));
+        return (
+          <Fragment key={row.label}>
+            <dt style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>{row.label}</dt>
+            <dd style={{ margin: 0, fontSize: 'var(--text-sm)', display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+              <span style={isAbnormal ? { color: 'var(--warning)', fontWeight: 'var(--weight-medium)' } : undefined}>{row.value}</span>
+              {isAbnormal && (
+                <span className="badge badge-warning" title="Outside the reference range for this patient's age band" aria-label="Out of range">
+                  out of range
+                </span>
+              )}
+            </dd>
+          </Fragment>
+        );
+      })}
+      </dl>
+    </>
+  );
+}
+
+function RecordConsultationVitals({ encounterId, hasConsultVitals }: { encounterId: string; hasConsultVitals: boolean }) {
+  const { accessToken } = useAuth();
+  const canRecord = usePermission('VITALS_CREATE');
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<Partial<Record<keyof RecordConsultationVitalsRequest, string>>>({});
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = useMutation({
+    mutationFn: (body: RecordConsultationVitalsRequest) => recordConsultationVitals(encounterId, body, accessToken as string),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vitals', encounterId] });
+      setForm({});
+      setOpen(false);
+      setError(null);
+    },
+    onError: (e: Error) => setError(e.message || 'Failed to record vitals.'),
+  });
+
+  if (!canRecord) {
+    return null;
+  }
+
+  if (!open) {
+    return (
+      <div style={{ marginTop: 'var(--space-3)' }}>
+        <button type="button" className="btn btn-secondary" onClick={() => setOpen(true)}>
+          {hasConsultVitals ? 'Record another consultation vitals reading' : 'Record vitals now (optional)'}
+        </button>
+      </div>
+    );
+  }
+
+  const numeric: (keyof RecordConsultationVitalsRequest)[] = [
+    'temperatureC', 'systolicMmHg', 'diastolicMmHg', 'pulseBpm', 'respiratoryRate', 'spo2Pct', 'weightKg', 'heightCm',
+  ];
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    for (const key of numeric) {
+      if (form[key] == null || form[key] === '') {
+        setError('All six vitals plus weight and height are required to submit. Cancel if you do not want to record.');
+        return;
+      }
+    }
+    const body: RecordConsultationVitalsRequest = {
+      temperatureC: Number(form.temperatureC),
+      systolicMmHg: Number(form.systolicMmHg),
+      diastolicMmHg: Number(form.diastolicMmHg),
+      pulseBpm: Number(form.pulseBpm),
+      respiratoryRate: Number(form.respiratoryRate),
+      spo2Pct: Number(form.spo2Pct),
+      weightKg: Number(form.weightKg),
+      heightCm: Number(form.heightCm),
+      painScore: form.painScore ? Number(form.painScore) : undefined,
+      bloodGlucoseMmol: form.bloodGlucoseMmol ? Number(form.bloodGlucoseMmol) : undefined,
+    };
+    submit.mutate(body);
+  }
+
+  const cell: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', fontSize: 'var(--text-sm)' };
+  const input: CSSProperties = {
+    padding: 'var(--space-1) var(--space-2)',
+    border: '1px solid var(--border-strong)',
+    borderRadius: 'var(--radius)',
+    font: 'inherit',
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ marginTop: 'var(--space-3)', padding: 'var(--space-3)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+      <h3 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>
+        Record vitals now (optional)
+      </h3>
+      <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 'var(--space-2) var(--space-3)' }}>
+        <label style={cell}>Temperature (°C)<input className="clinical-control" style={input} type="number" step="0.1" value={form.temperatureC ?? ''} onChange={(e) => setForm({ ...form, temperatureC: e.target.value })} /></label>
+        <label style={cell}>Pulse (bpm)<input className="clinical-control" style={input} type="number" value={form.pulseBpm ?? ''} onChange={(e) => setForm({ ...form, pulseBpm: e.target.value })} /></label>
+        <label style={cell}>Systolic BP (mmHg)<input className="clinical-control" style={input} type="number" value={form.systolicMmHg ?? ''} onChange={(e) => setForm({ ...form, systolicMmHg: e.target.value })} /></label>
+        <label style={cell}>Diastolic BP (mmHg)<input className="clinical-control" style={input} type="number" value={form.diastolicMmHg ?? ''} onChange={(e) => setForm({ ...form, diastolicMmHg: e.target.value })} /></label>
+        <label style={cell}>Resp rate (/min)<input className="clinical-control" style={input} type="number" value={form.respiratoryRate ?? ''} onChange={(e) => setForm({ ...form, respiratoryRate: e.target.value })} /></label>
+        <label style={cell}>SpO₂ (%)<input className="clinical-control" style={input} type="number" value={form.spo2Pct ?? ''} onChange={(e) => setForm({ ...form, spo2Pct: e.target.value })} /></label>
+        <label style={cell}>Weight (kg)<input className="clinical-control" style={input} type="number" step="0.1" value={form.weightKg ?? ''} onChange={(e) => setForm({ ...form, weightKg: e.target.value })} /></label>
+        <label style={cell}>Height (cm)<input className="clinical-control" style={input} type="number" step="0.1" value={form.heightCm ?? ''} onChange={(e) => setForm({ ...form, heightCm: e.target.value })} /></label>
+        <label style={cell}>Glucose (mmol/L, optional)<input className="clinical-control" style={input} type="number" step="0.1" value={form.bloodGlucoseMmol ?? ''} onChange={(e) => setForm({ ...form, bloodGlucoseMmol: e.target.value })} /></label>
+        <label style={cell}>Pain (0–10, optional)<input className="clinical-control" style={input} type="number" min={0} max={10} value={form.painScore ?? ''} onChange={(e) => setForm({ ...form, painScore: e.target.value })} /></label>
+      </div>
+      {error && <p style={{ color: 'var(--critical)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-2)' }}>{error}</p>}
+      <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+        <button type="submit" className="btn btn-primary" disabled={submit.isPending}>
+          {submit.isPending ? 'Saving…' : 'Save vitals'}
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={() => { setOpen(false); setError(null); }}>
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -596,7 +745,7 @@ function PrescriptionBlock({ prescriptions }: { prescriptions: { itemName?: stri
   // provides; nothing is fabricated.
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table className="table" style={{ width: '100%' }}>
+      <TableRegion label="Prescribed medications"><table className="table" style={{ width: '100%' }}>
         <caption className="sr-only">Prescribed medications</caption>
         <thead>
           <tr>
@@ -618,7 +767,7 @@ function PrescriptionBlock({ prescriptions }: { prescriptions: { itemName?: stri
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></TableRegion>
     </div>
   );
 }
@@ -629,7 +778,7 @@ function LabBlock({ orders }: { orders: { labTestName?: string; urgency?: string
   }
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table className="table" style={{ width: '100%' }}>
+      <TableRegion label="Laboratory tests"><table className="table" style={{ width: '100%' }}>
         <caption className="sr-only">Laboratory tests</caption>
         <thead>
           <tr>
@@ -655,7 +804,7 @@ function LabBlock({ orders }: { orders: { labTestName?: string; urgency?: string
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></TableRegion>
     </div>
   );
 }
@@ -666,7 +815,7 @@ function BillingBlock({ invoices }: { invoices: { invoiceNumber?: string; state?
   }
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table className="table" style={{ width: '100%' }}>
+      <TableRegion label="Invoices"><table className="table" style={{ width: '100%' }}>
         <caption className="sr-only">Invoices</caption>
         <thead>
           <tr>
@@ -690,7 +839,7 @@ function BillingBlock({ invoices }: { invoices: { invoiceNumber?: string; state?
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></TableRegion>
     </div>
   );
 }
@@ -769,7 +918,7 @@ const metaGridStyle: CSSProperties = {
 
 const twoColStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
   gap: 'var(--space-3)',
   marginBottom: 'var(--space-3)',
 };

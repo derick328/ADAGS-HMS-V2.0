@@ -1,3 +1,6 @@
+import { Tabs } from '../../shared/components/Tabs';
+import { QueryState } from '../../shared/components/WorkspacePage';
+import { FeedbackState } from '../../shared/components/FeedbackState';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -40,7 +43,7 @@ export function SurgeryEpisodePage() {
   const [tab, setTab] = useState<TabKey>('checklist');
   const canDocument = usePermission('SURGERY_EPISODE_DOCUMENT');
 
-  const { data: order, isLoading } = useQuery({
+  const { data: order, isLoading, isError, refetch } = useQuery({
     queryKey: ['surgery-orders', surgeryOrderId],
     queryFn: () => fetchSurgeryOrderById(surgeryOrderId as string, accessToken as string),
     enabled: accessToken != null && surgeryOrderId != null,
@@ -61,8 +64,10 @@ export function SurgeryEpisodePage() {
     onSuccess: invalidate,
   });
 
+  if (isError) return <QueryState title="Unable to load this surgery episode." onRetry={() => void refetch()} />;
+
   if (isLoading || !order || !surgeryOrderId) {
-    return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
+    return <FeedbackState loading>Loading…</FeedbackState>;
   }
 
   const anyActionError = start.error || complete.error || revokeConsent.error;
@@ -134,35 +139,13 @@ export function SurgeryEpisodePage() {
         </p>
       )}
 
-      <nav aria-label="Surgery episode tabs" style={{ display: 'flex', gap: 'var(--space-1)', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-4)' }}>
-        {TABS.map((t) => {
-          const isActive = t.key === tab;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              style={{
-                padding: 'var(--space-2) var(--space-3)',
-                border: 'none',
-                background: 'none',
-                font: 'inherit',
-                cursor: 'pointer',
-                color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
-                fontWeight: isActive ? 'var(--weight-medium)' : 'var(--weight-normal)',
-                boxShadow: isActive ? 'inset 0 -2px 0 var(--green-signal)' : 'none',
-              }}
-            >
-              {t.label}
-            </button>
-          );
-        })}
-      </nav>
-
-      {tab === 'checklist' && <SurgeryEpisodeChecklist surgeryOrderId={surgeryOrderId} />}
-      {tab === 'items' && <SurgeryEpisodeProcedureItems surgeryOrderId={surgeryOrderId} />}
-      {tab === 'anaesthesia' && <SurgeryEpisodeAnaesthesia surgeryOrderId={surgeryOrderId} />}
-      {tab === 'vitals' && <SurgeryEpisodeVitals surgeryOrderId={surgeryOrderId} encounterId={order.encounterId as string} />}
+      <Tabs aria-label="Surgery episode tabs" value={tab} onChange={(value) => setTab(value as TabKey)} unmountInactivePanels
+        items={TABS.map((item) => ({ id: item.key, label: item.label, content:
+          item.key === 'checklist' ? <SurgeryEpisodeChecklist surgeryOrderId={surgeryOrderId} /> :
+          item.key === 'items' ? <SurgeryEpisodeProcedureItems surgeryOrderId={surgeryOrderId} /> :
+          item.key === 'anaesthesia' ? <SurgeryEpisodeAnaesthesia surgeryOrderId={surgeryOrderId} /> :
+          <SurgeryEpisodeVitals surgeryOrderId={surgeryOrderId} encounterId={order.encounterId as string} />,
+        }))} />
     </div>
   );
 }
@@ -195,7 +178,7 @@ function DispositionForm({ surgeryOrderId, onDone }: { surgeryOrderId: string; o
       {disposition === 'ADMIT_TO_WARD' && (
         <label style={{ fontSize: 'var(--text-sm)', display: 'block', marginBottom: 'var(--space-3)' }}>
           Ordered ward class
-          <select value={orderedWardClass} onChange={(e) => setOrderedWardClass(e.target.value)} style={{ display: 'block', width: '100%', marginTop: 4, padding: 'var(--space-2)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius)', font: 'inherit' }}>
+          <select className="clinical-control" value={orderedWardClass} onChange={(e) => setOrderedWardClass(e.target.value)} style={{ display: 'block', width: '100%', marginTop: 4, padding: 'var(--space-2)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius)', font: 'inherit' }}>
             <option value="GENERAL">General</option>
             <option value="PRIVATE">Private</option>
           </select>

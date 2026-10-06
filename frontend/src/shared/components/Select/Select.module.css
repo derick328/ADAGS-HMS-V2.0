@@ -162,3 +162,5 @@
 .messageSuccess {
   color: var(--success);
 }
+
+.wrap { min-height: var(--row-height); }

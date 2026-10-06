@@ -1,3 +1,9 @@
+import { Search, Users, Clock, Stethoscope, FileCheck } from 'lucide-react';
+import { Tabs } from '../../shared/components/Tabs';
+import { Input } from '../../shared/components/Input';
+import { Badge } from '../../shared/components/Badge';
+import { EmptyState } from '../../shared/components/EmptyState';
+import { WorkspacePage, QueryState } from '../../shared/components/WorkspacePage';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -17,36 +23,14 @@ import { useMe } from '../../shared/auth/useMe';
 // (AWAITING_RESULTS) is one glance away — that's the state a doctor
 // most often forgets and can no longer find on the queue.
 export function MyPatientsPage() {
-  const [tab, setTab] = useState<'active' | 'all'>('active');
   const navigate = useNavigate();
-
   const openPatient = (patientId: string) => navigate(`/doctor/patients/${patientId}`);
-
-  return (
-    <div>
-      <h1 style={{ fontSize: 'var(--text-xl)' }}>My Patients</h1>
-      <nav style={{ display: 'flex', gap: 'var(--space-1)', borderBottom: '1px solid var(--border)', margin: 'var(--space-3) 0' }}>
-        {(['active', 'all'] as const).map((key) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            style={{
-              padding: 'var(--space-2) var(--space-3)',
-              border: 'none',
-              background: 'none',
-              font: 'inherit',
-              cursor: 'pointer',
-              fontWeight: tab === key ? 'var(--weight-medium)' : 'var(--weight-normal)',
-              boxShadow: tab === key ? 'inset 0 -2px 0 var(--green-signal)' : 'none',
-            }}
-          >
-            {key === 'active' ? 'Active' : 'All'}
-          </button>
-        ))}
-      </nav>
-      {tab === 'active' ? <ActiveTab onSelect={openPatient} /> : <AllTab onSelect={openPatient} />}
-    </div>
-  );
+  return <WorkspacePage title="My patients" description="Follow your active encounters or search for a patient's history.">
+    <Tabs aria-label="Patient lists" variant="underline" unmountInactivePanels items={[
+      { id: 'active', label: 'Active', icon: Stethoscope, content: <ActiveTab onSelect={openPatient} /> },
+      { id: 'all', label: 'All patients', icon: Users, content: <AllTab onSelect={openPatient} /> },
+    ]} />
+  </WorkspacePage>;
 }
 
 type StateFilter = 'ALL' | 'AWAITING_CONSULT' | 'IN_CONSULT' | 'AWAITING_RESULTS' | 'OTHER';
@@ -61,18 +45,18 @@ const STATE_FILTERS: { key: StateFilter; label: string }[] = [
 
 function ActiveTab({ onSelect }: { onSelect: (patientId: string) => void }) {
   const { accessToken } = useAuth();
-  const { data: me } = useMe();
+  const { data: me, isPending: profilePending, isError: profileError, refetch: retryProfile } = useMe();
   const [stateFilter, setStateFilter] = useState<StateFilter>('ALL');
 
-  const { data: encounters, isLoading } = useQuery({
+  const { data: encounters, isPending, isError, refetch } = useQuery({
     queryKey: ['encounters', 'search', { excludeTerminal: true }],
     queryFn: () => searchEncounters({ excludeTerminal: true }, accessToken as string),
     enabled: accessToken != null,
     refetchInterval: 30_000,
   });
   const mine = useMemo(
-    () => (encounters ?? []).filter((e) => e.assignedProviderId === me?.userId),
-    [encounters, me?.userId],
+    () => (encounters ?? []).filter((e) => me?.userId != null && e.assignedProviderId === me.userId),
+    [encounters, me],
   );
 
   const counts = useMemo(() => bucketByState(mine), [mine]);
@@ -85,21 +69,16 @@ function ActiveTab({ onSelect }: { onSelect: (patientId: string) => void }) {
     return mine.filter((e) => e.state === stateFilter);
   }, [mine, stateFilter]);
 
-  if (isLoading) return <p style={{ color: 'var(--text-muted)' }}>Loading…</p>;
+  if (isError || profileError) return <QueryState title="Unable to load active patients" description="Retry to load your assigned encounters and current counts." onRetry={() => { void refetch(); void retryProfile(); }} />;
+  if (isPending || profilePending) return <QueryState loading title="Loading your patients…" description="Retrieving your assigned encounters." />;
 
   return (
     <div>
-      <div
-        style={{
-          display: 'flex',
-          gap: 'var(--space-1)',
-          flexWrap: 'wrap',
-          marginBottom: 'var(--space-3)',
-        }}
-      >
+      <div className="workspace-filters" role="group" aria-label="Filter by encounter status">
         {STATE_FILTERS.map((f) => (
           <button
             key={f.key}
+            aria-pressed={stateFilter === f.key}
             type="button"
             onClick={() => setStateFilter(f.key)}
             className={stateFilter === f.key ? 'btn btn-secondary' : 'btn btn-ghost'}
@@ -113,25 +92,18 @@ function ActiveTab({ onSelect }: { onSelect: (patientId: string) => void }) {
         ))}
       </div>
 
+      <div className="workspace-panel">
       {filtered.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>
-          {mine.length === 0
-            ? 'No active patients right now.'
-            : `No patients in "${STATE_FILTERS.find((f) => f.key === stateFilter)?.label}".`}
-        </p>
+        <EmptyState role="status" icon={Users}
+          title={mine.length === 0 ? 'No active patients right now' : 'No patients with this status'}
+          description={mine.length === 0 ? 'Your assigned open encounters will appear here. Use All patients to search patient history.' : 'Choose another status to see your other active encounters.'}
+          secondaryAction={mine.length ? { label: 'Show all active patients', onClick: () => setStateFilter('ALL') } : undefined} />
       ) : (
-        <table className="table">
-          <tbody>
-            {filtered.map((e) => (
-              <tr key={e.id}>
-                <td>
-                  <ActivePatientRow encounter={e} onSelect={onSelect} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ul className="workspace-list" aria-label="Active patient encounters">
+          {filtered.map((encounter) => <li key={encounter.id}><ActivePatientRow encounter={encounter} onSelect={onSelect} /></li>)}
+        </ul>
       )}
+      </div>
     </div>
   );
 }
@@ -153,22 +125,9 @@ function bucketByState(rows: EncounterResponse[]): Record<StateFilter, number> {
   return counts;
 }
 
-function stateBadgeClass(state: EncounterResponse['state']): string {
-  switch (state) {
-    case 'IN_CONSULT':
-      return 'badge-success';
-    case 'AWAITING_RESULTS':
-      return 'badge-warning';
-    case 'AWAITING_CONSULT':
-      return 'badge-neutral';
-    default:
-      return 'badge-neutral';
-  }
-}
-
 function formatState(state: EncounterResponse['state']): string {
   if (!state) return '—';
-  return state.replaceAll('_', ' ').toLowerCase();
+  return state.replaceAll('_', ' ').toLowerCase().replace(/^\w/, (letter) => letter.toUpperCase());
 }
 
 function ActivePatientRow({
@@ -180,7 +139,7 @@ function ActivePatientRow({
 }) {
   const { accessToken } = useAuth();
   const navigate = useNavigate();
-  const { data: patient } = useQuery({
+  const { data: patient, isError, refetch } = useQuery({
     queryKey: ['patients', encounter.patientId],
     queryFn: () => fetchPatientById(encounter.patientId as string, accessToken as string),
     enabled: accessToken != null,
@@ -189,25 +148,25 @@ function ActivePatientRow({
   const isInConsult = encounter.state === 'IN_CONSULT';
   const isAwaitingResults = encounter.state === 'AWAITING_RESULTS';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
-      <button
-        type="button"
-        className="btn btn-ghost"
-        onClick={() => onSelect(encounter.patientId as string)}
-        style={{ textAlign: 'left', flex: 1 }}
-      >
-        {patient?.fullName ?? 'Loading…'}
-        {patient?.hospitalNo && <> · {patient.hospitalNo}</>}
-        {' · '}
-        <span className={`badge ${stateBadgeClass(encounter.state)}`}>{formatState(encounter.state)}</span>
-      </button>
+    <div className="workspace-row">
+      <div className="workspace-identity">
+        <button type="button" className="workspace-name" disabled={!encounter.patientId} onClick={() => onSelect(encounter.patientId as string)}>
+          {patient?.fullName ?? (isError ? 'Patient details unavailable' : 'Loading patient…')}
+        </button>
+        <p className="workspace-meta">Hospital number: {patient?.hospitalNo ?? 'Unavailable'}</p>
+        <p className="workspace-meta">Encounter ID: {encounter.id ?? 'Unavailable'}</p>
+        {isError && <button type="button" className="btn btn-ghost" onClick={() => void refetch()}>Retry patient details</button>}
+      </div>
+      <Badge variant={isInConsult ? 'success' : isAwaitingResults ? 'warning' : 'neutral'} leadingIcon={isInConsult ? Stethoscope : isAwaitingResults ? Clock : FileCheck}>{formatState(encounter.state)}</Badge>
+      <div className="workspace-actions">
+      <button type="button" className="btn btn-secondary" disabled={!encounter.patientId} onClick={() => onSelect(encounter.patientId as string)}>View patient</button>
       {isInConsult && (
         <button
           type="button"
           className="btn btn-primary"
           onClick={() => navigate(`/doctor/consultation/${encounter.id}`)}
         >
-          Continue
+          Continue consultation
         </button>
       )}
       {isAwaitingResults && (
@@ -220,6 +179,7 @@ function ActivePatientRow({
           Open encounter
         </button>
       )}
+      </div>
     </div>
   );
 }
@@ -227,40 +187,34 @@ function ActivePatientRow({
 function AllTab({ onSelect }: { onSelect: (patientId: string) => void }) {
   const { accessToken } = useAuth();
   const [query, setQuery] = useState('');
-  const { data: results, isLoading } = useQuery({
+  const { data: results, isPending, isError, refetch } = useQuery({
     queryKey: ['patients', 'search', query],
     queryFn: () => searchPatients(query, accessToken as string),
     enabled: accessToken != null && query.trim().length >= 2,
   });
 
   return (
-    <div>
-      <input
-        placeholder="Search by name, hospital number, or phone…"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        style={{ width: '100%', padding: 'var(--space-2)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius)', marginBottom: 'var(--space-3)' }}
-      />
+    <div className="workspace-panel">
+      <div className="workspace-search"><Input label="Find a patient" leadingIcon={Search}
+        placeholder="Name, hospital number, or phone" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
       {query.trim().length < 2 ? (
-        <p style={{ color: 'var(--text-muted)' }}>Search for a patient to see their history.</p>
-      ) : isLoading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Searching…</p>
-      ) : (results ?? []).length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No matches.</p>
+        <EmptyState icon={Search} title="Search patient history" description="Enter at least 2 characters to find a patient by name, hospital number, or phone." />
+      ) : isError ? (
+        <QueryState title="Unable to search patients" description="Try your search again." onRetry={() => void refetch()} />
+      ) : isPending ? (
+        <QueryState loading title="Searching patients…" />
+      ) : !results?.length ? (
+        <EmptyState role="status" icon={Search} title="No matching patients" description="Check the spelling or try a hospital number or phone number." />
       ) : (
-        <table className="table">
-          <tbody>
-            {(results as PatientSearchResult[]).map((p) => (
-              <tr key={p.id}>
-                <td>
-                  <button type="button" className="btn btn-ghost" onClick={() => onSelect(p.id as string)} style={{ textAlign: 'left' }}>
-                    {p.fullName} · {p.hospitalNo}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ul className="workspace-list" aria-label="Patient search results">
+          {(results as PatientSearchResult[]).map((patient) => <li key={patient.id} className="workspace-row">
+            <div className="workspace-identity">
+              <button type="button" className="workspace-name" onClick={() => onSelect(patient.id as string)}>{patient.fullName}</button>
+              <p className="workspace-meta">Hospital number: {patient.hospitalNo ?? 'Unavailable'}</p>
+            </div>
+            <div className="workspace-actions"><button type="button" className="btn btn-secondary" onClick={() => onSelect(patient.id as string)}>View patient</button></div>
+          </li>)}
+        </ul>
       )}
     </div>
   );

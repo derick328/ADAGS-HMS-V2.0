@@ -1,3 +1,5 @@
+import { Tabs } from '../../shared/components/Tabs';
+import { PageHeader } from '../../shared/components/PageHeader';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -19,36 +21,13 @@ export function PharmacyItemsPage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 'var(--space-4)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 'var(--weight-medium)' }}>Pharmacy Items</h1>
-        <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>
-          Propose a new item or a price change. Both go to admin for approval.
-        </p>
-      </header>
+      <PageHeader title={<>Pharmacy items</>} description={<>Propose a new item or a price change. Both go to admin for approval.</>} />
 
-      <nav aria-label="Proposal type" style={{ display: 'flex', gap: 'var(--space-1)', borderBottom: '1px solid var(--border)', marginBottom: 'var(--space-4)' }}>
-        {(['newItem', 'priceChange'] as Tab[]).map((key) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            aria-current={tab === key ? 'page' : undefined}
-            style={{
-              padding: 'var(--space-2) var(--space-3)',
-              border: 'none',
-              background: 'none',
-              font: 'inherit',
-              cursor: 'pointer',
-              color: tab === key ? 'var(--text-primary)' : 'var(--text-muted)',
-              fontWeight: tab === key ? 'var(--weight-medium)' : 'var(--weight-normal)',
-              boxShadow: tab === key ? 'inset 0 -2px 0 var(--green-signal)' : 'none',
-            }}
-          >
-            {key === 'newItem' ? 'New item' : 'Price change'}
-          </button>
-        ))}
-      </nav>
+      <Tabs aria-label="Proposal type" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} unmountInactivePanels items={[
+        { id: 'newItem', label: 'New item', content: <NewItemForm /> },
+        { id: 'priceChange', label: 'Price change', content: <PriceChangeForm /> },
+      ]} />
 
-      {tab === 'newItem' ? <NewItemForm /> : <PriceChangeForm />}
     </div>
   );
 }
@@ -90,24 +69,24 @@ function NewItemForm() {
       )}
 
       <Field label="Item name" error={errors.proposedName?.message}>
-        <input {...register('proposedName')} style={inputStyle} />
+        <input className="clinical-control" {...register('proposedName')} style={inputStyle} />
       </Field>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+      <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
         <Field label="Classification" error={errors.proposedClassification?.message}>
-          <input placeholder="e.g. Antibiotic" {...register('proposedClassification')} style={inputStyle} />
+          <input aria-label="e.g. Antibiotic" className="clinical-control" placeholder="e.g. Antibiotic" {...register('proposedClassification')} style={inputStyle} />
         </Field>
         <Field label="Form" error={errors.proposedForm?.message}>
-          <input placeholder="e.g. Tablet" {...register('proposedForm')} style={inputStyle} />
+          <input aria-label="e.g. Tablet" className="clinical-control" placeholder="e.g. Tablet" {...register('proposedForm')} style={inputStyle} />
         </Field>
         <Field label="Unit" error={errors.proposedUnit?.message}>
-          <input placeholder="e.g. tablet, ml" {...register('proposedUnit')} style={inputStyle} />
+          <input aria-label="e.g. tablet, ml" className="clinical-control" placeholder="e.g. tablet, ml" {...register('proposedUnit')} style={inputStyle} />
         </Field>
         <Field label="Proposed price (TZS minor units)" error={errors.proposedPriceMinor?.message}>
-          <input type="text" inputMode="numeric" {...register('proposedPriceMinor')} style={inputStyle} />
+          <input className="clinical-control" type="text" inputMode="numeric" {...register('proposedPriceMinor')} style={inputStyle} />
         </Field>
       </div>
       <Field label="Justification" error={errors.justification?.message}>
-        <textarea rows={2} {...register('justification')} style={inputStyle} />
+        <textarea className="clinical-control" rows={2} {...register('justification')} style={inputStyle} />
       </Field>
 
       {submit.error && <div className="form-error">Something went wrong. Try again.</div>}
@@ -179,10 +158,10 @@ function PriceChangeForm() {
       </div>
 
       <Field label="Proposed price (TZS minor units)" error={errors.proposedPriceMinor?.message}>
-        <input type="text" inputMode="numeric" {...register('proposedPriceMinor')} style={inputStyle} />
+        <input className="clinical-control" type="text" inputMode="numeric" {...register('proposedPriceMinor')} style={inputStyle} />
       </Field>
       <Field label="Justification" error={errors.justification?.message}>
-        <textarea rows={2} {...register('justification')} style={inputStyle} />
+        <textarea className="clinical-control" rows={2} {...register('justification')} style={inputStyle} />
       </Field>
 
       {submit.error && <div className="form-error">Something went wrong. Try again.</div>}
