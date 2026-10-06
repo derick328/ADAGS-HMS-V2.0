@@ -2103,6 +2103,52 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/EncounterResponse"
+  /api/encounters/{encounterId}/vital-signs:
+    get:
+      tags:
+      - vital-signs-controller
+      operationId: byEncounter_2
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VitalSignsResponse"
+    post:
+      tags:
+      - vital-signs-controller
+      operationId: recordForEncounter
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordConsultationVitalsRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: uuid
   /api/encounters/{encounterId}/triage-assessments:
     post:
       tags:
@@ -4151,27 +4197,6 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/EncounterResponse"
-  /api/encounters/{encounterId}/vital-signs:
-    get:
-      tags:
-      - vital-signs-controller
-      operationId: byEncounter_2
-      parameters:
-      - name: encounterId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/VitalSignsResponse"
   /api/encounters/{encounterId}/referral-candidates:
     get:
       tags:
@@ -7567,6 +7592,58 @@ components:
           - DISCHARGED
         reason:
           type: string
+    RecordConsultationVitalsRequest:
+      required:
+      - diastolicMmHg
+      - heightCm
+      - pulseBpm
+      - respiratoryRate
+      - spo2Pct
+      - systolicMmHg
+      - temperatureC
+      - weightKg
+      type: object
+      properties:
+        temperatureC:
+          type: number
+          format: double
+        systolicMmHg:
+          type: number
+          format: double
+        diastolicMmHg:
+          type: number
+          format: double
+        pulseBpm:
+          type: number
+          format: double
+        respiratoryRate:
+          type: number
+          format: double
+        spo2Pct:
+          type: number
+          format: double
+        weightKg:
+          type: number
+          format: double
+        heightCm:
+          type: number
+          format: double
+        avpu:
+          type: string
+          enum:
+          - ALERT
+          - VOICE
+          - PAIN
+          - UNRESPONSIVE
+        bloodGlucoseMmol:
+          type: number
+          format: double
+        painScore:
+          type: integer
+          format: int32
+        occurredAt:
+          type: string
+          format: date-time
     SubmitTriageAssessmentRequest:
       required:
       - assignedProviderId
@@ -8563,53 +8640,6 @@ components:
           type: integer
           format: int32
         outputMl:
-          type: integer
-          format: int32
-        occurredAt:
-          type: string
-          format: date-time
-    RecordConsultationVitalsRequest:
-      required:
-      - diastolicMmHg
-      - heightCm
-      - pulseBpm
-      - respiratoryRate
-      - spo2Pct
-      - systolicMmHg
-      - temperatureC
-      - weightKg
-      type: object
-      properties:
-        temperatureC:
-          type: number
-          format: double
-        systolicMmHg:
-          type: number
-          format: double
-        diastolicMmHg:
-          type: number
-          format: double
-        pulseBpm:
-          type: number
-          format: double
-        respiratoryRate:
-          type: number
-          format: double
-        spo2Pct:
-          type: number
-          format: double
-        weightKg:
-          type: number
-          format: double
-        heightCm:
-          type: number
-          format: double
-        avpu:
-          type: string
-        bloodGlucoseMmol:
-          type: number
-          format: double
-        painScore:
           type: integer
           format: int32
         occurredAt:
