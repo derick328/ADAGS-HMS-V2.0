@@ -21,9 +21,9 @@ public class JdbcConsultationRecordRepository implements ConsultationRecordRepos
 
     private static final String SELECT_COLUMNS = """
             SELECT id, encounter_id, author_id, status, history_of_presenting_illness, past_medical_history,
-                   past_surgical_history, family_social_history, physical_examination, clinical_notes, treatment_plan,
-                   retrospective_completion, retrospective_note, completed_at, abandoned_reason, abandoned_at,
-                   abandoned_by, amends_id, amendment_reason, created_at, updated_at
+                   past_surgical_history, comorbidities, family_social_history, physical_examination, clinical_notes,
+                   treatment_plan, retrospective_completion, retrospective_note, completed_at, abandoned_reason,
+                   abandoned_at, abandoned_by, amends_id, amendment_reason, created_at, updated_at
             FROM consultation_record
             """;
 
@@ -62,7 +62,7 @@ public class JdbcConsultationRecordRepository implements ConsultationRecordRepos
 
         return jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> new ConsultationRecord(
                 (UUID) rs.getObject("id"), record.encounterId(), record.authorId(), record.status(),
-                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null,
                 false, null, null, null, null, null,
                 record.amendsId(), record.amendmentReason(),
                 rs.getTimestamp("created_at").toInstant(), rs.getTimestamp("updated_at").toInstant()));
@@ -96,12 +96,14 @@ public class JdbcConsultationRecordRepository implements ConsultationRecordRepos
 
     @Override
     public void autosave(UUID id, String historyOfPresentingIllness, String pastMedicalHistory, String pastSurgicalHistory,
-                          String familySocialHistory, String physicalExamination, String clinicalNotes, String treatmentPlan) {
+                          String comorbidities, String familySocialHistory, String physicalExamination, String clinicalNotes,
+                          String treatmentPlan) {
         jdbcTemplate.update("""
                         UPDATE consultation_record SET
                             history_of_presenting_illness = :historyOfPresentingIllness,
                             past_medical_history = :pastMedicalHistory,
                             past_surgical_history = :pastSurgicalHistory,
+                            comorbidities = :comorbidities,
                             family_social_history = :familySocialHistory,
                             physical_examination = :physicalExamination,
                             clinical_notes = :clinicalNotes,
@@ -113,6 +115,7 @@ public class JdbcConsultationRecordRepository implements ConsultationRecordRepos
                         .addValue("historyOfPresentingIllness", historyOfPresentingIllness, Types.VARCHAR)
                         .addValue("pastMedicalHistory", pastMedicalHistory, Types.VARCHAR)
                         .addValue("pastSurgicalHistory", pastSurgicalHistory, Types.VARCHAR)
+                        .addValue("comorbidities", comorbidities, Types.VARCHAR)
                         .addValue("familySocialHistory", familySocialHistory, Types.VARCHAR)
                         .addValue("physicalExamination", physicalExamination, Types.VARCHAR)
                         .addValue("clinicalNotes", clinicalNotes, Types.VARCHAR)
@@ -140,7 +143,7 @@ public class JdbcConsultationRecordRepository implements ConsultationRecordRepos
     public List<ConsultationRecord> findIncomplete(UUID authorId, Instant threshold) {
         String sql = """
                 SELECT cr.id, cr.encounter_id, cr.author_id, cr.status, cr.history_of_presenting_illness,
-                       cr.past_medical_history, cr.past_surgical_history, cr.family_social_history,
+                       cr.past_medical_history, cr.past_surgical_history, cr.comorbidities, cr.family_social_history,
                        cr.physical_examination, cr.clinical_notes, cr.treatment_plan, cr.retrospective_completion,
                        cr.retrospective_note, cr.completed_at, cr.abandoned_reason, cr.abandoned_at,
                        cr.abandoned_by, cr.amends_id, cr.amendment_reason, cr.created_at, cr.updated_at
@@ -167,6 +170,7 @@ public class JdbcConsultationRecordRepository implements ConsultationRecordRepos
                 rs.getString("history_of_presenting_illness"),
                 rs.getString("past_medical_history"),
                 rs.getString("past_surgical_history"),
+                rs.getString("comorbidities"),
                 rs.getString("family_social_history"),
                 rs.getString("physical_examination"),
                 rs.getString("clinical_notes"),

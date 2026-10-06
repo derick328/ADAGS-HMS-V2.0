@@ -6,7 +6,7 @@ import { FeedbackState } from '../../shared/components/FeedbackState';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { admitPatient, assignNurse, type Shift, type WardClass } from '../../shared/api/admissions';
 import { createFollowUpAppointment } from '../../shared/api/appointments';
@@ -33,16 +33,19 @@ import {
 import { fetchEncounterById, fetchEncountersByPatient } from '../../shared/api/encounters';
 import { recordIcd10Selection, searchIcd10, type Icd10SearchResult } from '../../shared/api/icd10';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
-import { placeLabOrder, type LabOrderUrgency } from '../../shared/api/labOrders';
+import { fetchLabOrdersByEncounter, placeLabOrder, type LabOrderUrgency } from '../../shared/api/labOrders';
 import { fetchLabTests, fetchPendingLabClassifications } from '../../shared/api/labTests';
 import { fetchPatientById, type PatientResponse } from '../../shared/api/patients';
 import { searchPriceCatalog, type PriceCatalogItemResponse } from '../../shared/api/priceCatalog';
 import { placePrescription, type PrescriptionFrequency } from '../../shared/api/prescriptions';
 import { fetchCurrentStock } from '../../shared/api/stockReports';
 import { searchCompletedAssessments, type CompletedTriageAssessmentResponse } from '../../shared/api/triage';
-import { fetchVitalSignsByEncounter, type VitalSignsResponse } from '../../shared/api/vitalSigns';
+import { fetchVitalSignsByEncounter, recordConsultationVitals, type VitalSignsResponse } from '../../shared/api/vitalSigns';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { Combobox } from '../../shared/components/Combobox';
 import { formatDateTime, formatWeekdayDate } from '../../shared/format/date';
 import { formatMoney } from '../../shared/format/money';
@@ -186,7 +189,15 @@ function ConsultationWorkspace({
     queryFn: () => fetchVitalSignsByEncounter(encounterId, accessToken as string),
     enabled: accessToken != null,
   });
-  const vitals = vitalsList?.find((v) => v.context === 'TRIAGE') ?? vitalsList?.[0];
+  // Prefer the doctor's own consultation reading when present (newest first
+  // from the API), falling back to the triage reading, then anything. This
+  // is the documented intent in shared/api/vitalSigns.ts — a doctor who
+  // re-measures during consultation should see their own numbers, not stay
+  // pinned to triage's.
+  const vitals =
+    vitalsList?.find((v) => v.context === 'CONSULTATION') ??
+    vitalsList?.find((v) => v.context === 'TRIAGE') ??
+    vitalsList?.[0];
 
   const { data: allergies } = useQuery({
     queryKey: ['allergies', encounter?.patientId],
@@ -223,6 +234,7 @@ function ConsultationWorkspace({
       <div className="consultation-layout">
         <aside className="consultation-summary">
           <TriagePanel triage={triage} vitals={vitals} />
+          <RecordVitalsCard encounterId={encounterId} />
           <PreviousEncountersPanel patientId={encounter?.patientId} currentEncounterId={encounterId} />
         </aside>
 
@@ -302,30 +314,18 @@ function TriagePanel({
       <h2 style={{ fontSize: 'var(--text-sm)', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 0 }}>
         Triage summary
       </h2>
+      {vitals && (
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 4 }}>
+          {vitals.context === 'CONSULTATION'
+            ? 'Recorded at consultation'
+            : vitals.context === 'TRIAGE'
+              ? 'Recorded at triage'
+              : 'Latest recorded'}
+          {vitals.occurredAt ? ` · ${formatDateTime(vitals.occurredAt)}` : ''}
+        </div>
+      )}
       {vitals ? (
-        <dl className="clinical-grid" style={{ fontSize: 'var(--text-sm)', display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 8px', margin: 0 }}>
-          {/* Keys match backend VitalType enum names exactly — TEMPERATURE,
-              SYSTOLIC_BP, DIASTOLIC_BP, PULSE, SPO2 (see VitalSignsController.
-              toResponse). Earlier "_C / _MMHG / _BPM / _PCT" suffixes never
-              matched and always resolved to undefined → every reading
-              rendered as "—". */}
-          <dt>Temp</dt>
-          <dd className="tabular">{vitals.readings?.TEMPERATURE ?? '—'} °C</dd>
-          <dt>BP</dt>
-          <dd className="tabular">
-            {vitals.readings?.SYSTOLIC_BP ?? '—'}/{vitals.readings?.DIASTOLIC_BP ?? '—'}
-          </dd>
-          <dt>Pulse</dt>
-          <dd className="tabular">{vitals.readings?.PULSE ?? '—'} bpm</dd>
-          <dt>SpO₂</dt>
-          <dd className="tabular">{vitals.readings?.SPO2 ?? '—'}%</dd>
-          <dt>Weight / height</dt>
-          <dd className="tabular">
-            {vitals.weightKg}kg / {vitals.heightCm}cm
-          </dd>
-          <dt>BMI</dt>
-          <dd className="tabular">{vitals.bmi != null ? vitals.bmi.toFixed(1) : '—'}</dd>
-        </dl>
+        <VitalsReadings vitals={vitals} />
       ) : (
         <FeedbackState>No vitals recorded.</FeedbackState>
       )}
@@ -394,6 +394,81 @@ function TriagePanel({
   );
 }
 
+// Renders the recorded vitals, flagging any reading the backend marked
+// out-of-range for the patient's age band (abnormalVitalTypes, populated by
+// VitalReferenceRangeEvaluator at record time). Matches EncounterDetailPage's
+// vitals block exactly — a warning banner plus per-reading orange value and an
+// "out of range" badge. Colour is never the only signal (frontend/CLAUDE.md
+// accessibility): the ⚠ icon, the badge text, and role="alert" carry it too.
+// Reading keys match the VitalType enum names (see VitalSignsController).
+function VitalsReadings({ vitals }: { vitals: VitalSignsResponse }) {
+  const abnormal = new Set(vitals.abnormalVitalTypes ?? []);
+  const rows: { label: string; value: string; abnormalKeys?: string[] }[] = [
+    { label: 'Temp', value: `${vitals.readings?.TEMPERATURE ?? '—'} °C`, abnormalKeys: ['TEMPERATURE'] },
+    {
+      label: 'BP',
+      value: `${vitals.readings?.SYSTOLIC_BP ?? '—'}/${vitals.readings?.DIASTOLIC_BP ?? '—'}`,
+      abnormalKeys: ['SYSTOLIC_BP', 'DIASTOLIC_BP'],
+    },
+    { label: 'Pulse', value: `${vitals.readings?.PULSE ?? '—'} bpm`, abnormalKeys: ['PULSE'] },
+    { label: 'SpO₂', value: `${vitals.readings?.SPO2 ?? '—'}%`, abnormalKeys: ['SPO2'] },
+    ...(vitals.readings?.RESPIRATORY_RATE != null
+      ? [{ label: 'Resp. rate', value: `${vitals.readings.RESPIRATORY_RATE}/min`, abnormalKeys: ['RESPIRATORY_RATE'] }]
+      : []),
+    ...(vitals.weightKg != null || vitals.heightCm != null
+      ? [{ label: 'Weight / height', value: `${vitals.weightKg != null ? `${vitals.weightKg}kg` : '—'} / ${vitals.heightCm != null ? `${vitals.heightCm}cm` : '—'}` }]
+      : []),
+    ...(vitals.bmi != null ? [{ label: 'BMI', value: vitals.bmi.toFixed(1) }] : []),
+  ];
+  const abnormalLabels = rows.filter((r) => (r.abnormalKeys ?? []).some((k) => abnormal.has(k))).map((r) => r.label);
+
+  return (
+    <>
+      {abnormalLabels.length > 0 && (
+        <div
+          role="alert"
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 'var(--space-2)',
+            padding: 'var(--space-2)',
+            marginBottom: 'var(--space-2)',
+            border: '1px solid var(--warning)',
+            background: 'var(--warning-bg)',
+            borderRadius: 'var(--radius-sm)',
+            color: 'var(--warning)',
+            fontSize: 'var(--text-sm)',
+          }}
+        >
+          <span aria-hidden="true" style={{ fontWeight: 'var(--weight-bold)' }}>⚠</span>
+          <span>
+            <strong>{abnormalLabels.length}</strong> vital {abnormalLabels.length === 1 ? 'sign is' : 'signs are'} outside the
+            reference range for this patient&rsquo;s age band: <strong>{abnormalLabels.join(', ')}</strong>.
+          </span>
+        </div>
+      )}
+      <dl className="clinical-grid" style={{ fontSize: 'var(--text-sm)', display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 8px', margin: 0 }}>
+        {rows.map((row) => {
+          const isAbnormal = (row.abnormalKeys ?? []).some((k) => abnormal.has(k));
+          return (
+            <Fragment key={row.label}>
+              <dt>{row.label}</dt>
+              <dd className="tabular" style={{ margin: 0, display: 'flex', gap: 'var(--space-1)', alignItems: 'center', justifyContent: 'flex-end' }}>
+                <span style={isAbnormal ? { color: 'var(--warning)', fontWeight: 'var(--weight-medium)' } : undefined}>{row.value}</span>
+                {isAbnormal && (
+                  <span className="badge badge-warning" title="Outside the reference range for this patient's age band" aria-label="Out of range">
+                    out of range
+                  </span>
+                )}
+              </dd>
+            </Fragment>
+          );
+        })}
+      </dl>
+    </>
+  );
+}
+
 function TriagePanelAllergies({ triageAllergiesText }: { triageAllergiesText?: string }) {
   if (!triageAllergiesText) {
     return <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>None recorded at triage.</div>;
@@ -413,6 +488,185 @@ function TriagePanelAllergies({ triageAllergiesText }: { triageAllergiesText?: s
     </div>
   );
 }
+
+// 07-doctor.md §5.1: recording vitals during consultation is optional — triage
+// usually captures them — but a doctor may re-measure. Permission-gated on
+// VITALS_CREATE (the DOCTOR role holds it; the server re-checks, scoped to the
+// encounter's department). Posts context=CONSULTATION (pinned server-side) and
+// invalidates the vitals query so the panel above reflects the new reading.
+// Optional-blank numeric fields are stripped to undefined rather than coerced
+// to 0 — "not recorded" and "zero" are different clinical statements.
+const optionalNumber = z.preprocess(
+  (v) => (v === '' || v == null ? undefined : v),
+  z.coerce.number().optional(),
+);
+// 07-doctor.md §5.1: every field is optional — the doctor records only what
+// they actually measured. The form just requires that at least one reading is
+// present (an empty submission is a mistake, mirrored by a server-side guard
+// in RecordVitalSignsService).
+const vitalsSchema = z
+  .object({
+    temperatureC: optionalNumber,
+    systolicMmHg: optionalNumber,
+    diastolicMmHg: optionalNumber,
+    pulseBpm: optionalNumber,
+    respiratoryRate: optionalNumber,
+    spo2Pct: optionalNumber,
+    weightKg: optionalNumber,
+    heightCm: optionalNumber,
+    avpu: z.enum(['ALERT', 'VOICE', 'PAIN', 'UNRESPONSIVE']).optional().or(z.literal('')),
+    bloodGlucoseMmol: optionalNumber,
+    painScore: z.preprocess(
+      (v) => (v === '' || v == null ? undefined : v),
+      z.coerce.number().int().min(0).max(10).optional(),
+    ),
+  })
+  .refine(
+    (v) =>
+      [
+        v.temperatureC,
+        v.systolicMmHg,
+        v.diastolicMmHg,
+        v.pulseBpm,
+        v.respiratoryRate,
+        v.spo2Pct,
+        v.weightKg,
+        v.heightCm,
+        v.bloodGlucoseMmol,
+        v.painScore,
+      ].some((n) => n != null) || (v.avpu !== undefined && v.avpu !== ''),
+    { message: 'Record at least one vital sign.', path: ['temperatureC'] },
+  );
+type VitalsValues = z.infer<typeof vitalsSchema>;
+
+function RecordVitalsCard({ encounterId }: { encounterId: string }) {
+  const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
+  const canRecord = usePermission('VITALS_CREATE');
+  const [showForm, setShowForm] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<VitalsValues>({ resolver: zodResolver(vitalsSchema) });
+
+  const submit = useMutation({
+    mutationFn: (values: VitalsValues) =>
+      recordConsultationVitals(
+        encounterId,
+        {
+          temperatureC: values.temperatureC,
+          systolicMmHg: values.systolicMmHg,
+          diastolicMmHg: values.diastolicMmHg,
+          pulseBpm: values.pulseBpm,
+          respiratoryRate: values.respiratoryRate,
+          spo2Pct: values.spo2Pct,
+          weightKg: values.weightKg,
+          heightCm: values.heightCm,
+          avpu: values.avpu ? values.avpu : undefined,
+          bloodGlucoseMmol: values.bloodGlucoseMmol,
+          painScore: values.painScore,
+          occurredAt: new Date().toISOString(),
+        },
+        accessToken as string,
+      ),
+    onSuccess: () => {
+      reset();
+      setShowForm(false);
+      queryClient.invalidateQueries({ queryKey: ['vital-signs', encounterId] });
+    },
+  });
+
+  if (!canRecord) return null;
+
+  return (
+    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-3)' }}>
+      <h2 style={{ fontSize: 'var(--text-sm)', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 0 }}>
+        Vital signs
+      </h2>
+      <button type="button" className="btn btn-secondary" onClick={() => setShowForm((v) => !v)} style={{ width: '100%' }}>
+        {showForm ? 'Cancel' : 'Record vitals'}
+      </button>
+
+      {showForm && (
+        <form
+          onSubmit={handleSubmit((v) => submit.mutate(v))}
+          noValidate
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}
+        >
+          <VitalField label="Temp (°C)" error={errors.temperatureC?.message}>
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('temperatureC')} style={vitalInputStyle} />
+          </VitalField>
+          <VitalField label="Pulse (bpm)" error={errors.pulseBpm?.message}>
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('pulseBpm')} style={vitalInputStyle} />
+          </VitalField>
+          <VitalField label="Systolic (mmHg)" error={errors.systolicMmHg?.message}>
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('systolicMmHg')} style={vitalInputStyle} />
+          </VitalField>
+          <VitalField label="Diastolic (mmHg)" error={errors.diastolicMmHg?.message}>
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('diastolicMmHg')} style={vitalInputStyle} />
+          </VitalField>
+          <VitalField label="Resp. rate" error={errors.respiratoryRate?.message}>
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('respiratoryRate')} style={vitalInputStyle} />
+          </VitalField>
+          <VitalField label="SpO₂ (%)" error={errors.spo2Pct?.message}>
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('spo2Pct')} style={vitalInputStyle} />
+          </VitalField>
+          <VitalField label="Weight (kg)" error={errors.weightKg?.message}>
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('weightKg')} style={vitalInputStyle} />
+          </VitalField>
+          <VitalField label="Height (cm)" error={errors.heightCm?.message}>
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('heightCm')} style={vitalInputStyle} />
+          </VitalField>
+          <VitalField label="AVPU">
+            <select className="clinical-control" {...register('avpu')} style={vitalInputStyle}>
+              <option value="">—</option>
+              <option value="ALERT">Alert</option>
+              <option value="VOICE">Voice</option>
+              <option value="PAIN">Pain</option>
+              <option value="UNRESPONSIVE">Unresponsive</option>
+            </select>
+          </VitalField>
+          <VitalField label="Glucose (mmol/L)">
+            <input className="clinical-control" type="text" inputMode="decimal" {...register('bloodGlucoseMmol')} style={vitalInputStyle} />
+          </VitalField>
+          <VitalField label="Pain (0–10)" error={errors.painScore?.message}>
+            <input className="clinical-control" type="text" inputMode="numeric" {...register('painScore')} style={vitalInputStyle} />
+          </VitalField>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            {submit.isError && <div className="form-error" style={{ marginBottom: 'var(--space-2)' }}>{errorMessage(submit.error)}</div>}
+            <button type="submit" className="btn btn-primary" disabled={submit.isPending} style={{ width: '100%' }}>
+              {submit.isPending ? 'Saving…' : 'Save vitals'}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function VitalField({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <label style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
+      {label}
+      {children}
+      {error && <div className="field-error">{error}</div>}
+    </label>
+  );
+}
+
+const vitalInputStyle: CSSProperties = {
+  display: 'block',
+  width: '100%',
+  marginTop: 2,
+  padding: 'var(--space-2)',
+  border: '1px solid var(--border-strong)',
+  borderRadius: 'var(--radius)',
+  font: 'inherit',
+};
 
 // The patient's prior encounters, surfaced alongside the live consultation so
 // the doctor sees earlier triage and consultation visits without leaving the
@@ -540,6 +794,7 @@ interface ConsultationFormValues {
   historyOfPresentingIllness: string;
   pastMedicalHistory: string;
   pastSurgicalHistory: string;
+  comorbidities: string;
   familySocialHistory: string;
   physicalExamination: string;
   clinicalNotes: string;
@@ -571,6 +826,7 @@ function ConsultationTab({
     historyOfPresentingIllness: '',
     pastMedicalHistory: '',
     pastSurgicalHistory: '',
+    comorbidities: '',
     familySocialHistory: '',
     physicalExamination: '',
     clinicalNotes: '',
@@ -599,6 +855,7 @@ function ConsultationTab({
         historyOfPresentingIllness: ownRecord.historyOfPresentingIllness ?? '',
         pastMedicalHistory: ownRecord.pastMedicalHistory ?? '',
         pastSurgicalHistory: ownRecord.pastSurgicalHistory ?? '',
+        comorbidities: ownRecord.comorbidities ?? '',
         familySocialHistory: ownRecord.familySocialHistory ?? '',
         physicalExamination: ownRecord.physicalExamination ?? '',
         clinicalNotes: ownRecord.clinicalNotes ?? '',
@@ -659,6 +916,29 @@ function ConsultationTab({
   }, [diagnoses.length]);
   const [selectedCode, setSelectedCode] = useState<Icd10SearchResult | null>(null);
   const latestIcd10SearchLogId = useRef<string | null>(null);
+
+  // §4/§5.3 — a provisional diagnosis is often confirmed only once lab results
+  // return. When the doctor flags that confirmation is pending results, block
+  // adding a Final (confirmed) diagnosis until this encounter actually has a
+  // released lab result. "Results returned" is a real signal, not a guess: a
+  // lab order reaches status COMPLETED (LabOrderController#toHistoryResponse)
+  // only when a result has been released against it.
+  const canReadLabs = usePermission('LAB_RESULT_READ');
+  const { data: labOrders } = useQuery({
+    queryKey: ['lab-orders', 'by-encounter', encounterId],
+    queryFn: () => fetchLabOrdersByEncounter(encounterId, accessToken as string),
+    enabled: accessToken != null && canReadLabs,
+    staleTime: 30_000,
+  });
+  const labResultsReturned = (labOrders ?? []).some((o) => o.status === 'COMPLETED');
+  const [pendingLabConfirmation, setPendingLabConfirmation] = useState(false);
+  const finalBlockedByLab = pendingLabConfirmation && !labResultsReturned;
+  // If the gate flips on while "Final (confirmed)" is selected, drop back to
+  // Provisional so the certainty picker can never submit a blocked value.
+  useEffect(() => {
+    if (finalBlockedByLab && certainty === 'CONFIRMED') setCertainty('PROVISIONAL');
+  }, [finalBlockedByLab, certainty]);
+
   const addDiagnosisMutation = useMutation({
     mutationFn: () =>
       addDiagnosis(
@@ -813,8 +1093,11 @@ function ConsultationTab({
         <FormRow label="Past surgical history">
           <textarea className="clinical-control" rows={2} {...field('pastSurgicalHistory')} />
         </FormRow>
+        <FormRow label="Comorbidities">
+          <textarea className="clinical-control" rows={2} {...field('comorbidities')} placeholder="e.g. hypertension, type 2 diabetes, HIV" />
+        </FormRow>
         <FormRow label="Family & social history">
-          <textarea className="clinical-control" rows={2} {...field('familySocialHistory')} />
+          <textarea className="clinical-control" rows={2} {...field('familySocialHistory')} placeholder="Family history, smoking, alcohol, occupation, living situation" />
         </FormRow>
         <FormRow label="Physical examination *">
           <textarea className="clinical-control" rows={4} {...field('physicalExamination')} />
@@ -834,9 +1117,33 @@ function ConsultationTab({
           <label>Provisional diagnosis *</label>
           <DiagnosisGroup items={diagnoses.filter((d) => d.certainty === 'PROVISIONAL')} emptyHint="Add a diagnosis below and mark it Provisional." />
         </div>
+        {diagnoses.some((d) => d.certainty === 'PROVISIONAL') && (
+          <div className="form-field">
+            <Checkbox
+              className="clinical-choice"
+              checked={pendingLabConfirmation}
+              onChange={(e) => setPendingLabConfirmation(e.target.checked)}
+              label={<>Confirmation pending lab results</>}
+            />
+            {pendingLabConfirmation && (
+              <p style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)', color: labResultsReturned ? 'var(--green-600)' : 'var(--text-muted)' }}>
+                {labResultsReturned
+                  ? 'Lab results have returned for this encounter — you can now add a final (confirmed) diagnosis.'
+                  : 'A final (confirmed) diagnosis is blocked until lab results return for this encounter.'}
+              </p>
+            )}
+          </div>
+        )}
         <div className="form-field">
           <label>Final diagnosis</label>
-          <DiagnosisGroup items={diagnoses.filter((d) => d.certainty === 'CONFIRMED')} emptyHint="Add once confirmed — often after results arrive." />
+          <DiagnosisGroup
+            items={diagnoses.filter((d) => d.certainty === 'CONFIRMED')}
+            emptyHint={
+              finalBlockedByLab
+                ? 'Awaiting lab results — confirmation is on hold (uncheck the box above to override).'
+                : 'Add once confirmed — often after results arrive.'
+            }
+          />
         </div>
         {diagnoses.some((d) => d.certainty === 'RULED_OUT') && (
           <div className="form-field">
@@ -881,11 +1188,18 @@ function ConsultationTab({
             />
             <select aria-label="Diagnosis certainty" className="clinical-control" value={certainty} onChange={(e) => setCertainty(e.target.value as DiagnosisCertainty)} style={{ width: 180 }}>
               <option value="PROVISIONAL">Provisional</option>
-              <option value="CONFIRMED">Final (confirmed)</option>
+              <option value="CONFIRMED" disabled={finalBlockedByLab}>
+                Final (confirmed){finalBlockedByLab ? ' — awaiting lab results' : ''}
+              </option>
               <option value="RULED_OUT">Ruled out</option>
             </select>
             <Checkbox  className="clinical-choice" checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} label={<>Primary</>} />
-            <button type="button" className="btn btn-secondary" onClick={() => addDiagnosisMutation.mutate()} disabled={addDiagnosisMutation.isPending}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => addDiagnosisMutation.mutate()}
+              disabled={addDiagnosisMutation.isPending || (certainty === 'CONFIRMED' && finalBlockedByLab)}
+            >
               Add diagnosis
             </button>
           </div>

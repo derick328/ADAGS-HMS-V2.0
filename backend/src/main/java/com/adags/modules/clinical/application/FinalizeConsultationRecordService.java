@@ -68,8 +68,9 @@ public class FinalizeConsultationRecordService {
 
         return new ConsultationRecord(record.id(), record.encounterId(), record.authorId(),
                 ConsultationRecordStatus.FINALIZED, record.historyOfPresentingIllness(), record.pastMedicalHistory(),
-                record.pastSurgicalHistory(), record.familySocialHistory(), record.physicalExamination(),
-                record.clinicalNotes(), record.treatmentPlan(), retrospectiveCompletion, retrospectiveNote,
+                record.pastSurgicalHistory(), record.comorbidities(), record.familySocialHistory(),
+                record.physicalExamination(), record.clinicalNotes(), record.treatmentPlan(),
+                retrospectiveCompletion, retrospectiveNote,
                 completedAt, record.abandonedReason(), record.abandonedAt(), record.abandonedBy(),
                 record.amendsId(), record.amendmentReason(), record.createdAt(), completedAt);
     }

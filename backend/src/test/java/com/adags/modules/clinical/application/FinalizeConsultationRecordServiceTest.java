@@ -63,7 +63,7 @@ class FinalizeConsultationRecordServiceTest extends IntegrationTestSupport {
         UUID encounterId = insertFixtureEncounter();
         UUID authorId = bootstrapAdminId();
         UUID consultationRecordId = consultationRecordRepository.insert(ConsultationRecord.open(encounterId, authorId)).id();
-        consultationRecordRepository.autosave(consultationRecordId, null, null, null, null,
+        consultationRecordRepository.autosave(consultationRecordId, null, null, null, null, null,
                 "Alert, mild pallor", null, "Awaiting malaria RDT");
         addPrimaryDiagnosis(encounterId, consultationRecordId, authorId);
 
@@ -137,7 +137,7 @@ class FinalizeConsultationRecordServiceTest extends IntegrationTestSupport {
 
     private UUID openAndFillConsultationRecord(UUID encounterId, UUID authorId) {
         UUID consultationRecordId = consultationRecordRepository.insert(ConsultationRecord.open(encounterId, authorId)).id();
-        consultationRecordRepository.autosave(consultationRecordId, "Fever for 3 days", null, null, null,
+        consultationRecordRepository.autosave(consultationRecordId, "Fever for 3 days", null, null, null, null,
                 "Alert, mild pallor", null, "Awaiting malaria RDT");
         return consultationRecordId;
     }

@@ -76,7 +76,8 @@ public class ConsultationRecordController {
 
         autosaveService.autosave(new AutosaveConsultationRecordCommand(
                 id, request.historyOfPresentingIllness(), request.pastMedicalHistory(), request.pastSurgicalHistory(),
-                request.familySocialHistory(), request.physicalExamination(), request.clinicalNotes(), request.treatmentPlan()));
+                request.comorbidities(), request.familySocialHistory(), request.physicalExamination(),
+                request.clinicalNotes(), request.treatmentPlan()));
 
         return ConsultationRecordResponse.from(consultationRecordRepository.findById(record.id())
                 .orElseThrow(() -> new NoSuchElementException("ConsultationRecord not found: " + id)));
@@ -160,7 +161,8 @@ public class ConsultationRecordController {
 
     public record AutosaveConsultationRecordRequest(
             String historyOfPresentingIllness, String pastMedicalHistory, String pastSurgicalHistory,
-            String familySocialHistory, String physicalExamination, String clinicalNotes, String treatmentPlan
+            String comorbidities, String familySocialHistory, String physicalExamination, String clinicalNotes,
+            String treatmentPlan
     ) {
     }
 

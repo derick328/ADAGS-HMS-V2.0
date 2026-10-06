@@ -3380,6 +3380,7 @@ export interface components {
             historyOfPresentingIllness?: string;
             pastMedicalHistory?: string;
             pastSurgicalHistory?: string;
+            comorbidities?: string;
             familySocialHistory?: string;
             physicalExamination?: string;
             clinicalNotes?: string;
@@ -3397,6 +3398,7 @@ export interface components {
             historyOfPresentingIllness?: string;
             pastMedicalHistory?: string;
             pastSurgicalHistory?: string;
+            comorbidities?: string;
             familySocialHistory?: string;
             physicalExamination?: string;
             clinicalNotes?: string;
@@ -5174,21 +5176,21 @@ export interface components {
         };
         RecordConsultationVitalsRequest: {
             /** Format: double */
-            temperatureC: number;
+            temperatureC?: number;
             /** Format: double */
-            systolicMmHg: number;
+            systolicMmHg?: number;
             /** Format: double */
-            diastolicMmHg: number;
+            diastolicMmHg?: number;
             /** Format: double */
-            pulseBpm: number;
+            pulseBpm?: number;
             /** Format: double */
-            respiratoryRate: number;
+            respiratoryRate?: number;
             /** Format: double */
-            spo2Pct: number;
+            spo2Pct?: number;
             /** Format: double */
-            weightKg: number;
+            weightKg?: number;
             /** Format: double */
-            heightCm: number;
+            heightCm?: number;
             avpu?: string;
             /** Format: double */
             bloodGlucoseMmol?: number;

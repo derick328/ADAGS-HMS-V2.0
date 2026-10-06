@@ -191,7 +191,7 @@ class AdmissionLifecycleIntegrationTest extends IntegrationTestSupport {
     private void fillAndDiagnose(UUID encounterId, UUID doctorId) {
         UUID consultationRecordId = consultationRecordRepository.insert(
                 ConsultationRecord.open(encounterId, doctorId)).id();
-        consultationRecordRepository.autosave(consultationRecordId, "Fever for 3 days", null, null, null,
+        consultationRecordRepository.autosave(consultationRecordId, "Fever for 3 days", null, null, null, null,
                 "Alert, mild pallor", null, "Awaiting malaria RDT");
         jdbcTemplate.update("""
                         INSERT INTO icd10_code (code, title, icd10_release) VALUES ('B50.9', 'P. falciparum malaria, unspecified', '2019')

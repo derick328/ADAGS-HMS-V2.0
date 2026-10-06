@@ -7,6 +7,7 @@ public record AutosaveConsultationRecordCommand(
         String historyOfPresentingIllness,
         String pastMedicalHistory,
         String pastSurgicalHistory,
+        String comorbidities,
         String familySocialHistory,
         String physicalExamination,
         String clinicalNotes,

@@ -4939,6 +4939,8 @@ components:
           type: string
         pastSurgicalHistory:
           type: string
+        comorbidities:
+          type: string
         familySocialHistory:
           type: string
         physicalExamination:
@@ -4970,6 +4972,8 @@ components:
         pastMedicalHistory:
           type: string
         pastSurgicalHistory:
+          type: string
+        comorbidities:
           type: string
         familySocialHistory:
           type: string
@@ -7593,15 +7597,6 @@ components:
         reason:
           type: string
     RecordConsultationVitalsRequest:
-      required:
-      - diastolicMmHg
-      - heightCm
-      - pulseBpm
-      - respiratoryRate
-      - spo2Pct
-      - systolicMmHg
-      - temperatureC
-      - weightKg
       type: object
       properties:
         temperatureC:

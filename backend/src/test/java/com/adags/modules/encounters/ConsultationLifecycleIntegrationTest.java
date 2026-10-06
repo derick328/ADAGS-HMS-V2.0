@@ -160,7 +160,7 @@ class ConsultationLifecycleIntegrationTest extends IntegrationTestSupport {
     private UUID openAndFillConsultationRecord(UUID encounterId, UUID doctorId) {
         UUID consultationRecordId = consultationRecordRepository.insert(
                 ConsultationRecord.open(encounterId, doctorId)).id();
-        consultationRecordRepository.autosave(consultationRecordId, "Fever for 3 days", null, null, null,
+        consultationRecordRepository.autosave(consultationRecordId, "Fever for 3 days", null, null, null, null,
                 "Alert, mild pallor", null, "Awaiting malaria RDT");
         return consultationRecordId;
     }

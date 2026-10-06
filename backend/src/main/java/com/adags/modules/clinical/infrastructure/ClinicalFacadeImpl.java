@@ -135,7 +135,11 @@ public class ClinicalFacadeImpl implements ClinicalFacade {
 
     @Override
     public Optional<Double> findLatestWeightKg(UUID encounterId) {
+        // The latest reading that actually carries a weight — a consultation
+        // re-measure may omit weight (V82), and that must not hide the triage
+        // weight the pharmacy needs for weight-based dosing.
         return vitalSignsRepository.findByEncounterId(encounterId).stream()
+                .filter(v -> v.weightKg() != null)
                 .max(Comparator.comparing(VitalSigns::recordedAt))
                 .map(VitalSigns::weightKg);
     }

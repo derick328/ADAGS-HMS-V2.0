@@ -14,6 +14,7 @@ public record ConsultationRecordResponse(
         String historyOfPresentingIllness,
         String pastMedicalHistory,
         String pastSurgicalHistory,
+        String comorbidities,
         String familySocialHistory,
         String physicalExamination,
         String clinicalNotes,
@@ -28,7 +29,8 @@ public record ConsultationRecordResponse(
         return new ConsultationRecordResponse(
                 record.id(), record.encounterId(), record.authorId(), record.status(),
                 record.historyOfPresentingIllness(), record.pastMedicalHistory(), record.pastSurgicalHistory(),
-                record.familySocialHistory(), record.physicalExamination(), record.clinicalNotes(), record.treatmentPlan(),
+                record.comorbidities(), record.familySocialHistory(), record.physicalExamination(), record.clinicalNotes(),
+                record.treatmentPlan(),
                 record.retrospectiveCompletion(), record.retrospectiveNote(), record.completedAt(),
                 record.createdAt(), record.updatedAt());
     }

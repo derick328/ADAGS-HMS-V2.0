@@ -1,0 +1,14 @@
+-- 07-doctor.md §5: the doctor's consultation note gains a dedicated
+-- comorbidities field. Triage already captures a comorbidities free-text
+-- (triage_assessment.comorbidities, shown read-only in the consultation
+-- left panel) — this is the doctor's own structured capture, part of the
+-- history block alongside past_medical_history / family_social_history,
+-- and like the rest of that block it is overwritten in place by autosave
+-- while the record is OPEN and frozen at finalize.
+--
+-- V14 (consultation_record) is merged and therefore immutable — a new
+-- column is a new migration, never an edit to V14 (backend/CLAUDE.md).
+-- Nullable with no backfill: an empty draft is valid, and §5.1's required
+-- fields (HPI, examination, treatment plan) are enforced at finalize, not
+-- on this column.
+ALTER TABLE consultation_record ADD COLUMN comorbidities TEXT;

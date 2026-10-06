@@ -43,11 +43,12 @@ class ConsultationRecordRepositoryTest extends IntegrationTestSupport {
         ConsultationRecord saved = repository.insert(ConsultationRecord.open(encounterId, authorId));
         assertThat(saved.status()).isEqualTo(ConsultationRecordStatus.OPEN);
 
-        repository.autosave(saved.id(), "Fever for 3 days", null, null, null,
+        repository.autosave(saved.id(), "Fever for 3 days", null, null, "Type 2 diabetes, hypertension", null,
                 "Alert, mild pallor", null, "Awaiting malaria RDT");
 
         ConsultationRecord reloaded = repository.findById(saved.id()).orElseThrow();
         assertThat(reloaded.historyOfPresentingIllness()).isEqualTo("Fever for 3 days");
+        assertThat(reloaded.comorbidities()).isEqualTo("Type 2 diabetes, hypertension");
         assertThat(reloaded.physicalExamination()).isEqualTo("Alert, mild pallor");
         assertThat(reloaded.treatmentPlan()).isEqualTo("Awaiting malaria RDT");
         assertThat(reloaded.status()).isEqualTo(ConsultationRecordStatus.OPEN);

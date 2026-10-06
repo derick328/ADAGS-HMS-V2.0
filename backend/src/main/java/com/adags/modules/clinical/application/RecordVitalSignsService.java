@@ -58,13 +58,27 @@ public class RecordVitalSignsService {
         AgeBand ageBand = AgeBand.forAge(demographics.dateOfBirth(), asOf);
         Sex sex = Sex.fromPatientGender(demographics.gender());
 
+        // Only the readings actually provided are evaluated and persisted. A
+        // null value means "not measured this time" (a CONSULTATION re-measure
+        // may record only a subset, 07-doctor.md §5.1) — not zero, which would
+        // be an implausible reading that evaluate() would flag.
         List<RecordedVital> readings = new ArrayList<>();
-        readings.add(evaluate(VitalType.TEMPERATURE, command.temperatureC(), ageBand, sex));
-        readings.add(evaluate(VitalType.SYSTOLIC_BP, command.systolicMmHg(), ageBand, sex));
-        readings.add(evaluate(VitalType.DIASTOLIC_BP, command.diastolicMmHg(), ageBand, sex));
-        readings.add(evaluate(VitalType.PULSE, command.pulseBpm(), ageBand, sex));
-        readings.add(evaluate(VitalType.RESPIRATORY_RATE, command.respiratoryRate(), ageBand, sex));
-        readings.add(evaluate(VitalType.SPO2, command.spo2Pct(), ageBand, sex));
+        addIfPresent(readings, VitalType.TEMPERATURE, command.temperatureC(), ageBand, sex);
+        addIfPresent(readings, VitalType.SYSTOLIC_BP, command.systolicMmHg(), ageBand, sex);
+        addIfPresent(readings, VitalType.DIASTOLIC_BP, command.diastolicMmHg(), ageBand, sex);
+        addIfPresent(readings, VitalType.PULSE, command.pulseBpm(), ageBand, sex);
+        addIfPresent(readings, VitalType.RESPIRATORY_RATE, command.respiratoryRate(), ageBand, sex);
+        addIfPresent(readings, VitalType.SPO2, command.spo2Pct(), ageBand, sex);
+
+        // A vitals record must carry at least one measurement — an entirely
+        // empty submission is a mistake, not a valid "nothing to report".
+        boolean hasAnything = !readings.isEmpty()
+                || command.weightKg() != null || command.heightCm() != null
+                || command.avpu() != null || command.bloodGlucoseMmol() != null
+                || command.painScore() != null || command.intakeMl() != null || command.outputMl() != null;
+        if (!hasAnything) {
+            throw new IllegalArgumentException("Record at least one vital sign.");
+        }
 
         VitalSigns toInsert = new VitalSigns(
                 null,
@@ -85,6 +99,12 @@ public class RecordVitalSignsService {
                 command.occurredAt());
 
         return vitalSignsRepository.insert(toInsert);
+    }
+
+    private void addIfPresent(List<RecordedVital> readings, VitalType vitalType, Double value, AgeBand ageBand, Sex sex) {
+        if (value != null) {
+            readings.add(evaluate(vitalType, value, ageBand, sex));
+        }
     }
 
     private RecordedVital evaluate(VitalType vitalType, double value, AgeBand ageBand, Sex sex) {

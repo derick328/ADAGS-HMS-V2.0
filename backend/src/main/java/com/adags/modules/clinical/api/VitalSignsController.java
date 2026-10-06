@@ -14,7 +14,6 @@ import com.adags.shared.authz.ScopeRef;
 import com.adags.shared.authz.ScopeType;
 import com.adags.shared.kernel.EncounterContext;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -97,15 +96,19 @@ public class VitalSignsController {
         return saved.id();
     }
 
+    // 07-doctor.md §5.1: every field is optional — the doctor records whatever
+    // they actually measured. The service persists exactly the readings given
+    // and rejects a wholly empty submission (RecordVitalSignsService). This is
+    // deliberately looser than triage's mandatory full set (SubmitTriageAssessment).
     public record RecordConsultationVitalsRequest(
-            @NotNull Double temperatureC,
-            @NotNull Double systolicMmHg,
-            @NotNull Double diastolicMmHg,
-            @NotNull Double pulseBpm,
-            @NotNull Double respiratoryRate,
-            @NotNull Double spo2Pct,
-            @NotNull Double weightKg,
-            @NotNull Double heightCm,
+            Double temperatureC,
+            Double systolicMmHg,
+            Double diastolicMmHg,
+            Double pulseBpm,
+            Double respiratoryRate,
+            Double spo2Pct,
+            Double weightKg,
+            Double heightCm,
             Avpu avpu,
             Double bloodGlucoseMmol,
             Integer painScore,
@@ -133,7 +136,7 @@ public class VitalSignsController {
             // patient's age-banded reference range. Populated per-reading server-side by
             // VitalReferenceRangeEvaluator at record time; frontends render the warning.
             List<String> abnormalVitalTypes,
-            double weightKg, double heightCm, Double bmi,
+            Double weightKg, Double heightCm, Double bmi,
             com.adags.modules.clinical.domain.Avpu avpu, Double bloodGlucoseMmol,
             Instant recordedAt, Instant occurredAt
     ) {

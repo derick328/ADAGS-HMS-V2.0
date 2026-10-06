@@ -6,22 +6,24 @@ import com.adags.modules.clinical.domain.VitalSignsContext;
 import java.time.Instant;
 import java.util.UUID;
 
-// Raw, unevaluated input for RecordVitalSignsService — the six core vitals
-// are primitives here because every one of them is mandatory (06-triage.md
-// §2.2); avpu and bloodGlucoseMmol stay nullable (§7.3/§7.4).
+// Raw, unevaluated input for RecordVitalSignsService. All readings are
+// nullable Double: triage sends the full mandatory set (06-triage.md §2.2,
+// enforced by its request DTO), but a CONSULTATION re-measure may record only
+// some (07-doctor.md §5.1) — the service evaluates and persists exactly the
+// ones provided. avpu and bloodGlucoseMmol stay nullable (§7.3/§7.4).
 public record RecordVitalSignsCommand(
         UUID encounterId,
         UUID patientId,
         VitalSignsContext context,
         UUID contextRefId,
-        double temperatureC,
-        double systolicMmHg,
-        double diastolicMmHg,
-        double pulseBpm,
-        double respiratoryRate,
-        double spo2Pct,
-        double weightKg,
-        double heightCm,
+        Double temperatureC,
+        Double systolicMmHg,
+        Double diastolicMmHg,
+        Double pulseBpm,
+        Double respiratoryRate,
+        Double spo2Pct,
+        Double weightKg,
+        Double heightCm,
         Avpu avpu,
         Double bloodGlucoseMmol,
         Integer painScore,

@@ -19,7 +19,8 @@ public interface ConsultationRecordRepository {
 
     /** Overwrites the free-text fields in place — only valid while status is OPEN. */
     void autosave(UUID id, String historyOfPresentingIllness, String pastMedicalHistory, String pastSurgicalHistory,
-                   String familySocialHistory, String physicalExamination, String clinicalNotes, String treatmentPlan);
+                   String comorbidities, String familySocialHistory, String physicalExamination, String clinicalNotes,
+                   String treatmentPlan);
 
     void finalize(UUID id, Instant completedAt, boolean retrospectiveCompletion, String retrospectiveNote);
 

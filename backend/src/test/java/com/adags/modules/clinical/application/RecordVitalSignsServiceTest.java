@@ -61,8 +61,8 @@ class RecordVitalSignsServiceTest extends IntegrationTestSupport {
         RecordVitalSignsCommand command = new RecordVitalSignsCommand(
                 encounterId, patientId, VitalSignsContext.TRIAGE, UUID.randomUUID(),
                 38.5, // above the adult abnormal_high of 38.0, still below implausible_high of 43
-                120, 80, 80, 16, 98,
-                70, 175, Avpu.ALERT, 5.0, null, null, null, bootstrapAdminId(), Instant.now());
+                120.0, 80.0, 80.0, 16.0, 98.0,
+                70.0, 175.0, Avpu.ALERT, 5.0, null, null, null, bootstrapAdminId(), Instant.now());
 
         VitalSigns saved = service.record(command);
 
@@ -80,8 +80,8 @@ class RecordVitalSignsServiceTest extends IntegrationTestSupport {
         RecordVitalSignsCommand command = new RecordVitalSignsCommand(
                 encounterId, patientId, VitalSignsContext.TRIAGE, UUID.randomUUID(),
                 44.0, // above implausible_high of 43
-                120, 80, 80, 16, 98,
-                70, 175, null, null, null, null, null, bootstrapAdminId(), Instant.now());
+                120.0, 80.0, 80.0, 16.0, 98.0,
+                70.0, 175.0, null, null, null, null, null, bootstrapAdminId(), Instant.now());
 
         assertThatThrownBy(() -> service.record(command))
                 .isInstanceOf(ImplausibleVitalException.class)
@@ -104,8 +104,8 @@ class RecordVitalSignsServiceTest extends IntegrationTestSupport {
 
         RecordVitalSignsCommand command = new RecordVitalSignsCommand(
                 encounterId, patientId, VitalSignsContext.TRIAGE, UUID.randomUUID(),
-                37.0, 100, 65, 90, 20, 99,
-                25, 125, null, null, null, null, null, bootstrapAdminId(), Instant.now());
+                37.0, 100.0, 65.0, 90.0, 20.0, 99.0,
+                25.0, 125.0, null, null, null, null, null, bootstrapAdminId(), Instant.now());
 
         service.record(command);
 
@@ -115,11 +115,55 @@ class RecordVitalSignsServiceTest extends IntegrationTestSupport {
         assertThat(count).isEqualTo(1);
     }
 
+    // 07-doctor.md §5.1 / V82: a CONSULTATION re-measure may record only some
+    // vitals and carries no owning sub-row (context_ref_id null). Both were
+    // previously impossible — the six readings were mandatory and
+    // context_ref_id was NOT NULL.
+    @Test
+    void aConsultationReMeasureRecordsOnlyTheVitalsProvidedAndNeedsNoContextRef() {
+        UUID patientId = insertFixturePatient(LocalDate.of(1990, 1, 1), "MALE");
+        UUID encounterId = insertFixtureEncounter(patientId);
+
+        RecordVitalSignsCommand command = new RecordVitalSignsCommand(
+                encounterId, patientId, VitalSignsContext.CONSULTATION, null,
+                37.2, null, null, null, null, null,
+                null, null, null, null, null, null, null, bootstrapAdminId(), Instant.now());
+
+        VitalSigns saved = service.record(command);
+
+        assertThat(saved.readings()).hasSize(1);
+        assertThat(saved.readings().get(0).vitalType()).isEqualTo(VitalType.TEMPERATURE);
+        assertThat(saved.weightKg()).isNull();
+        assertThat(saved.heightCm()).isNull();
+        assertThat(saved.bmi()).isNull();
+        assertThat(saved.contextRefId()).isNull();
+    }
+
+    @Test
+    void aWhollyEmptyVitalsSubmissionIsRejected() {
+        UUID patientId = insertFixturePatient(LocalDate.of(1990, 1, 1), "MALE");
+        UUID encounterId = insertFixtureEncounter(patientId);
+
+        RecordVitalSignsCommand command = new RecordVitalSignsCommand(
+                encounterId, patientId, VitalSignsContext.CONSULTATION, null,
+                null, null, null, null, null, null,
+                null, null, null, null, null, null, null, bootstrapAdminId(), Instant.now());
+
+        assertThatThrownBy(() -> service.record(command))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("at least one");
+
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM vital_signs WHERE encounter_id = :encounterId",
+                new MapSqlParameterSource("encounterId", encounterId), Integer.class);
+        assertThat(count).isEqualTo(0);
+    }
+
     private RecordVitalSignsCommand adultCommand(UUID encounterId, UUID patientId) {
         return new RecordVitalSignsCommand(
                 encounterId, patientId, VitalSignsContext.TRIAGE, UUID.randomUUID(),
-                36.8, 120, 80, 75, 16, 98,
-                70, 175, Avpu.ALERT, 5.0, null, null, null, bootstrapAdminId(), Instant.now());
+                36.8, 120.0, 80.0, 75.0, 16.0, 98.0,
+                70.0, 175.0, Avpu.ALERT, 5.0, null, null, null, bootstrapAdminId(), Instant.now());
     }
 
     private UUID insertFixturePatient(LocalDate dateOfBirth, String gender) {

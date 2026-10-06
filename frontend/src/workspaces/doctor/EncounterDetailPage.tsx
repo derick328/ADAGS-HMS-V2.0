@@ -654,6 +654,7 @@ function ConsultationBlock({
     ['History of presenting illness', note?.historyOfPresentingIllness],
     ['Past medical history', note?.pastMedicalHistory],
     ['Past surgical history', note?.pastSurgicalHistory],
+    ['Comorbidities', note?.comorbidities],
     ['Family / social history', note?.familySocialHistory],
     ['Examination', note?.physicalExamination],
     ['Clinical notes', note?.clinicalNotes],

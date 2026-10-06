@@ -29,7 +29,7 @@ public class AutosaveConsultationRecordService {
         }
 
         repository.autosave(record.id(), command.historyOfPresentingIllness(), command.pastMedicalHistory(),
-                command.pastSurgicalHistory(), command.familySocialHistory(), command.physicalExamination(),
-                command.clinicalNotes(), command.treatmentPlan());
+                command.pastSurgicalHistory(), command.comorbidities(), command.familySocialHistory(),
+                command.physicalExamination(), command.clinicalNotes(), command.treatmentPlan());
     }
 }

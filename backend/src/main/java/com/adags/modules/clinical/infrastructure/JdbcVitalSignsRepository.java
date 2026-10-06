@@ -55,9 +55,9 @@ public class JdbcVitalSignsRepository implements VitalSignsRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("encounterId", vitalSigns.encounterId())
                 .addValue("context", vitalSigns.context().name())
-                .addValue("contextRefId", vitalSigns.contextRefId())
-                .addValue("weightKg", vitalSigns.weightKg())
-                .addValue("heightCm", vitalSigns.heightCm())
+                .addValue("contextRefId", vitalSigns.contextRefId(), Types.OTHER)
+                .addValue("weightKg", vitalSigns.weightKg(), Types.NUMERIC)
+                .addValue("heightCm", vitalSigns.heightCm(), Types.NUMERIC)
                 .addValue("avpu", vitalSigns.avpu() == null ? null : vitalSigns.avpu().name(), Types.VARCHAR)
                 .addValue("bloodGlucoseMmol", vitalSigns.bloodGlucoseMmol(), Types.NUMERIC)
                 .addValue("painScore", vitalSigns.painScore(), Types.INTEGER)
@@ -68,7 +68,9 @@ public class JdbcVitalSignsRepository implements VitalSignsRepository {
 
         Map<String, Object> row = jdbcTemplate.queryForMap(sql, params);
         UUID id = (UUID) row.get("id");
-        Double bmi = ((Number) row.get("bmi")).doubleValue();
+        // bmi is NULL when weight or height was not captured (the generated
+        // column divides by height) — don't unbox a null.
+        Double bmi = row.get("bmi") == null ? null : ((Number) row.get("bmi")).doubleValue();
 
         insertReadings(id, vitalSigns.readings());
 
@@ -159,9 +161,9 @@ public class JdbcVitalSignsRepository implements VitalSignsRepository {
                 VitalSignsContext.valueOf(rs.getString("context")),
                 (UUID) rs.getObject("context_ref_id"),
                 List.of(),
-                rs.getDouble("weight_kg"),
-                rs.getDouble("height_cm"),
-                rs.getDouble("bmi"),
+                getNullableDouble(rs, "weight_kg"),
+                getNullableDouble(rs, "height_cm"),
+                getNullableDouble(rs, "bmi"),
                 avpu == null ? null : Avpu.valueOf(avpu),
                 bloodGlucose,
                 getNullableInteger(rs, "pain_score"),

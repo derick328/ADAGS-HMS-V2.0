@@ -19,6 +19,7 @@ public record ConsultationRecord(
         String historyOfPresentingIllness,
         String pastMedicalHistory,
         String pastSurgicalHistory,
+        String comorbidities,
         String familySocialHistory,
         String physicalExamination,
         String clinicalNotes,
@@ -37,7 +38,7 @@ public record ConsultationRecord(
 
     public static ConsultationRecord open(UUID encounterId, UUID authorId) {
         return new ConsultationRecord(null, encounterId, authorId, ConsultationRecordStatus.OPEN,
-                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null,
                 false, null, null, null, null, null, null, null, null, null);
     }
 }
