@@ -95,7 +95,7 @@ public class JdbcPatientRepository implements PatientRepository {
             String p = "tok" + i++;
             params.addValue(p, "%" + token + "%");
             where.append("""
-                      AND (
+                       AND (
                            hospital_no ILIKE :%1$s
                         OR given_name ILIKE :%1$s
                         OR middle_name ILIKE :%1$s
