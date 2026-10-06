@@ -189,13 +189,11 @@ function ConsultationWorkspace({
     queryFn: () => fetchVitalSignsByEncounter(encounterId, accessToken as string),
     enabled: accessToken != null,
   });
-  // Prefer the doctor's own consultation reading when present (newest first
-  // from the API), falling back to the triage reading, then anything. This
-  // is the documented intent in shared/api/vitalSigns.ts — a doctor who
-  // re-measures during consultation should see their own numbers, not stay
-  // pinned to triage's.
+  // The "Triage summary" panel always shows the TRIAGE reading — a doctor's
+  // own consultation re-measure must never overwrite it on screen (it is
+  // shown separately in the Record-vitals card). Falls back to the newest
+  // reading only when no triage set exists.
   const vitals =
-    vitalsList?.find((v) => v.context === 'CONSULTATION') ??
     vitalsList?.find((v) => v.context === 'TRIAGE') ??
     vitalsList?.[0];
 
@@ -545,6 +543,16 @@ function RecordVitalsCard({ encounterId }: { encounterId: string }) {
   const canRecord = usePermission('VITALS_CREATE');
   const [showForm, setShowForm] = useState(false);
 
+  // The doctor's own consultation readings, shown here (newest first) so a
+  // recording is visibly confirmed — kept separate from the Triage summary so
+  // it never overwrites the triage reading.
+  const { data: vitalsList } = useQuery({
+    queryKey: ['vital-signs', encounterId],
+    queryFn: () => fetchVitalSignsByEncounter(encounterId, accessToken as string),
+    enabled: accessToken != null,
+  });
+  const latestConsultationVitals = vitalsList?.find((v) => v.context === 'CONSULTATION');
+
   const {
     register,
     handleSubmit,
@@ -586,8 +594,19 @@ function RecordVitalsCard({ encounterId }: { encounterId: string }) {
       <h2 style={{ fontSize: 'var(--text-sm)', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 0 }}>
         Vital signs
       </h2>
+
+      {latestConsultationVitals && !showForm && (
+        <div style={{ marginBottom: 'var(--space-3)' }}>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: 4 }}>
+            Recorded at consultation
+            {latestConsultationVitals.occurredAt ? ` · ${formatDateTime(latestConsultationVitals.occurredAt)}` : ''}
+          </div>
+          <VitalsReadings vitals={latestConsultationVitals} />
+        </div>
+      )}
+
       <button type="button" className="btn btn-secondary" onClick={() => setShowForm((v) => !v)} style={{ width: '100%' }}>
-        {showForm ? 'Cancel' : 'Record vitals'}
+        {showForm ? 'Cancel' : latestConsultationVitals ? 'Record again' : 'Record vitals'}
       </button>
 
       {showForm && (
