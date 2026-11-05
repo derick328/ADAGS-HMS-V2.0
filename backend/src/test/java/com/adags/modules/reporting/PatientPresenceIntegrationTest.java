@@ -17,6 +17,7 @@ class PatientPresenceIntegrationTest extends IntegrationTestSupport {
  @Autowired OutpatientDepartureService departure;
  @Autowired TatAnalyticsService tat;
  private static final UUID FACILITY=UUID.fromString("00000000-0000-0000-0000-000000000001");
+ private UUID receptionistId;
  @Test void physicalDepartureIsIdempotentAndCorrectionPreservesHistory() {
   UUID id=fixture("CLOSED");
   assertThat(tat.encounterJourney(FACILITY,id).visit().endedAt()).isNull();
@@ -37,8 +38,22 @@ class PatientPresenceIntegrationTest extends IntegrationTestSupport {
   assertThatThrownBy(()->departure.confirm(id,FACILITY,"CARE_COMPLETE",null,actor())).isInstanceOf(IllegalArgumentException.class);
   assertThatThrownBy(()->departure.confirm(id,UUID.randomUUID(),"CARE_COMPLETE",null,actor())).isInstanceOf(NoSuchElementException.class);
  }
- private Actor actor(){return new Actor(jdbc.queryForObject("SELECT id FROM app_user WHERE username='admin'",Map.of(),UUID.class));}
+ @Test void adminWithoutEncounterPermissionCannotConfirmDeparture() {
+  UUID id=fixture("CLOSED");
+  UUID adminId=jdbc.queryForObject("SELECT id FROM app_user WHERE username='admin'",Map.of(),UUID.class);
+  assertThatThrownBy(()->departure.confirm(id,FACILITY,"CARE_COMPLETE",null,new Actor(adminId)))
+      .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+ }
+ private Actor actor(){return new Actor(receptionistId);}
  private UUID fixture(String state) {
+  receptionistId=jdbc.queryForObject("""
+      INSERT INTO app_user(username,password_hash,status)
+      SELECT :username,password_hash,'ACTIVE' FROM app_user WHERE username='admin' RETURNING id
+      """,Map.of("username","presence-"+UUID.randomUUID()),UUID.class);
+  jdbc.update("""
+      INSERT INTO role_assignment(user_id,role_id,scope_type,scope_id)
+      SELECT :actor,id,'GLOBAL',NULL FROM role WHERE code='RECEPTIONIST'
+      """,Map.of("actor",receptionistId));
   UUID p=jdbc.queryForObject("INSERT INTO patient(hospital_no,given_name,family_name,date_of_birth,gender,phone) VALUES(:number,'Presence','Test',DATE '1990-01-01','MALE','+255700000000') RETURNING id",Map.of("number","P-"+UUID.randomUUID()),UUID.class);
   UUID d=jdbc.queryForObject("INSERT INTO department(facility_id,code,name) VALUES(:facility,:code,'Presence') RETURNING id",Map.of("facility",FACILITY,"code","P-"+UUID.randomUUID()),UUID.class);
   return jdbc.queryForObject("INSERT INTO encounter(patient_id,facility_id,department_id,type,state,payer_type,created_by) VALUES(:patient,:facility,:department,'OUTPATIENT',:state,'CASH',:actor) RETURNING id",Map.of("patient",p,"facility",FACILITY,"department",d,"state",state,"actor",actor().userId()),UUID.class);
