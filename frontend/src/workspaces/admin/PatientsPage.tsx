@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
 import { formatMoney } from '../../shared/format/money';
+import { TatPatientHistory } from './TatPatientHistory';
 
 // 18-admin.md §3.1: identity + hospital number + invoice history, no
 // clinical (R2). Landing view puts three registration counts (today /
@@ -438,6 +439,7 @@ function PatientDetailCard({
           outstandingOnly={outstandingOnly}
         />
       )}
+      {patient.id && accessToken && <TatPatientHistory patientId={patient.id} accessToken={accessToken} />}
     </div>
   );
 }

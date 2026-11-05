@@ -31,6 +31,7 @@ import { ProfilePage } from './workspaces/admin/ProfilePage';
 import { RevenuePage } from './workspaces/admin/RevenuePage';
 import { SalariesPage } from './workspaces/admin/SalariesPage';
 import { TheatresPage } from './workspaces/admin/TheatresPage';
+import { TatPage } from './workspaces/admin/TatPage';
 import { UsersPage } from './workspaces/admin/UsersPage';
 import { BillingPage as ReceptionistBillingPage } from './workspaces/receptionist/BillingPage';
 import { CashierShiftPage } from './workspaces/receptionist/CashierShiftPage';
@@ -124,6 +125,7 @@ export function App() {
         <Route path="revenue" element={<RevenuePage />} />
         <Route path="payment-bypass-waivers" element={<PaymentBypassWaiverPage />} />
         <Route path="patients" element={<PatientsPage />} />
+        <Route path="tat" element={<TatPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="theatres" element={<TheatresPage />} />
         <Route path="expenses/medication-pharmacy" element={<MedicationPharmacyPage />} />

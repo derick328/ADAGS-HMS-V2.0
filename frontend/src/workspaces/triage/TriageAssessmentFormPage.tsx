@@ -7,12 +7,13 @@ import { Modal } from '../../shared/components/Modal';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 import { ApiError } from '../../shared/api/client';
 import { fetchEncounterById } from '../../shared/api/encounters';
+import { startTriageAssessment } from '../../shared/api/tatWorkflow';
 import { fetchPatientById } from '../../shared/api/patients';
 import {
   fetchOwnTriageDraft,
@@ -52,6 +53,18 @@ export function TriageAssessmentFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const canAssess = usePermission('TRIAGE_ASSESS');
+  const [triageStarted, setTriageStarted] = useState(false);
+  const startRequested = useRef(false);
+  const startTriage = useMutation({
+    mutationFn: () => startTriageAssessment(encounterId as string, accessToken as string),
+    onSuccess: () => setTriageStarted(true),
+    onError: () => { startRequested.current = false; },
+  });
+  function beginAssessment() {
+    if (!canAssess || !encounterId || !accessToken || startRequested.current) return;
+    startRequested.current = true;
+    startTriage.mutate();
+  }
 
   const { data: encounter, isLoading: encounterLoading } = useQuery({
     queryKey: ['encounter', encounterId],
@@ -289,7 +302,15 @@ export function TriageAssessmentFormPage() {
     <div>
       <PageHeader title={<>Triage assessment</>} description={<>{patient?.fullName} · {patient?.hospitalNo} · {patientAge != null ? `${patientAge}y` : '—'}</>} />
 
-      <form onSubmit={onSubmit} noValidate className="clinical-form-layout">
+      <div style={{ marginBottom: 'var(--space-3)' }}>
+        <button type="button" className="btn btn-secondary" disabled={!canAssess || triageStarted || startTriage.isPending}
+          onClick={beginAssessment}>
+          {triageStarted ? 'Assessment started' : 'Begin assessment'}
+        </button>
+        {startTriage.isError && <p className="form-error">Could not record the assessment start. Try again.</p>}
+      </div>
+
+      <form onSubmit={onSubmit} onChangeCapture={beginAssessment} noValidate className="clinical-form-layout">
         <FormSection title="Danger signs — any tick escalates to IMMEDIATE" columns={1} className="form-section--wide" tone="critical">
 
           <div className="choice-grid">

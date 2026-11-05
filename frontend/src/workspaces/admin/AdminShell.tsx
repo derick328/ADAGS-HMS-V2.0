@@ -32,6 +32,7 @@ const MAIN_NAV: NavLeaf[] = [
   { to: '/admin/revenue', label: 'Revenue / invoice cancellations', permission: 'INVOICE_CANCEL_APPROVE' },
   { to: '/admin/payment-bypass-waivers', label: 'Payment bypass waivers', permission: 'PAYMENT_BYPASS_WAIVE' },
   { to: '/admin/patients', label: 'Patients', permission: 'PATIENT_SEARCH' },
+  { to: '/admin/tat', label: 'Turnaround Time', permission: 'TAT_ANALYTICS_READ' },
   { to: '/admin/users', label: 'Users / add nurse / staff', permission: 'USER_MANAGE' },
   { to: '/admin/theatres', label: 'Theatres', permission: 'THEATRE_MANAGE' },
 ];

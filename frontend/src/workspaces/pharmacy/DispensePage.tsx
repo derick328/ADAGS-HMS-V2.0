@@ -3,13 +3,14 @@ import { PageHeader } from '../../shared/components/PageHeader';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 import { ApiError } from '../../shared/api/client';
 import { Combobox } from '../../shared/components/Combobox';
 import { dispense, fetchDispenseContext, fetchDispenseLabel } from '../../shared/api/dispenses';
+import { startPharmacyProcessing } from '../../shared/api/tatWorkflow';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
 import { markPrescriptionLineUnavailable } from '../../shared/api/prescriptionLines';
 import { fetchPrescriptionQueue } from '../../shared/api/prescriptions';
@@ -41,6 +42,18 @@ export function DispensePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<Mode>('dispense');
+  const [processingStarted, setProcessingStarted] = useState(false);
+  const startRequested = useRef(false);
+  const startProcessing = useMutation({
+    mutationFn: () => startPharmacyProcessing(prescriptionLineId as string, accessToken as string),
+    onSuccess: () => setProcessingStarted(true),
+    onError: () => { startRequested.current = false; },
+  });
+  function beginProcessing() {
+    if (!prescriptionLineId || !accessToken || startRequested.current) return;
+    startRequested.current = true;
+    startProcessing.mutate();
+  }
   const [dispensedId, setDispensedId] = useState<string | null>(null);
   const [markedUnavailable, setMarkedUnavailable] = useState(false);
   const [substituted, setSubstituted] = useState(false);
@@ -137,6 +150,14 @@ export function DispensePage() {
           </p>
         )}</PageHeader>
 
+      <div style={{ marginBottom: 'var(--space-3)' }}>
+        <button type="button" className="btn btn-secondary" disabled={processingStarted || startProcessing.isPending || !prescriptionLineId}
+          onClick={beginProcessing}>
+          {processingStarted ? 'Processing started' : 'Begin processing'}
+        </button>
+        {startProcessing.isError && <p className="form-error">Could not record processing start. Try again.</p>}
+      </div>
+
       {isLoading || !context ? (
         <FeedbackState loading>Loading…</FeedbackState>
       ) : (
@@ -193,7 +214,7 @@ export function DispensePage() {
           </div>
 
           {mode === 'dispense' && (
-            <form onSubmit={handleSubmit(onSubmitDispense)} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <form onSubmit={handleSubmit(onSubmitDispense)} onChangeCapture={beginProcessing} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
                 <TableRegion label="Batch lines"><table className="table">
                   <caption className="sr-only">Batch lines</caption>

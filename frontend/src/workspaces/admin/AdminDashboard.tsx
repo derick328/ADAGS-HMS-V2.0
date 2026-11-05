@@ -12,6 +12,7 @@ import {
   ArrowUpRight,
   Building2,
   ClipboardList,
+  Clock3,
   Receipt,
   Tags,
   Users,
@@ -141,6 +142,7 @@ export function AdminDashboard() {
         <DashboardAction to="/admin/pricing" permission="PHARMACY_ITEM_APPROVE" title="Catalogue & pricing" description="Items and price proposals" icon={Tags} />
         <DashboardAction to="/admin/theatres" permission="THEATRE_MANAGE" title="Operating theatres" description="Theatre availability" icon={Building2} />
         <DashboardAction to="/admin/revenue" permission="INVOICE_CANCEL_APPROVE" title="Revenue & invoices" description="Analytics and cancellations" icon={Receipt} />
+        <DashboardAction to="/admin/tat" permission="TAT_ANALYTICS_READ" title="Turnaround Time" description="Waiting and service monitoring" icon={Clock3} />
       </div>
 
       {/* Row 2 — pending actions */}
