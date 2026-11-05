@@ -44,6 +44,7 @@ public class ConsultationRecordController {
     private final IncompleteConsultationService incompleteConsultationService;
     private final EncounterFacade encounterFacade;
     private final AuthorizationService authorizationService;
+    private final com.adags.shared.authz.AuditRecorder historyAudit;
 
     public ConsultationRecordController(
             ConsultationRecordRepository consultationRecordRepository,
@@ -52,7 +53,8 @@ public class ConsultationRecordController {
             AddDiagnosisService addDiagnosisService,
             IncompleteConsultationService incompleteConsultationService,
             EncounterFacade encounterFacade,
-            AuthorizationService authorizationService
+            AuthorizationService authorizationService,
+            com.adags.shared.authz.AuditRecorder historyAudit
     ) {
         this.consultationRecordRepository = consultationRecordRepository;
         this.diagnosisRepository = diagnosisRepository;
@@ -61,6 +63,7 @@ public class ConsultationRecordController {
         this.incompleteConsultationService = incompleteConsultationService;
         this.encounterFacade = encounterFacade;
         this.authorizationService = authorizationService;
+        this.historyAudit = historyAudit;
     }
 
     // §10: "Autosave server-side every 20 seconds keyed to (encounter_id,
@@ -154,9 +157,10 @@ public class ConsultationRecordController {
     private void requirePermissionForEncounter(Actor actor, String permissionCode, UUID encounterId) {
         EncounterContext context = encounterFacade.findContext(encounterId)
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + encounterId));
-        if (!authorizationService.hasPermission(actor, permissionCode, ScopeRef.of(ScopeType.DEPARTMENT, context.departmentId()))) {
+        if (authorizationService.checkPatientAccess(actor, permissionCode, context.patientId(), ScopeRef.of(ScopeType.DEPARTMENT, context.departmentId())) != com.adags.shared.authz.PolicyResult.ALLOWED) {
             throw new AccessDeniedException("Missing permission: " + permissionCode);
         }
+        historyAudit.record(actor.userId(), "CLINICAL_HISTORY_READ", "encounter", encounterId, context.patientId());
     }
 
     public record AutosaveConsultationRecordRequest(

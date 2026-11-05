@@ -49,7 +49,9 @@ public class OpenEncounterService {
         this.clock = clock;
     }
 
-    public Encounter checkIn(OpenEncounterCommand command) {
+    public record CheckInResult(Encounter encounter, boolean existingEncounter) {}
+    public Encounter checkIn(OpenEncounterCommand command) { return checkInResult(command).encounter(); }
+    public CheckInResult checkInResult(OpenEncounterCommand command) {
         if (!patientFacade.exists(command.patientId())) {
             throw new NoSuchElementException("Patient not found: " + command.patientId());
         }
@@ -59,7 +61,7 @@ public class OpenEncounterService {
         // the real guard, not this read.
         Optional<Encounter> existing = encounterRepository.findOpenByPatientId(command.patientId());
         if (existing.isPresent()) {
-            return existing.get();
+            return new CheckInResult(existing.get(), true);
         }
 
         UUID facilityId = facilityIdFor(command.departmentId());
@@ -70,7 +72,7 @@ public class OpenEncounterService {
                 payerType, 0, null, command.actorUserId());
 
         try {
-            return openEncounterTransaction.run(toInsert, command.actorUserId());
+            return new CheckInResult(openEncounterTransaction.run(toInsert, command.actorUserId()), false);
         } catch (DuplicateKeyException raceLost) {
             // Two concurrent check-ins for the same patient both passed the
             // findOpenByPatientId check above; the partial unique index
@@ -80,7 +82,7 @@ public class OpenEncounterService {
             // one ... rather than erroring" — recover by returning what the
             // other transaction committed instead of surfacing an error to
             // a receptionist who just double-clicked.
-            return encounterRepository.findOpenByPatientId(command.patientId()).orElseThrow(() -> raceLost);
+            return new CheckInResult(encounterRepository.findOpenByPatientId(command.patientId()).orElseThrow(() -> raceLost), true);
         }
     }
 

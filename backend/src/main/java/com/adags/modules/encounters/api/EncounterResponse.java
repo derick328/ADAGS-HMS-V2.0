@@ -19,12 +19,14 @@ public record EncounterResponse(
         EncounterState state,
         PayerType payerType,
         int version,
-        Instant createdAt
+        Instant createdAt,
+        boolean existingEncounter
 ) {
-    public static EncounterResponse from(Encounter encounter) {
+    public static EncounterResponse from(Encounter encounter) { return from(encounter, false); }
+    public static EncounterResponse from(Encounter encounter, boolean existingEncounter) {
         return new EncounterResponse(
                 encounter.id(), encounter.patientId(), encounter.facilityId(), encounter.departmentId(),
                 encounter.appointmentId(), encounter.assignedProviderId(), encounter.type(), encounter.state(),
-                encounter.payerType(), encounter.version(), encounter.createdAt());
+                encounter.payerType(), encounter.version(), encounter.createdAt(), existingEncounter);
     }
 }

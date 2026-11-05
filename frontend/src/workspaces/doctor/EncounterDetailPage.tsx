@@ -1,3 +1,5 @@
+import { fetchLabResultsByOrder } from '../../shared/api/labResults';
+import type { PrescriptionHistoryResponse } from '../../shared/api/prescriptions';
 import { FeedbackState } from '../../shared/components/FeedbackState';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -735,23 +737,18 @@ function DiagnosisRow({ d }: { d: DiagnosisResponse }) {
   );
 }
 
-function PrescriptionBlock({ prescriptions }: { prescriptions: { itemName?: string; quantityPrescribed?: number; prescribedAt?: string; status?: string }[] }) {
+function PrescriptionBlock({ prescriptions }: { prescriptions: PrescriptionHistoryResponse[] }) {
   if (prescriptions.length === 0) {
     return <Empty>No medications prescribed.</Empty>;
   }
-  // Note: the by-encounter prescription history endpoint returns only
-  // item name / quantity / status / prescribedAt — dose/route/frequency/
-  // duration live on PrescriptionLineResponse and there's no by-encounter
-  // endpoint returning them. Displayed columns match what the API
-  // provides; nothing is fabricated.
   return (
     <div style={{ overflowX: 'auto' }}>
       <TableRegion label="Prescribed medications"><table className="table" style={{ width: '100%' }}>
-        <caption className="sr-only">Prescribed medications</caption>
+        <caption>Prescriptions and dispensing records do not establish that medication was taken or administered.</caption>
         <thead>
           <tr>
             <th>Medication</th>
-            <th>Quantity</th>
+            <th>Prescribed / dispensed</th><th>Dose · route · frequency · duration</th>
             <th>Prescribed</th>
             <th>Status</th>
           </tr>
@@ -760,7 +757,7 @@ function PrescriptionBlock({ prescriptions }: { prescriptions: { itemName?: stri
           {prescriptions.map((p, i) => (
             <tr key={i}>
               <td>{p.itemName ?? '—'}</td>
-              <td>{p.quantityPrescribed ?? '—'}</td>
+              <td>{p.quantityPrescribed ?? '—'} / {p.quantityDispensed ?? '—'} dispensed</td><td>{p.doseAmount ?? '—'} {p.doseUnit} · {p.route ?? '—'} · {p.frequency ?? '—'} · {p.durationDays == null ? '—' : `${p.durationDays} days`}</td>
               <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{formatDateTime(p.prescribedAt)}</td>
               <td>
                 <span className="badge badge-neutral">{(p.status ?? '').toLowerCase()}</span>
@@ -773,7 +770,7 @@ function PrescriptionBlock({ prescriptions }: { prescriptions: { itemName?: stri
   );
 }
 
-function LabBlock({ orders }: { orders: { labTestName?: string; urgency?: string; orderedAt?: string; status?: string }[] }) {
+function LabBlock({ orders }: { orders: { id?: string; labTestName?: string; urgency?: string; orderedAt?: string; status?: string }[] }) {
   if (orders.length === 0) {
     return <Empty>No laboratory tests requested.</Empty>;
   }
@@ -791,7 +788,7 @@ function LabBlock({ orders }: { orders: { labTestName?: string; urgency?: string
         </thead>
         <tbody>
           {orders.map((o, i) => (
-            <tr key={i}>
+            <Fragment key={o.id ?? i}><tr>
               <td>{o.labTestName ?? '—'}</td>
               <td>
                 <span className={`badge ${o.urgency === 'STAT' ? 'badge-critical' : o.urgency === 'URGENT' ? 'badge-warning' : 'badge-neutral'}`}>
@@ -802,7 +799,7 @@ function LabBlock({ orders }: { orders: { labTestName?: string; urgency?: string
               <td>
                 <span className="badge badge-neutral">{(o.status ?? '').toLowerCase()}</span>
               </td>
-            </tr>
+            </tr>{o.id && <tr><td colSpan={4}><HistoricalLabResults orderId={o.id} /></td></tr>}</Fragment>
           ))}
         </tbody>
       </table></TableRegion>
@@ -986,4 +983,25 @@ function EncounterStateBadge({ state }: { state?: string }) {
   };
   const cls = map[state ?? ''] ?? 'badge-neutral';
   return <span className={`badge ${cls}`}>{(state ?? '').replaceAll('_', ' ').toLowerCase()}</span>;
+}
+
+function HistoricalLabResults({ orderId }: { orderId: string }) {
+  const { accessToken } = useAuth();
+  const [open, setOpen] = useState(false);
+  const results = useQuery({ queryKey: ['lab-results', orderId], queryFn: () => fetchLabResultsByOrder(orderId, accessToken!), enabled: open && !!accessToken });
+  const released = results.data?.filter(r => r.releasedAt) ?? [];
+  const superseded = new Set(released.map(r => r.amendsId).filter(Boolean));
+  return <details open={open} onToggle={e => setOpen(e.currentTarget.open)}><summary>Released laboratory results</summary>
+    {results.isLoading && <p>Loading results…</p>}
+    {results.isError && <p role="alert">Results could not be loaded or access was denied.</p>}
+    {results.isSuccess && released.length === 0 && <p>No released results recorded.</p>}
+    {released.map(r => <article key={r.id}>
+      <p><strong>{superseded.has(r.id) ? 'Superseded result' : 'Released result'}</strong> · {formatDateTime(r.releasedAt)} · Verification: {r.verificationState}<br />
+        {r.amendsId && `Amends ${r.amendsId} · ${r.amendmentReason ?? ''}`}</p>
+      <p>{r.findings} {r.interpretation} {r.conclusion}</p>
+      <table className="table"><thead><tr><th>Parameter</th><th>Value</th><th>Reference range</th><th>Flag</th></tr></thead><tbody>
+        {r.parameterValues?.map(v => <tr key={v.parameterId}><td>{v.parameterName}</td><td>{v.resultValue} {v.unit}</td><td>{v.normalLow ?? '—'} – {v.normalHigh ?? '—'}</td><td>{v.flag}</td></tr>)}
+      </tbody></table>
+    </article>)}
+  </details>;
 }

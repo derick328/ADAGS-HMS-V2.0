@@ -67,6 +67,7 @@ public class LabResultController {
     private final PatientFacade patientFacade;
     private final IdentityFacade identityFacade;
     private final AuthorizationService authorizationService;
+    private final com.adags.shared.authz.AuditRecorder historyAudit;
 
     public LabResultController(
             RecordLabResultService recordLabResultService,
@@ -81,7 +82,8 @@ public class LabResultController {
             LabReferenceRangeRepository labReferenceRangeRepository,
             PatientFacade patientFacade,
             IdentityFacade identityFacade,
-            AuthorizationService authorizationService
+            AuthorizationService authorizationService,
+            com.adags.shared.authz.AuditRecorder historyAudit
     ) {
         this.recordLabResultService = recordLabResultService;
         this.amendLabResultService = amendLabResultService;
@@ -96,6 +98,7 @@ public class LabResultController {
         this.patientFacade = patientFacade;
         this.identityFacade = identityFacade;
         this.authorizationService = authorizationService;
+        this.historyAudit = historyAudit;
     }
 
     @PostMapping
@@ -155,6 +158,12 @@ public class LabResultController {
         LabOrder order = labOrderRepository.findById(result.labOrderId())
                 .orElseThrow(() -> new NoSuchElementException("Lab order not found: " + result.labOrderId()));
         requirePermission(actor, "LAB_RESULT_READ", order.facilityId());
+        if (authorizationService.hasPermission(actor, "CONSULTATION_CREATE") &&
+            authorizationService.checkPatientAccess(actor, "LAB_RESULT_READ", order.patientId(),
+                ScopeRef.of(ScopeType.FACILITY, order.facilityId())) != com.adags.shared.authz.PolicyResult.ALLOWED)
+            throw new AccessDeniedException("An active care relationship is required for clinical results.");
+        if (result.releasedAt() == null && authorizationService.hasPermission(actor, "CONSULTATION_CREATE"))
+            throw new AccessDeniedException("Result has not been released for clinical use.");
         return toDetailResponse(result, order);
     }
 
@@ -168,7 +177,13 @@ public class LabResultController {
         LabOrder order = labOrderRepository.findById(labOrderId)
                 .orElseThrow(() -> new NoSuchElementException("Lab order not found: " + labOrderId));
         requirePermission(actor, "LAB_RESULT_READ", order.facilityId());
+        if (authorizationService.hasPermission(actor, "CONSULTATION_CREATE") &&
+            authorizationService.checkPatientAccess(actor, "LAB_RESULT_READ", order.patientId(),
+                ScopeRef.of(ScopeType.FACILITY, order.facilityId())) != com.adags.shared.authz.PolicyResult.ALLOWED)
+            throw new AccessDeniedException("An active care relationship is required for clinical results.");
+        historyAudit.record(actor.userId(), "LAB_HISTORY_READ", "lab_order", labOrderId, order.patientId());
         return labResultRepository.findByLabOrderId(labOrderId).stream()
+                .filter(r -> r.releasedAt() != null)
                 .map(r -> toDetailResponse(r, order))
                 .toList();
     }
@@ -202,7 +217,15 @@ public class LabResultController {
         List<LabResult> results = accessionNo != null && !accessionNo.isBlank()
                 ? labResultRepository.findByAccessionNo(accessionNo)
                 : labResultRepository.findByPatientId(patientId);
-        return results.stream().map(r -> toDetailResponse(r, requireOrder(r))).toList();
+        return results.stream().filter(r -> r.releasedAt() != null).map(r -> {
+            LabOrder order = requireOrder(r);
+            requirePermission(actor, "LAB_RESULT_READ", order.facilityId());
+            if (authorizationService.hasPermission(actor, "CONSULTATION_CREATE") &&
+                authorizationService.checkPatientAccess(actor, "LAB_RESULT_READ", order.patientId(),
+                    ScopeRef.of(ScopeType.FACILITY, order.facilityId())) != com.adags.shared.authz.PolicyResult.ALLOWED)
+                throw new AccessDeniedException("An active care relationship is required for clinical results.");
+            return toDetailResponse(r, order);
+        }).toList();
     }
 
     private LabOrder requireOrder(LabResult result) {

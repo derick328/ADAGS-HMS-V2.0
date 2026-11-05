@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -31,7 +32,7 @@ class TatJourneyTest extends IntegrationTestSupport {
                 INSERT INTO tat_workflow_event (encounter_id, workflow_type, workflow_reference_id, event_type, occurred_at, recorded_by)
                 VALUES (:encounter, 'TRIAGE', :encounter, 'STARTED', :started, :actor)
                 """, new MapSqlParameterSource().addValue("encounter", encounter)
-                .addValue("started", origin.plusSeconds(12 * 60)).addValue("actor", actor));
+                .addValue("started", Timestamp.from(origin.plusSeconds(12 * 60))).addValue("actor", actor));
         jdbc.update("""
                 INSERT INTO triage_assessment (encounter_id, chief_complaint, current_symptoms, allergies,
                   comorbidities, mode_of_ambulation, has_pain, fall_risk, infection_risk, priority,
@@ -39,7 +40,7 @@ class TatJourneyTest extends IntegrationTestSupport {
                 VALUES (:encounter, 'Fever', 'Fever', 'None', 'None', 'WALKING', false, false, false,
                   'NON_URGENT', :actor, :completed)
                 """, new MapSqlParameterSource().addValue("encounter", encounter).addValue("actor", actor)
-                .addValue("completed", origin.plusSeconds(20 * 60)));
+                .addValue("completed", Timestamp.from(origin.plusSeconds(20 * 60))));
         event(encounter, "AWAITING_TRIAGE", "AWAITING_CONSULT", origin.plusSeconds(20 * 60), actor);
         event(encounter, "AWAITING_CONSULT", "IN_CONSULT", origin.plusSeconds(35 * 60), actor);
         event(encounter, "IN_CONSULT", "AWAITING_RESULTS", origin.plusSeconds(45 * 60), actor);
@@ -94,6 +95,6 @@ class TatJourneyTest extends IntegrationTestSupport {
                 INSERT INTO encounter_event (encounter_id, from_state, to_state, occurred_at, actor_user_id)
                 VALUES (:encounter, :from, :to, :when, :actor)
                 """, new MapSqlParameterSource().addValue("encounter", encounter).addValue("from", from)
-                .addValue("to", to).addValue("when", when).addValue("actor", actor));
+                .addValue("to", to).addValue("when", Timestamp.from(when)).addValue("actor", actor));
     }
 }

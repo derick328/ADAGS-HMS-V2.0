@@ -717,11 +717,11 @@ function PreviousEncountersPanel({
   }
 
   const prior = [...(encounters ?? [])]
-    .filter((e) => e.id !== currentEncounterId)
+    .filter((e) => e.id !== currentEncounterId && e.state !== 'CANCELLED_IN_ERROR' && (!encounters?.find(c => c.id === currentEncounterId)?.createdAt || (e.createdAt ?? '') <= encounters!.find(c => c.id === currentEncounterId)!.createdAt!))
     .sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
 
   return (
-    <div
+    <details
       style={{
         background: 'var(--bg-surface)',
         border: '1px solid var(--border)',
@@ -729,9 +729,9 @@ function PreviousEncountersPanel({
         padding: 'var(--space-3)',
       }}
     >
-      <h2 style={{ fontSize: 'var(--text-sm)', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 0 }}>
-        Previous visits
-      </h2>
+      <summary style={{ fontSize: 'var(--text-sm)', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 0 }}>
+        Previous clinical history · {prior.length} earlier encounters
+      </summary>
       {isLoading ? (
         <FeedbackState loading>Loading…</FeedbackState>
       ) : prior.length === 0 ? (
@@ -755,7 +755,7 @@ function PreviousEncountersPanel({
           ))}
         </ul>
       )}
-    </div>
+    </details>
   );
 }
 

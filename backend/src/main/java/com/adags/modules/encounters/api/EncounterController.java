@@ -110,8 +110,8 @@ public class EncounterController {
         requirePermission(actor, "ENCOUNTER_OPEN", ScopeType.DEPARTMENT, request.departmentId());
         OpenEncounterCommand command = new OpenEncounterCommand(
                 request.patientId(), request.departmentId(), request.appointmentId(), actor.userId());
-        Encounter encounter = openEncounterService.checkIn(command);
-        return EncounterResponse.from(encounter);
+        var result = openEncounterService.checkInResult(command);
+        return EncounterResponse.from(result.encounter(), result.existingEncounter());
     }
 
     // 02-billing-architecture.md §11 ⚠: "default to the open encounter when

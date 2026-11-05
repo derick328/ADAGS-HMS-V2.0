@@ -92,7 +92,7 @@ export function TatPage() {
       <div className="kpi-row kpi-row--four">
         <KpiCard label="Average visit" value={formatTatDuration(overview.data?.averageVisitSeconds)} basis="Completed outpatient encounters; arrival to documented exit" />
         <KpiCard label="Average recorded wait" value={formatTatDuration(overview.data?.averageRecordedWaitingSeconds)} basis="Union of measured waiting intervals per outpatient encounter; overlaps counted once" />
-        <KpiCard label="Completed encounters" value={overview.data?.completedEncounters ?? '—'} basis="Documented terminal encounter transitions in selected arrival period" />
+        <KpiCard label="Confirmed departures" value={overview.data?.completedEncounters ?? '—'} basis="Recorded physical departures in the selected arrival period; missing departure times are excluded" />
         <KpiCard label="Currently waiting" value={overview.data?.currentlyWaiting ?? '—'} basis="Unique active encounters eligible for a service now; first 50 listed below" />
       </div>
       <p className="analytics-basis">Previous equal-length period ({previousRange.from}–{previousRange.to}): average visit {formatTatDuration(previousOverview.data?.averageVisitSeconds)}; average recorded wait {formatTatDuration(previousOverview.data?.averageRecordedWaitingSeconds)}. The same measurement basis applies to both periods.</p>

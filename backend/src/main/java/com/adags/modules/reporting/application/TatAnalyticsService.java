@@ -34,10 +34,9 @@ public class TatAnalyticsService {
         var values = jdbc.queryForMap("""
                 WITH visits AS (
                   SELECT e.id, e.created_at, e.state, a.id AS admission_id,
-                    (SELECT max(ev.occurred_at) FROM encounter_event ev WHERE ev.encounter_id = e.id
-                       AND ev.to_state IN ('CLOSED','DISCHARGED','REFERRED_OUT','DECEASED','LEFT_WITHOUT_BEING_SEEN','ABANDONED_UNPAID','CANCELLED_IN_ERROR')) AS ended_at
+                    (SELECT pp.departed_at FROM patient_facility_presence pp WHERE pp.encounter_id=e.id) AS ended_at
                   FROM encounter e LEFT JOIN admission a ON a.encounter_id = e.id
-                  WHERE e.facility_id = :facility AND e.created_at >= :from AND e.created_at < :to
+                  WHERE e.state <> 'CANCELLED_IN_ERROR' AND e.facility_id = :facility AND e.created_at >= :from AND e.created_at < :to
                 ), stages AS (
                   SELECT s.* FROM tat_stage_instance s JOIN visits v ON v.id = s.encounter_id
                 ), per_visit AS (
@@ -87,7 +86,7 @@ public class TatAnalyticsService {
                   avg(extract(epoch FROM s.completed_at - s.start_at)) FILTER (WHERE s.completed_at >= s.start_at) AS avg_service,
                   avg(extract(epoch FROM s.completed_at - s.ready_at)) FILTER (WHERE s.completed_at >= s.ready_at) AS avg_tat
                 FROM tat_stage_instance s JOIN encounter e ON e.id = s.encounter_id
-                WHERE e.facility_id = :facility AND e.created_at >= :from AND e.created_at < :to
+                WHERE e.state <> 'CANCELLED_IN_ERROR' AND e.facility_id = :facility AND e.created_at >= :from AND e.created_at < :to
                   AND (:workflow IS NULL OR s.workflow_type = :workflow)
                 GROUP BY s.workflow_type ORDER BY s.workflow_type
                 """, p, (rs, n) -> new TatDepartment(rs.getString("workflow_type"), rs.getLong("completed_services"),
@@ -106,7 +105,7 @@ public class TatAnalyticsService {
                   count(*) AS sample_count
                 FROM tat_stage_instance s JOIN encounter e ON e.id = s.encounter_id
                 JOIN facility f ON f.id = e.facility_id
-                WHERE e.facility_id = :facility AND e.created_at >= :from AND e.created_at < :to
+                WHERE e.state <> 'CANCELLED_IN_ERROR' AND e.facility_id = :facility AND e.created_at >= :from AND e.created_at < :to
                   AND s.start_at >= s.ready_at AND (:workflow IS NULL OR s.workflow_type = :workflow)
                 GROUP BY day, s.workflow_type ORDER BY day, s.workflow_type LIMIT 400
                 """, p, (rs, n) -> new TatTrend(rs.getDate("day").toLocalDate(), rs.getString("workflow_type"),
@@ -140,7 +139,7 @@ public class TatAnalyticsService {
                 SELECT s.*, p.hospital_no, trim(p.given_name || ' ' || p.family_name) AS patient_name
                 FROM tat_stage_instance s JOIN encounter e ON e.id = s.encounter_id
                 JOIN patient p ON p.id = e.patient_id
-                WHERE e.facility_id = :facility AND e.created_at >= :from AND e.created_at < :to
+                WHERE e.state <> 'CANCELLED_IN_ERROR' AND e.facility_id = :facility AND e.created_at >= :from AND e.created_at < :to
                   AND (:workflow IS NULL OR s.workflow_type = :workflow)
                   AND (:status IS NULL OR s.status = :status)
                 ORDER BY s.source_at DESC, s.reference_id LIMIT 50 OFFSET :offset
@@ -151,9 +150,8 @@ public class TatAnalyticsService {
     public List<TatVisit> patientVisits(UUID facilityId, UUID patientId) {
         return jdbc.query("""
                 SELECT e.id, e.created_at, e.state, e.type,
-                  (SELECT max(ev.occurred_at) FROM encounter_event ev WHERE ev.encounter_id = e.id
-                    AND ev.to_state IN ('CLOSED','DISCHARGED','REFERRED_OUT','DECEASED','LEFT_WITHOUT_BEING_SEEN','ABANDONED_UNPAID','CANCELLED_IN_ERROR')) AS ended_at
-                FROM encounter e WHERE e.facility_id = :facility AND e.patient_id = :patient
+                  (SELECT pp.departed_at FROM patient_facility_presence pp WHERE pp.encounter_id=e.id) AS ended_at
+                FROM encounter e WHERE e.facility_id = :facility AND e.patient_id IN (SELECT alias_id FROM patient_canonical_identity WHERE patient_id=(SELECT patient_id FROM patient_canonical_identity WHERE alias_id=:patient))
                 ORDER BY e.created_at DESC LIMIT 50
                 """, new MapSqlParameterSource().addValue("facility", facilityId).addValue("patient", patientId),
                 (rs, n) -> visit(rs));
@@ -163,8 +161,7 @@ public class TatAnalyticsService {
         var p = new MapSqlParameterSource().addValue("facility", facilityId).addValue("encounter", encounterId);
         var visits = jdbc.query("""
                 SELECT e.id, e.created_at, e.state, e.type,
-                  (SELECT max(ev.occurred_at) FROM encounter_event ev WHERE ev.encounter_id = e.id
-                    AND ev.to_state IN ('CLOSED','DISCHARGED','REFERRED_OUT','DECEASED','LEFT_WITHOUT_BEING_SEEN','ABANDONED_UNPAID','CANCELLED_IN_ERROR')) AS ended_at
+                  (SELECT pp.departed_at FROM patient_facility_presence pp WHERE pp.encounter_id=e.id) AS ended_at
                 FROM encounter e WHERE e.facility_id = :facility AND e.id = :encounter
                 """, p, (rs, n) -> visit(rs));
         if (visits.isEmpty()) throw new NoSuchElementException("Encounter not found: " + encounterId);
@@ -186,8 +183,8 @@ public class TatAnalyticsService {
             throw new IllegalArgumentException("Choose a valid date range of at most 366 days.");
         var zone = ZoneId.of(facilityTimezone(facilityId));
         return new MapSqlParameterSource().addValue("facility", facilityId)
-                .addValue("from", from.atStartOfDay(zone).toInstant())
-                .addValue("to", to.plusDays(1).atStartOfDay(zone).toInstant());
+                .addValue("from", Timestamp.from(from.atStartOfDay(zone).toInstant()))
+                .addValue("to", Timestamp.from(to.plusDays(1).atStartOfDay(zone).toInstant()));
     }
 
     private TatVisit visit(ResultSet rs) throws SQLException {

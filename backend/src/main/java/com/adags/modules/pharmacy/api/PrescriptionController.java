@@ -55,6 +55,7 @@ public class PrescriptionController {
     private final InpatientFacade inpatientFacade;
     private final PatientFacade patientFacade;
     private final AuthorizationService authorizationService;
+    private final com.adags.shared.authz.AuditRecorder historyAudit;
 
     public PrescriptionController(
             PlacePrescriptionService placePrescriptionService,
@@ -65,7 +66,8 @@ public class PrescriptionController {
             EncounterFacade encounterFacade,
             InpatientFacade inpatientFacade,
             PatientFacade patientFacade,
-            AuthorizationService authorizationService
+            AuthorizationService authorizationService,
+            com.adags.shared.authz.AuditRecorder historyAudit
     ) {
         this.placePrescriptionService = placePrescriptionService;
         this.prescriptionOrderRepository = prescriptionOrderRepository;
@@ -76,6 +78,7 @@ public class PrescriptionController {
         this.inpatientFacade = inpatientFacade;
         this.patientFacade = patientFacade;
         this.authorizationService = authorizationService;
+        this.historyAudit = historyAudit;
     }
 
     @PostMapping
@@ -171,6 +174,11 @@ public class PrescriptionController {
                 actor, "PRESCRIPTION_READ", ScopeRef.of(ScopeType.FACILITY, encounterContext.facilityId()))) {
             throw new AccessDeniedException("Missing permission: PRESCRIPTION_READ");
         }
+        if (authorizationService.hasPermission(actor, "CONSULTATION_CREATE") &&
+                authorizationService.checkPatientAccess(actor, "PRESCRIPTION_READ", encounterContext.patientId(),
+                    ScopeRef.of(ScopeType.FACILITY, encounterContext.facilityId())) != com.adags.shared.authz.PolicyResult.ALLOWED)
+            throw new AccessDeniedException("An active care relationship is required for clinical history.");
+        historyAudit.record(actor.userId(), "PRESCRIPTION_HISTORY_READ", "encounter", encounterId, encounterContext.patientId());
         return prescriptionOrderRepository.findByEncounterId(encounterId).stream()
                 .flatMap(order -> toHistoryResponses(order).stream())
                 .toList();
@@ -194,7 +202,7 @@ public class PrescriptionController {
                     }
                     return new PrescriptionHistoryResponse(line.id(), order.id(), order.encounterId(), order.patientId(),
                             item == null ? null : item.code(), item == null ? "Unknown item" : item.name(),
-                            line.quantityPrescribed(), order.prescribedBy(), order.prescribedAt(), status);
+                            line.quantityPrescribed(), order.prescribedBy(), order.prescribedAt(), status, line.doseAmount(), line.doseUnit(), line.route(), line.frequency(), line.durationDays(), line.quantityDispensed());
                 })
                 .toList();
     }
@@ -202,7 +210,7 @@ public class PrescriptionController {
     public record PrescriptionHistoryResponse(
             UUID prescriptionLineId, UUID prescriptionOrderId, UUID encounterId, UUID patientId,
             String itemCode, String itemName, int quantityPrescribed,
-            UUID prescribedBy, java.time.Instant prescribedAt, String status
+            UUID prescribedBy, java.time.Instant prescribedAt, String status, Double doseAmount, String doseUnit, String route, com.adags.modules.pharmacy.domain.PrescriptionFrequency frequency, Integer durationDays, int quantityDispensed
     ) {
     }
 }

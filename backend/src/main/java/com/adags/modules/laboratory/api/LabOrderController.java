@@ -180,6 +180,10 @@ public class LabOrderController {
                 actor, "LAB_RESULT_READ", ScopeRef.of(ScopeType.FACILITY, encounterContext.facilityId()))) {
             throw new AccessDeniedException("Missing permission: LAB_RESULT_READ");
         }
+        if (authorizationService.hasPermission(actor, "CONSULTATION_CREATE") &&
+            authorizationService.checkPatientAccess(actor, "LAB_RESULT_READ", encounterContext.patientId(),
+                ScopeRef.of(ScopeType.FACILITY, encounterContext.facilityId())) != com.adags.shared.authz.PolicyResult.ALLOWED)
+            throw new AccessDeniedException("An active care relationship is required for laboratory history.");
         return labOrderRepository.findByEncounterId(encounterId).stream()
                 .map(this::toHistoryResponse)
                 .toList();

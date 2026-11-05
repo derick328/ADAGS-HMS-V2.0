@@ -1,3 +1,6 @@
+import { PatientPresencePanel } from '../../shared/components/PatientPresencePanel';
+import { fetchPresence, fetchVisitSummaries } from '../../shared/api/presence';
+import { useAdminFacilityId } from '../../shared/auth/useFacilityScope';
 import { FormSection } from '../../shared/components/FormSection';
 import { Checkbox } from '../../shared/components/Checkbox';
 import { Radio } from '../../shared/components/Radio';
@@ -12,12 +15,10 @@ import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { fetchDepartments } from '../../shared/api/departments';
-import { openEncounter, searchEncounters, type EncounterResponse } from '../../shared/api/encounters';
+import { openEncounter } from '../../shared/api/encounters';
 import { fetchInsuranceSchemes } from '../../shared/api/insuranceSchemes';
 import {
   DuplicatePatientError,
-  fetchPatientById,
-  fetchVisitHistory,
   registerPatient,
   searchPatients,
   type DuplicateCandidate,
@@ -58,7 +59,7 @@ export function PatientIntakePage() {
     <div>
       <PageHeader title={<>Patient intake</>} description={<>Find or register a patient, then prepare their visit.</>} />
 
-      <HereNowPanel />
+      <PatientPresencePanel />
 
       <section style={{ marginTop: 'var(--space-6)' }}>
         <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)' }}>Find a patient</h2>
@@ -117,92 +118,6 @@ export function PatientIntakePage() {
   );
 }
 
-function HereNowPanel() {
-  const { accessToken } = useAuth();
-  const canOpenEncounter = usePermission('ENCOUNTER_OPEN');
-
-  const { data: encounters, isLoading } = useQuery({
-    queryKey: ['here-now'],
-    queryFn: () => searchEncounters({ excludeTerminal: true }, accessToken as string),
-    enabled: accessToken != null && canOpenEncounter,
-    refetchInterval: 30_000,
-  });
-
-  if (!canOpenEncounter) {
-    return null;
-  }
-
-  const grouped = new Map<string, EncounterResponse[]>();
-  for (const e of encounters ?? []) {
-    const state = e.state ?? 'UNKNOWN';
-    grouped.set(state, [...(grouped.get(state) ?? []), e]);
-  }
-
-  return (
-    <section
-      style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
-      }}
-    >
-      <h2
-        style={{
-          fontSize: 'var(--text-lg)',
-          fontWeight: 'var(--weight-medium)',
-          margin: 0,
-          padding: 'var(--space-4) var(--space-4) 0',
-        }}
-      >
-        Here now
-      </h2>
-      {isLoading ? (
-        <FeedbackState loading>Loading…</FeedbackState>
-      ) : !encounters || encounters.length === 0 ? (
-        <FeedbackState>No patients in the building.</FeedbackState>
-      ) : (
-        <TableRegion label="Encounters currently open"><table className="table">
-          <caption className="sr-only">Encounters currently open</caption>
-          <thead>
-            <tr>
-              <th>Patient</th>
-              <th>State</th>
-              <th>Since</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...grouped.entries()].flatMap(([state, rows]) =>
-              rows.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <PatientNameCell patientId={row.patientId} />
-                  </td>
-                  <td>
-                    <span className="badge badge-info">{state.replaceAll('_', ' ').toLowerCase()}</span>
-                  </td>
-                  <td style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>{formatDate(row.createdAt)}</td>
-                </tr>
-              )),
-            )}
-          </tbody>
-        </table></TableRegion>
-      )}
-    </section>
-  );
-}
-
-function PatientNameCell({ patientId }: { patientId: string | undefined }) {
-  const { accessToken } = useAuth();
-  const { data: patient } = useQuery({
-    queryKey: ['patient', patientId],
-    queryFn: () => fetchPatientById(patientId as string, accessToken as string),
-    enabled: accessToken != null && patientId != null,
-    staleTime: 60_000,
-  });
-  return <span style={{ fontWeight: 'var(--weight-medium)' }}>{patient?.fullName ?? '…'}</span>;
-}
-
 // Shared between the search-results row action and the post-registration
 // success panel — same "open an encounter for this patient" action, same
 // auto-pick-the-sole-department / else-show-a-picker behaviour either way.
@@ -224,7 +139,8 @@ function SendToTriageControl({ patientId, onSent }: { patientId: string; onSent?
     onSuccess: () => {
       setPicking(false);
       queryClient.invalidateQueries({ queryKey: ['here-now'] });
-      onSent?.();
+      queryClient.invalidateQueries({ queryKey: ['visit-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['visit-summaries'] });
     },
   });
 
@@ -242,6 +158,11 @@ function SendToTriageControl({ patientId, onSent }: { patientId: string; onSent?
       setPicking(true);
     }
   }
+
+  if (sendToTriage.isSuccess) return <div role="status">
+    <p>{sendToTriage.data.existingEncounter ? 'Existing open encounter returned. No new visit was created.' : 'New encounter opened and sent to triage.'}</p>
+    {onSent && <button className="btn btn-secondary" onClick={onSent}>Done</button>}
+  </div>;
 
   if (picking) {
     return (
@@ -271,6 +192,12 @@ function SendToTriageControl({ patientId, onSent }: { patientId: string; onSent?
 }
 
 function SearchResultsTable({ results }: { results: PatientSearchResult[] }) {
+  const { accessToken } = useAuth();
+  const facilityId = useAdminFacilityId();
+  const ids = results.map(p => p.id!).filter(Boolean).slice(0, 100);
+  const summaries = useQuery({ queryKey: ['visit-summaries', facilityId, ids],
+    queryFn: () => fetchVisitSummaries(facilityId!, ids, accessToken!), enabled: !!facilityId && !!accessToken && ids.length > 0 });
+
   const canOpenEncounter = usePermission('ENCOUNTER_OPEN');
   // The patient whose "start a new encounter" prompt is open. A registered
   // patient found in search doesn't get sent to triage on a single click —
@@ -298,6 +225,7 @@ function SearchResultsTable({ results }: { results: PatientSearchResult[] }) {
               <td>{patient.hospitalNo ?? '—'}</td>
               <td style={{ fontWeight: 'var(--weight-medium)' }}>
                 {patient.fullName ?? '—'}
+                {summaries.data?.find(s => s.patientId === patient.id) && <span className="badge badge-neutral">{summaries.data.find(s => s.patientId === patient.id)!.totalVisits === 0 ? 'First visit' : `Returning patient · ${summaries.data.find(s => s.patientId === patient.id)!.totalVisits} recorded visits`}</span>}
                 {patient.dobIsEstimated && (
                   <span className="badge badge-neutral" style={{ marginLeft: 'var(--space-2)' }}>
                     est. DOB
@@ -333,11 +261,16 @@ function StartEncounterModal({ patient, onClose }: { patient: PatientSearchResul
   const { accessToken } = useAuth();
   const canReadVisitHistory = usePermission('PATIENT_READ_VISIT_HISTORY');
   const patientId = patient?.id;
+  const facilityId = useAdminFacilityId();
+  const summary = useQuery({ queryKey: ['visit-summary', facilityId, patientId],
+    queryFn: () => fetchVisitSummaries(facilityId!, [patientId!], accessToken!), enabled: !!facilityId && !!patientId && !!accessToken && canReadVisitHistory });
+  const stats = summary.data?.[0];
+
 
   const { data: history, isLoading } = useQuery({
     queryKey: ['patient', patientId, 'visit-history'],
-    queryFn: () => fetchVisitHistory(patientId as string, accessToken as string),
-    enabled: accessToken != null && patientId != null && canReadVisitHistory,
+    queryFn: () => fetchPresence(facilityId!, accessToken as string, patientId),
+    enabled: accessToken != null && patientId != null && canReadVisitHistory && !!facilityId,
   });
 
   return (
@@ -363,6 +296,9 @@ function StartEncounterModal({ patient, onClose }: { patient: PatientSearchResul
         </>
       }
     >
+      {stats && <p>{stats.totalVisits === 0 ? 'First visit' : 'Returning patient'} · Recorded visits: {stats.totalVisits}<br />
+        {stats.activeEncounter ? 'An open encounter already exists. Send to triage will return that encounter.' : `Next attendance: visit ${(stats.totalVisits ?? 0) + 1}`}<br />
+        Last visit: {formatDate(stats.latestVisit)}</p>}
       <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', margin: '0 0 var(--space-2)', color: 'var(--text-secondary)' }}>
         Previous visits
       </h3>
@@ -379,10 +315,10 @@ function StartEncounterModal({ patient, onClose }: { patient: PatientSearchResul
               key={h.encounterId}
               style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', fontSize: 'var(--text-sm)' }}
             >
-              <span style={{ fontWeight: 'var(--weight-medium)' }}>{formatWeekdayDate(h.encounterDate)}</span>
+              <span style={{ fontWeight: 'var(--weight-medium)' }}>{formatWeekdayDate(h.arrivedAt)}</span>
               <span style={{ color: 'var(--text-secondary)', textAlign: 'right' }}>
-                {h.departmentName ?? '—'}
-                {h.encounterState ? ` · ${h.encounterState.replaceAll('_', ' ').toLowerCase()}` : ''}
+                {h.stage ?? '—'}
+                {h.state ? ` · ${h.state.replaceAll('_', ' ').toLowerCase()}` : ''}
               </span>
             </li>
           ))}

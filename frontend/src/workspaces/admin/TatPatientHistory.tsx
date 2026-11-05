@@ -35,7 +35,7 @@ export function TatPatientHistory({ patientId, accessToken }: { patientId: strin
         <strong>Total visit:</strong> {formatTatDuration(journey.data.visit.visitSeconds)} ·
         <strong> Total recorded waiting:</strong> {formatTatDuration(journey.data.totalRecordedWaitingSeconds)} ·
         arrived {formatTatTimestamp(journey.data.visit.arrivedAt, timezone)} ·
-        {journey.data.visit.endedAt ? ` completed ${formatTatTimestamp(journey.data.visit.endedAt, timezone)}` : ' active visit'}
+        {journey.data.visit.endedAt ? ` departed ${formatTatTimestamp(journey.data.visit.endedAt, timezone)}` : ' departure not recorded'}
         {journey.data.visit.timestampAnomaly && <span className="badge badge-warning">Timestamp anomaly</span>}
       </p>}
       {['TRIAGE', 'DOCTOR', 'LABORATORY', 'PHARMACY'].map((workflow) => {

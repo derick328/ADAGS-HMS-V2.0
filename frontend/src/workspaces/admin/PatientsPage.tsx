@@ -1,3 +1,4 @@
+import { PatientPresencePanel } from '../../shared/components/PatientPresencePanel';
 import { Checkbox } from '../../shared/components/Checkbox';
 import { FeedbackState } from '../../shared/components/FeedbackState';
 import { PageHeader } from '../../shared/components/PageHeader';
@@ -439,6 +440,7 @@ function PatientDetailCard({
           outstandingOnly={outstandingOnly}
         />
       )}
+      {patient.id && <PatientPresencePanel patientId={patient.id} />}
       {patient.id && accessToken && <TatPatientHistory patientId={patient.id} accessToken={accessToken} />}
     </div>
   );

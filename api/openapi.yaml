@@ -6,93 +6,6 @@ servers:
 - url: http://localhost
   description: Generated server url
 paths:
-  /api/admin/tat/timezone:
-    get:
-      operationId: tatTimezone
-      parameters:
-      - { name: facilityId, in: query, required: true, schema: { type: string, format: uuid } }
-      responses:
-        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TatTimezone' } } } }
-  /api/admin/tat/overview:
-    get:
-      operationId: tatOverview
-      parameters:
-      - { name: facilityId, in: query, required: true, schema: { type: string, format: uuid } }
-      - { name: from, in: query, required: true, schema: { type: string, format: date } }
-      - { name: to, in: query, required: true, schema: { type: string, format: date } }
-      responses:
-        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TatOverview' } } } }
-  /api/admin/tat/departments:
-    get:
-      operationId: tatDepartments
-      parameters:
-      - { name: facilityId, in: query, required: true, schema: { type: string, format: uuid } }
-      - { name: from, in: query, required: true, schema: { type: string, format: date } }
-      - { name: to, in: query, required: true, schema: { type: string, format: date } }
-      - { name: workflowType, in: query, schema: { type: string } }
-      responses:
-        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TatDepartment' } } } } }
-  /api/admin/tat/trend:
-    get:
-      operationId: tatTrend
-      parameters:
-      - { name: facilityId, in: query, required: true, schema: { type: string, format: uuid } }
-      - { name: from, in: query, required: true, schema: { type: string, format: date } }
-      - { name: to, in: query, required: true, schema: { type: string, format: date } }
-      - { name: workflowType, in: query, schema: { type: string } }
-      responses:
-        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TatTrend' } } } } }
-  /api/admin/tat/currently-waiting:
-    get:
-      operationId: tatCurrentlyWaiting
-      parameters:
-      - { name: facilityId, in: query, required: true, schema: { type: string, format: uuid } }
-      - { name: workflowType, in: query, schema: { type: string } }
-      - { name: limit, in: query, schema: { type: integer } }
-      responses:
-        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TatWaiting' } } } } }
-  /api/admin/tat/activity:
-    get:
-      operationId: tatActivity
-      parameters:
-      - { name: facilityId, in: query, required: true, schema: { type: string, format: uuid } }
-      - { name: from, in: query, required: true, schema: { type: string, format: date } }
-      - { name: to, in: query, required: true, schema: { type: string, format: date } }
-      - { name: workflowType, in: query, schema: { type: string } }
-      - { name: status, in: query, schema: { type: string } }
-      - { name: page, in: query, schema: { type: integer } }
-      responses:
-        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TatActivity' } } } } }
-  /api/admin/tat/patients/{patientId}/encounters:
-    get:
-      operationId: tatPatientVisits
-      parameters:
-      - { name: patientId, in: path, required: true, schema: { type: string, format: uuid } }
-      - { name: facilityId, in: query, required: true, schema: { type: string, format: uuid } }
-      responses:
-        "200": { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TatVisit' } } } } }
-  /api/admin/tat/encounters/{encounterId}:
-    get:
-      operationId: tatEncounterJourney
-      parameters:
-      - { name: encounterId, in: path, required: true, schema: { type: string, format: uuid } }
-      - { name: facilityId, in: query, required: true, schema: { type: string, format: uuid } }
-      responses:
-        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TatJourney' } } } }
-  /api/encounters/{id}/triage-start:
-    post:
-      operationId: tatTriageStart
-      parameters:
-      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
-      responses:
-        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TatStartResponse' } } } }
-  /api/prescription-lines/{id}/processing-start:
-    post:
-      operationId: tatPharmacyStart
-      parameters:
-      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
-      responses:
-        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TatStartResponse' } } } }
   /api/encounters/{encounterId}/triage-draft:
     get:
       tags:
@@ -1148,6 +1061,25 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SubstitutionProposalResponse"
+  /api/prescription-lines/{id}/processing-start:
+    post:
+      tags:
+      - tat-workflow-controller
+      operationId: startPharmacy
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StartResponse"
   /api/prescription-lines/{id}/mark-unavailable:
     post:
       tags:
@@ -2100,6 +2032,25 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/EncounterResponse"
+  /api/encounters/{id}/triage-start:
+    post:
+      tags:
+      - tat-workflow-controller
+      operationId: startTriage
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/StartResponse"
   /api/encounters/{id}/resume:
     post:
       tags:
@@ -5107,6 +5058,267 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/WardPatientRowResponse"
+  /api/admin/tat/trend:
+    get:
+      tags:
+      - tat-analytics-controller
+      operationId: trend
+      parameters:
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: workflowType
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TatTrend"
+  /api/admin/tat/timezone:
+    get:
+      tags:
+      - tat-analytics-controller
+      operationId: timezone
+      parameters:
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TatTimezone"
+  /api/admin/tat/patients/{patientId}/encounters:
+    get:
+      tags:
+      - tat-analytics-controller
+      operationId: patientVisits
+      parameters:
+      - name: patientId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TatVisit"
+  /api/admin/tat/overview:
+    get:
+      tags:
+      - tat-analytics-controller
+      operationId: overview
+      parameters:
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TatOverview"
+  /api/admin/tat/encounters/{encounterId}:
+    get:
+      tags:
+      - tat-analytics-controller
+      operationId: encounter
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TatJourney"
+  /api/admin/tat/departments:
+    get:
+      tags:
+      - tat-analytics-controller
+      operationId: departments
+      parameters:
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: workflowType
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TatDepartment"
+  /api/admin/tat/currently-waiting:
+    get:
+      tags:
+      - tat-analytics-controller
+      operationId: currentlyWaiting
+      parameters:
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: workflowType
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TatWaiting"
+  /api/admin/tat/activity:
+    get:
+      tags:
+      - tat-analytics-controller
+      operationId: activity
+      parameters:
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: workflowType
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TatActivity"
   /api/admin/catalog/items:
     get:
       tags:
@@ -5207,6 +5419,110 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/CatalogImportBatchResponse"
+  /api/patient-presence:
+    get:
+      tags:
+      - patient-presence-controller
+      operationId: listPresence
+      parameters:
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: patientId
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: departed
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Presence'
+  /api/patient-presence/summaries:
+    get:
+      tags:
+      - patient-presence-controller
+      operationId: presenceSummaries
+      parameters:
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: patientIds
+        in: query
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VisitSummary'
+  /api/encounters/{id}/departure:
+    post:
+      tags:
+      - outpatient-departure-controller
+      operationId: confirmDeparture
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartureRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartureResponse'
+  /api/encounters/{id}/departure/corrections:
+    post:
+      tags:
+      - outpatient-departure-controller
+      operationId: correctDeparture
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartureCorrectionRequest'
+      responses:
+        '200':
+          description: OK
 components:
   schemas:
     TriageAssessmentDraftRequest:
@@ -6537,6 +6853,12 @@ components:
           format: uuid
         reason:
           type: string
+    StartResponse:
+      type: object
+      properties:
+        startedAt:
+          type: string
+          format: date-time
     MarkUnavailableRequest:
       required:
       - reason
@@ -7893,6 +8215,9 @@ components:
         createdAt:
           type: string
           format: date-time
+        existingEncounter:
+          type: boolean
+
     OpenConsultationResponse:
       type: object
       properties:
@@ -9985,6 +10310,29 @@ components:
           format: date-time
         status:
           type: string
+        doseAmount:
+          type: number
+          format: double
+        doseUnit:
+          type: string
+        route:
+          type: string
+        frequency:
+          type: string
+          enum:
+          - STAT
+          - OD
+          - BD
+          - TDS
+          - QDS
+          - PRN
+        durationDays:
+          type: integer
+          format: int32
+        quantityDispensed:
+          type: integer
+          format: int32
+
     AllergyResponse:
       type: object
       properties:
@@ -11139,6 +11487,192 @@ components:
           type: boolean
         escalated:
           type: boolean
+    TatTrend:
+      type: object
+      properties:
+        day:
+          type: string
+          format: date
+        workflowType:
+          type: string
+        averageWaitingSeconds:
+          type: number
+          format: double
+        sampleCount:
+          type: integer
+          format: int64
+    TatTimezone:
+      type: object
+      properties:
+        timezone:
+          type: string
+    TatVisit:
+      type: object
+      properties:
+        encounterId:
+          type: string
+          format: uuid
+        arrivedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+        state:
+          type: string
+        type:
+          type: string
+        visitSeconds:
+          type: integer
+          format: int64
+        timestampAnomaly:
+          type: boolean
+    TatOverview:
+      type: object
+      properties:
+        completedEncounters:
+          type: integer
+          format: int64
+        currentlyWaiting:
+          type: integer
+          format: int64
+        averageVisitSeconds:
+          type: number
+          format: double
+        averageRecordedWaitingSeconds:
+          type: number
+          format: double
+        triageWaitingSeconds:
+          type: number
+          format: double
+        doctorWaitingSeconds:
+          type: number
+          format: double
+        laboratoryTatSeconds:
+          type: number
+          format: double
+        pharmacyTatSeconds:
+          type: number
+          format: double
+        timezone:
+          type: string
+    TatJourney:
+      type: object
+      properties:
+        visit:
+          $ref: "#/components/schemas/TatVisit"
+        stages:
+          type: array
+          items:
+            $ref: "#/components/schemas/TatStage"
+        totalRecordedWaitingSeconds:
+          type: number
+          format: double
+        timezone:
+          type: string
+    TatStage:
+      type: object
+      properties:
+        referenceId:
+          type: string
+          format: uuid
+        workflowType:
+          type: string
+        status:
+          type: string
+        sourceAt:
+          type: string
+          format: date-time
+        readyAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        receivedAt:
+          type: string
+          format: date-time
+        enteredAt:
+          type: string
+          format: date-time
+        verifiedAt:
+          type: string
+          format: date-time
+        waitingSeconds:
+          type: integer
+          format: int64
+        serviceSeconds:
+          type: integer
+          format: int64
+        totalTatSeconds:
+          type: integer
+          format: int64
+        timestampAnomaly:
+          type: boolean
+    TatDepartment:
+      type: object
+      properties:
+        workflowType:
+          type: string
+        completedServices:
+          type: integer
+          format: int64
+        averageWaitingSeconds:
+          type: number
+          format: double
+        medianWaitingSeconds:
+          type: number
+          format: double
+        p90WaitingSeconds:
+          type: number
+          format: double
+        longestWaitingSeconds:
+          type: number
+          format: double
+        averageServiceSeconds:
+          type: number
+          format: double
+        averageTatSeconds:
+          type: number
+          format: double
+    TatWaiting:
+      type: object
+      properties:
+        encounterId:
+          type: string
+          format: uuid
+        referenceId:
+          type: string
+          format: uuid
+        workflowType:
+          type: string
+        readyAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+        hospitalNo:
+          type: string
+        patientName:
+          type: string
+        currentWaitingSeconds:
+          type: integer
+          format: int64
+    TatActivity:
+      type: object
+      properties:
+        encounterId:
+          type: string
+          format: uuid
+        hospitalNo:
+          type: string
+        patientName:
+          type: string
+        stage:
+          $ref: "#/components/schemas/TatStage"
     CatalogItemPageResponse:
       type: object
       properties:
@@ -11180,95 +11714,84 @@ components:
           type: string
         isActive:
           type: boolean
-    TatOverview:
+    DepartureCorrectionRequest:
       type: object
       properties:
-        completedEncounters: { type: integer, format: int64 }
-        currentlyWaiting: { type: integer, format: int64 }
-        averageVisitSeconds: { type: number, format: double }
-        averageRecordedWaitingSeconds: { type: number, format: double }
-        triageWaitingSeconds: { type: number, format: double }
-        doctorWaitingSeconds: { type: number, format: double }
-        laboratoryTatSeconds: { type: number, format: double }
-        pharmacyTatSeconds: { type: number, format: double }
-        timezone: { type: string }
-    TatDepartment:
+        facilityId:
+          type: string
+          format: uuid
+        departureId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+    DepartureRequest:
       type: object
       properties:
-        workflowType: { type: string }
-        completedServices: { type: integer, format: int64 }
-        averageWaitingSeconds: { type: number, format: double }
-        medianWaitingSeconds: { type: number, format: double }
-        p90WaitingSeconds: { type: number, format: double }
-        longestWaitingSeconds: { type: number, format: double }
-        averageServiceSeconds: { type: number, format: double }
-        averageTatSeconds: { type: number, format: double }
-    TatTrend:
+        facilityId:
+          type: string
+          format: uuid
+        outcome:
+          type: string
+        note:
+          type: string
+    DepartureResponse:
       type: object
       properties:
-        day: { type: string, format: date }
-        workflowType: { type: string }
-        averageWaitingSeconds: { type: number, format: double }
-        sampleCount: { type: integer, format: int64 }
-    TatWaiting:
+        departureId:
+          type: string
+          format: uuid
+    Presence:
       type: object
       properties:
-        encounterId: { type: string, format: uuid }
-        referenceId: { type: string, format: uuid }
-        workflowType: { type: string }
-        readyAt: { type: string, format: date-time }
-        status: { type: string }
-        hospitalNo: { type: string }
-        patientName: { type: string }
-        currentWaitingSeconds: { type: integer, format: int64 }
-    TatVisit:
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        patientName:
+          type: string
+        hospitalNo:
+          type: string
+        state:
+          type: string
+        type:
+          type: string
+        stage:
+          type: string
+        presence:
+          type: string
+        arrivedAt:
+          type: string
+          format: date-time
+        departedAt:
+          type: string
+          format: date-time
+        visitNumber:
+          type: integer
+          format: int64
+        departureId:
+          type: string
+          format: uuid
+
+    VisitSummary:
       type: object
       properties:
-        encounterId: { type: string, format: uuid }
-        arrivedAt: { type: string, format: date-time }
-        endedAt: { type: string, format: date-time }
-        state: { type: string }
-        type: { type: string }
-        visitSeconds: { type: integer, format: int64 }
-        timestampAnomaly: { type: boolean }
-    TatStage:
-      type: object
-      properties:
-        referenceId: { type: string, format: uuid }
-        workflowType: { type: string }
-        status: { type: string }
-        sourceAt: { type: string, format: date-time }
-        readyAt: { type: string, format: date-time }
-        startedAt: { type: string, format: date-time }
-        completedAt: { type: string, format: date-time }
-        receivedAt: { type: string, format: date-time }
-        enteredAt: { type: string, format: date-time }
-        verifiedAt: { type: string, format: date-time }
-        waitingSeconds: { type: integer, format: int64 }
-        serviceSeconds: { type: integer, format: int64 }
-        totalTatSeconds: { type: integer, format: int64 }
-        timestampAnomaly: { type: boolean }
-    TatJourney:
-      type: object
-      properties:
-        visit: { $ref: '#/components/schemas/TatVisit' }
-        stages:
-          type: array
-          items: { $ref: '#/components/schemas/TatStage' }
-        totalRecordedWaitingSeconds: { type: number, format: double, nullable: true }
-        timezone: { type: string }
-    TatActivity:
-      type: object
-      properties:
-        encounterId: { type: string, format: uuid }
-        hospitalNo: { type: string }
-        patientName: { type: string }
-        stage: { $ref: '#/components/schemas/TatStage' }
-    TatTimezone:
-      type: object
-      properties:
-        timezone: { type: string }
-    TatStartResponse:
-      type: object
-      properties:
-        startedAt: { type: string, format: date-time }
+        patientId:
+          type: string
+          format: uuid
+        totalVisits:
+          type: integer
+          format: int64
+        completedVisits:
+          type: integer
+          format: int64
+        firstVisit:
+          type: string
+          format: date-time
+        latestVisit:
+          type: string
+          format: date-time
+        activeEncounter:
+          type: boolean

@@ -57,6 +57,10 @@ public class PrescriptionLineController {
                 actor, "PRESCRIPTION_READ", ScopeRef.of(ScopeType.FACILITY, order.facilityId()))) {
             throw new AccessDeniedException("Missing permission: PRESCRIPTION_READ");
         }
+        if (authorizationService.hasPermission(actor, "CONSULTATION_CREATE") &&
+            authorizationService.checkPatientAccess(actor, "PRESCRIPTION_READ", order.patientId(),
+                ScopeRef.of(ScopeType.FACILITY, order.facilityId())) != com.adags.shared.authz.PolicyResult.ALLOWED)
+            throw new AccessDeniedException("An active care relationship is required for prescription history.");
         return PrescriptionLineResponse.from(line);
     }
 

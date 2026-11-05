@@ -4,166 +4,6 @@
  */
 
 export interface paths {
-    "/api/admin/tat/timezone": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["tatTimezone"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/tat/overview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["tatOverview"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/tat/departments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["tatDepartments"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/tat/trend": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["tatTrend"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/tat/currently-waiting": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["tatCurrentlyWaiting"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/tat/activity": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["tatActivity"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/tat/patients/{patientId}/encounters": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["tatPatientVisits"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/tat/encounters/{encounterId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["tatEncounterJourney"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/encounters/{id}/triage-start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["tatTriageStart"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/prescription-lines/{id}/processing-start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["tatPharmacyStart"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/encounters/{encounterId}/triage-draft": {
         parameters: {
             query?: never;
@@ -820,6 +660,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/prescription-lines/{id}/processing-start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startPharmacy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/prescription-lines/{id}/mark-unavailable": {
         parameters: {
             query?: never;
@@ -1374,6 +1230,22 @@ export interface paths {
         get: operations["search_7"];
         put?: never;
         post: operations["open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{id}/triage-start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["startTriage"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3588,6 +3460,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/tat/trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["trend"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/tat/timezone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["timezone"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/tat/patients/{patientId}/encounters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["patientVisits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/tat/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/tat/encounters/{encounterId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["encounter"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/tat/departments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["departments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/tat/currently-waiting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["currentlyWaiting"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/tat/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["activity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/items": {
         parameters: {
             query?: never;
@@ -3630,6 +3630,70 @@ export interface paths {
         get: operations["get_5"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/patient-presence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listPresence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/patient-presence/summaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["presenceSummaries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{id}/departure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirmDeparture"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{id}/departure/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["correctDeparture"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4296,6 +4360,10 @@ export interface components {
             proposedItemId: string;
             reason: string;
         };
+        StartResponse: {
+            /** Format: date-time */
+            startedAt?: string;
+        };
         MarkUnavailableRequest: {
             reason: string;
         };
@@ -4939,6 +5007,7 @@ export interface components {
             version?: number;
             /** Format: date-time */
             createdAt?: string;
+            existingEncounter?: boolean;
         };
         OpenConsultationResponse: {
             /** Format: uuid */
@@ -6056,6 +6125,16 @@ export interface components {
             /** Format: date-time */
             prescribedAt?: string;
             status?: string;
+            /** Format: double */
+            doseAmount?: number;
+            doseUnit?: string;
+            route?: string;
+            /** @enum {string} */
+            frequency?: "STAT" | "OD" | "BD" | "TDS" | "QDS" | "PRN";
+            /** Format: int32 */
+            durationDays?: number;
+            /** Format: int32 */
+            quantityDispensed?: number;
         };
         AllergyResponse: {
             description?: string;
@@ -6680,28 +6759,30 @@ export interface components {
             acknowledged?: boolean;
             escalated?: boolean;
         };
-        CatalogItemPageResponse: {
-            /** Format: int32 */
-            page?: number;
-            /** Format: int32 */
-            pageSize?: number;
-            /** Format: int32 */
-            totalCount?: number;
-            items?: components["schemas"]["CatalogItemResponse"][];
-        };
-        CatalogItemResponse: {
-            /** Format: uuid */
-            id?: string;
-            code?: string;
-            originalCode?: string;
-            name?: string;
-            classification?: string;
-            type?: string;
-            billingCategory?: string;
+        TatTrend: {
+            /** Format: date */
+            day?: string;
+            workflowType?: string;
+            /** Format: double */
+            averageWaitingSeconds?: number;
             /** Format: int64 */
-            currentCashPriceMinor?: number;
-            currencyCode?: string;
-            isActive?: boolean;
+            sampleCount?: number;
+        };
+        TatTimezone: {
+            timezone?: string;
+        };
+        TatVisit: {
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: date-time */
+            arrivedAt?: string;
+            /** Format: date-time */
+            endedAt?: string;
+            state?: string;
+            type?: string;
+            /** Format: int64 */
+            visitSeconds?: number;
+            timestampAnomaly?: boolean;
         };
         TatOverview: {
             /** Format: int64 */
@@ -6722,58 +6803,12 @@ export interface components {
             pharmacyTatSeconds?: number;
             timezone?: string;
         };
-        TatDepartment: {
-            workflowType?: string;
-            /** Format: int64 */
-            completedServices?: number;
+        TatJourney: {
+            visit?: components["schemas"]["TatVisit"];
+            stages?: components["schemas"]["TatStage"][];
             /** Format: double */
-            averageWaitingSeconds?: number;
-            /** Format: double */
-            medianWaitingSeconds?: number;
-            /** Format: double */
-            p90WaitingSeconds?: number;
-            /** Format: double */
-            longestWaitingSeconds?: number;
-            /** Format: double */
-            averageServiceSeconds?: number;
-            /** Format: double */
-            averageTatSeconds?: number;
-        };
-        TatTrend: {
-            /** Format: date */
-            day?: string;
-            workflowType?: string;
-            /** Format: double */
-            averageWaitingSeconds?: number;
-            /** Format: int64 */
-            sampleCount?: number;
-        };
-        TatWaiting: {
-            /** Format: uuid */
-            encounterId?: string;
-            /** Format: uuid */
-            referenceId?: string;
-            workflowType?: string;
-            /** Format: date-time */
-            readyAt?: string;
-            status?: string;
-            hospitalNo?: string;
-            patientName?: string;
-            /** Format: int64 */
-            currentWaitingSeconds?: number;
-        };
-        TatVisit: {
-            /** Format: uuid */
-            encounterId?: string;
-            /** Format: date-time */
-            arrivedAt?: string;
-            /** Format: date-time */
-            endedAt?: string;
-            state?: string;
-            type?: string;
-            /** Format: int64 */
-            visitSeconds?: number;
-            timestampAnomaly?: boolean;
+            totalRecordedWaitingSeconds?: number;
+            timezone?: string;
         };
         TatStage: {
             /** Format: uuid */
@@ -6802,12 +6837,36 @@ export interface components {
             totalTatSeconds?: number;
             timestampAnomaly?: boolean;
         };
-        TatJourney: {
-            visit?: components["schemas"]["TatVisit"];
-            stages?: components["schemas"]["TatStage"][];
+        TatDepartment: {
+            workflowType?: string;
+            /** Format: int64 */
+            completedServices?: number;
             /** Format: double */
-            totalRecordedWaitingSeconds?: number | null;
-            timezone?: string;
+            averageWaitingSeconds?: number;
+            /** Format: double */
+            medianWaitingSeconds?: number;
+            /** Format: double */
+            p90WaitingSeconds?: number;
+            /** Format: double */
+            longestWaitingSeconds?: number;
+            /** Format: double */
+            averageServiceSeconds?: number;
+            /** Format: double */
+            averageTatSeconds?: number;
+        };
+        TatWaiting: {
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            referenceId?: string;
+            workflowType?: string;
+            /** Format: date-time */
+            readyAt?: string;
+            status?: string;
+            hospitalNo?: string;
+            patientName?: string;
+            /** Format: int64 */
+            currentWaitingSeconds?: number;
         };
         TatActivity: {
             /** Format: uuid */
@@ -6816,12 +6875,78 @@ export interface components {
             patientName?: string;
             stage?: components["schemas"]["TatStage"];
         };
-        TatTimezone: {
-            timezone?: string;
+        CatalogItemPageResponse: {
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            pageSize?: number;
+            /** Format: int32 */
+            totalCount?: number;
+            items?: components["schemas"]["CatalogItemResponse"][];
         };
-        TatStartResponse: {
+        CatalogItemResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            originalCode?: string;
+            name?: string;
+            classification?: string;
+            type?: string;
+            billingCategory?: string;
+            /** Format: int64 */
+            currentCashPriceMinor?: number;
+            currencyCode?: string;
+            isActive?: boolean;
+        };
+        DepartureCorrectionRequest: {
+            /** Format: uuid */
+            facilityId?: string;
+            /** Format: uuid */
+            departureId?: string;
+            reason?: string;
+        };
+        DepartureRequest: {
+            /** Format: uuid */
+            facilityId?: string;
+            outcome?: string;
+            note?: string;
+        };
+        DepartureResponse: {
+            /** Format: uuid */
+            departureId?: string;
+        };
+        Presence: {
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            patientName?: string;
+            hospitalNo?: string;
+            state?: string;
+            type?: string;
+            stage?: string;
+            presence?: string;
             /** Format: date-time */
-            startedAt?: string;
+            arrivedAt?: string;
+            /** Format: date-time */
+            departedAt?: string;
+            /** Format: int64 */
+            visitNumber?: number;
+            /** Format: uuid */
+            departureId?: string;
+        };
+        VisitSummary: {
+            /** Format: uuid */
+            patientId?: string;
+            /** Format: int64 */
+            totalVisits?: number;
+            /** Format: int64 */
+            completedVisits?: number;
+            /** Format: date-time */
+            firstVisit?: string;
+            /** Format: date-time */
+            latestVisit?: string;
+            activeEncounter?: boolean;
         };
     };
     responses: never;
@@ -6832,245 +6957,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    tatTimezone: {
-        parameters: {
-            query: {
-                facilityId: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TatTimezone"];
-                };
-            };
-        };
-    };
-    tatOverview: {
-        parameters: {
-            query: {
-                facilityId: string;
-                from: string;
-                to: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TatOverview"];
-                };
-            };
-        };
-    };
-    tatDepartments: {
-        parameters: {
-            query: {
-                facilityId: string;
-                from: string;
-                to: string;
-                workflowType?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TatDepartment"][];
-                };
-            };
-        };
-    };
-    tatTrend: {
-        parameters: {
-            query: {
-                facilityId: string;
-                from: string;
-                to: string;
-                workflowType?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TatTrend"][];
-                };
-            };
-        };
-    };
-    tatCurrentlyWaiting: {
-        parameters: {
-            query: {
-                facilityId: string;
-                workflowType?: string;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TatWaiting"][];
-                };
-            };
-        };
-    };
-    tatActivity: {
-        parameters: {
-            query: {
-                facilityId: string;
-                from: string;
-                to: string;
-                workflowType?: string;
-                status?: string;
-                page?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TatActivity"][];
-                };
-            };
-        };
-    };
-    tatPatientVisits: {
-        parameters: {
-            query: {
-                facilityId: string;
-            };
-            header?: never;
-            path: {
-                patientId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TatVisit"][];
-                };
-            };
-        };
-    };
-    tatEncounterJourney: {
-        parameters: {
-            query: {
-                facilityId: string;
-            };
-            header?: never;
-            path: {
-                encounterId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TatJourney"];
-                };
-            };
-        };
-    };
-    tatTriageStart: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TatStartResponse"];
-                };
-            };
-        };
-    };
-    tatPharmacyStart: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TatStartResponse"];
-                };
-            };
-        };
-    };
     findOwn: {
         parameters: {
             query?: never;
@@ -8313,6 +8199,28 @@ export interface operations {
             };
         };
     };
+    startPharmacy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StartResponse"];
+                };
+            };
+        };
+    };
     markUnavailable: {
         parameters: {
             query?: never;
@@ -9316,6 +9224,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EncounterResponse"];
+                };
+            };
+        };
+    };
+    startTriage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StartResponse"];
                 };
             };
         };
@@ -12564,6 +12494,201 @@ export interface operations {
             };
         };
     };
+    trend: {
+        parameters: {
+            query: {
+                facilityId: string;
+                from: string;
+                to: string;
+                workflowType?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TatTrend"][];
+                };
+            };
+        };
+    };
+    timezone: {
+        parameters: {
+            query: {
+                facilityId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TatTimezone"];
+                };
+            };
+        };
+    };
+    patientVisits: {
+        parameters: {
+            query: {
+                facilityId: string;
+            };
+            header?: never;
+            path: {
+                patientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TatVisit"][];
+                };
+            };
+        };
+    };
+    overview: {
+        parameters: {
+            query: {
+                facilityId: string;
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TatOverview"];
+                };
+            };
+        };
+    };
+    encounter: {
+        parameters: {
+            query: {
+                facilityId: string;
+            };
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TatJourney"];
+                };
+            };
+        };
+    };
+    departments: {
+        parameters: {
+            query: {
+                facilityId: string;
+                from: string;
+                to: string;
+                workflowType?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TatDepartment"][];
+                };
+            };
+        };
+    };
+    currentlyWaiting: {
+        parameters: {
+            query: {
+                facilityId: string;
+                workflowType?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TatWaiting"][];
+                };
+            };
+        };
+    };
+    activity: {
+        parameters: {
+            query: {
+                facilityId: string;
+                from: string;
+                to: string;
+                workflowType?: string;
+                status?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TatActivity"][];
+                };
+            };
+        };
+    };
     listItems: {
         parameters: {
             query?: {
@@ -12630,6 +12755,103 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["CatalogImportBatchResponse"];
                 };
+            };
+        };
+    };
+    listPresence: {
+        parameters: {
+            query: {
+                facilityId: string;
+                patientId?: string;
+                departed?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Presence"][];
+                };
+            };
+        };
+    };
+    presenceSummaries: {
+        parameters: {
+            query: {
+                facilityId: string;
+                patientIds: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VisitSummary"][];
+                };
+            };
+        };
+    };
+    confirmDeparture: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DepartureRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DepartureResponse"];
+                };
+            };
+        };
+    };
+    correctDeparture: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DepartureCorrectionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
