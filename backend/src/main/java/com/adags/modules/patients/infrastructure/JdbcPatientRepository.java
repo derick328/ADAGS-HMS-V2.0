@@ -130,16 +130,55 @@ public class JdbcPatientRepository implements PatientRepository {
     }
 
     @Override
-    public List<PatientListResult> listRecent(Instant from, Instant to, String payerFilter, int limit) {
-        // LATERAL join finds one "most-recent active policy today" per
-        // patient — an admin scanning the list wants to see the payer they
-        // will bill against, not every historical policy stitched into
-        // duplicate rows.
-        StringBuilder sql = new StringBuilder("""
+    public List<PatientListResult> listRecent(Instant from, Instant to, String payerFilter, int offset, int limit) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        String sql = """
                 SELECT p.id, p.hospital_no, p.given_name, p.middle_name, p.family_name,
                        p.date_of_birth, p.dob_is_estimated, p.phone, p.created_at,
                        s.code  AS scheme_code,
                        s.name  AS scheme_name
+                """ + listFromWhere(from, to, payerFilter, params)
+                + " ORDER BY p.created_at DESC, p.id DESC OFFSET :offset LIMIT :limit";
+        params.addValue("offset", offset);
+        params.addValue("limit", limit);
+
+        return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            String middleName = rs.getString("middle_name");
+            String fullName = middleName == null || middleName.isBlank()
+                    ? rs.getString("given_name") + " " + rs.getString("family_name")
+                    : rs.getString("given_name") + " " + middleName + " " + rs.getString("family_name");
+            Timestamp createdAt = rs.getTimestamp("created_at");
+            return new PatientListResult(
+                    (UUID) rs.getObject("id"),
+                    rs.getString("hospital_no"),
+                    fullName,
+                    rs.getObject("date_of_birth", LocalDate.class),
+                    rs.getBoolean("dob_is_estimated"),
+                    rs.getString("phone"),
+                    createdAt == null ? null : createdAt.toInstant(),
+                    rs.getString("scheme_code"),
+                    rs.getString("scheme_name"));
+        });
+    }
+
+    @Override
+    public long countRecent(Instant from, Instant to, String payerFilter) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        String sql = "SELECT count(*) " + listFromWhere(from, to, payerFilter, params);
+        Long count = jdbcTemplate.queryForObject(sql, params, Long.class);
+        return count == null ? 0L : count;
+    }
+
+    // One FROM + WHERE for both the page and its total — a count built from a
+    // different predicate than the rows it counts is how a pager starts
+    // showing "page 4 of 7" over three pages of data.
+    //
+    // LATERAL join finds one "most-recent active policy today" per
+    // patient — an admin scanning the list wants to see the payer they
+    // will bill against, not every historical policy stitched into
+    // duplicate rows.
+    private String listFromWhere(Instant from, Instant to, String payerFilter, MapSqlParameterSource params) {
+        StringBuilder sql = new StringBuilder("""
                 FROM patient p
                 LEFT JOIN LATERAL (
                     SELECT ip.scheme_id
@@ -154,7 +193,6 @@ public class JdbcPatientRepository implements PatientRepository {
                 WHERE p.merged_into_id IS NULL
                 """);
 
-        MapSqlParameterSource params = new MapSqlParameterSource();
         if (from != null) {
             sql.append(" AND p.created_at >= :from");
             params.addValue("from", Timestamp.from(from));
@@ -173,26 +211,7 @@ public class JdbcPatientRepository implements PatientRepository {
                 sql.append(" AND active_policy.scheme_id IS NOT NULL AND (s.code IS NULL OR s.code NOT ILIKE '%NHIF%')");
             }
         }
-        sql.append(" ORDER BY p.created_at DESC LIMIT :limit");
-        params.addValue("limit", limit);
-
-        return jdbcTemplate.query(sql.toString(), params, (rs, rowNum) -> {
-            String middleName = rs.getString("middle_name");
-            String fullName = middleName == null || middleName.isBlank()
-                    ? rs.getString("given_name") + " " + rs.getString("family_name")
-                    : rs.getString("given_name") + " " + middleName + " " + rs.getString("family_name");
-            Timestamp createdAt = rs.getTimestamp("created_at");
-            return new PatientListResult(
-                    (UUID) rs.getObject("id"),
-                    rs.getString("hospital_no"),
-                    fullName,
-                    rs.getObject("date_of_birth", LocalDate.class),
-                    rs.getBoolean("dob_is_estimated"),
-                    rs.getString("phone"),
-                    createdAt == null ? null : createdAt.toInstant(),
-                    rs.getString("scheme_code"),
-                    rs.getString("scheme_name"));
-        });
+        return sql.toString();
     }
 
     @Override
@@ -230,55 +249,58 @@ public class JdbcPatientRepository implements PatientRepository {
 
     @Override
     public List<DuplicateCandidate> findDuplicateCandidates(DuplicateCheckQuery query) {
-        String fullName = query.givenName() + " " + query.familyName();
+        String fullName = String.join(" ", java.util.stream.Stream.of(
+                query.givenName(), query.middleName(), query.familyName())
+                .filter(part -> part != null && !part.isBlank())
+                .map(part -> part.trim().replaceAll("\\s+", " ")).toList());
+        String normalizedStoredName = """
+                lower(regexp_replace(
+                    concat_ws(' ', BTRIM(given_name), NULLIF(BTRIM(middle_name), ''), BTRIM(family_name)),
+                    '[[:space:]]+', ' ', 'g'))
+                """.trim();
         String sql = """
-                SELECT id, hospital_no, given_name, family_name,
-                       similarity(given_name || ' ' || family_name, :fullName) AS name_similarity,
-                       (national_id IS NOT NULL AND national_id = :nationalId) AS national_id_exact,
-                       (phone = :phone) AS phone_exact,
-                       (date_of_birth = :dateOfBirth) AS dob_match
+                SELECT id, hospital_no, given_name, middle_name, family_name,
+                       similarity(%1$s, lower(:fullName)) AS name_similarity,
+                       (%1$s = lower(:fullName)) AS full_name_exact,
+                       (national_id IS NOT NULL AND national_id = :nationalId) AS national_id_exact
                 FROM patient
                 WHERE merged_into_id IS NULL
                   AND (
                        (national_id IS NOT NULL AND national_id = :nationalId)
-                    OR similarity(given_name || ' ' || family_name, :fullName) >= :lowThreshold
-                    OR phone = :phone
+                    OR %1$s = lower(:fullName)
+                    OR similarity(%1$s, lower(:fullName)) >= :highThreshold
                   )
-                """;
+                """.formatted(normalizedStoredName);
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("fullName", fullName)
                 .addValue("nationalId", query.nationalId(), Types.VARCHAR)
-                .addValue("phone", query.phone())
-                .addValue("dateOfBirth", query.dateOfBirth())
-                .addValue("lowThreshold", query.lowSimilarityThreshold());
+                .addValue("highThreshold", query.highSimilarityThreshold());
 
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> mapCandidate(rs, query));
     }
 
     private DuplicateCandidate mapCandidate(ResultSet rs, DuplicateCheckQuery query) throws SQLException {
         double similarity = rs.getDouble("name_similarity");
+        boolean fullNameExact = rs.getBoolean("full_name_exact");
         boolean nationalIdExact = rs.getBoolean("national_id_exact");
-        boolean phoneExact = rs.getBoolean("phone_exact");
-        boolean dobMatch = rs.getBoolean("dob_match");
 
         Set<MatchReason> reasons = new LinkedHashSet<>();
         if (nationalIdExact) {
             reasons.add(MatchReason.NATIONAL_ID_EXACT);
         }
-        if (similarity >= query.highSimilarityThreshold() && dobMatch) {
-            reasons.add(MatchReason.NAME_SIMILARITY_WITH_DOB_MATCH);
-        } else if (similarity >= query.lowSimilarityThreshold()) {
+        if (fullNameExact) {
+            reasons.add(MatchReason.FULL_NAME_EXACT);
+        } else if (similarity >= query.highSimilarityThreshold()) {
             reasons.add(MatchReason.NAME_SIMILARITY);
-        }
-        if (phoneExact) {
-            reasons.add(MatchReason.PHONE_EXACT);
         }
 
         return new DuplicateCandidate(
                 (UUID) rs.getObject("id"),
                 rs.getString("hospital_no"),
-                rs.getString("given_name") + " " + rs.getString("family_name"),
+                String.join(" ", java.util.stream.Stream.of(rs.getString("given_name"),
+                        rs.getString("middle_name"), rs.getString("family_name"))
+                        .filter(part -> part != null && !part.isBlank()).toList()),
                 similarity,
                 reasons);
     }

@@ -185,6 +185,22 @@ class TriageAssessmentTest {
     }
 
     @Test
+    void complaintAndMedicalHistoryMayBeOmitted() {
+        Builder b = builder();
+        b.chiefComplaint = null;
+        b.currentSymptoms = null;
+        b.allergies = null;
+        b.comorbidities = null;
+        b.modeOfAmbulation = null;
+
+        TriageAssessment assessment = create(b);
+
+        assertThat(assessment.chiefComplaint()).isNull();
+        assertThat(assessment.allergies()).isNull();
+        assertThat(assessment.modeOfAmbulation()).isNull();
+    }
+
+    @Test
     void notesLongerThanTwoThousandCharactersIsRejected() {
         Builder b = builder();
         b.notes = "x".repeat(2001);

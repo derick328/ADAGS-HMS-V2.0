@@ -115,8 +115,10 @@ public class SubmitTriageAssessmentService {
         TriageAssessment savedAssessment = triageAssessmentRepository.insert(toInsert);
 
         // Step 3: Append AllergyRecord to the patient, source = TRIAGE. Never overwrites.
-        clinicalFacade.appendAllergyRecord(
-                encounter.patientId(), command.encounterId(), command.allergies(), command.actorUserId(), "TRIAGE");
+        if (command.allergies() != null) {
+            clinicalFacade.appendAllergyRecord(
+                    encounter.patientId(), command.encounterId(), command.allergies(), command.actorUserId(), "TRIAGE");
+        }
 
         // Step 4: Update Encounter — assigned_provider_id, type = EMERGENCY
         // when IMMEDIATE, department_id untouched. Optimistically locked.

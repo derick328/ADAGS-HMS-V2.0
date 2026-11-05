@@ -61,7 +61,7 @@ export function PatientsPage() {
           from: from ? `${from}T00:00:00Z` : undefined,
           to: to ? `${to}T23:59:59Z` : undefined,
           payer: payerFilter === 'ALL' ? undefined : payerFilter,
-          limit: 50,
+          pageSize: 50,
         },
         accessToken as string,
       ),
@@ -70,7 +70,7 @@ export function PatientsPage() {
 
   const listRows: PatientListRow[] = searchActive
     ? (searchResults ?? []).map(fromSearchResult)
-    : (recentResults ?? []).map(fromListResult);
+    : (recentResults?.items ?? []).map(fromListResult);
   const listLoading = searchActive ? searchLoading : recentLoading;
   const listError = searchActive ? searchError : recentError;
 

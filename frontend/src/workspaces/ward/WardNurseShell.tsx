@@ -1,6 +1,7 @@
 import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
+import { fetchAwaitingPlacement } from '../../shared/api/admissions';
 import { fetchShiftHandovers } from '../../shared/api/shiftHandovers';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { useMe } from '../../shared/auth/useMe';
@@ -62,6 +63,7 @@ function WardNurseShellInner() {
 
           <nav className="ward-nav app-nav" aria-label="Ward nursing navigation">
             <DashboardLink />
+            <AwaitingPlacementLink />
             <WardPatientsLink />
             <SurgeryQueueLink />
             <ShiftHandoverLink />
@@ -103,6 +105,35 @@ function DashboardLink() {
       <span className="nav-item-label">
         <span>Dashboard</span>
         {criticalCount > 0 && <span className="badge badge-critical">{criticalCount}</span>}
+      </span>
+    </NavLink>
+  );
+}
+
+// 17-ward-nurse.md §8: newly admitted patients not yet placed into a bed —
+// invisible to the ward roster until claimed. Gated on BED_ASSIGN (the
+// permission the claim itself needs), with a badge so a waiting admission
+// never sits unnoticed.
+function AwaitingPlacementLink() {
+  const { accessToken } = useAuth();
+  const { wardId } = useWardContext();
+  const canSee = usePermission('BED_ASSIGN');
+
+  const { data } = useQuery({
+    queryKey: ['admissions', 'awaiting-placement', wardId],
+    queryFn: () => fetchAwaitingPlacement(wardId as string, accessToken as string),
+    enabled: canSee && accessToken != null && wardId != null,
+    refetchInterval: 15_000,
+  });
+
+  if (!canSee) return null;
+  const count = (data ?? []).length;
+
+  return (
+    <NavLink to="/ward-nurse/awaiting-placement" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
+      <span className="nav-item-label">
+        <span>Awaiting Placement</span>
+        {count > 0 && <span className="badge badge-warning">{count}</span>}
       </span>
     </NavLink>
   );

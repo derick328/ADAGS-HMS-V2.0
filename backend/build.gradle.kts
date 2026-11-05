@@ -59,6 +59,7 @@ dependencies {
     // server-side. poi-ooxml pulls in the OOXML (.xlsx) subset; the older
     // .xls format is out of scope.
     implementation("org.apache.poi:poi-ooxml:5.3.0")
+    implementation("org.apache.commons:commons-csv:1.11.0")
 
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

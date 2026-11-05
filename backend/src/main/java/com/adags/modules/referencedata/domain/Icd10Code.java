@@ -9,8 +9,8 @@ import java.time.Instant;
 // Never deleted (root CLAUDE.md "Data") — retirement sets isActive false,
 // which pulls the code out of search (Icd10SearchRepository filters on it)
 // while leaving it resolvable for any historical diagnosis that references
-// it. isBillable filters out ICD-10 category headers (e.g. "B50" itself,
-// as opposed to "B50.9") that are not valid standalone diagnoses.
+// it. isSelectable controls diagnosis entry separately from insurer billing
+// eligibility: a valid terminal three-character category may be selectable.
 public record Icd10Code(
         String code,
         String title,
@@ -20,6 +20,12 @@ public record Icd10Code(
         String icd10Release,
         boolean isBillable,
         boolean isActive,
-        Instant createdAt
+        Instant createdAt,
+        boolean isSelectable,
+        String entryType
 ) {
+    public Icd10Code(String code, String title, String chapter, String block, String parentCode,
+                     String icd10Release, boolean isBillable, boolean isActive, Instant createdAt) {
+        this(code, title, chapter, block, parentCode, icd10Release, isBillable, isActive, createdAt, true, null);
+    }
 }

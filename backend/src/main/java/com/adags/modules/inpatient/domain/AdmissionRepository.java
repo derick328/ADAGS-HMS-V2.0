@@ -28,6 +28,26 @@ public interface AdmissionRepository {
     List<Admission> findByCurrentWardId(UUID wardId);
 
     /**
+     * 17-ward-nurse.md §8: admissions in this facility that are active
+     * (actual_departure_at IS NULL) but have NO currently active bed
+     * assignment — a patient the doctor marked ADMITTED who has not yet been
+     * placed into a ward bed. These appear in no ward's roster
+     * ({@link #findByCurrentWardId} requires an active bed assignment) and
+     * accrue no bed-days, so without this they are invisible to every nurse
+     * and to billing. It is the claim/placement worklist's source: a nurse
+     * who can assign beds in the facility pulls one into her ward.
+     */
+    List<Admission> findAwaitingPlacement(UUID facilityId);
+
+    /**
+     * 07-doctor.md §7/§11: the admitting doctor's own currently-admitted
+     * patients — active admissions (actual_departure_at IS NULL) this doctor
+     * ordered, whether or not they have been placed into a bed yet. The
+     * doctor's "Admitted" worklist; ordered oldest-admitted first.
+     */
+    List<Admission> findActiveByAdmittingDoctor(UUID admittingDoctorId);
+
+    /**
      * The ward this encounter's active admission currently occupies — its
      * unreleased BedAssignment's bed's ward, id and name only. Empty when
      * the encounter has no active admission (outpatient, or discharged with

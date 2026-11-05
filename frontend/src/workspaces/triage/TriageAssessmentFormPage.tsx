@@ -32,18 +32,8 @@ import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
 import { formatMoney } from '../../shared/format/money';
 
-// 06-triage.md §2/§4/§5/§6 — Screen 2, the Triage Assessment Form. Two
-// deliberate departures from the brief's field list, both because the
-// real backend (SubmitTriageAssessmentCommand, TriageAssessment.create())
-// doesn't carry the field at all — following docs/spec/06-triage.md v0.3
-// (root CLAUDE.md: "read the relevant spec"), not the brief's paraphrase,
-// where the two disagree:
-//   - No separate `onset` / `arrival_mode` fields under presenting
-//     complaint. v0.3 §2.1 only has chief_complaint/current_symptoms;
-//     "how did they arrive" lives once, as §2.4's mode_of_ambulation
-//     (WALKING/INFANT_IN_MOTHERS_LAP/WHEELCHAIR_ASSISTED/STRETCHER_ASSISTED)
-//     — the exact same enum the brief lists twice under two names.
-//   - No `infection_type` enum and no isolation_required auto-set.
+// 06-triage.md §2/§4/§5/§6 — Screen 2, the Triage Assessment Form.
+// No `infection_type` enum and no isolation_required auto-set.
 //     infectionRisk is a bare boolean server-side; §7.5 of the real spec
 //     flags this explicitly as "decoration... no downstream effect" and
 //     unresolved, not a built feature this form can wire into.
@@ -166,7 +156,6 @@ export function TriageAssessmentFormPage() {
     const values = getValues();
     saveDraft.mutate({
       priority: values.priority || undefined,
-      modeOfAmbulation: values.modeOfAmbulation || undefined,
       formState: values as unknown as TriageFormState,
     });
   }, [encounterId, accessToken, getValues, saveDraft]);
@@ -242,11 +231,6 @@ export function TriageAssessmentFormPage() {
       const payload: SubmitTriageAssessmentRequest = {
       expectedEncounterVersion: encounter.version,
       assignedProviderId: values.assignedProviderId,
-      chiefComplaint: values.chiefComplaint,
-      currentSymptoms: values.currentSymptoms,
-      allergies: values.allergies,
-      comorbidities: values.comorbidities,
-      modeOfAmbulation: values.modeOfAmbulation,
       hasPain: values.hasPain,
       painScore: values.hasPain ? values.painScore : undefined,
       painLocation: values.hasPain ? values.painLocation : undefined,
@@ -320,16 +304,6 @@ export function TriageAssessmentFormPage() {
           </div>
         </FormSection>
 
-        <FormSection title="Presenting complaint" columns={2} className="form-section--wide">
-
-          <FormRow label="Chief complaint" error={errors.chiefComplaint?.message}>
-            <textarea className="clinical-control" rows={2} {...register('chiefComplaint')} style={fieldStyle} />
-          </FormRow>
-          <FormRow label="Current symptoms" error={errors.currentSymptoms?.message}>
-            <textarea className="clinical-control" rows={2} {...register('currentSymptoms')} style={fieldStyle} />
-          </FormRow>
-        </FormSection>
-
         <FormSection title="Vital signs" columns={3} className="form-section--wide">
 
           {VITAL_FIELDS.map((v) => (
@@ -358,33 +332,6 @@ export function TriageAssessmentFormPage() {
           {!suppressBmi && bmi != null && !Number.isNaN(bmi) && (
             <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>BMI: {bmi.toFixed(1)} (computed, not enterable)</p>
           )}
-        </FormSection>
-
-        <FormSection title="Medical history" columns={2} className="form-section--wide">
-
-          <FormRow label="Allergies" error={errors.allergies?.message}>
-            <textarea className="clinical-control"
-              rows={2}
-              {...register('allergies')}
-              style={{ ...fieldStyle, background: 'var(--warning-bg)', borderColor: 'var(--warning)' }}
-              placeholder='Free text — enter "none known" if there are none'
-            />
-          </FormRow>
-          <FormRow label="Comorbidities" error={errors.comorbidities?.message}>
-            <textarea className="clinical-control" rows={2} {...register('comorbidities')} style={fieldStyle} placeholder='Free text — enter "none known" if there are none' />
-          </FormRow>
-          <FormRow label="Mode of ambulation" error={errors.modeOfAmbulation?.message}>
-            <select className="clinical-control" {...register('modeOfAmbulation')} style={fieldStyle} defaultValue="">
-              <option value="" disabled>
-                Choose…
-              </option>
-              {modeOfAmbulationOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </FormRow>
         </FormSection>
 
         <FormSection title="Pain assessment" columns={1}>
@@ -610,8 +557,6 @@ function ageFromDob(dob: string | undefined | null): number | null {
 
 // Field-key -> human label for the "can't submit yet" summary.
 const FIELD_LABELS: Record<string, string> = {
-  chiefComplaint: 'Chief complaint',
-  currentSymptoms: 'Current symptoms',
   temperatureC: 'Temperature',
   systolicMmHg: 'Systolic BP',
   diastolicMmHg: 'Diastolic BP',
@@ -620,9 +565,6 @@ const FIELD_LABELS: Record<string, string> = {
   spo2Pct: 'SpO₂',
   weightKg: 'Weight',
   heightCm: 'Height',
-  allergies: 'Allergies',
-  comorbidities: 'Comorbidities',
-  modeOfAmbulation: 'Mode of ambulation',
   painScore: 'Pain score',
   painLocation: 'Pain location',
   fallScore: 'Fall risk score',
@@ -644,13 +586,6 @@ const immediateReasonOptions: { value: ImmediateReason; label: string }[] = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-const modeOfAmbulationOptions: { value: ModeOfAmbulation; label: string }[] = [
-  { value: 'WALKING', label: 'Walking' },
-  { value: 'INFANT_IN_MOTHERS_LAP', label: "Infant in mother's lap" },
-  { value: 'WHEELCHAIR_ASSISTED', label: 'Wheelchair-assisted' },
-  { value: 'STRETCHER_ASSISTED', label: 'Stretcher-assisted' },
-];
-
 const VITAL_FIELDS = [
   { key: 'temperatureC' as const, label: 'Temperature', unit: '°C', vitalType: 'TEMPERATURE' as const },
   { key: 'systolicMmHg' as const, label: 'Systolic BP', unit: 'mmHg', vitalType: 'SYSTOLIC_BP' as const },
@@ -663,8 +598,6 @@ const VITAL_FIELDS = [
 function buildSchema(pregnancyApplicable: boolean) {
   return z
     .object({
-      chiefComplaint: z.string().min(3, 'Enter the chief complaint (at least 3 characters)').max(500),
-      currentSymptoms: z.string().min(1, 'Describe the current symptoms'),
       temperatureC: z.number({ invalid_type_error: 'Enter the temperature' }),
       systolicMmHg: z.number({ invalid_type_error: 'Enter the systolic BP' }),
       diastolicMmHg: z.number({ invalid_type_error: 'Enter the diastolic BP' }),
@@ -673,11 +606,6 @@ function buildSchema(pregnancyApplicable: boolean) {
       spo2Pct: z.number({ invalid_type_error: 'Enter the SpO2' }),
       weightKg: z.number({ invalid_type_error: 'Enter the weight' }).positive('Enter a weight greater than 0'),
       heightCm: z.number({ invalid_type_error: 'Enter the height' }).positive('Enter a height greater than 0'),
-      allergies: z.string().min(1, 'Enter allergies, or "none known"'),
-      comorbidities: z.string().min(1, 'Enter comorbidities, or "none known"'),
-      modeOfAmbulation: z.enum(['WALKING', 'INFANT_IN_MOTHERS_LAP', 'WHEELCHAIR_ASSISTED', 'STRETCHER_ASSISTED'], {
-        errorMap: () => ({ message: 'Choose how the patient is getting around' }),
-      }),
       hasPain: z.boolean(),
       painScore: z.number().optional(),
       painLocation: z.string().optional(),

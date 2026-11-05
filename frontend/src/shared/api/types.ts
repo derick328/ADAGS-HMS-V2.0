@@ -1284,6 +1284,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/encounters/{encounterId}/vital-signs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["byEncounter_2"];
+        put?: never;
+        post: operations["recordForEncounter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/encounters/{encounterId}/triage-assessments": {
         parameters: {
             query?: never;
@@ -2052,6 +2068,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reporting/revenue/trend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["revenueTrend"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reporting/revenue/top-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["revenueTopItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reporting/revenue/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["revenueSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reporting/revenue/by-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["revenueByCategory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reporting/revenue/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["revenueAdjustments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/reporting/receivables-overview": {
         parameters: {
             query?: never;
@@ -2788,22 +2884,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/encounters/{encounterId}/vital-signs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["byEncounter_2"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/encounters/{encounterId}/referral-candidates": {
         parameters: {
             query?: never;
@@ -3292,6 +3372,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["list_13"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mine_7"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/awaiting-placement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["awaitingPlacement"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4657,6 +4769,32 @@ export interface components {
             outcome: "AWAITING_TRIAGE" | "AWAITING_PAYMENT" | "AWAITING_CONSULT" | "IN_CONSULT" | "AWAITING_RESULTS" | "CONSULT_COMPLETE" | "PENDING_SETTLEMENT" | "ADMITTED" | "IN_WARD" | "DISCHARGE_ORDERED" | "LEFT_WITHOUT_BEING_SEEN" | "ABANDONED_UNPAID" | "CANCELLED_IN_ERROR" | "REFERRED_OUT" | "DECEASED" | "CLOSED" | "DISCHARGED";
             reason?: string;
         };
+        RecordConsultationVitalsRequest: {
+            /** Format: double */
+            temperatureC?: number;
+            /** Format: double */
+            systolicMmHg?: number;
+            /** Format: double */
+            diastolicMmHg?: number;
+            /** Format: double */
+            pulseBpm?: number;
+            /** Format: double */
+            respiratoryRate?: number;
+            /** Format: double */
+            spo2Pct?: number;
+            /** Format: double */
+            weightKg?: number;
+            /** Format: double */
+            heightCm?: number;
+            /** @enum {string} */
+            avpu?: "ALERT" | "VOICE" | "PAIN" | "UNRESPONSIVE";
+            /** Format: double */
+            bloodGlucoseMmol?: number;
+            /** Format: int32 */
+            painScore?: number;
+            /** Format: date-time */
+            occurredAt?: string;
+        };
         SubmitTriageAssessmentRequest: {
             /** Format: int32 */
             expectedEncounterVersion: number;
@@ -5174,31 +5312,6 @@ export interface components {
             /** Format: date-time */
             occurredAt: string;
         };
-        RecordConsultationVitalsRequest: {
-            /** Format: double */
-            temperatureC?: number;
-            /** Format: double */
-            systolicMmHg?: number;
-            /** Format: double */
-            diastolicMmHg?: number;
-            /** Format: double */
-            pulseBpm?: number;
-            /** Format: double */
-            respiratoryRate?: number;
-            /** Format: double */
-            spo2Pct?: number;
-            /** Format: double */
-            weightKg?: number;
-            /** Format: double */
-            heightCm?: number;
-            avpu?: string;
-            /** Format: double */
-            bloodGlucoseMmol?: number;
-            /** Format: int32 */
-            painScore?: number;
-            /** Format: date-time */
-            occurredAt?: string;
-        };
         RecordShiftHandoverRequest: {
             /** Format: uuid */
             wardId: string;
@@ -5536,6 +5649,100 @@ export interface components {
             depositLiabilityMinor?: number;
             currencyCode?: string;
         };
+        RevenueTrendPoint: {
+            /** Format: date */
+            bucketStart?: string;
+            /** Format: int64 */
+            billedMinor?: number;
+            /** Format: int64 */
+            collectedMinor?: number;
+            currencyCode?: string;
+        };
+        TopServiceItemLine: {
+            /** Format: uuid */
+            serviceItemId?: string;
+            code?: string;
+            name?: string;
+            strength?: string;
+            form?: string;
+            /** Format: int64 */
+            quantityBilled?: number;
+            /** Format: int32 */
+            billedLineCount?: number;
+            /** Format: int32 */
+            settledLineCount?: number;
+            /** Format: int64 */
+            billedMinor?: number;
+            /** Format: int64 */
+            collectedMinor?: number;
+            currencyCode?: string;
+        };
+        RevenueSummary: {
+            /** Format: date */
+            periodFrom?: string;
+            /** Format: date */
+            periodTo?: string;
+            /** Format: int64 */
+            collectedCashMinor?: number;
+            /** Format: int64 */
+            grossBilledMinor?: number;
+            /** Format: int64 */
+            patientPortionBilledMinor?: number;
+            /** Format: int64 */
+            insuranceBilledMinor?: number;
+            /** Format: int64 */
+            refundedMinor?: number;
+            /** Format: int64 */
+            outstandingTotalMinor?: number;
+            /** Format: int64 */
+            postDischargeOutstandingMinor?: number;
+            /** Format: int64 */
+            activeEncounterOutstandingMinor?: number;
+            /** Format: int32 */
+            settledInvoiceCount?: number;
+            /** Format: int32 */
+            issuedInvoiceCount?: number;
+            /** Format: int64 */
+            cohortPatientPortionBilledMinor?: number;
+            /** Format: int64 */
+            cohortSettledMinor?: number;
+            currencyCode?: string;
+        };
+        CategoryRevenueLine: {
+            /** @enum {string} */
+            category?: "CONSULTATION" | "SURGERY" | "THEATRE_PROCEDURE" | "PHARMACY" | "LABORATORY" | "RADIOLOGY" | "INPATIENT" | "OTHER";
+            categoryLabel?: string;
+            /** Format: int64 */
+            billedMinor?: number;
+            /** Format: int64 */
+            collectedMinor?: number;
+            /** Format: int64 */
+            insuranceBilledMinor?: number;
+            /** Format: int32 */
+            billedLineCount?: number;
+            currencyCode?: string;
+        };
+        FinancialAdjustments: {
+            /** Format: date */
+            periodFrom?: string;
+            /** Format: date */
+            periodTo?: string;
+            /** Format: int64 */
+            creditNotesAppliedMinor?: number;
+            /** Format: int32 */
+            creditNotesAppliedCount?: number;
+            /** Format: int64 */
+            writeOffsAppliedMinor?: number;
+            /** Format: int32 */
+            writeOffsAppliedCount?: number;
+            /** Format: int64 */
+            refundsAppliedMinor?: number;
+            /** Format: int32 */
+            pendingCreditNoteCount?: number;
+            /** Format: int32 */
+            pendingWriteOffCount?: number;
+            currencyCode?: string;
+        };
         ReceivablesOverview: {
             /** Format: int64 */
             postDischargeOutstandingMinor?: number;
@@ -5715,6 +5922,15 @@ export interface components {
             /** Format: int64 */
             outstandingTotalMinor?: number;
             currencyCode?: string;
+        };
+        PatientListPage: {
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            pageSize?: number;
+            /** Format: int64 */
+            totalCount?: number;
+            items?: components["schemas"]["PatientListResult"][];
         };
         PatientListResult: {
             /** Format: uuid */
@@ -7685,7 +7901,8 @@ export interface operations {
                 from?: string;
                 to?: string;
                 payer?: string;
-                limit?: number;
+                page?: number;
+                pageSize?: number;
             };
             header?: never;
             path?: never;
@@ -7699,7 +7916,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PatientListResult"][];
+                    "*/*": components["schemas"]["PatientListPage"];
                 };
             };
         };
@@ -8651,6 +8868,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EncounterResponse"];
+                };
+            };
+        };
+    };
+    byEncounter_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VitalSignsResponse"][];
+                };
+            };
+        };
+    };
+    recordForEncounter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordConsultationVitalsRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
                 };
             };
         };
@@ -9906,6 +10171,129 @@ export interface operations {
             };
         };
     };
+    revenueTrend: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                facilityId: string;
+                granularity?: "DAY" | "WEEK" | "MONTH";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RevenueTrendPoint"][];
+                };
+            };
+        };
+    };
+    revenueTopItems: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                facilityId: string;
+                category: "CONSULTATION" | "SURGERY" | "THEATRE_PROCEDURE" | "PHARMACY" | "LABORATORY" | "RADIOLOGY" | "INPATIENT" | "OTHER";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TopServiceItemLine"][];
+                };
+            };
+        };
+    };
+    revenueSummary: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                facilityId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RevenueSummary"];
+                };
+            };
+        };
+    };
+    revenueByCategory: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                facilityId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CategoryRevenueLine"][];
+                };
+            };
+        };
+    };
+    revenueAdjustments: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                facilityId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FinancialAdjustments"];
+                };
+            };
+        };
+    };
     receivablesOverview: {
         parameters: {
             query: {
@@ -10905,28 +11293,6 @@ export interface operations {
             };
         };
     };
-    byEncounter_2: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                encounterId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["VitalSignsResponse"][];
-                };
-            };
-        };
-    };
     forEncounter: {
         parameters: {
             query?: never;
@@ -11586,6 +11952,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["WardAlertNotificationResponse"][];
+                };
+            };
+        };
+    };
+    mine_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WardPatientRowResponse"][];
+                };
+            };
+        };
+    };
+    awaitingPlacement: {
+        parameters: {
+            query: {
+                wardId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WardPatientRowResponse"][];
                 };
             };
         };

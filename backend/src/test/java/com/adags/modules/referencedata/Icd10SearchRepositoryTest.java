@@ -59,6 +59,17 @@ class Icd10SearchRepositoryTest extends IntegrationTestSupport {
     }
 
     @Test
+    void titleWordsAndCommonMisspellingsFindSelectableDiagnoses() {
+        insertCode("A53.9", "Syphilis, unspecified", true, true);
+        insertCode("A02.9", "Salmonella infection, unspecified", true, true);
+
+        assertThat(repository.search("syphilis", null, null, 20))
+                .extracting(Icd10SearchResult::code).contains("A53.9");
+        assertThat(repository.search("salmonera", null, null, 20))
+                .extracting(Icd10SearchResult::code).contains("A02.9");
+    }
+
+    @Test
     void aDepartmentCommonListEntryOutranksAPlainTitleMatch() {
         UUID departmentId = insertFixtureDepartment();
         insertCode("B50.9", "P. falciparum malaria, unspecified", true, true);

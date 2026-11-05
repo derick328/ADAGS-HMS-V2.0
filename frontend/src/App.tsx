@@ -46,6 +46,7 @@ import { PatientQueuePage } from './workspaces/triage/PatientQueuePage';
 import { ProfilePage as TriageProfilePage } from './workspaces/triage/ProfilePage';
 import { TriageAssessmentFormPage } from './workspaces/triage/TriageAssessmentFormPage';
 import { TriageNurseShell } from './workspaces/triage/TriageNurseShell';
+import { AdmittedPatientsPage } from './workspaces/doctor/AdmittedPatientsPage';
 import { ConsultationPage } from './workspaces/doctor/ConsultationPage';
 import { DoctorShell } from './workspaces/doctor/DoctorShell';
 import { EncounterDetailPage } from './workspaces/doctor/EncounterDetailPage';
@@ -75,6 +76,7 @@ import { PharmacyItemsPage } from './workspaces/pharmacy/PharmacyItemsPage';
 import { PharmacyShell } from './workspaces/pharmacy/PharmacyShell';
 import { StockPage as PharmacyStockPage } from './workspaces/pharmacy/StockPage';
 import { ProfilePage as PharmacyProfilePage } from './workspaces/triage/ProfilePage';
+import { AwaitingPlacementPage } from './workspaces/ward/AwaitingPlacementPage';
 import { DashboardPage as WardDashboardPage } from './workspaces/ward/DashboardPage';
 import { MyHistoryPage as WardMyHistoryPage } from './workspaces/ward/MyHistoryPage';
 import { PatientCareHubPage } from './workspaces/ward/PatientCareHubPage';
@@ -178,6 +180,7 @@ export function App() {
         <Route path="consultation/:encounterId" element={<ConsultationPage />} />
         <Route path="schedule-surgery/:encounterId" element={<ScheduleSurgeryPage />} />
         <Route path="scheduled-surgeries" element={<MyScheduledSurgeriesPage />} />
+        <Route path="admitted" element={<AdmittedPatientsPage />} />
         <Route path="surgery/:surgeryOrderId/items" element={<DoctorSurgeryItemsPage />} />
         <Route path="patients" element={<MyPatientsPage />} />
         <Route path="patients/:patientId" element={<PatientPage />} />
@@ -228,6 +231,7 @@ export function App() {
         }
       >
         <Route index element={<WardDashboardPage />} />
+        <Route path="awaiting-placement" element={<AwaitingPlacementPage />} />
         <Route path="patients" element={<WardPatientsPage />} />
         <Route path="patients/:admissionId" element={<PatientCareHubPage />} />
         <Route path="surgery" element={<SurgeryQueuePage />} />

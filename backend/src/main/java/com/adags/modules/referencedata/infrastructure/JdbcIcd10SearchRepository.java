@@ -13,8 +13,8 @@ import java.util.List;
 import java.util.UUID;
 
 // 10-clinical-reference-data.md §5.2's ranking formula as one query.
-// Candidates are narrowed first (the `candidates` CTE: is_active,
-// is_billable, and a code-prefix/title-prefix/trigram/synonym match) so the
+// Candidates are narrowed first (active/selectable, with legacy billable
+// rows retained, and a code-prefix/title-prefix/trigram/synonym match) so the
 // per-row scoring subqueries below only ever run over that narrowed set —
 // §5.3: "Do not query 14,000 rows on every keystroke." Redis caching of
 // common lists (§5.3) is deliberately not added yet: there is no curation
@@ -35,11 +35,13 @@ public class JdbcIcd10SearchRepository implements Icd10SearchRepository {
                 FROM icd10_code c
                 LEFT JOIN icd10_synonym s
                        ON s.code = c.code AND s.status = 'APPROVED' AND s.is_active
-                WHERE c.is_active AND c.is_billable
+                WHERE c.is_active AND c.is_selectable AND (c.is_billable OR c.entry_type IS NOT NULL)
                   AND (
                         c.code LIKE :codePrefix
                      OR c.title ILIKE :titlePrefix
+                     OR c.title ILIKE :titleContains
                      OR similarity(c.title, :queryText) > :threshold
+                     OR word_similarity(:queryText, c.title) > :wordThreshold
                      OR (s.id IS NOT NULL AND (s.term ILIKE :titlePrefix OR similarity(s.term, :queryText) > :threshold))
                   )
             )
@@ -61,7 +63,9 @@ public class JdbcIcd10SearchRepository implements Icd10SearchRepository {
                            AND (s2.term ILIKE :titlePrefix OR similarity(s2.term, :queryText) > :threshold)
                        ) THEN 200 ELSE 0 END)
                   + (CASE WHEN c.title ILIKE :titlePrefix THEN 100 ELSE 0 END)
+                  + (CASE WHEN c.title ILIKE :titleContains THEN 150 ELSE 0 END)
                   + (similarity(c.title, :queryText) * 50)
+                  + (word_similarity(:queryText, c.title) * 120)
                   + (CASE WHEN EXISTS (
                          SELECT 1 FROM reference_search_log l
                          WHERE l.actor_user_id = :actorUserId AND l.catalogue_type = 'ICD10'
@@ -89,7 +93,9 @@ public class JdbcIcd10SearchRepository implements Icd10SearchRepository {
                 .addValue("exactCode", exactCode)
                 .addValue("codePrefix", exactCode + "%")
                 .addValue("titlePrefix", trimmed + "%")
+                .addValue("titleContains", "%" + trimmed + "%")
                 .addValue("threshold", TRIGRAM_THRESHOLD)
+                .addValue("wordThreshold", 0.3)
                 .addValue("departmentId", departmentId, Types.OTHER)
                 .addValue("actorUserId", actorUserId, Types.OTHER)
                 .addValue("limit", limit);

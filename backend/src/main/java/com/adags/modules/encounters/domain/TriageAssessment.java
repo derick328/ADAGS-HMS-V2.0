@@ -77,11 +77,12 @@ public record TriageAssessment(
             UUID assessedBy
     ) {
         requireNonNull(encounterId, "encounterId");
-        requireInRange(chiefComplaint, "chief_complaint", 3, 500);
-        requireNonBlank(currentSymptoms, "current_symptoms");
-        requireNonBlank(allergies, "allergies");
-        requireNonBlank(comorbidities, "comorbidities");
-        requireNonNull(modeOfAmbulation, "mode_of_ambulation");
+        if (chiefComplaint != null) {
+            requireInRange(chiefComplaint, "chief_complaint", 3, 500);
+        }
+        if (currentSymptoms != null) requireNonBlank(currentSymptoms, "current_symptoms");
+        if (allergies != null) requireNonBlank(allergies, "allergies");
+        if (comorbidities != null) requireNonBlank(comorbidities, "comorbidities");
         requireNonNull(priority, "priority");
         requireNonNull(assessedBy, "assessedBy");
         if (notes != null && notes.length() > 2000) {

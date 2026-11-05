@@ -26,6 +26,26 @@ export function fetchWardPatients(wardId: string, accessToken: string): Promise<
   return authFetch(`/api/admissions?wardId=${encodeURIComponent(wardId)}`, accessToken);
 }
 
+/**
+ * 17-ward-nurse.md §8: patients marked ADMITTED but not yet placed into a
+ * bed — they belong to no ward roster and accrue no bed-days until claimed.
+ * Scoped to the facility of `wardId` (the nurse's current ward); the row's
+ * bed/ward fields are null, which is what "awaiting placement" means.
+ */
+export function fetchAwaitingPlacement(wardId: string, accessToken: string): Promise<WardPatientRowResponse[]> {
+  return authFetch(`/api/admissions/awaiting-placement?wardId=${encodeURIComponent(wardId)}`, accessToken);
+}
+
+/**
+ * 07-doctor.md §7/§11: the admitting doctor's own currently-admitted
+ * patients — the doctor-side "Admitted" worklist. Includes not-yet-placed
+ * admissions (bed/ward null) so a doctor sees a patient they admitted even
+ * before a ward nurse has claimed them.
+ */
+export function fetchMyAdmissions(accessToken: string): Promise<WardPatientRowResponse[]> {
+  return authFetch('/api/admissions/mine', accessToken);
+}
+
 export function fetchAdmissionById(id: string, accessToken: string): Promise<AdmissionResponse> {
   return authFetch(`/api/admissions/${id}`, accessToken);
 }

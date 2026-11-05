@@ -23,4 +23,13 @@ public class ReferenceDataFacadeImpl implements ReferenceDataFacade {
                 .filter(Icd10Code::isBillable)
                 .map(Icd10Code::title);
     }
+
+    @Override
+    public Optional<String> resolveSelectableIcd10Title(String code) {
+        return repository.findByCode(code)
+                .filter(Icd10Code::isActive)
+                .filter(Icd10Code::isSelectable)
+                .filter(c -> c.isBillable() || c.entryType() != null)
+                .map(Icd10Code::title);
+    }
 }

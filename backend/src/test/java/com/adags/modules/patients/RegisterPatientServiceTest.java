@@ -4,6 +4,7 @@ import com.adags.modules.patients.application.DuplicatePatientException;
 import com.adags.modules.patients.application.RegisterPatientCommand;
 import com.adags.modules.patients.application.RegisterPatientService;
 import com.adags.modules.patients.domain.NextOfKin;
+import com.adags.modules.patients.domain.MatchReason;
 import com.adags.modules.patients.domain.Patient;
 import com.adags.support.IntegrationTestSupport;
 import org.junit.jupiter.api.AfterEach;
@@ -99,22 +100,24 @@ class RegisterPatientServiceTest extends IntegrationTestSupport {
     }
 
     @Test
-    void highSimilarityWithDobMatchBlocksUnlessOverridden() {
+    void similarFullNameBlocksEvenWithDifferentDobAndOverrideReason() {
         UUID actor = bootstrapAdminId();
         RegisterPatientCommand first = commandFor("Amina", "Hassan", actor);
         registerPatientService.register(first);
 
         RegisterPatientCommand secondNoOverride = new RegisterPatientCommand(
-                "Amina", null, "Hassan", first.dateOfBirth(), null, null,
+                "Amina", null, "Hassan", LocalDate.of(1982, 1, 1), null, null,
                 "FEMALE", null, null, "+255799999911", null, null,
                 first.nextOfKin(), first.addresses(), null, BOOTSTRAP_FACILITY_ID, actor, null);
 
         assertThatThrownBy(() -> registerPatientService.register(secondNoOverride))
-                .isInstanceOf(DuplicatePatientException.class);
+                .isInstanceOf(DuplicatePatientException.class)
+                .satisfies(error -> assertThat(((DuplicatePatientException) error).candidates())
+                        .anySatisfy(candidate -> assertThat(candidate.reasons()).contains(MatchReason.FULL_NAME_EXACT)));
 
         RegisterPatientCommand secondWithOverride = withOverride(secondNoOverride, "confirmed not the same person");
-        Patient saved = registerPatientService.register(secondWithOverride);
-        assertThat(saved.id()).isNotNull();
+        assertThatThrownBy(() -> registerPatientService.register(secondWithOverride))
+                .isInstanceOf(DuplicatePatientException.class);
     }
 
     private RegisterPatientCommand commandFor(String givenName, String familyName, UUID actor) {

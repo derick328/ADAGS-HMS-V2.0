@@ -1,11 +1,13 @@
 import { FeedbackState } from '../../shared/components/FeedbackState';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { TableRegion } from '../../shared/components/TableRegion';
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { fetchAwaitingPlacement } from '../../shared/api/admissions';
 import { fetchOverdueMar } from '../../shared/api/medicationAdministration';
 import { fetchWardAlerts } from '../../shared/api/wardAlerts';
 import { useAuth } from '../../shared/auth/AuthProvider';
+import { usePermission } from '../../shared/auth/usePermission';
 import { formatDateTime } from '../../shared/format/date';
 import { useWardContext } from './WardContext';
 import { useWardPatients } from './useWardPatients';
@@ -16,10 +18,23 @@ import type { WardPatientRowResponse } from '../../shared/api/admissions';
 // the patient) — everything scoped to this nurse's ward only (§3).
 export function DashboardPage() {
   const { accessToken } = useAuth();
-  const { wardName } = useWardContext();
+  const { wardName, wardId } = useWardContext();
   const navigate = useNavigate();
   const { data: patients, isLoading } = useWardPatients();
   const rows = patients ?? [];
+
+  // 17-ward-nurse.md §8: patients the doctor admitted but who are not yet in
+  // a bed — invisible to the roster and to Ward Bills (no bed, no bed-day
+  // accrual) until a nurse claims one. Surfaced here as an unmissable
+  // callout so a waiting admission is acted on, not just tucked in the nav.
+  const canClaim = usePermission('BED_ASSIGN');
+  const { data: awaitingPlacement } = useQuery({
+    queryKey: ['admissions', 'awaiting-placement', wardId],
+    queryFn: () => fetchAwaitingPlacement(wardId as string, accessToken as string),
+    enabled: canClaim && accessToken != null && wardId != null,
+    refetchInterval: 15_000,
+  });
+  const awaitingCount = (awaitingPlacement ?? []).length;
 
   const overdueQueries = useQueries({
     queries: rows.map((row) => ({
@@ -58,6 +73,36 @@ export function DashboardPage() {
   return (
     <div>
       <PageHeader title={<>Dashboard</>} description={<>{wardName ?? 'Your ward'}</>} />
+
+      {awaitingCount > 0 && (
+        <button
+          type="button"
+          onClick={() => navigate('/ward-nurse/awaiting-placement')}
+          style={{
+            display: 'flex',
+            width: '100%',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 'var(--space-3)',
+            textAlign: 'left',
+            padding: 'var(--space-3) var(--space-4)',
+            marginBottom: 'var(--space-4)',
+            background: 'var(--warning-bg)',
+            border: '1px solid var(--warning)',
+            borderRadius: 'var(--radius-lg)',
+            cursor: 'pointer',
+            font: 'inherit',
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <span className="badge badge-warning">{awaitingCount}</span>
+            <span style={{ fontWeight: 'var(--weight-medium)' }}>
+              {awaitingCount === 1 ? 'patient awaiting bed placement' : 'patients awaiting bed placement'}
+            </span>
+          </span>
+          <span style={{ color: 'var(--green-600)', fontWeight: 'var(--weight-medium)' }}>Claim →</span>
+        </button>
+      )}
 
       <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
         <StatusCountCard label="Critical" count={counts.CRITICAL} tone="critical" />

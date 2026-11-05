@@ -7,10 +7,18 @@ import com.adags.modules.reporting.application.DepartmentContributionService;
 import com.adags.modules.reporting.application.ExpenseCategoryTotal;
 import com.adags.modules.reporting.application.ExpenseMonthlyTotal;
 import com.adags.modules.reporting.application.ExpenseReportService;
+import com.adags.modules.reporting.application.CategoryRevenueLine;
+import com.adags.modules.reporting.application.FinancialAdjustments;
 import com.adags.modules.reporting.application.ReceivablesOverview;
 import com.adags.modules.reporting.application.ReceivablesOverviewService;
+import com.adags.modules.reporting.application.RevenueAnalyticsService;
+import com.adags.modules.reporting.application.RevenueCategory;
 import com.adags.modules.reporting.application.RevenueReport;
 import com.adags.modules.reporting.application.RevenueReportService;
+import com.adags.modules.reporting.application.RevenueSummary;
+import com.adags.modules.reporting.application.RevenueTrendPoint;
+import com.adags.modules.reporting.application.TopServiceItemLine;
+import com.adags.modules.reporting.application.TrendGranularity;
 import com.adags.shared.authz.Actor;
 import com.adags.shared.authz.AuthorizationService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -33,6 +41,7 @@ import java.util.UUID;
 public class ReportingController {
 
     private final RevenueReportService revenueReportService;
+    private final RevenueAnalyticsService revenueAnalyticsService;
     private final ExpenseReportService expenseReportService;
     private final DepartmentContributionService departmentContributionService;
     private final ClaimsReportService claimsReportService;
@@ -41,6 +50,7 @@ public class ReportingController {
 
     public ReportingController(
             RevenueReportService revenueReportService,
+            RevenueAnalyticsService revenueAnalyticsService,
             ExpenseReportService expenseReportService,
             DepartmentContributionService departmentContributionService,
             ClaimsReportService claimsReportService,
@@ -48,6 +58,7 @@ public class ReportingController {
             AuthorizationService authorizationService
     ) {
         this.revenueReportService = revenueReportService;
+        this.revenueAnalyticsService = revenueAnalyticsService;
         this.expenseReportService = expenseReportService;
         this.departmentContributionService = departmentContributionService;
         this.claimsReportService = claimsReportService;
@@ -64,6 +75,79 @@ public class ReportingController {
     ) {
         requirePermission(actor);
         return revenueReportService.generate(from, to, facilityId);
+    }
+
+    // 18-admin.md: the KPI row on /admin/revenue. Every figure's basis —
+    // period flow vs. point-in-time balance, billed vs. collected — is
+    // documented on RevenueSummary itself, because a number whose basis
+    // the reader has to guess is worse than no number.
+    @GetMapping("/revenue/summary")
+    public RevenueSummary revenueSummary(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam UUID facilityId,
+            @AuthenticationPrincipal Actor actor
+    ) {
+        requirePermission(actor);
+        return revenueAnalyticsService.summary(from, to, facilityId);
+    }
+
+    // Revenue by service category. Returns every category in a fixed order
+    // including the ones that earned nothing — a zero is a finding.
+    @GetMapping("/revenue/by-category")
+    public List<CategoryRevenueLine> revenueByCategory(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam UUID facilityId,
+            @AuthenticationPrincipal Actor actor
+    ) {
+        requirePermission(actor);
+        return revenueAnalyticsService.byCategory(from, to, facilityId);
+    }
+
+    // Billed and collected over time. granularity omitted picks DAY / WEEK /
+    // MONTH from the span rather than returning 400 daily points for a year.
+    @GetMapping("/revenue/trend")
+    public List<RevenueTrendPoint> revenueTrend(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam UUID facilityId,
+            @RequestParam(required = false) TrendGranularity granularity,
+            @AuthenticationPrincipal Actor actor
+    ) {
+        requirePermission(actor);
+        TrendGranularity resolved = granularity != null ? granularity : TrendGranularity.forSpan(from, to);
+        return revenueAnalyticsService.trend(from, to, facilityId, resolved);
+    }
+
+    // Credit notes and write-offs applied in the period. A separate endpoint
+    // because they are invoice-level: neither can be attributed to a service
+    // category, so neither may be netted off one. See FinancialAdjustments.
+    @GetMapping("/revenue/adjustments")
+    public FinancialAdjustments revenueAdjustments(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam UUID facilityId,
+            @AuthenticationPrincipal Actor actor
+    ) {
+        requirePermission(actor);
+        return revenueAnalyticsService.adjustments(from, to, facilityId);
+    }
+
+    // Ranked catalogue items inside one revenue category — medicines, lab
+    // tests, procedures. Bounded server-side (MAX_TOP_ITEMS); this is a
+    // ranking, not a catalogue export.
+    @GetMapping("/revenue/top-items")
+    public List<TopServiceItemLine> revenueTopItems(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam UUID facilityId,
+            @RequestParam RevenueCategory category,
+            @RequestParam(defaultValue = "5") int limit,
+            @AuthenticationPrincipal Actor actor
+    ) {
+        requirePermission(actor);
+        return revenueAnalyticsService.topItems(from, to, facilityId, category, limit);
     }
 
     @GetMapping("/expenses/by-category")

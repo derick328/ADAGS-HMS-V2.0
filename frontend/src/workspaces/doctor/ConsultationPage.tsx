@@ -955,7 +955,10 @@ function ConsultationTab({
   // If the gate flips on while "Final (confirmed)" is selected, drop back to
   // Provisional so the certainty picker can never submit a blocked value.
   useEffect(() => {
-    if (finalBlockedByLab && certainty === 'CONFIRMED') setCertainty('PROVISIONAL');
+    if (finalBlockedByLab && certainty === 'CONFIRMED') {
+      setSelectedCode(null);
+      setCertainty('PROVISIONAL');
+    }
   }, [finalBlockedByLab, certainty]);
 
   const addDiagnosisMutation = useMutation({
@@ -1127,14 +1130,24 @@ function ConsultationTab({
       </FormSection>
 
       <FormSection title="Diagnosis">
-        {/* 07-doctor.md §5.3 — provisional_diagnosis * and final_diagnosis
-            (nullable) are one coded list split by certainty, not two separate
-            pickers: §4 notes the final diagnosis is often deferred until
-            results arrive. Shown here as two labelled groups so both read as
-            distinct fields while a single picker (below) still feeds either. */}
         <div className="form-field">
           <label>Provisional diagnosis *</label>
-          <DiagnosisGroup items={diagnoses.filter((d) => d.certainty === 'PROVISIONAL')} emptyHint="Add a diagnosis below and mark it Provisional." />
+          <DiagnosisGroup items={diagnoses.filter((d) => d.certainty === 'PROVISIONAL')} emptyHint="Search and add a provisional diagnosis below." />
+          <Combobox<Icd10SearchResult>
+            label="Add provisional diagnosis"
+            placeholder="Search by disease title or ICD-10 code…"
+            search={(q) => searchIcd10(q, undefined, accessToken as string).then((r) => {
+              latestIcd10SearchLogId.current = r.searchLogId ?? null;
+              return r.results ?? [];
+            })}
+            getKey={(o) => o.code as string}
+            renderOption={(o) => <span>{o.title} <strong>{o.code}</strong></span>}
+            onSelect={(o) => {
+              setSelectedCode(o);
+              setCertainty('PROVISIONAL');
+              if (latestIcd10SearchLogId.current && o.code) recordIcd10Selection(latestIcd10SearchLogId.current, o.code, accessToken as string);
+            }}
+          />
         </div>
         {diagnoses.some((d) => d.certainty === 'PROVISIONAL') && (
           <div className="form-field">
@@ -1160,44 +1173,49 @@ function ConsultationTab({
             emptyHint={
               finalBlockedByLab
                 ? 'Awaiting lab results — confirmation is on hold (uncheck the box above to override).'
-                : 'Add once confirmed — often after results arrive.'
+                : 'Search and add a final diagnosis below.'
             }
           />
-        </div>
-        {diagnoses.some((d) => d.certainty === 'RULED_OUT') && (
-          <div className="form-field">
-            <label>Ruled out</label>
-            <DiagnosisGroup items={diagnoses.filter((d) => d.certainty === 'RULED_OUT')} />
-          </div>
-        )}
-        <Combobox<Icd10SearchResult>
-          label="ICD-10 diagnosis"
-          placeholder="Type at least 2 characters…"
-          search={(q) =>
-            searchIcd10(q, undefined, accessToken as string).then((r) => {
+          <Combobox<Icd10SearchResult>
+            label="Add final diagnosis"
+            placeholder="Search by disease title or ICD-10 code…"
+            disabled={finalBlockedByLab}
+            search={(q) => searchIcd10(q, undefined, accessToken as string).then((r) => {
               latestIcd10SearchLogId.current = r.searchLogId ?? null;
               return r.results ?? [];
-            })
-          }
-          getKey={(o) => o.code as string}
-          renderOption={(o) => (
-            <span>
-              <strong>{o.code}</strong> {o.title}
-            </span>
-          )}
-          onSelect={(o) => {
-            setSelectedCode(o);
-            // 10-clinical-reference-data.md §5: the mandatory selection-
-            // audit callback — feeds "recent selections ranked first."
-            if (latestIcd10SearchLogId.current && o.code) {
-              recordIcd10Selection(latestIcd10SearchLogId.current, o.code, accessToken as string);
-            }
-          }}
-        />
+            })}
+            getKey={(o) => o.code as string}
+            renderOption={(o) => <span>{o.title} <strong>{o.code}</strong></span>}
+            onSelect={(o) => {
+              setSelectedCode(o);
+              setCertainty('CONFIRMED');
+              if (latestIcd10SearchLogId.current && o.code) recordIcd10Selection(latestIcd10SearchLogId.current, o.code, accessToken as string);
+            }}
+          />
+        </div>
+        <div className="form-field">
+          <label>Ruled out</label>
+          <DiagnosisGroup items={diagnoses.filter((d) => d.certainty === 'RULED_OUT')} />
+          <Combobox<Icd10SearchResult>
+            label="Add ruled-out diagnosis"
+            placeholder="Search by disease title or ICD-10 code…"
+            search={(q) => searchIcd10(q, undefined, accessToken as string).then((r) => {
+              latestIcd10SearchLogId.current = r.searchLogId ?? null;
+              return r.results ?? [];
+            })}
+            getKey={(o) => o.code as string}
+            renderOption={(o) => <span>{o.title} <strong>{o.code}</strong></span>}
+            onSelect={(o) => {
+              setSelectedCode(o);
+              setCertainty('RULED_OUT');
+              if (latestIcd10SearchLogId.current && o.code) recordIcd10Selection(latestIcd10SearchLogId.current, o.code, accessToken as string);
+            }}
+          />
+        </div>
         {selectedCode && (
           <div style={{ marginTop: 'var(--space-2)', display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div>
-              Selected: <strong>{selectedCode.code}</strong> {selectedCode.title}
+              {certainty === 'PROVISIONAL' ? 'Provisional' : certainty === 'CONFIRMED' ? 'Final' : 'Ruled out'}: {selectedCode.title} <strong>({selectedCode.code})</strong>
             </div>
             <input aria-label="Free-text clarifier" className="clinical-control"
               placeholder="Free-text clarifier"
@@ -1205,13 +1223,6 @@ function ConsultationTab({
               onChange={(e) => setClarifier(e.target.value)}
               style={{ ...fieldStyle, width: 240 }}
             />
-            <select aria-label="Diagnosis certainty" className="clinical-control" value={certainty} onChange={(e) => setCertainty(e.target.value as DiagnosisCertainty)} style={{ width: 180 }}>
-              <option value="PROVISIONAL">Provisional</option>
-              <option value="CONFIRMED" disabled={finalBlockedByLab}>
-                Final (confirmed){finalBlockedByLab ? ' — awaiting lab results' : ''}
-              </option>
-              <option value="RULED_OUT">Ruled out</option>
-            </select>
             <Checkbox  className="clinical-choice" checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} label={<>Primary</>} />
             <button
               type="button"
@@ -1219,7 +1230,7 @@ function ConsultationTab({
               onClick={() => addDiagnosisMutation.mutate()}
               disabled={addDiagnosisMutation.isPending || (certainty === 'CONFIRMED' && finalBlockedByLab)}
             >
-              Add diagnosis
+              Add {certainty === 'PROVISIONAL' ? 'provisional' : certainty === 'CONFIRMED' ? 'final' : 'ruled-out'} diagnosis
             </button>
           </div>
         )}

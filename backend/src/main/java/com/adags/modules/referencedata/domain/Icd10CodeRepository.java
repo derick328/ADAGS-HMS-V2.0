@@ -15,6 +15,12 @@ public interface Icd10CodeRepository {
      */
     boolean upsert(Icd10Code code);
 
+    ImportStatus upsertWhoRow(String code, String title, String chapter, String block,
+                              String parentCode, String release, String entryType,
+                              String usageMarker, String longTitle, boolean selectable);
+
+    enum ImportStatus { INSERTED, UPDATED, SKIPPED }
+
     /** Root CLAUDE.md "Data": retirement, never deletion. */
     void deactivate(String code);
 }

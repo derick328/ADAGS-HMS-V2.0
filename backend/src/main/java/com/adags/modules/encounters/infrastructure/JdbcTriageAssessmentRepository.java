@@ -63,7 +63,7 @@ public class JdbcTriageAssessmentRepository implements TriageAssessmentRepositor
                 .addValue("currentSymptoms", triageAssessment.currentSymptoms())
                 .addValue("allergies", triageAssessment.allergies())
                 .addValue("comorbidities", triageAssessment.comorbidities())
-                .addValue("modeOfAmbulation", triageAssessment.modeOfAmbulation().name())
+                .addValue("modeOfAmbulation", triageAssessment.modeOfAmbulation() == null ? null : triageAssessment.modeOfAmbulation().name(), Types.VARCHAR)
                 .addValue("hasPain", triageAssessment.hasPain())
                 .addValue("painScore", triageAssessment.painScore(), Types.SMALLINT)
                 .addValue("painLocation", triageAssessment.painLocation(), Types.VARCHAR)
@@ -139,7 +139,7 @@ public class JdbcTriageAssessmentRepository implements TriageAssessmentRepositor
                 rs.getString("current_symptoms"),
                 rs.getString("allergies"),
                 rs.getString("comorbidities"),
-                ModeOfAmbulation.valueOf(rs.getString("mode_of_ambulation")),
+                rs.getString("mode_of_ambulation") == null ? null : ModeOfAmbulation.valueOf(rs.getString("mode_of_ambulation")),
                 rs.getBoolean("has_pain"),
                 getNullableInt(rs, "pain_score"),
                 rs.getString("pain_location"),

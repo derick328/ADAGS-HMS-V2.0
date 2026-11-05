@@ -8,7 +8,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { searchEncounters, type EncounterResponse } from '../../shared/api/encounters';
-import { fetchPatientById, searchPatients, type PatientSearchResult } from '../../shared/api/patients';
+import {
+  fetchPatientById,
+  listRecentPatients,
+  searchPatients,
+  type PatientSearchResult,
+} from '../../shared/api/patients';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { useMe } from '../../shared/auth/useMe';
 
@@ -184,21 +189,79 @@ function ActivePatientRow({
   );
 }
 
+// §3.2: All patients is search-first — type a name and get the patient. With
+// no search term it now opens on the registration list, newest first, one
+// page of PAGE_SIZE at a time: a doctor who knows the patient is "the one
+// registered a few minutes ago" has nothing to type. Server-side the page
+// size stays bounded and every page fetch is audited (SearchPatientsService),
+// so this is a pager over the registration list, not a patient export.
+const PAGE_SIZE = 15;
+
 function AllTab({ onSelect }: { onSelect: (patientId: string) => void }) {
   const { accessToken } = useAuth();
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const searching = query.trim().length >= 2;
+
   const { data: results, isPending, isError, refetch } = useQuery({
     queryKey: ['patients', 'search', query],
     queryFn: () => searchPatients(query, accessToken as string),
-    enabled: accessToken != null && query.trim().length >= 2,
+    enabled: accessToken != null && searching,
   });
+
+  const {
+    data: listPage,
+    isPending: listPending,
+    isError: listError,
+    refetch: refetchList,
+  } = useQuery({
+    queryKey: ['patients', 'recent', { page, pageSize: PAGE_SIZE }],
+    queryFn: () => listRecentPatients({ page, pageSize: PAGE_SIZE }, accessToken as string),
+    enabled: accessToken != null && !searching,
+  });
+
+  const items = listPage?.items ?? [];
+  const totalPages = listPage ? Math.max(1, Math.ceil(listPage.totalCount / PAGE_SIZE)) : 1;
 
   return (
     <div className="workspace-panel">
       <div className="workspace-search"><Input label="Find a patient" leadingIcon={Search}
-        placeholder="Name, hospital number, or phone" value={query} onChange={(event) => setQuery(event.target.value)} /></div>
-      {query.trim().length < 2 ? (
-        <EmptyState icon={Search} title="Search patient history" description="Enter at least 2 characters to find a patient by name, hospital number, or phone." />
+        placeholder="Name, hospital number, or phone" value={query}
+        onChange={(event) => { setQuery(event.target.value); setPage(0); }} /></div>
+      {query.trim().length === 1 && (
+        <p className="workspace-meta" role="status" style={{ marginBottom: 'var(--space-2)' }}>
+          Keep typing — search needs at least 2 characters. Showing all patients below.
+        </p>
+      )}
+      {!searching ? (
+        listError ? (
+          <QueryState title="Unable to load patients" description="Retry to load the patient list." onRetry={() => void refetchList()} />
+        ) : listPending ? (
+          <QueryState loading title="Loading patients…" />
+        ) : items.length === 0 ? (
+          <EmptyState role="status" icon={Users} title="No patients registered yet"
+            description="Patients appear here as reception registers them. You can also search by name, hospital number, or phone." />
+        ) : (
+          <>
+            <ul className="workspace-list" aria-label="All patients">
+              {items.map((patient) => <li key={patient.id} className="workspace-row">
+                <div className="workspace-identity">
+                  <button type="button" className="workspace-name" onClick={() => onSelect(patient.id)}>{patient.fullName}</button>
+                  <p className="workspace-meta">Hospital number: {patient.hospitalNo ?? 'Unavailable'}</p>
+                  <p className="workspace-meta">Registered: {formatRegistered(patient.createdAt)}</p>
+                </div>
+                <div className="workspace-actions"><button type="button" className="btn btn-secondary" onClick={() => onSelect(patient.id)}>View patient</button></div>
+              </li>)}
+            </ul>
+            <PageControls
+              page={page}
+              totalPages={totalPages}
+              rangeLabel={`Showing ${page * PAGE_SIZE + 1}–${page * PAGE_SIZE + items.length} of ${listPage?.totalCount ?? items.length}`}
+              onPrevious={() => setPage((p) => Math.max(0, p - 1))}
+              onNext={() => setPage((p) => p + 1)}
+            />
+          </>
+        )
       ) : isError ? (
         <QueryState title="Unable to search patients" description="Try your search again." onRetry={() => void refetch()} />
       ) : isPending ? (
@@ -218,4 +281,42 @@ function AllTab({ onSelect }: { onSelect: (patientId: string) => void }) {
       )}
     </div>
   );
+}
+
+function PageControls({
+  page,
+  totalPages,
+  rangeLabel,
+  onPrevious,
+  onNext,
+}: {
+  page: number;
+  totalPages: number;
+  rangeLabel: string;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <nav aria-label="Patient list pages" style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: 'var(--space-2)', marginTop: 'var(--space-3)',
+    }}>
+      <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)', margin: 0 }}>{rangeLabel}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+        <button type="button" className="btn btn-ghost" disabled={page === 0} onClick={onPrevious}>Previous</button>
+        <span aria-live="polite" style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+          Page {page + 1} of {totalPages}
+        </span>
+        <button type="button" className="btn btn-ghost" disabled={page + 1 >= totalPages} onClick={onNext}>Next</button>
+      </div>
+    </nav>
+  );
+}
+
+// Facility-local (Africa/Dar_es_Salaam) — the server sends UTC.
+function formatRegistered(createdAt: string | null): string {
+  if (!createdAt) return 'Unknown';
+  return new Date(createdAt).toLocaleDateString('en-GB', {
+    timeZone: 'Africa/Dar_es_Salaam', day: '2-digit', month: 'short', year: 'numeric',
+  });
 }

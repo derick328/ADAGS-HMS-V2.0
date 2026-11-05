@@ -35,7 +35,7 @@ public class AddDiagnosisService {
             UUID encounterId, UUID consultationRecordId, String icd10Code, String freeTextClarifier,
             DiagnosisCertainty certainty, boolean isPrimary, UUID diagnosedBy
     ) {
-        String titleSnapshot = referenceDataFacade.resolveBillableIcd10Title(icd10Code)
+        String titleSnapshot = referenceDataFacade.resolveSelectableIcd10Title(icd10Code)
                 .orElseThrow(() -> new NoSuchElementException(
                         "No active, billable ICD-10 code: " + icd10Code));
 

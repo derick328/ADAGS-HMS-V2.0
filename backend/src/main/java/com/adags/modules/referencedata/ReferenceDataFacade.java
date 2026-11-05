@@ -16,4 +16,7 @@ public interface ReferenceDataFacade {
      * billable code is a valid diagnosis).
      */
     Optional<String> resolveBillableIcd10Title(String code);
+
+    /** Active diagnosis-selectable title, including WHO rows pending billing review. */
+    Optional<String> resolveSelectableIcd10Title(String code);
 }

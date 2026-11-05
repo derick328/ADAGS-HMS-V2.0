@@ -100,8 +100,8 @@ export function PatientIntakePage() {
             from the nav") on explicit product-owner instruction, prioritising
             registration speed over the UI search-first nudge. Duplicate
             protection is unaffected: RegisterPatientService still runs full
-            duplicate detection (exact national_id, trigram name+DOB
-            similarity) server-side on every submit, independent of whether a
+            duplicate detection (exact national ID or similar full name)
+            server-side on every submit, independent of whether a
             search ran first — see the duplicateCandidates handling below. */}
         {canRegister && (
           <div style={{ marginTop: 'var(--space-4)' }}>
@@ -433,7 +433,6 @@ const registrationSchema = z
     memberNumber: z.string().optional(),
     isPrincipal: z.boolean(),
     principalName: z.string().optional(),
-    notSamePersonConfirmationReason: z.string().optional(),
   })
   .refine((v) => v.dobKnown === 'exact' || v.ageYears != null, {
     message: 'Enter an age in years', path: ['ageYears'],
@@ -580,7 +579,6 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
           }
         : undefined,
       facilityId: BOOTSTRAP_FACILITY_ID,
-      notSamePersonConfirmationReason: values.notSamePersonConfirmationReason || undefined,
     };
   }
 
@@ -610,38 +608,31 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
     );
   }
 
-  const hardBlock = duplicateCandidates?.some((c) => c.reasons.includes('NATIONAL_ID_EXACT'));
-
   return (
-    <form onSubmit={onSubmit} noValidate className="clinical-form-layout intake-form">
-      {duplicateCandidates && (
-        <div
-          role="alert"
-          style={{ padding: 'var(--space-3)', background: 'var(--warning-bg)', color: 'var(--warning)', borderRadius: 'var(--radius)' }}
-        >
-          <strong>{hardBlock ? 'A patient with this national ID already exists.' : 'Possible existing patient found.'}</strong>
-          <ul style={{ margin: 'var(--space-2) 0 0', paddingLeft: 'var(--space-4)' }}>
-            {duplicateCandidates.map((c) => (
-              <li key={c.patientId}>
-                {c.fullName} — {c.hospitalNo} ({c.reasons.map((r) => r.replaceAll('_', ' ').toLowerCase()).join(', ')})
-              </li>
-            ))}
-          </ul>
-          {hardBlock ? (
-            <p style={{ margin: 'var(--space-2) 0 0' }}>Open the existing record instead of registering a new one.</p>
-          ) : (
-            <div style={{ marginTop: 'var(--space-3)' }}>
-              <label htmlFor="not-same-person" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
-                Reason this is not the same person
-              </label>
-              <textarea className="clinical-control" id="not-same-person" rows={2} {...register('notSamePersonConfirmationReason')} style={fieldStyle} />
-              <button type="button" className="btn btn-danger" style={{ marginTop: 'var(--space-2)' }} onClick={onSubmit}>
-                Confirm not the same person and register
-              </button>
+    <>
+      <Modal
+        open={duplicateCandidates != null}
+        onClose={() => setDuplicateCandidates(null)}
+        title={<>This patient already exists</>}
+        description={<>A registered patient has a matching national ID or a similar full name. Select the correct record to send to triage.</>}
+        footer={<button type="button" className="btn btn-ghost" onClick={() => setDuplicateCandidates(null)}>Cancel</button>}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          {duplicateCandidates?.map((candidate) => (
+            <div key={candidate.patientId} style={{ ...cardStyle, marginTop: 0 }}>
+              <strong>{candidate.fullName}</strong>
+              <p style={{ margin: 'var(--space-2) 0', color: 'var(--text-secondary)' }}>
+                Hospital number: {candidate.hospitalNo}
+              </p>
+              <p style={{ margin: '0 0 var(--space-3)', color: 'var(--text-secondary)' }}>
+                Matched by {candidate.reasons.includes('NATIONAL_ID_EXACT') ? 'national ID' : 'full name'}
+              </p>
+              <SendToTriageControl patientId={candidate.patientId} onSent={() => setDuplicateCandidates(null)} />
             </div>
-          )}
+          ))}
         </div>
-      )}
+      </Modal>
+      <form onSubmit={onSubmit} noValidate className="clinical-form-layout intake-form">
 
       <FormSection title="Identity" columns={2} className="form-section--wide">
 
@@ -799,7 +790,8 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
       <button type="submit" className="btn btn-primary" disabled={submit.isPending} style={{ alignSelf: 'flex-start' }}>
         {submit.isPending ? 'Registering…' : 'Register patient'}
       </button>
-    </form>
+      </form>
+    </>
   );
 }
 

@@ -30,12 +30,8 @@ public class RegisterPatientService {
     private static final String HOSPITAL_NUMBER_SEQUENCE = "HOSPITAL_NO";
     private static final int HOSPITAL_NUMBER_PAD_WIDTH = 6;
 
-    // No fallback constants: V7__protocol_setting.sql seeds both rows, so a
-    // missing one means the table is misconfigured or was wiped, not that
-    // a default is wanted — protocolSettings.getDouble(key) throws rather
-    // than silently substituting a value (see backend/CLAUDE.md for the
-    // similarity-score evidence behind these numbers).
-    private static final String LOW_SIMILARITY_THRESHOLD_KEY = "patients.duplicate_detection.low_similarity_threshold";
+    // The similarity threshold is read from protocol_setting so it can be
+    // tuned without changing registration code.
     private static final String HIGH_SIMILARITY_THRESHOLD_KEY = "patients.duplicate_detection.high_similarity_threshold";
 
     private final PatientRepository patientRepository;
@@ -67,7 +63,7 @@ public class RegisterPatientService {
         boolean dobIsEstimated = command.dateOfBirth() == null;
 
         rejectNextOfKinIsSameAsPatient(command);
-        checkForDuplicates(command, dateOfBirth);
+        checkForDuplicates(command);
 
         String hospitalNo = numberAllocator.allocate(
                 HOSPITAL_NUMBER_SEQUENCE, command.facilityId(), LocalDate.now(clock).getYear(), HOSPITAL_NUMBER_PAD_WIDTH);
@@ -94,21 +90,13 @@ public class RegisterPatientService {
         return saved;
     }
 
-    private void checkForDuplicates(RegisterPatientCommand command, LocalDate dateOfBirth) {
-        double lowSimilarityThreshold = protocolSettings.getDouble(LOW_SIMILARITY_THRESHOLD_KEY);
+    private void checkForDuplicates(RegisterPatientCommand command) {
         double highSimilarityThreshold = protocolSettings.getDouble(HIGH_SIMILARITY_THRESHOLD_KEY);
         DuplicateCheckQuery query = new DuplicateCheckQuery(
-                command.givenName(), command.familyName(), dateOfBirth,
-                command.nationalId(), command.phone(), lowSimilarityThreshold, highSimilarityThreshold);
+                command.givenName(), command.middleName(), command.familyName(),
+                command.nationalId(), highSimilarityThreshold);
         List<DuplicateCandidate> candidates = patientRepository.findDuplicateCandidates(query);
-
-        // National-ID exact match is never overridable here — 05-receptionist.md
-        // §4.1 directs staff to the existing record, not through this path.
-        boolean hardBlock = candidates.stream().anyMatch(DuplicateCandidate::blocksUnconditionally);
-        boolean softBlock = candidates.stream().anyMatch(DuplicateCandidate::blocks)
-                && (command.notSamePersonConfirmationReason() == null || command.notSamePersonConfirmationReason().isBlank());
-
-        if (hardBlock || softBlock) {
+        if (candidates.stream().anyMatch(DuplicateCandidate::blocks)) {
             throw new DuplicatePatientException(candidates);
         }
     }

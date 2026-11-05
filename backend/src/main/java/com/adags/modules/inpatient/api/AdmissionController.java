@@ -22,6 +22,8 @@ import com.adags.modules.inpatient.domain.BedAssignment;
 import com.adags.modules.inpatient.domain.BedAssignmentRepository;
 import com.adags.modules.inpatient.domain.BedRepository;
 import com.adags.modules.inpatient.domain.NursingAssignment;
+import com.adags.modules.inpatient.domain.Ward;
+import com.adags.modules.inpatient.domain.WardRepository;
 import com.adags.modules.patients.PatientFacade;
 import com.adags.shared.authz.Actor;
 import com.adags.shared.authz.AuthorizationService;
@@ -60,6 +62,7 @@ public class AdmissionController {
     private final AdmissionRepository admissionRepository;
     private final BedRepository bedRepository;
     private final BedAssignmentRepository bedAssignmentRepository;
+    private final WardRepository wardRepository;
     private final EncounterFacade encounterFacade;
     private final PatientFacade patientFacade;
     private final AuthorizationService authorizationService;
@@ -75,6 +78,7 @@ public class AdmissionController {
             AdmissionRepository admissionRepository,
             BedRepository bedRepository,
             BedAssignmentRepository bedAssignmentRepository,
+            WardRepository wardRepository,
             EncounterFacade encounterFacade,
             PatientFacade patientFacade,
             AuthorizationService authorizationService
@@ -89,6 +93,7 @@ public class AdmissionController {
         this.admissionRepository = admissionRepository;
         this.bedRepository = bedRepository;
         this.bedAssignmentRepository = bedAssignmentRepository;
+        this.wardRepository = wardRepository;
         this.encounterFacade = encounterFacade;
         this.patientFacade = patientFacade;
         this.authorizationService = authorizationService;
@@ -104,6 +109,40 @@ public class AdmissionController {
     public List<WardPatientRowResponse> listByWard(@RequestParam UUID wardId, @AuthenticationPrincipal Actor actor) {
         requirePermission(actor, "WARD_PATIENT_READ", ScopeType.WARD, wardId);
         return admissionRepository.findByCurrentWardId(wardId).stream().map(this::toWardPatientRow).toList();
+    }
+
+    // 17-ward-nurse.md §8: patients the doctor marked ADMITTED who have not
+    // yet been placed into a bed — they belong to no ward's roster
+    // (listByWard needs an active bed assignment) and accrue no bed-days, so
+    // they are otherwise invisible to every nurse and to billing. The claim
+    // worklist: scoped to the facility of the nurse's own ward, gated on the
+    // same BED_ASSIGN@ward she needs to then place one (a nurse who can
+    // assign beds in the facility pulls a new admission into her ward).
+    // Reuses WardPatientRowResponse — bed/ward fields come back null, which
+    // is exactly what "not yet placed" means.
+    @GetMapping("/awaiting-placement")
+    public List<WardPatientRowResponse> awaitingPlacement(@RequestParam UUID wardId, @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "BED_ASSIGN", ScopeType.WARD, wardId);
+        Ward ward = wardRepository.findById(wardId)
+                .orElseThrow(() -> new NoSuchElementException("Ward not found: " + wardId));
+        return admissionRepository.findAwaitingPlacement(ward.facilityId()).stream()
+                .map(this::toWardPatientRow)
+                .toList();
+    }
+
+    // 07-doctor.md §7/§11: the admitting doctor's own admitted patients — the
+    // doctor-side "Admitted" worklist. Own data, so gated on ADMISSION_ORDER
+    // unscoped (a doctor who can admit sees whom they admitted), the same
+    // "/mine" shape as PrescriptionController#mine. Includes not-yet-placed
+    // admissions; bed/ward come back null for those, as on the claim list.
+    @GetMapping("/mine")
+    public List<WardPatientRowResponse> mine(@AuthenticationPrincipal Actor actor) {
+        if (!authorizationService.hasPermission(actor, "ADMISSION_ORDER")) {
+            throw new AccessDeniedException("Missing permission: ADMISSION_ORDER");
+        }
+        return admissionRepository.findActiveByAdmittingDoctor(actor.userId()).stream()
+                .map(this::toWardPatientRow)
+                .toList();
     }
 
     private WardPatientRowResponse toWardPatientRow(Admission admission) {

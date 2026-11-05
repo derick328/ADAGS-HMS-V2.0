@@ -21,6 +21,14 @@ export interface PatientListResult {
   insuranceSchemeName: string | null;
 }
 
+/** One page of the registration list plus the total the same filters match. */
+export interface PatientListPage {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  items: PatientListResult[];
+}
+
 // 05-receptionist.md §4.1: DuplicatePatientException attaches this shape to
 // the 409's ProblemDetail body dynamically (GlobalExceptionHandler) —
 // springdoc has no static return type to generate a schema from for it, so
@@ -31,7 +39,7 @@ export interface DuplicateCandidate {
   hospitalNo: string;
   fullName: string;
   nameSimilarity: number;
-  reasons: ('NATIONAL_ID_EXACT' | 'NAME_SIMILARITY_WITH_DOB_MATCH' | 'NAME_SIMILARITY' | 'PHONE_EXACT')[];
+  reasons: ('NATIONAL_ID_EXACT' | 'FULL_NAME_EXACT' | 'NAME_SIMILARITY' | 'NAME_SIMILARITY_WITH_DOB_MATCH' | 'PHONE_EXACT')[];
 }
 
 export class DuplicatePatientError extends Error {
@@ -53,18 +61,20 @@ export function fetchRegisteredPatientCount(from: string, to: string, accessToke
   return authFetch(`/api/patients/registered-count?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, accessToken);
 }
 
-// Admin Patients page recent-registrations list — bounded, audited each
-// call, gated on PATIENT_SEARCH. See the backend PatientListResult for
-// the deviation from 05-receptionist.md §5.1's "no list-all" line.
+// Registration list — the admin Patients page and the doctor workspace's
+// "All patients" tab both read it. Bounded page size, audited each call,
+// gated on PATIENT_SEARCH. See the backend PatientListResult for the
+// deviation from 05-receptionist.md §5.1's "no list-all" line.
 export function listRecentPatients(
-  params: { from?: string; to?: string; payer?: string; limit?: number },
+  params: { from?: string; to?: string; payer?: string; page?: number; pageSize?: number },
   accessToken: string,
-): Promise<PatientListResult[]> {
+): Promise<PatientListPage> {
   const search = new URLSearchParams();
   if (params.from) search.set('from', params.from);
   if (params.to) search.set('to', params.to);
   if (params.payer) search.set('payer', params.payer);
-  if (params.limit != null) search.set('limit', String(params.limit));
+  if (params.page != null) search.set('page', String(params.page));
+  if (params.pageSize != null) search.set('pageSize', String(params.pageSize));
   const qs = search.toString();
   return authFetch(`/api/patients${qs ? `?${qs}` : ''}`, accessToken);
 }

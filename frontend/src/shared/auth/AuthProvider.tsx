@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import * as api from '../api/client';
 
@@ -13,6 +14,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [status, setStatus] = useState<AuthStatus>('loading');
 
@@ -60,18 +62,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (username: string, password: string) => {
     const response = await api.login({ username, password });
+    // Wipe every cached query before the new identity takes effect. Shared
+    // keys like ['me'] are keyed by identity, not token, so without this the
+    // previous user's cached data (their username, permissions, queues)
+    // would show to whoever logs in next until each query happened to
+    // refetch — the cross-user bleed behind "glory sees Friday's name".
+    queryClient.clear();
     setAccessToken(response.accessToken ?? null);
     setStatus('authenticated');
     return response.accessToken ?? null;
-  }, []);
+  }, [queryClient]);
 
   const logout = useCallback(async () => {
-    if (accessToken) {
-      await api.logout(accessToken);
-    }
+    // Flip to signed-out and drop the cache immediately, before awaiting the
+    // server. Awaiting /auth/logout first left the previous user's screen and
+    // identity up for however long that round-trip took (the 5-10s hang
+    // between sign-out and the next sign-in). The server revocation is
+    // best-effort — the refresh cookie is cleared by the response and the
+    // access token expires on its own TTL regardless.
+    const token = accessToken;
     setAccessToken(null);
     setStatus('unauthenticated');
-  }, [accessToken]);
+    queryClient.clear();
+    if (token) {
+      try {
+        await api.logout(token);
+      } catch {
+        // Already signed out locally; a failed revoke must not block the UI.
+      }
+    }
+  }, [accessToken, queryClient]);
 
   return (
     <AuthContext.Provider value={{ accessToken, status, login, logout }}>

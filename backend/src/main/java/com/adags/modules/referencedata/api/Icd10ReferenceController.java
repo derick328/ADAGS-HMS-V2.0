@@ -16,6 +16,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+import java.io.IOException;
+import com.adags.modules.referencedata.application.WhoIcd10ImportResult;
 
 // 10-clinical-reference-data.md §4 items 3-5: search (§5), synonym
 // propose-and-approve (§3), and import (§4.1). Search carries no
@@ -70,6 +72,12 @@ public class Icd10ReferenceController {
     ) {
         requirePermission(actor, "REFERENCE_IMPORT");
         return importService.importRelease(request.release(), request.codes());
+    }
+
+    @PostMapping("/import/who-2019")
+    public WhoIcd10ImportResult importWho2019(@AuthenticationPrincipal Actor actor) throws IOException {
+        requirePermission(actor, "REFERENCE_IMPORT");
+        return importService.importWho2019();
     }
 
     @PostMapping("/synonyms")

@@ -87,8 +87,8 @@ class AddDiagnosisServiceTest extends IntegrationTestSupport {
 
     private void insertIcd10Code(String code, String title, boolean isBillable, boolean isActive) {
         jdbcTemplate.update("""
-                        INSERT INTO icd10_code (code, title, icd10_release, is_billable, is_active)
-                        VALUES (:code, :title, '2019', :isBillable, :isActive)
+                        INSERT INTO icd10_code (code, title, icd10_release, is_billable, is_active, is_selectable)
+                        VALUES (:code, :title, '2019', :isBillable, :isActive, :isBillable)
                         """,
                 new MapSqlParameterSource()
                         .addValue("code", code)

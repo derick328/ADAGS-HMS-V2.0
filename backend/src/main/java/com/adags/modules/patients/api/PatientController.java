@@ -7,7 +7,7 @@ import com.adags.modules.patients.domain.InsurancePolicy;
 import com.adags.modules.patients.domain.NextOfKin;
 import com.adags.modules.patients.domain.Patient;
 import com.adags.modules.patients.domain.PatientAddress;
-import com.adags.modules.patients.domain.PatientListResult;
+import com.adags.modules.patients.domain.PatientListPage;
 import com.adags.modules.patients.domain.PatientRepository;
 import com.adags.modules.patients.domain.PatientSearchResult;
 import com.adags.shared.authz.Actor;
@@ -89,22 +89,24 @@ public class PatientController {
         return searchPatientsService.search(query, limit, actor.userId());
     }
 
-    // Admin Patients page opens on this — see PatientListResult for the
-    // deviation from 05-receptionist.md §5.1's "no list-all" line.
-    // Safeguards: bounded page size (SearchPatientsService MAX_RESULTS),
-    // audited each call, gated on PATIENT_SEARCH.
+    // Admin Patients page and the doctor workspace's "All patients" tab open
+    // on this — see PatientListResult for the deviation from
+    // 05-receptionist.md §5.1's "no list-all" line. Safeguards: bounded page
+    // size (SearchPatientsService.MAX_PAGE_SIZE), one audit row per page
+    // fetched, gated on PATIENT_SEARCH.
     @GetMapping
-    public List<PatientListResult> listRecent(
+    public PatientListPage listRecent(
             @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(value = "payer", required = false) String payer,
-            @RequestParam(value = "limit", defaultValue = "50") int limit,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "pageSize", defaultValue = "50") int pageSize,
             @AuthenticationPrincipal Actor actor
     ) {
         if (!authorizationService.hasPermission(actor, "PATIENT_SEARCH")) {
             throw new AccessDeniedException("Missing permission: PATIENT_SEARCH");
         }
-        return searchPatientsService.listRecent(from, to, payer, limit, actor.userId());
+        return searchPatientsService.listRecent(from, to, payer, page, pageSize, actor.userId());
     }
 
     // 05-receptionist.md §3's "Registered today" dashboard tile — a count,

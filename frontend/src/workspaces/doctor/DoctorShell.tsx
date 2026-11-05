@@ -1,6 +1,7 @@
 import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
 import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
+import { fetchMyAdmissions } from '../../shared/api/admissions';
 import { searchEncounters } from '../../shared/api/encounters';
 import { fetchMyLabOrders } from '../../shared/api/labOrders';
 import { fetchMyPrescriptions } from '../../shared/api/prescriptions';
@@ -28,6 +29,7 @@ export function DoctorShell() {
           <nav className="doctor-nav app-nav" aria-label="Doctor workspace navigation">
             <MyQueueLink />
             <MyPatientsLink />
+            <AdmittedPatientsLink />
             <MyScheduledSurgeriesLink />
             <HospitalCatalogueLink />
             <RequestHistoryLink />
@@ -98,6 +100,34 @@ function MyPatientsLink() {
   return (
     <NavLink to="/doctor/patients" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
       My Patients
+    </NavLink>
+  );
+}
+
+// 07-doctor.md §7/§11: patients this doctor admitted and who are still in
+// hospital (active admissions, bedded or awaiting a bed). Gated on
+// ADMISSION_ORDER — the same permission the admit action needs, so it
+// naturally appears only for doctors who admit. Badge counts the open ones.
+function AdmittedPatientsLink() {
+  const { accessToken } = useAuth();
+  const canSee = usePermission('ADMISSION_ORDER');
+
+  const { data } = useQuery({
+    queryKey: ['admissions', 'mine'],
+    queryFn: () => fetchMyAdmissions(accessToken as string),
+    enabled: canSee && accessToken != null,
+    refetchInterval: 30_000,
+  });
+
+  if (!canSee) return null;
+  const count = (data ?? []).length;
+
+  return (
+    <NavLink to="/doctor/admitted" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
+      <span className="nav-item-label">
+        <span>Admitted</span>
+        {count > 0 && <span className="badge badge-neutral">{count}</span>}
+      </span>
     </NavLink>
   );
 }

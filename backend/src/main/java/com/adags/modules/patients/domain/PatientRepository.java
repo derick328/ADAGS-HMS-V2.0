@@ -32,7 +32,10 @@ public interface PatientRepository {
      *     non-null value = active non-NHIF policy (the coarse
      *     PayerCategory.fromPayerType simplification applies).
      */
-    List<PatientListResult> listRecent(Instant from, Instant to, String payerFilter, int limit);
+    List<PatientListResult> listRecent(Instant from, Instant to, String payerFilter, int offset, int limit);
+
+    /** Total rows the same filters match, so the caller can render "page n of m". */
+    long countRecent(Instant from, Instant to, String payerFilter);
 
     List<InsurancePolicy> findInsurancePoliciesByPatientId(UUID patientId);
 
