@@ -924,6 +924,18 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/Icd10ImportResult"
+  /api/reference/icd10/import/who-2019:
+    post:
+      tags:
+      - icd-10-reference-controller
+      operationId: importWho2019
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WhoIcd10ImportResult"
   /api/procedure-items:
     get:
       tags:
@@ -6272,6 +6284,23 @@ components:
           type: integer
           format: int32
         updated:
+          type: integer
+          format: int32
+    WhoIcd10ImportResult:
+      type: object
+      properties:
+        release:
+          type: string
+        imported:
+          type: integer
+          format: int32
+        updated:
+          type: integer
+          format: int32
+        skipped:
+          type: integer
+          format: int32
+        rejected:
           type: integer
           format: int32
     PrepareProcedureItemRequest:
