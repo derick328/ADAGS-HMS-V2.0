@@ -223,8 +223,8 @@ class TriageAssessmentTest {
 
     private static TriageAssessment create(Builder b) {
         return TriageAssessment.create(
-                ENCOUNTER_ID, b.chiefComplaint, "Started this morning", "NKDA", "None",
-                ModeOfAmbulation.WALKING, b.hasPain, b.painScore, b.painLocation,
+                ENCOUNTER_ID, b.chiefComplaint, b.currentSymptoms, b.allergies, b.comorbidities,
+                b.modeOfAmbulation, b.hasPain, b.painScore, b.painLocation,
                 b.fallRisk, b.fallScore, false,
                 b.pregnancyPromptApplicable, b.pregnancyStatus, b.gestationalWeeks,
                 b.priority, b.immediateReason, b.immediateReasonOtherText,
@@ -233,6 +233,10 @@ class TriageAssessmentTest {
 
     private static final class Builder {
         String chiefComplaint = "Fever and headache";
+        String currentSymptoms = "Started this morning";
+        String allergies = "NKDA";
+        String comorbidities = "None";
+        ModeOfAmbulation modeOfAmbulation = ModeOfAmbulation.WALKING;
         boolean hasPain = false;
         Integer painScore;
         String painLocation;
