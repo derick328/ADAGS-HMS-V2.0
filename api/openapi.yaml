@@ -1312,7 +1312,7 @@ paths:
     get:
       tags:
       - watchlist-controller
-      operationId: list_5
+      operationId: list_6
       responses:
         "200":
           description: OK
@@ -2070,6 +2070,52 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/EncounterResponse"
+  /api/encounters/{id}/departure:
+    post:
+      tags:
+      - outpatient-departure-controller
+      operationId: confirm
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepartureRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DepartureResponse"
+  /api/encounters/{id}/departure/corrections:
+    post:
+      tags:
+      - outpatient-departure-controller
+      operationId: correct
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepartureCorrectionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
   /api/encounters/{id}/consultation/open:
     post:
       tags:
@@ -2823,7 +2869,7 @@ paths:
     get:
       tags:
       - wound-care-controller
-      operationId: list_10
+      operationId: list_11
       parameters:
       - name: admissionId
         in: path
@@ -2894,7 +2940,7 @@ paths:
     get:
       tags:
       - shift-handover-controller
-      operationId: list_11
+      operationId: list_12
       parameters:
       - name: admissionId
         in: path
@@ -3922,6 +3968,68 @@ paths:
               schema:
                 type: integer
                 format: int64
+  /api/patient-presence:
+    get:
+      tags:
+      - patient-presence-controller
+      operationId: list_5
+      parameters:
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: patientId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: departed
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Presence"
+  /api/patient-presence/summaries:
+    get:
+      tags:
+      - patient-presence-controller
+      operationId: summaries
+      parameters:
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: patientIds
+        in: query
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VisitSummary"
   /api/nursing-assignments/mine:
     get:
       tags:
@@ -3961,7 +4069,7 @@ paths:
     get:
       tags:
       - lab-test-controller
-      operationId: list_6
+      operationId: list_7
       responses:
         "200":
           description: OK
@@ -4319,7 +4427,7 @@ paths:
     get:
       tags:
       - insurance-scheme-controller
-      operationId: list_7
+      operationId: list_8
       responses:
         "200":
           description: OK
@@ -4624,7 +4732,7 @@ paths:
     get:
       tags:
       - department-controller
-      operationId: list_8
+      operationId: list_9
       responses:
         "200":
           description: OK
@@ -4793,7 +4901,7 @@ paths:
     get:
       tags:
       - receivables-controller
-      operationId: list_9
+      operationId: list_10
       parameters:
       - name: payerCategory
         in: query
@@ -4964,7 +5072,7 @@ paths:
     get:
       tags:
       - medication-administration-controller
-      operationId: list_12
+      operationId: list_13
       parameters:
       - name: admissionId
         in: path
@@ -5006,7 +5114,7 @@ paths:
     get:
       tags:
       - ward-alert-notification-controller
-      operationId: list_13
+      operationId: list_14
       parameters:
       - name: admissionId
         in: path
@@ -5390,7 +5498,7 @@ paths:
     get:
       tags:
       - catalog-import-controller
-      operationId: list_14
+      operationId: list_15
       responses:
         "200":
           description: OK
@@ -5419,110 +5527,6 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/CatalogImportBatchResponse"
-  /api/patient-presence:
-    get:
-      tags:
-      - patient-presence-controller
-      operationId: listPresence
-      parameters:
-      - name: facilityId
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: patientId
-        in: query
-        required: false
-        schema:
-          type: string
-      - name: departed
-        in: query
-        required: false
-        schema:
-          type: boolean
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Presence'
-  /api/patient-presence/summaries:
-    get:
-      tags:
-      - patient-presence-controller
-      operationId: presenceSummaries
-      parameters:
-      - name: facilityId
-        in: query
-        required: true
-        schema:
-          type: string
-      - name: patientIds
-        in: query
-        required: true
-        schema:
-          type: array
-          items:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/VisitSummary'
-  /api/encounters/{id}/departure:
-    post:
-      tags:
-      - outpatient-departure-controller
-      operationId: confirmDeparture
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DepartureRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DepartureResponse'
-  /api/encounters/{id}/departure/corrections:
-    post:
-      tags:
-      - outpatient-departure-controller
-      operationId: correctDeparture
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DepartureCorrectionRequest'
-      responses:
-        '200':
-          description: OK
 components:
   schemas:
     TriageAssessmentDraftRequest:
@@ -8217,7 +8221,44 @@ components:
           format: date-time
         existingEncounter:
           type: boolean
-
+    DepartureRequest:
+      required:
+      - facilityId
+      - outcome
+      type: object
+      properties:
+        facilityId:
+          type: string
+          format: uuid
+        outcome:
+          type: string
+        note:
+          maxLength: 2000
+          minLength: 0
+          type: string
+    DepartureResponse:
+      type: object
+      properties:
+        departureId:
+          type: string
+          format: uuid
+    DepartureCorrectionRequest:
+      required:
+      - departureId
+      - facilityId
+      - reason
+      type: object
+      properties:
+        facilityId:
+          type: string
+          format: uuid
+        departureId:
+          type: string
+          format: uuid
+        reason:
+          maxLength: 2000
+          minLength: 0
+          type: string
     OpenConsultationResponse:
       type: object
       properties:
@@ -10332,7 +10373,6 @@ components:
         quantityDispensed:
           type: integer
           format: int32
-
     AllergyResponse:
       type: object
       properties:
@@ -10511,6 +10551,59 @@ components:
           type: boolean
         phone:
           type: string
+    Presence:
+      type: object
+      properties:
+        encounterId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        patientName:
+          type: string
+        hospitalNo:
+          type: string
+        state:
+          type: string
+        type:
+          type: string
+        stage:
+          type: string
+        presence:
+          type: string
+        arrivedAt:
+          type: string
+          format: date-time
+        departedAt:
+          type: string
+          format: date-time
+        visitNumber:
+          type: integer
+          format: int64
+        departureId:
+          type: string
+          format: uuid
+    VisitSummary:
+      type: object
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        totalVisits:
+          type: integer
+          format: int64
+        completedVisits:
+          type: integer
+          format: int64
+        firstVisit:
+          type: string
+          format: date-time
+        latestVisit:
+          type: string
+          format: date-time
+        activeEncounter:
+          type: boolean
     NursingAssignmentHistoryRowResponse:
       type: object
       properties:
@@ -11713,85 +11806,4 @@ components:
         currencyCode:
           type: string
         isActive:
-          type: boolean
-    DepartureCorrectionRequest:
-      type: object
-      properties:
-        facilityId:
-          type: string
-          format: uuid
-        departureId:
-          type: string
-          format: uuid
-        reason:
-          type: string
-    DepartureRequest:
-      type: object
-      properties:
-        facilityId:
-          type: string
-          format: uuid
-        outcome:
-          type: string
-        note:
-          type: string
-    DepartureResponse:
-      type: object
-      properties:
-        departureId:
-          type: string
-          format: uuid
-    Presence:
-      type: object
-      properties:
-        encounterId:
-          type: string
-          format: uuid
-        patientId:
-          type: string
-          format: uuid
-        patientName:
-          type: string
-        hospitalNo:
-          type: string
-        state:
-          type: string
-        type:
-          type: string
-        stage:
-          type: string
-        presence:
-          type: string
-        arrivedAt:
-          type: string
-          format: date-time
-        departedAt:
-          type: string
-          format: date-time
-        visitNumber:
-          type: integer
-          format: int64
-        departureId:
-          type: string
-          format: uuid
-
-    VisitSummary:
-      type: object
-      properties:
-        patientId:
-          type: string
-          format: uuid
-        totalVisits:
-          type: integer
-          format: int64
-        completedVisits:
-          type: integer
-          format: int64
-        firstVisit:
-          type: string
-          format: date-time
-        latestVisit:
-          type: string
-          format: date-time
-        activeEncounter:
           type: boolean

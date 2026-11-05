@@ -811,7 +811,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post: operations["add"];
         delete?: never;
@@ -1262,6 +1262,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{id}/departure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/encounters/{id}/departure/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["correct"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1739,7 +1771,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post: operations["record_5"];
         delete?: never;
@@ -1771,7 +1803,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         post: operations["record_7"];
         delete?: never;
@@ -2484,6 +2516,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/patient-presence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/patient-presence/summaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["summaries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/nursing-assignments/mine": {
         parameters: {
             query?: never;
@@ -2523,7 +2587,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2843,7 +2907,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3083,7 +3147,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3243,7 +3307,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3387,7 +3451,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3419,7 +3483,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_13"];
+        get: operations["list_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3611,7 +3675,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_14"];
+        get: operations["list_15"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3630,70 +3694,6 @@ export interface paths {
         get: operations["get_5"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/patient-presence": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listPresence"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/patient-presence/summaries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["presenceSummaries"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/encounters/{id}/departure": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["confirmDeparture"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/encounters/{id}/departure/corrections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["correctDeparture"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5009,6 +5009,23 @@ export interface components {
             createdAt?: string;
             existingEncounter?: boolean;
         };
+        DepartureRequest: {
+            /** Format: uuid */
+            facilityId: string;
+            outcome: string;
+            note?: string;
+        };
+        DepartureResponse: {
+            /** Format: uuid */
+            departureId?: string;
+        };
+        DepartureCorrectionRequest: {
+            /** Format: uuid */
+            facilityId: string;
+            /** Format: uuid */
+            departureId: string;
+            reason: string;
+        };
         OpenConsultationResponse: {
             /** Format: uuid */
             consultationRecordId?: string;
@@ -6238,6 +6255,39 @@ export interface components {
             dobIsEstimated?: boolean;
             phone?: string;
         };
+        Presence: {
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: uuid */
+            patientId?: string;
+            patientName?: string;
+            hospitalNo?: string;
+            state?: string;
+            type?: string;
+            stage?: string;
+            presence?: string;
+            /** Format: date-time */
+            arrivedAt?: string;
+            /** Format: date-time */
+            departedAt?: string;
+            /** Format: int64 */
+            visitNumber?: number;
+            /** Format: uuid */
+            departureId?: string;
+        };
+        VisitSummary: {
+            /** Format: uuid */
+            patientId?: string;
+            /** Format: int64 */
+            totalVisits?: number;
+            /** Format: int64 */
+            completedVisits?: number;
+            /** Format: date-time */
+            firstVisit?: string;
+            /** Format: date-time */
+            latestVisit?: string;
+            activeEncounter?: boolean;
+        };
         NursingAssignmentHistoryRowResponse: {
             /** Format: uuid */
             id?: string;
@@ -6897,56 +6947,6 @@ export interface components {
             currentCashPriceMinor?: number;
             currencyCode?: string;
             isActive?: boolean;
-        };
-        DepartureCorrectionRequest: {
-            /** Format: uuid */
-            facilityId?: string;
-            /** Format: uuid */
-            departureId?: string;
-            reason?: string;
-        };
-        DepartureRequest: {
-            /** Format: uuid */
-            facilityId?: string;
-            outcome?: string;
-            note?: string;
-        };
-        DepartureResponse: {
-            /** Format: uuid */
-            departureId?: string;
-        };
-        Presence: {
-            /** Format: uuid */
-            encounterId?: string;
-            /** Format: uuid */
-            patientId?: string;
-            patientName?: string;
-            hospitalNo?: string;
-            state?: string;
-            type?: string;
-            stage?: string;
-            presence?: string;
-            /** Format: date-time */
-            arrivedAt?: string;
-            /** Format: date-time */
-            departedAt?: string;
-            /** Format: int64 */
-            visitNumber?: number;
-            /** Format: uuid */
-            departureId?: string;
-        };
-        VisitSummary: {
-            /** Format: uuid */
-            patientId?: string;
-            /** Format: int64 */
-            totalVisits?: number;
-            /** Format: int64 */
-            completedVisits?: number;
-            /** Format: date-time */
-            firstVisit?: string;
-            /** Format: date-time */
-            latestVisit?: string;
-            activeEncounter?: boolean;
         };
     };
     responses: never;
@@ -8467,7 +8467,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -9269,6 +9269,56 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["EncounterResponse"];
                 };
+            };
+        };
+    };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DepartureRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DepartureResponse"];
+                };
+            };
+        };
+    };
+    correct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DepartureCorrectionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -10087,7 +10137,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -10161,7 +10211,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -11188,6 +11238,53 @@ export interface operations {
             };
         };
     };
+    list_5: {
+        parameters: {
+            query: {
+                facilityId: string;
+                patientId?: string;
+                departed?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Presence"][];
+                };
+            };
+        };
+    };
+    summaries: {
+        parameters: {
+            query: {
+                facilityId: string;
+                patientIds: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VisitSummary"][];
+                };
+            };
+        };
+    };
     mine_2: {
         parameters: {
             query?: never;
@@ -11230,7 +11327,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -11657,7 +11754,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -11985,7 +12082,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -12195,7 +12292,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: {
                 payerCategory?: "CASH" | "NHIF" | "PRIVATE_SCHEME" | "CORPORATE" | "STAFF";
@@ -12386,7 +12483,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_13: {
         parameters: {
             query?: never;
             header?: never;
@@ -12430,7 +12527,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_14: {
         parameters: {
             query?: never;
             header?: never;
@@ -12716,7 +12813,7 @@ export interface operations {
             };
         };
     };
-    list_14: {
+    list_15: {
         parameters: {
             query?: never;
             header?: never;
@@ -12755,103 +12852,6 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["CatalogImportBatchResponse"];
                 };
-            };
-        };
-    };
-    listPresence: {
-        parameters: {
-            query: {
-                facilityId: string;
-                patientId?: string;
-                departed?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Presence"][];
-                };
-            };
-        };
-    };
-    presenceSummaries: {
-        parameters: {
-            query: {
-                facilityId: string;
-                patientIds: string[];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VisitSummary"][];
-                };
-            };
-        };
-    };
-    confirmDeparture: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DepartureRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DepartureResponse"];
-                };
-            };
-        };
-    };
-    correctDeparture: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DepartureCorrectionRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
