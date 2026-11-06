@@ -26,15 +26,20 @@ services:
       timeout: 5s
       retries: 10
 
-  minio:
-    image: minio/minio:latest
+  storage:
+    image: rustfs/rustfs:1.0.3
     restart: unless-stopped
-    command: server /data --console-address ":9001"
+    command: /data
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env.production}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env.production}
+      RUSTFS_ACCESS_KEY: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env.production}
+      RUSTFS_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env.production}
     volumes:
-      - minio-data:/data
+      - storage-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   backend:
     build: ./backend
@@ -47,7 +52,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.production}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ENDPOINT: http://storage:9000
       MINIO_PUBLIC_ENDPOINT: https://${FILES_DOMAIN:?Set FILES_DOMAIN in .env.production}
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env.production}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env.production}
@@ -58,8 +63,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio:
-        condition: service_started
+      storage:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
@@ -82,11 +87,11 @@ services:
     depends_on:
       - backend
       - frontend
-      - minio
+      - storage
 
 volumes:
   postgres-data:
   redis-data:
-  minio-data:
+  storage-data:
   caddy-data:
   caddy-config:

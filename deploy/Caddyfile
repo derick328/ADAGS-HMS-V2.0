@@ -11,6 +11,6 @@
 }
 
 {$FILES_DOMAIN} {
-    # Preserve the original Host: MinIO checks it in signed requests.
-    reverse_proxy minio:9000
+    # Preserve the original Host for S3 signed requests.
+    reverse_proxy storage:9000
 }

@@ -1,6 +1,6 @@
 # Deploy ADAGS HMS on an Ubuntu VPS
 
-This setup runs the React frontend, Java backend, PostgreSQL, Redis, MinIO,
+This setup runs the React frontend, Java backend, PostgreSQL, Redis, RustFS,
 and Caddy. Only Caddy publishes ports. Caddy gets and renews HTTPS certificates
 for the app and file-download domains.
 
@@ -45,9 +45,10 @@ nano .env.production
 
 Set distinct, strong values for `DB_PASSWORD`, `MINIO_ROOT_PASSWORD`, and
 `ADAGS_BOOTSTRAP_ADMIN_PASSWORD`. Set `MINIO_ROOT_USER` to a non-default
-identifier. Do not commit `.env.production`; it is ignored by Git. The
-bootstrap password is required on the first database migration and should be
-changed through the app after the first login.
+identifier. Keep the `MINIO_ROOT_*` names in the environment file: Compose
+passes them to RustFS and to the Java application's S3 client. Do not commit
+`.env.production`; it is ignored by Git. The bootstrap password is required
+on the first database migration and should be changed after the first login.
 
 ## 4. Build and start
 
@@ -66,12 +67,12 @@ curl -fsS https://adagshms.derutech.com/actuator/health
 
 Then open `https://adagshms.derutech.com`, log in with the bootstrap admin,
 and change its password. Verify a lab attachment download too: it exercises
-the separate file hostname and signed MinIO URL.
+the separate file hostname and signed S3 URL.
 
 ## Updates and backups
 
-Before an update, back up PostgreSQL and the MinIO volume together. The
-database holds application records; MinIO holds uploaded attachments. Redis
+Before an update, back up PostgreSQL and the storage volume together. The
+database holds application records; RustFS holds uploaded attachments. Redis
 stores sessions, so a Redis loss signs users out. Caddy's volume stores TLS
 certificates. Keep backups outside this VPS and test a restore.
 
@@ -84,3 +85,6 @@ sudo docker compose --env-file .env.production -f compose.production.yml logs --
 Flyway runs database migrations when the backend starts. Check migration logs
 before returning the app to clinical use. Never run `docker compose down -v`:
 the `-v` option deletes the database and object-storage volumes.
+
+If an older deployment already contains MinIO data, do not mount that volume
+as RustFS storage. Migrate its objects through the S3 API before switching.

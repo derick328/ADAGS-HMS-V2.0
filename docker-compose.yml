@@ -29,19 +29,19 @@ services:
       timeout: 5s
       retries: 10
 
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
+  storage:
+    image: rustfs/rustfs:1.0.3
+    command: /data
     environment:
-      MINIO_ROOT_USER: adags
-      MINIO_ROOT_PASSWORD: adags-minio-secret
+      RUSTFS_ACCESS_KEY: adags
+      RUSTFS_SECRET_KEY: adags-minio-secret
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - minio-data:/data
+      - storage-data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -49,4 +49,4 @@ services:
 volumes:
   postgres-data:
   redis-data:
-  minio-data:
+  storage-data:
