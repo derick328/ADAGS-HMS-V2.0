@@ -1,8 +1,8 @@
 # Deploy ADAGS HMS on an Ubuntu VPS
 
 This setup runs the React frontend, Java backend, PostgreSQL, Redis, RustFS,
-and Caddy. Only Caddy publishes ports. Caddy gets and renews HTTPS certificates
-for the app and file-download domains.
+and Caddy. In the standalone setup Caddy publishes ports and manages HTTPS.
+On the `derutech.com` VPS, the Nginx overlay keeps Nginx on ports 80/443.
 
 ## 1. DNS and host prerequisites
 
@@ -101,3 +101,6 @@ the `-v` option deletes the database and object-storage volumes.
 
 If an older deployment already contains MinIO data, do not mount that volume
 as RustFS storage. Migrate its objects through the S3 API before switching.
+
+For automatic deployment after successful GitHub Actions checks, see
+`deploy/ci-cd.md`.
