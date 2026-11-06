@@ -6,48 +6,6 @@ servers:
 - url: http://localhost
   description: Generated server url
 paths:
-  /api/encounters/{encounterId}/triage-assessments/history:
-    get:
-      tags:
-      - triage-assessment-controller
-      operationId: triageHistoryByEncounter
-      parameters:
-      - name: encounterId
-        in: path
-        required: true
-        schema: {type: string, format: uuid}
-      responses:
-        "200":
-          description: Care-relationship-scoped historical triage assessments
-          content:
-            '*/*':
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CompletedTriageAssessmentResponse"
-  /api/patient-visits/{patientId}:
-    get:
-      tags:
-      - patient-visit-finance-controller
-      operationId: patientFinanceVisits
-      parameters:
-      - name: patientId
-        in: path
-        required: true
-        schema: {type: string, format: uuid}
-      - name: facilityId
-        in: query
-        required: true
-        schema: {type: string, format: uuid}
-      responses:
-        "200":
-          description: Facility-scoped operational and financial visits; no clinical content
-          content:
-            '*/*':
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/PatientVisitFinance"
   /api/lab-orders/{labOrderId}/result-draft:
     get:
       tags:
@@ -2625,27 +2583,6 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/DiagnosisResponse"
-  /api/consultation-records/{id}/diagnoses/{diagnosisId}:
-    delete:
-      tags:
-      - consultation-record-controller
-      operationId: voidDiagnosis
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: diagnosisId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      responses:
-        "204":
-          description: Diagnosis voided
   /api/cashier-shifts:
     post:
       tags:
@@ -2933,6 +2870,58 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/AppointmentResponse"
+  /api/appointments/{id}/no-show:
+    post:
+      tags:
+      - appointment-controller
+      operationId: markNoShow
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AppointmentResponse"
+  /api/appointments/clinic:
+    post:
+      tags:
+      - appointment-controller
+      operationId: scheduleClinic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClinicBookingRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AppointmentResponse"
+  /api/appointments/clinic-plans/{id}/close:
+    post:
+      tags:
+      - appointment-controller
+      operationId: closeClinic
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
   /api/anaesthesia-paper-records:
     get:
       tags:
@@ -3442,6 +3431,31 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/CatalogImportPreviewResponse"
+  /api/appointments/{id}/reschedule:
+    patch:
+      tags:
+      - appointment-controller
+      operationId: reschedule
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RescheduleRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AppointmentResponse"
   /me:
     get:
       tags:
@@ -4356,6 +4370,33 @@ paths:
               schema:
                 type: integer
                 format: int64
+  /api/patient-visits/{patientId}:
+    get:
+      tags:
+      - patient-visit-finance-controller
+      operationId: visits
+      parameters:
+      - name: patientId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Visit"
   /api/patient-presence:
     get:
       tags:
@@ -5017,6 +5058,27 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/EncounterResponse"
+  /api/encounters/{encounterId}/triage-assessments/history:
+    get:
+      tags:
+      - triage-assessment-controller
+      operationId: byEncounter_3
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompletedTriageAssessmentResponse"
   /api/encounters/{encounterId}/referral-candidates:
     get:
       tags:
@@ -5063,7 +5125,7 @@ paths:
     get:
       tags:
       - consultation-record-controller
-      operationId: byEncounter_3
+      operationId: byEncounter_4
       parameters:
       - name: encounterId
         in: path
@@ -5501,11 +5563,79 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AppointmentResponse"
+  /api/appointments/patient/{patientId}:
+    get:
+      tags:
+      - appointment-controller
+      operationId: patientHistory
+      parameters:
+      - name: patientId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppointmentResponse"
   /api/appointments/expected-returns:
     get:
       tags:
       - appointment-controller
       operationId: expectedReturns
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppointmentResponse"
+  /api/appointments/clinic-plans:
+    get:
+      tags:
+      - appointment-controller
+      operationId: clinicPlans
+      parameters:
+      - name: patientId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: facilityId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: mine
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Plan"
+  /api/appointments/clinic-active:
+    get:
+      tags:
+      - appointment-controller
+      operationId: activeClinicAppointments
       responses:
         "200":
           description: OK
@@ -6082,112 +6212,27 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/CatalogImportBatchResponse"
-  /api/appointments/clinic:
-    post:
-      operationId: scheduleClinic
-      tags: [appointment-controller]
-      requestBody:
+  /api/consultation-records/{id}/diagnoses/{diagnosisId}:
+    delete:
+      tags:
+      - consultation-record-controller
+      operationId: voidDiagnosis
+      parameters:
+      - name: id
+        in: path
         required: true
-        content:
-          application/json:
-            schema: {$ref: '#/components/schemas/ClinicBookingRequest'}
-      responses:
-        '201':
-          description: Clinic appointment scheduled
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/AppointmentResponse'}
-  /api/appointments/patient/{patientId}:
-    get:
-      operationId: patientAppointmentHistory
-      tags: [appointment-controller]
-      parameters:
-        - name: patientId
-          in: path
-          required: true
-          schema: {type: string, format: uuid}
-      responses:
-        '200':
-          description: Appointment history
-          content:
-            application/json:
-              schema: {type: array, items: {$ref: '#/components/schemas/AppointmentResponse'}}
-  /api/appointments/clinic-plans:
-    get:
-      operationId: clinicPlans
-      tags: [appointment-controller]
-      parameters:
-        - name: patientId
-          in: query
-          schema: {type: string, format: uuid}
-        - name: facilityId
-          in: query
-          schema: {type: string, format: uuid}
-        - name: mine
-          in: query
-          schema: {type: boolean}
-      responses:
-        '200':
-          description: Clinic plans
-          content:
-            application/json:
-              schema: {type: array, items: {$ref: '#/components/schemas/ClinicPlan'}}
-  /api/appointments/clinic-active:
-    get:
-      operationId: activeClinicAppointments
-      tags: [appointment-controller]
-      responses:
-        '200':
-          description: Scheduled clinic appointments
-          content:
-            application/json:
-              schema: {type: array, items: {$ref: '#/components/schemas/AppointmentResponse'}}
-  /api/appointments/{id}/reschedule:
-    patch:
-      operationId: rescheduleClinic
-      tags: [appointment-controller]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: {type: string, format: uuid}
-      requestBody:
+        schema:
+          type: string
+          format: uuid
+      - name: diagnosisId
+        in: path
         required: true
-        content:
-          application/json:
-            schema: {$ref: '#/components/schemas/RescheduleClinicRequest'}
+        schema:
+          type: string
+          format: uuid
       responses:
-        '200':
-          description: Rescheduled
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/AppointmentResponse'}
-  /api/appointments/{id}/no-show:
-    post:
-      operationId: markClinicNoShow
-      tags: [appointment-controller]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: {type: string, format: uuid}
-      responses:
-        '200':
-          description: Marked no-show
-          content:
-            application/json:
-              schema: {$ref: '#/components/schemas/AppointmentResponse'}
-  /api/appointments/clinic-plans/{id}/close:
-    post:
-      operationId: closeClinicPlan
-      tags: [appointment-controller]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: {type: string, format: uuid}
-      responses:
-        '200': {description: Closed}
+        "204":
+          description: No Content
 components:
   schemas:
     JsonNode:
@@ -9188,43 +9233,6 @@ components:
         appointmentId:
           type: string
           format: uuid
-    PatientVisitFinance:
-      type: object
-      properties:
-        encounterId: {type: string, format: uuid}
-        visitedAt: {type: string, format: date-time}
-        department: {type: string}
-        clinician: {type: string, nullable: true}
-        status: {type: string}
-        invoices:
-          type: array
-          items: {$ref: "#/components/schemas/PatientVisitInvoice"}
-    PatientVisitInvoice:
-      type: object
-      properties:
-        id: {type: string, format: uuid}
-        number: {type: string, nullable: true}
-        state: {type: string}
-        payerCategory: {type: string}
-        currencyCode: {type: string}
-        grossMinor: {type: integer, format: int64}
-        patientPortionMinor: {type: integer, format: int64}
-        insurancePortionMinor: {type: integer, format: int64}
-        patientPaidMinor: {type: integer, format: int64}
-        patientOutstandingMinor: {type: integer, format: int64}
-        insuranceOutstandingMinor: {type: integer, format: int64}
-        payments:
-          type: array
-          items: {$ref: "#/components/schemas/PatientVisitPayment"}
-    PatientVisitPayment:
-      type: object
-      properties:
-        id: {type: string, format: uuid}
-        amountMinor: {type: integer, format: int64}
-        method: {type: string}
-        status: {type: string}
-        receivedAt: {type: string, format: date-time}
-        reference: {type: string, nullable: true}
     EncounterResponse:
       type: object
       properties:
@@ -9246,9 +9254,6 @@ components:
         assignedProviderId:
           type: string
           format: uuid
-        clinicianName:
-          type: string
-          nullable: true
         type:
           type: string
           enum:
@@ -9287,6 +9292,8 @@ components:
           format: date-time
         existingEncounter:
           type: boolean
+        clinicianName:
+          type: string
     DepartureRequest:
       required:
       - facilityId
@@ -10103,31 +10110,23 @@ components:
           type: string
     ClinicBookingRequest:
       type: object
-      required: [patientId, sourceEncounterId, departmentId, clinicName, scheduledAt]
       properties:
-        patientId: {type: string, format: uuid}
-        sourceEncounterId: {type: string, format: uuid}
-        departmentId: {type: string, format: uuid}
-        clinicName: {type: string}
-        scheduledAt: {type: string, format: date-time}
-        instructions: {type: string}
-    RescheduleClinicRequest:
-      type: object
-      required: [scheduledAt]
-      properties:
-        scheduledAt: {type: string, format: date-time}
-        instructions: {type: string}
-    ClinicPlan:
-      type: object
-      properties:
-        id: {type: string, format: uuid}
-        patientId: {type: string, format: uuid}
-        facilityId: {type: string, format: uuid}
-        departmentId: {type: string, format: uuid}
-        providerId: {type: string, format: uuid}
-        clinic: {type: string}
-        doctor: {type: string}
-        active: {type: boolean}
+        patientId:
+          type: string
+          format: uuid
+        sourceEncounterId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+        clinicName:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        instructions:
+          type: string
     RecordAnaesthesiaRequest:
       required:
       - surgeryOrderId
@@ -10792,6 +10791,14 @@ components:
         newMinor:
           type: integer
           format: int64
+    RescheduleRequest:
+      type: object
+      properties:
+        scheduledAt:
+          type: string
+          format: date-time
+        instructions:
+          type: string
     MeResponse:
       type: object
       properties:
@@ -11737,6 +11744,79 @@ components:
         dobIsEstimated:
           type: boolean
         phone:
+          type: string
+    Visit:
+      type: object
+      properties:
+        encounterId:
+          type: string
+          format: uuid
+        visitedAt:
+          type: string
+          format: date-time
+        department:
+          type: string
+        clinician:
+          type: string
+        status:
+          type: string
+        invoices:
+          type: array
+          items:
+            $ref: "#/components/schemas/VisitInvoice"
+    VisitInvoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        number:
+          type: string
+        state:
+          type: string
+        payerCategory:
+          type: string
+        currencyCode:
+          type: string
+        grossMinor:
+          type: integer
+          format: int64
+        patientPortionMinor:
+          type: integer
+          format: int64
+        insurancePortionMinor:
+          type: integer
+          format: int64
+        patientPaidMinor:
+          type: integer
+          format: int64
+        patientOutstandingMinor:
+          type: integer
+          format: int64
+        insuranceOutstandingMinor:
+          type: integer
+          format: int64
+        payments:
+          type: array
+          items:
+            $ref: "#/components/schemas/VisitPayment"
+    VisitPayment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        amountMinor:
+          type: integer
+          format: int64
+        method:
+          type: string
+        status:
+          type: string
+        receivedAt:
+          type: string
+          format: date-time
+        reference:
           type: string
     Presence:
       type: object
@@ -12706,6 +12786,30 @@ components:
           format: int64
         currencyCode:
           type: string
+    Plan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        facilityId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+        providerId:
+          type: string
+          format: uuid
+        clinic:
+          type: string
+        doctor:
+          type: string
+        active:
+          type: boolean
     WardPatientRowResponse:
       type: object
       properties:

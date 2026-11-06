@@ -4,38 +4,6 @@
  */
 
 export interface paths {
-    "/api/encounters/{encounterId}/triage-assessments/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["triageHistoryByEncounter"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/patient-visits/{patientId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["patientFinanceVisits"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/lab-orders/{labOrderId}/result-draft": {
         parameters: {
             query?: never;
@@ -1604,22 +1572,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/consultation-records/{id}/diagnoses/{diagnosisId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["voidDiagnosis"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/cashier-shifts": {
         parameters: {
             query?: never;
@@ -1790,6 +1742,54 @@ export interface paths {
         get: operations["scheduledBetween"];
         put?: never;
         post: operations["create_9"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/appointments/{id}/no-show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markNoShow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/appointments/clinic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["scheduleClinic"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/appointments/clinic-plans/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["closeClinic"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2098,6 +2098,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/appointments/{id}/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["reschedule"];
         trace?: never;
     };
     "/me": {
@@ -2756,6 +2772,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/patient-visits/{patientId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["visits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/patient-presence": {
         parameters: {
             query?: never;
@@ -3300,6 +3332,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/encounters/{encounterId}/triage-assessments/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["byEncounter_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/encounters/{encounterId}/referral-candidates": {
         parameters: {
             query?: never;
@@ -3339,7 +3387,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["byEncounter_3"];
+        get: operations["byEncounter_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3716,6 +3764,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/appointments/patient/{patientId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["patientHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/appointments/expected-returns": {
         parameters: {
             query?: never;
@@ -3724,6 +3788,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["expectedReturns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/appointments/clinic-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["clinicPlans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/appointments/clinic-active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["activeClinicAppointments"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4036,71 +4132,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/appointments/clinic": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["scheduleClinic"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/appointments/patient/{patientId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["patientAppointmentHistory"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/appointments/clinic-plans": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["clinicPlans"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/appointments/clinic-active": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["activeClinicAppointments"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/appointments/{id}/reschedule": {
+    "/api/consultation-records/{id}/diagnoses/{diagnosisId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -4110,39 +4142,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["rescheduleClinic"];
-        trace?: never;
-    };
-    "/api/appointments/{id}/no-show": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["markClinicNoShow"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/appointments/clinic-plans/{id}/close": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["closeClinicPlan"];
-        delete?: never;
+        delete: operations["voidDiagnosis"];
         options?: never;
         head?: never;
         patch?: never;
@@ -5638,48 +5638,6 @@ export interface components {
             /** Format: uuid */
             appointmentId?: string;
         };
-        PatientVisitFinance: {
-            /** Format: uuid */
-            encounterId?: string;
-            /** Format: date-time */
-            visitedAt?: string;
-            department?: string;
-            clinician?: string | null;
-            status?: string;
-            invoices?: components["schemas"]["PatientVisitInvoice"][];
-        };
-        PatientVisitInvoice: {
-            /** Format: uuid */
-            id?: string;
-            number?: string | null;
-            state?: string;
-            payerCategory?: string;
-            currencyCode?: string;
-            /** Format: int64 */
-            grossMinor?: number;
-            /** Format: int64 */
-            patientPortionMinor?: number;
-            /** Format: int64 */
-            insurancePortionMinor?: number;
-            /** Format: int64 */
-            patientPaidMinor?: number;
-            /** Format: int64 */
-            patientOutstandingMinor?: number;
-            /** Format: int64 */
-            insuranceOutstandingMinor?: number;
-            payments?: components["schemas"]["PatientVisitPayment"][];
-        };
-        PatientVisitPayment: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: int64 */
-            amountMinor?: number;
-            method?: string;
-            status?: string;
-            /** Format: date-time */
-            receivedAt?: string;
-            reference?: string | null;
-        };
         EncounterResponse: {
             /** Format: uuid */
             id?: string;
@@ -5693,7 +5651,6 @@ export interface components {
             appointmentId?: string;
             /** Format: uuid */
             assignedProviderId?: string;
-            clinicianName?: string | null;
             /** @enum {string} */
             type?: "OUTPATIENT" | "EMERGENCY";
             /** @enum {string} */
@@ -5705,6 +5662,7 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
             existingEncounter?: boolean;
+            clinicianName?: string;
         };
         DepartureRequest: {
             /** Format: uuid */
@@ -6121,35 +6079,15 @@ export interface components {
         };
         ClinicBookingRequest: {
             /** Format: uuid */
-            patientId: string;
-            /** Format: uuid */
-            sourceEncounterId: string;
-            /** Format: uuid */
-            departmentId: string;
-            clinicName: string;
-            /** Format: date-time */
-            scheduledAt: string;
-            instructions?: string;
-        };
-        RescheduleClinicRequest: {
-            /** Format: date-time */
-            scheduledAt: string;
-            instructions?: string;
-        };
-        ClinicPlan: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
             patientId?: string;
             /** Format: uuid */
-            facilityId?: string;
+            sourceEncounterId?: string;
             /** Format: uuid */
             departmentId?: string;
-            /** Format: uuid */
-            providerId?: string;
-            clinic?: string;
-            doctor?: string;
-            active?: boolean;
+            clinicName?: string;
+            /** Format: date-time */
+            scheduledAt?: string;
+            instructions?: string;
         };
         RecordAnaesthesiaRequest: {
             /** Format: uuid */
@@ -6496,6 +6434,11 @@ export interface components {
             previousMinor?: number;
             /** Format: int64 */
             newMinor?: number;
+        };
+        RescheduleRequest: {
+            /** Format: date-time */
+            scheduledAt?: string;
+            instructions?: string;
         };
         MeResponse: {
             /** Format: uuid */
@@ -7040,6 +6983,48 @@ export interface components {
             dobIsEstimated?: boolean;
             phone?: string;
         };
+        Visit: {
+            /** Format: uuid */
+            encounterId?: string;
+            /** Format: date-time */
+            visitedAt?: string;
+            department?: string;
+            clinician?: string;
+            status?: string;
+            invoices?: components["schemas"]["VisitInvoice"][];
+        };
+        VisitInvoice: {
+            /** Format: uuid */
+            id?: string;
+            number?: string;
+            state?: string;
+            payerCategory?: string;
+            currencyCode?: string;
+            /** Format: int64 */
+            grossMinor?: number;
+            /** Format: int64 */
+            patientPortionMinor?: number;
+            /** Format: int64 */
+            insurancePortionMinor?: number;
+            /** Format: int64 */
+            patientPaidMinor?: number;
+            /** Format: int64 */
+            patientOutstandingMinor?: number;
+            /** Format: int64 */
+            insuranceOutstandingMinor?: number;
+            payments?: components["schemas"]["VisitPayment"][];
+        };
+        VisitPayment: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int64 */
+            amountMinor?: number;
+            method?: string;
+            status?: string;
+            /** Format: date-time */
+            receivedAt?: string;
+            reference?: string;
+        };
         Presence: {
             /** Format: uuid */
             encounterId?: string;
@@ -7558,6 +7543,21 @@ export interface components {
             totalOutstandingMinor?: number;
             currencyCode?: string;
         };
+        Plan: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            patientId?: string;
+            /** Format: uuid */
+            facilityId?: string;
+            /** Format: uuid */
+            departmentId?: string;
+            /** Format: uuid */
+            providerId?: string;
+            clinic?: string;
+            doctor?: string;
+            active?: boolean;
+        };
         WardPatientRowResponse: {
             /** Format: uuid */
             admissionId?: string;
@@ -7793,52 +7793,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    triageHistoryByEncounter: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                encounterId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Care-relationship-scoped historical triage assessments */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["CompletedTriageAssessmentResponse"][];
-                };
-            };
-        };
-    };
-    patientFinanceVisits: {
-        parameters: {
-            query: {
-                facilityId: string;
-            };
-            header?: never;
-            path: {
-                patientId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Facility-scoped operational and financial visits; no clinical content */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PatientVisitFinance"][];
-                };
-            };
-        };
-    };
     get_3: {
         parameters: {
             query?: never;
@@ -10715,27 +10669,6 @@ export interface operations {
             };
         };
     };
-    voidDiagnosis: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                diagnosisId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Diagnosis voided */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     open_2: {
         parameters: {
             query?: never;
@@ -11038,6 +10971,72 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["AppointmentResponse"];
                 };
+            };
+        };
+    };
+    markNoShow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"];
+                };
+            };
+        };
+    };
+    scheduleClinic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClinicBookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"];
+                };
+            };
+        };
+    };
+    closeClinic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -11591,6 +11590,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CatalogImportPreviewResponse"];
+                };
+            };
+        };
+    };
+    reschedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RescheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"];
                 };
             };
         };
@@ -12498,6 +12523,30 @@ export interface operations {
             };
         };
     };
+    visits: {
+        parameters: {
+            query: {
+                facilityId: string;
+            };
+            header?: never;
+            path: {
+                patientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Visit"][];
+                };
+            };
+        };
+    };
     list_6: {
         parameters: {
             query: {
@@ -13233,6 +13282,28 @@ export interface operations {
             };
         };
     };
+    byEncounter_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CompletedTriageAssessmentResponse"][];
+                };
+            };
+        };
+    };
     forEncounter: {
         parameters: {
             query?: never;
@@ -13277,7 +13348,7 @@ export interface operations {
             };
         };
     };
-    byEncounter_3: {
+    byEncounter_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -13788,7 +13859,73 @@ export interface operations {
             };
         };
     };
+    patientHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                patientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"][];
+                };
+            };
+        };
+    };
     expectedReturns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"][];
+                };
+            };
+        };
+    };
+    clinicPlans: {
+        parameters: {
+            query?: {
+                patientId?: string;
+                facilityId?: string;
+                mine?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Plan"][];
+                };
+            };
+        };
+    };
+    activeClinicAppointments: {
         parameters: {
             query?: never;
             header?: never;
@@ -14256,157 +14393,20 @@ export interface operations {
             };
         };
     };
-    scheduleClinic: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ClinicBookingRequest"];
-            };
-        };
-        responses: {
-            /** @description Clinic appointment scheduled */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AppointmentResponse"];
-                };
-            };
-        };
-    };
-    patientAppointmentHistory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                patientId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Appointment history */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AppointmentResponse"][];
-                };
-            };
-        };
-    };
-    clinicPlans: {
-        parameters: {
-            query?: {
-                patientId?: string;
-                facilityId?: string;
-                mine?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Clinic plans */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ClinicPlan"][];
-                };
-            };
-        };
-    };
-    activeClinicAppointments: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Scheduled clinic appointments */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AppointmentResponse"][];
-                };
-            };
-        };
-    };
-    rescheduleClinic: {
+    voidDiagnosis: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RescheduleClinicRequest"];
-            };
-        };
-        responses: {
-            /** @description Rescheduled */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AppointmentResponse"];
-                };
-            };
-        };
-    };
-    markClinicNoShow: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
+                diagnosisId: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Marked no-show */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AppointmentResponse"];
-                };
-            };
-        };
-    };
-    closeClinicPlan: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Closed */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
