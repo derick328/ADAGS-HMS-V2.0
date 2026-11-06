@@ -1,3 +1,4 @@
+import { PreviousMedicalHistory } from './PreviousMedicalHistory';
 import { Radio } from '../../shared/components/Radio';
 import { Checkbox } from '../../shared/components/Checkbox';
 import { FormField as FormRow } from '../../shared/components/FormField';
@@ -9,7 +10,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { admitPatient, assignNurse, type Shift, type WardClass } from '../../shared/api/admissions';
-import { createFollowUpAppointment } from '../../shared/api/appointments';
+import { fetchPatientAppointments, fetchPatientClinicPlans, scheduleClinicVisit, rescheduleClinicVisit, closeClinicPlan, clinicArrivalLabel } from '../../shared/api/appointments';
+import { fetchDepartments } from '../../shared/api/departments';
 import { ApiError } from '../../shared/api/client';
 import { fetchNurseWorkload } from '../../shared/api/nurses';
 import {
@@ -22,6 +24,7 @@ import {
   finalizeConsultation,
   markAwaitingResults,
   openConsultation,
+  removeDiagnosis,
   reconcileAllergyRecord,
   type AllergyRecordResponse,
   type ConsultationRecordResponse,
@@ -167,6 +170,14 @@ function ConsultationWorkspace({
     staleTime: 30_000,
   });
 
+  const clinicAppointments = useQuery({
+    queryKey: ['appointments', 'patient', encounter?.patientId],
+    queryFn: () => fetchPatientAppointments(encounter!.patientId as string, accessToken as string),
+    enabled: !!encounter?.patientId && !!accessToken,
+  });
+  const arrivalAppointment = clinicAppointments.data?.find(a => a.id === encounter?.appointmentId);
+  const previousClinicVisits = clinicAppointments.data?.filter(a => a.clinicFollowUpId && a.status === 'ATTENDED' && a.id !== arrivalAppointment?.id) ?? [];
+
   const { data: patient } = useQuery({
     queryKey: ['patients', encounter?.patientId],
     queryFn: () => fetchPatientById(encounter!.patientId as string, accessToken as string),
@@ -198,7 +209,7 @@ function ConsultationWorkspace({
     vitalsList?.find((v) => v.context === 'TRIAGE') ??
     vitalsList?.[0];
 
-  const { data: allergies } = useQuery({
+  const { data: allergies, isError: allergiesError } = useQuery({
     queryKey: ['allergies', encounter?.patientId],
     queryFn: () => fetchAllergiesByPatient(encounter!.patientId as string, accessToken as string),
     enabled: accessToken != null && !!encounter?.patientId,
@@ -218,6 +229,15 @@ function ConsultationWorkspace({
     enabled: accessToken != null,
   });
 
+  const history = useQuery({
+    queryKey: ['encounters', 'by-patient', encounter?.patientId],
+    queryFn: () => fetchEncountersByPatient(encounter!.patientId!, accessToken as string),
+    enabled: !!accessToken && !!encounter?.patientId,
+  });
+  const validVisits = (history.data ?? []).filter(e => e.state !== 'CANCELLED_IN_ERROR');
+  const previousVisits = validVisits.filter(e => e.id !== encounterId && (!encounter?.createdAt || (e.createdAt ?? '') <= encounter.createdAt));
+  const lastVisit = previousVisits.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))[0];
+
   const patientAge = ageFromDob(patient?.dateOfBirth);
 
   // §6.4 Send button state, shared by both order tabs.
@@ -229,12 +249,26 @@ function ConsultationWorkspace({
   return (
     <div>
       <ConsultationHeader patient={patient} encounter={encounter} />
+      {arrivalAppointment?.clinicFollowUpId && <section style={{ padding: 'var(--space-3)', marginBottom: 'var(--space-3)', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
+        <strong className="badge badge-info">Clinic Follow-Up</strong>{' '}
+        {arrivalAppointment.clinic} · Scheduled {formatDateTime(arrivalAppointment.scheduledAt)} · Arrived {formatDateTime(arrivalAppointment.arrivedAt ?? encounter?.createdAt)}
+        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 'var(--space-2)' }}>
+          Previous clinic visits: {previousClinicVisits.length}
+        </div>
+      </section>}
+      <section className="consultation-visit-summary" aria-label="Patient visit summary">
+        <strong>{history.isLoading ? 'Loading visit history…' : history.isError ? 'Visit history unavailable' : previousVisits.length === 0 ? 'New patient visit' : 'Returning patient'}</strong>
+        <span>Total visits: {history.isLoading ? '…' : validVisits.length}</span>
+        <span>Previous visits: {history.isLoading ? '…' : previousVisits.length}</span>
+        <span>Last visit: {lastVisit ? formatWeekdayDate(lastVisit.createdAt) : 'None'}</span>
+        <span>Allergies: {allergiesError ? 'Unavailable' : allergies == null ? 'Loading…' : allergies.length ? allergies.map(a => a.description).join(', ') : 'None recorded'}</span>
+      </section>
+      <PreviousMedicalHistory patientId={encounter?.patientId} currentEncounterId={encounterId} />
 
       <div className="consultation-layout">
         <aside className="consultation-summary">
           <TriagePanel triage={triage} vitals={vitals} />
           <RecordVitalsCard encounterId={encounterId} />
-          <PreviousEncountersPanel patientId={encounter?.patientId} currentEncounterId={encounterId} />
         </aside>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -328,31 +362,6 @@ function TriagePanel({
       ) : (
         <FeedbackState>No vitals recorded.</FeedbackState>
       )}
-
-      <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 'var(--space-3) 0' }} />
-
-      {/* 07-doctor.md §5.1 — triage context inherited read-only. All of these
-          are already fetched on the triage assessment; the doctor needs to see
-          the nurse's chief complaint, symptoms and comorbidities while writing
-          the note, not just the vitals. */}
-      <div style={{ fontSize: 'var(--text-sm)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <div>
-          <strong>Chief complaint:</strong> {triage?.chiefComplaint || '—'}
-        </div>
-        <div>
-          <strong>Current symptoms:</strong> {triage?.currentSymptoms || '—'}
-        </div>
-        <div>
-          <strong>Comorbidities:</strong> {triage?.comorbidities || '—'}
-        </div>
-        <div>
-          <strong>Priority:</strong> {triage?.priority ? triage.priority.replaceAll('_', ' ').toLowerCase() : '—'}
-        </div>
-        <div>
-          <strong>Mode of ambulation:</strong>{' '}
-          {triage?.modeOfAmbulation ? triage.modeOfAmbulation.replaceAll('_', ' ').toLowerCase() : '—'}
-        </div>
-      </div>
 
       <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 'var(--space-3) 0' }} />
 
@@ -688,78 +697,6 @@ const vitalInputStyle: CSSProperties = {
   font: 'inherit',
 };
 
-// The patient's prior encounters, surfaced alongside the live consultation so
-// the doctor sees earlier triage and consultation visits without leaving the
-// screen (08-doctor-navigation.md §3 — the Patient page carries the full
-// detail; this is the in-consult shortcut to it). The current encounter is
-// excluded; each row links to that encounter's full record (triage, notes,
-// diagnoses). Gated on PATIENT_READ_VISIT_HISTORY — the same permission the
-// doctor's patient-history nav uses.
-function PreviousEncountersPanel({
-  patientId,
-  currentEncounterId,
-}: {
-  patientId?: string;
-  currentEncounterId: string;
-}) {
-  const { accessToken } = useAuth();
-  const navigate = useNavigate();
-  const canSee = usePermission('PATIENT_READ_VISIT_HISTORY');
-
-  const { data: encounters, isLoading } = useQuery({
-    queryKey: ['encounters', 'by-patient', patientId],
-    queryFn: () => fetchEncountersByPatient(patientId as string, accessToken as string),
-    enabled: accessToken != null && patientId != null && canSee,
-    staleTime: 60_000,
-  });
-
-  if (!canSee || !patientId) {
-    return null;
-  }
-
-  const prior = [...(encounters ?? [])]
-    .filter((e) => e.id !== currentEncounterId && e.state !== 'CANCELLED_IN_ERROR' && (!encounters?.find(c => c.id === currentEncounterId)?.createdAt || (e.createdAt ?? '') <= encounters!.find(c => c.id === currentEncounterId)!.createdAt!))
-    .sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
-
-  return (
-    <details
-      style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)',
-        padding: 'var(--space-3)',
-      }}
-    >
-      <summary style={{ fontSize: 'var(--text-sm)', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 0 }}>
-        Previous clinical history · {prior.length} earlier encounters
-      </summary>
-      {isLoading ? (
-        <FeedbackState loading>Loading…</FeedbackState>
-      ) : prior.length === 0 ? (
-        <FeedbackState>No earlier visits on record.</FeedbackState>
-      ) : (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-          {prior.map((e) => (
-            <li key={e.id}>
-              <button
-                type="button"
-                className="workspace-name"
-                onClick={() => navigate(`/doctor/patients/${patientId}/encounters/${e.id}`)}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, width: '100%', textAlign: 'left' }}
-              >
-                <span style={{ fontWeight: 'var(--weight-medium)', fontSize: 'var(--text-sm)' }}>{formatWeekdayDate(e.createdAt)}</span>
-                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-                  {(e.type ?? '—').toString().toLowerCase()} · {(e.state ?? '').replaceAll('_', ' ').toLowerCase()}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </details>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Tab bar with running total — 08-doctor-navigation.md §6.1, suppressed for EMERGENCY.
 // ---------------------------------------------------------------------------
@@ -976,6 +913,10 @@ function ConsultationTab({
       setIsPrimary(false);
     },
   });
+  const removeDiagnosisMutation = useMutation({
+    mutationFn: (diagnosisId: string) => removeDiagnosis(consultationRecordId, diagnosisId, accessToken as string),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['diagnoses', encounterId] }),
+  });
 
   // Disposition + finalize
   const [disposition, setDisposition] = useState<DispositionChoice | ''>('');
@@ -983,6 +924,9 @@ function ConsultationTab({
   const [nurseId, setNurseId] = useState<string>('');
   const [shift, setShift] = useState<Shift>(currentShift());
   const [followUpDate, setFollowUpDate] = useState('');
+  const [followUpTime, setFollowUpTime] = useState('09:00');
+  const [followUpDepartment, setFollowUpDepartment] = useState('');
+  const [followUpClinic, setFollowUpClinic] = useState('');
   const [followUpInstructions, setFollowUpInstructions] = useState('');
   const [retrospective, setRetrospective] = useState(false);
   const [retrospectiveNote, setRetrospectiveNote] = useState('');
@@ -995,6 +939,30 @@ function ConsultationTab({
     enabled: accessToken != null,
   });
   const facilityId = encounterForFacility?.facilityId;
+
+  const departments = useQuery({ queryKey: ['departments'], queryFn: () => fetchDepartments(accessToken as string), enabled: !!accessToken });
+  const clinicPlans = useQuery({ queryKey: ['appointments', 'plans', patientId], queryFn: () => fetchPatientClinicPlans(patientId, accessToken as string), enabled: !!accessToken && !!patientId });
+  const clinicHistory = useQuery({ queryKey: ['appointments', 'patient', patientId], queryFn: () => fetchPatientAppointments(patientId, accessToken as string), enabled: !!accessToken && !!patientId });
+  const activePlans = clinicPlans.data?.filter(p => p.active) ?? [];
+  const saveClinic = useMutation({
+    mutationFn: async () => {
+      if (!followUpDepartment || !followUpClinic.trim() || !followUpDate) {
+        throw new Error('Choose a clinic, department and return date.');
+      }
+      return scheduleClinicVisit({ patientId, sourceEncounterId: encounterId,
+        departmentId: followUpDepartment, clinicName: followUpClinic.trim(),
+        scheduledAt: new Date(`${followUpDate}T${followUpTime}:00+03:00`).toISOString(),
+        instructions: followUpInstructions || undefined }, accessToken as string);
+    },
+    onSuccess: () => { setFollowUpDate(''); queryClient.invalidateQueries({ queryKey: ['appointments'] }); },
+  });
+  const [manageDate, setManageDate] = useState('');
+  const manageClinic = useMutation({ mutationFn: (id: string) => rescheduleClinicVisit(id, {
+    scheduledAt: new Date(`${manageDate}T09:00:00+03:00`).toISOString(),
+    instructions: clinicHistory.data?.find(a => a.id === id)?.notes,
+  }, accessToken as string), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['appointments'] }); setManageDate(''); } });
+  const closeClinic = useMutation({ mutationFn: (id: string) => closeClinicPlan(id, accessToken as string),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['appointments'] }) });
 
   // Nurse workload — only fetched once the doctor picks Admit-to-ward
   // (nurse picker is hidden otherwise, no reason to hit the endpoint).
@@ -1025,6 +993,10 @@ function ConsultationTab({
     // separately would double-transition. Optional nurse assignment chains
     // after admit: it's not part of admitPatient's own request shape.
     mutationFn: async () => {
+      if (followUpDate && (!followUpDepartment || !followUpClinic.trim())) throw new Error('Choose a clinic program and department.');
+      if (followUpDate && clinicHistory.data?.some(a => a.status === 'SCHEDULED' && a.departmentId === followUpDepartment && a.clinic?.toLowerCase() === followUpClinic.trim().toLowerCase())) {
+        throw new Error('This clinic already has a scheduled visit. Reschedule it below.');
+      }
       if (disposition === 'ADMIT_TO_WARD') {
         const admission = await admitPatient(
           {
@@ -1054,15 +1026,13 @@ function ConsultationTab({
         );
       }
       if (followUpDate) {
-        await createFollowUpAppointment(
-          {
-            patientId,
-            sourceEncounterId: encounterId,
-            scheduledAt: new Date(`${followUpDate}T09:00:00`).toISOString(),
-            notes: followUpInstructions || undefined,
-          },
-          accessToken as string,
-        );
+        await scheduleClinicVisit({
+          patientId, sourceEncounterId: encounterId,
+          departmentId: followUpDepartment,
+          clinicName: followUpClinic.trim(),
+          scheduledAt: new Date(`${followUpDate}T${followUpTime}:00+03:00`).toISOString(),
+          instructions: followUpInstructions || undefined,
+        }, accessToken as string);
       }
     },
     onSuccess: () => onFinalized(),
@@ -1133,7 +1103,8 @@ function ConsultationTab({
       <FormSection title="Diagnosis">
         <div className="form-field">
           <label>Provisional diagnosis *</label>
-          <DiagnosisGroup items={diagnoses.filter((d) => d.certainty === 'PROVISIONAL')} emptyHint="Search and add a provisional diagnosis below." />
+          <DiagnosisGroup items={diagnoses.filter((d) => d.certainty === 'PROVISIONAL')} emptyHint="Search and add a provisional diagnosis below."
+            onRemove={(id) => removeDiagnosisMutation.mutate(id)} removingId={removeDiagnosisMutation.isPending ? removeDiagnosisMutation.variables : undefined} consultationRecordId={consultationRecordId} />
           <Combobox<Icd10SearchResult>
             label="Add provisional diagnosis"
             placeholder="Search by disease title or ICD-10 code…"
@@ -1171,6 +1142,7 @@ function ConsultationTab({
           <label>Final diagnosis</label>
           <DiagnosisGroup
             items={diagnoses.filter((d) => d.certainty === 'CONFIRMED')}
+            onRemove={(id) => removeDiagnosisMutation.mutate(id)} removingId={removeDiagnosisMutation.isPending ? removeDiagnosisMutation.variables : undefined} consultationRecordId={consultationRecordId}
             emptyHint={
               finalBlockedByLab
                 ? 'Awaiting lab results — confirmation is on hold (uncheck the box above to override).'
@@ -1194,6 +1166,7 @@ function ConsultationTab({
             }}
           />
         </div>
+        {removeDiagnosisMutation.isError && <p className="form-error">{errorMessage(removeDiagnosisMutation.error)}</p>}
         <div className="form-field">
           <label>Ruled out</label>
           <DiagnosisGroup items={diagnoses.filter((d) => d.certainty === 'RULED_OUT')} />
@@ -1218,6 +1191,7 @@ function ConsultationTab({
             <div>
               {certainty === 'PROVISIONAL' ? 'Provisional' : certainty === 'CONFIRMED' ? 'Final' : 'Ruled out'}: {selectedCode.title} <strong>({selectedCode.code})</strong>
             </div>
+            <button type="button" className="btn btn-ghost" onClick={() => { setSelectedCode(null); setClarifier(''); }}>Clear selection</button>
             <input aria-label="Free-text clarifier" className="clinical-control"
               placeholder="Free-text clarifier"
               value={clarifier}
@@ -1313,17 +1287,44 @@ function ConsultationTab({
             )}
           </div>
         )}
-        <FormRow label="Follow-up appointment (optional)">
+        <FormRow label="Start Clinic / Schedule Clinic Visit (optional)">
           <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-            <input aria-label="Follow-up date" className="clinical-control" type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} style={{ flex: '0 0 auto' }} />
-            <input aria-label="Follow-up instructions" className="clinical-control"
-              placeholder="Follow-up instructions"
-              value={followUpInstructions}
-              onChange={(e) => setFollowUpInstructions(e.target.value)}
-              style={{ flex: '1 1 220px' }}
-            />
+            <select aria-label="Clinic or department" className="clinical-control" value={followUpDepartment} onChange={e => setFollowUpDepartment(e.target.value)}>
+              <option value="">Choose clinic…</option>
+              {departments.data?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+            <input aria-label="Clinic program" className="clinical-control" list="clinic-programs" placeholder="Clinic program" value={followUpClinic} onChange={e => setFollowUpClinic(e.target.value)} />
+            <datalist id="clinic-programs"><option value="Diabetes clinic" /><option value="Hypertension clinic" /><option value="General review clinic" /></datalist>
+            <input aria-label="Clinic return date" className="clinical-control" type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)} />
+            <input aria-label="Clinic return time" className="clinical-control" type="time" value={followUpTime} onChange={e => setFollowUpTime(e.target.value)} />
+            <input aria-label="Follow-up instructions" className="clinical-control" placeholder="Follow-up instructions" value={followUpInstructions} onChange={e => setFollowUpInstructions(e.target.value)} />
           </div>
+          <button type="button" className="btn btn-secondary" disabled={!followUpDate || saveClinic.isPending} onClick={() => saveClinic.mutate()}>
+            {saveClinic.isPending ? 'Scheduling…' : 'Start Clinic / Schedule Clinic Visit'}
+          </button>
+          <small>Existing active clinic enrollment is reused. You can also save the visit when finalizing this consultation.</small>
+          {saveClinic.isSuccess && <span role="status" className="badge badge-success">Clinic visit scheduled</span>}
+          {saveClinic.error && <p className="form-error">{errorMessage(saveClinic.error)}</p>}
         </FormRow>
+        {activePlans.length > 0 && <section style={{ padding: 'var(--space-3)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+          <strong>Active clinic follow-up</strong>
+          {activePlans.map(plan => {
+            const pending = clinicHistory.data?.find(a => a.clinicFollowUpId === plan.id && a.status === 'SCHEDULED');
+            return <div key={plan.id} style={{ marginTop: 'var(--space-2)' }}>
+              {plan.clinic} · {plan.doctor}
+              <button type="button" className="btn btn-ghost" onClick={() => closeClinic.mutate(plan.id)} disabled={closeClinic.isPending}>Close clinic plan</button>
+              {pending && <div>
+                Scheduled {formatDateTime(pending.scheduledAt)} · {clinicArrivalLabel(pending.scheduledAt)}
+                <input aria-label={`New date for ${plan.clinic}`} type="date" className="clinical-control" value={manageDate} onChange={e => setManageDate(e.target.value)} />
+                <button type="button" className="btn btn-secondary" disabled={!manageDate || manageClinic.isPending} onClick={() => manageClinic.mutate(pending.id!)}>Reschedule clinic visit</button>
+              </div>}
+            </div>;
+          })}
+          {(manageClinic.error || closeClinic.error) && <p className="form-error">{errorMessage(manageClinic.error ?? closeClinic.error)}</p>}
+        </section>}
+        {clinicHistory.data?.some(a => a.clinicFollowUpId) && <details><summary>Clinic follow-up history</summary>
+          <ul>{clinicHistory.data.filter(a => a.clinicFollowUpId).map(a => <li key={a.id}>{a.clinic} · {formatDateTime(a.scheduledAt)} · {a.status} {a.arrivedAt ? `· Arrived ${formatDateTime(a.arrivedAt)}` : ''} {a.noShowAt ? `· Marked no-show ${formatDateTime(a.noShowAt)}` : ''}</li>)}</ul>
+        </details>}
 
         <Checkbox  className="clinical-choice" checked={retrospective} onChange={(e) => setRetrospective(e.target.checked)} label={<>This is a retrospective completion (patient was seen earlier)</>} />
         {retrospective && (
@@ -1405,17 +1406,31 @@ function ConsultationTab({
 // Renders one certainty group of the diagnosis list (provisional / final /
 // ruled out). Empty groups show a muted hint rather than nothing, so the
 // doctor sees the field exists and what fills it.
-function DiagnosisGroup({ items, emptyHint }: { items: DiagnosisResponse[]; emptyHint?: string }) {
+function DiagnosisGroup({ items, emptyHint, onRemove, removingId, consultationRecordId }: {
+  items: DiagnosisResponse[];
+  emptyHint?: string;
+  onRemove?: (id: string) => void;
+  removingId?: string;
+  consultationRecordId?: string;
+}) {
   if (items.length === 0) {
     return <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{emptyHint ?? '—'}</p>;
   }
   return (
     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
       {items.map((d) => (
-        <li key={d.id} style={{ padding: 'var(--space-2) var(--space-3)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--bg-surface)' }}>
-          <strong>{d.icd10Code}</strong> {d.icd10TitleSnapshot}{' '}
-          {d.isPrimary && <span className="badge badge-signal">Primary</span>}
-          {d.freeTextClarifier && <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{d.freeTextClarifier}</div>}
+        <li key={d.id} style={{ padding: 'var(--space-2) var(--space-3)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
+          <div>
+            <strong>{d.icd10Code}</strong> {d.icd10TitleSnapshot}{' '}
+            {d.isPrimary && <span className="badge badge-signal">Primary</span>}
+            {d.freeTextClarifier && <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{d.freeTextClarifier}</div>}
+          </div>
+          {onRemove && d.consultationRecordId === consultationRecordId && d.id && (
+            <button type="button" className="btn btn-ghost" onClick={() => onRemove(d.id!)} disabled={!!removingId}
+              aria-label={`Remove ${d.icd10Code} diagnosis`}>
+              {removingId === d.id ? 'Removing…' : 'Remove'}
+            </button>
+          )}
         </li>
       ))}
     </ul>

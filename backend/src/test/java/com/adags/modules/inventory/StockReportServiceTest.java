@@ -97,6 +97,26 @@ class StockReportServiceTest extends IntegrationTestSupport {
     }
 
     @Test
+    void inactiveMedicineRemainsPhysicalButIsNotAvailableOrOnReorderList() {
+        UUID admin = bootstrapAdminId();
+        UUID itemId = createFixtureItem("INACTIVE-AMX", 50, admin);
+        UUID storeId = insertFixtureStore();
+        UUID supplierId = insertFixtureSupplier();
+        restockService.restock(new RestockCommand(itemId, storeId, "BATCH-1",
+                LocalDate.now().plusYears(1), 10, new Money(1000, "TZS"),
+                supplierId, "DN-1", null, admin));
+        jdbcTemplate.update("UPDATE item SET active = FALSE WHERE id = :id",
+                new MapSqlParameterSource("id", itemId));
+
+        CurrentStockRow physical = stockReportService.currentStock().stream()
+                .filter(row -> row.itemId().equals(itemId)).findFirst().orElseThrow();
+        assertThat(physical.quantity()).isEqualTo(10);
+        assertThat(physical.stockStatus()).isEqualTo("UNAVAILABLE");
+        assertThat(physical.availableQuantity()).isZero();
+        assertThat(stockReportService.lowStock()).noneMatch(row -> row.itemId().equals(itemId));
+    }
+
+    @Test
     void expiringBatchesRespectsTheProtocolSettableWindow() {
         UUID admin = bootstrapAdminId();
         UUID itemId = createFixtureItem("AMX500", 0, admin);

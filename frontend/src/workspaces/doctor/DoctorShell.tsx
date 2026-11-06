@@ -29,6 +29,9 @@ export function DoctorShell() {
           <nav className="doctor-nav app-nav" aria-label="Doctor workspace navigation">
             <MyQueueLink />
             <MyPatientsLink />
+            <NavLink to="/doctor/clinic-follow-ups" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
+              Clinic Follow-Up
+            </NavLink>
             <AdmittedPatientsLink />
             <MyScheduledSurgeriesLink />
             <HospitalCatalogueLink />

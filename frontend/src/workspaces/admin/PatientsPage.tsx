@@ -1,3 +1,4 @@
+import { PatientVisitsPanel } from './PatientVisitsPanel';
 import { PatientPresencePanel } from '../../shared/components/PatientPresencePanel';
 import { CalendarDays, Search, UserRound, Users } from 'lucide-react';
 import './PatientsPage.css';
@@ -406,6 +407,8 @@ function PatientDetailCard({
         <div className="patient-profile-heading"><div className="patient-profile-avatar" aria-hidden="true">{(patient.fullName ?? 'P').split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase()}</div><div><span className="patient-profile-kicker">Patient profile</span><h2>{patient.fullName}</h2><div className="patient-profile-tags"><span className="badge badge-success">{patient.hospitalNo ?? 'Hospital number unavailable'}</span>{visitCount != null && <span className="badge badge-info">{visitCount > 1 ? 'Returning patient' : 'First visit'}</span>}{presenceStatus && <span className="badge badge-info">{presenceStatus.replaceAll('_', ' ').toLowerCase()}</span>}{!patient.active && <span className="badge badge-neutral">Inactive</span>}</div></div></div>
         <dl className="patient-profile-details"><DetailRow label="Date of birth" value={patient.dateOfBirth ? `${patient.dateOfBirth}${patient.dobIsEstimated ? ' (estimated)' : ''}` : undefined} /><DetailRow label="Gender" value={patient.gender} /><DetailRow label="Marital status" value={patient.maritalStatus} /><DetailRow label="National ID" value={patient.nationalId} /><DetailRow label="Phone" value={patient.phone} /><DetailRow label="Email" value={patient.email} /></dl>
       </section>
+
+      {patient.id && accessToken && showInvoices && <PatientVisitsPanel patientId={patient.id} accessToken={accessToken} />}
 
       {showInvoices && patient.id && accessToken && (
         <PatientInvoiceHistory

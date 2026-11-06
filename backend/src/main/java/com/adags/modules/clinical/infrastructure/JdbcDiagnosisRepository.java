@@ -59,15 +59,30 @@ public class JdbcDiagnosisRepository implements DiagnosisRepository {
     @Override
     public List<Diagnosis> findByEncounterId(UUID encounterId) {
         return jdbcTemplate.query(
-                SELECT_COLUMNS + " WHERE encounter_id = :encounterId ORDER BY diagnosed_at DESC",
+                SELECT_COLUMNS + " WHERE encounter_id = :encounterId AND voided_at IS NULL ORDER BY diagnosed_at DESC",
                 new MapSqlParameterSource("encounterId", encounterId),
                 this::mapRow);
     }
 
     @Override
+    public boolean voidOnOpenRecord(UUID diagnosisId, UUID consultationRecordId, UUID actorId) {
+        return jdbcTemplate.update("""
+                UPDATE diagnosis d SET voided_at = now(), voided_by = :actorId,
+                                       void_reason = 'Selected by mistake'
+                FROM consultation_record c
+                WHERE d.id = :diagnosisId AND d.consultation_record_id = :recordId
+                  AND d.voided_at IS NULL AND c.id = d.consultation_record_id
+                  AND c.status = 'OPEN' AND c.author_id = :actorId
+                """, new MapSqlParameterSource()
+                .addValue("diagnosisId", diagnosisId)
+                .addValue("recordId", consultationRecordId)
+                .addValue("actorId", actorId)) == 1;
+    }
+
+    @Override
     public boolean existsPrimaryForEncounter(UUID encounterId) {
         Boolean exists = jdbcTemplate.queryForObject(
-                "SELECT EXISTS (SELECT 1 FROM diagnosis WHERE encounter_id = :encounterId AND is_primary)",
+                "SELECT EXISTS (SELECT 1 FROM diagnosis WHERE encounter_id = :encounterId AND is_primary AND voided_at IS NULL)",
                 new MapSqlParameterSource("encounterId", encounterId), Boolean.class);
         return Boolean.TRUE.equals(exists);
     }

@@ -1,13 +1,14 @@
 import { PageHeader } from '../../shared/components/PageHeader';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { fetchEncounterById, searchEncounters, type EncounterResponse } from '../../shared/api/encounters';
+import { fetchEncounterById, fetchEncountersByPatient, searchEncounters, type EncounterResponse } from '../../shared/api/encounters';
 import { fetchPatientById } from '../../shared/api/patients';
+import { fetchPatientAppointments } from '../../shared/api/appointments';
 import { searchCompletedAssessments, type CompletedTriageAssessmentResponse, type TriagePriority } from '../../shared/api/triage';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { useMe } from '../../shared/auth/useMe';
 import { compareQueueRows, QueueShell, type QueueRow } from '../../shared/components/QueueShell';
-import { formatWaitingSince } from '../../shared/format/date';
+import { formatWaitingSince, formatDateTime } from '../../shared/format/date';
 
 const PRIORITY_RANK: Record<NonNullable<TriagePriority>, number> = { IMMEDIATE: 0, URGENT: 1, LESS_URGENT: 2, NON_URGENT: 3 };
 
@@ -135,10 +136,10 @@ function EncounterIdentity({ encounterId }: { encounterId: string }) {
     enabled: accessToken != null,
     staleTime: 60_000,
   });
-  return <PatientLabel patientId={encounter?.patientId} />;
+  return <PatientLabel patientId={encounter?.patientId} currentEncounterId={encounterId} appointmentId={encounter?.appointmentId} />;
 }
 
-function PatientLabel({ patientId }: { patientId?: string }) {
+function PatientLabel({ patientId, currentEncounterId, appointmentId }: { patientId?: string; currentEncounterId: string; appointmentId?: string }) {
   const { accessToken } = useAuth();
   const { data: patient } = useQuery({
     queryKey: ['patients', patientId],
@@ -146,13 +147,26 @@ function PatientLabel({ patientId }: { patientId?: string }) {
     enabled: accessToken != null && !!patientId,
     staleTime: 60_000,
   });
+  const clinicHistory = useQuery({ queryKey: ['appointments', 'patient', patientId],
+    queryFn: () => fetchPatientAppointments(patientId!, accessToken!), enabled: !!accessToken && !!patientId && !!appointmentId });
+  const clinicAppointment = clinicHistory.data?.find(a => a.id === appointmentId && a.clinicFollowUpId);
+  const priorClinicVisits = clinicHistory.data?.filter(a => a.clinicFollowUpId === clinicAppointment?.clinicFollowUpId && a.status === 'ATTENDED' && a.id !== appointmentId).length ?? 0;
+  const history = useQuery({ queryKey: ['encounters', 'by-patient', patientId],
+    queryFn: () => fetchEncountersByPatient(patientId!, accessToken as string), enabled: !!accessToken && !!patientId, staleTime: 60_000 });
   if (!patientId) return <span>Loading…</span>;
+  const valid = (history.data ?? []).filter(e => e.state !== 'CANCELLED_IN_ERROR');
+  const current = valid.find(e => e.id === currentEncounterId);
+  const prior = valid.filter(e => e.id !== currentEncounterId && (!current?.createdAt || (e.createdAt ?? '') <= current.createdAt)).sort((a,b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+
   const age = patient?.dateOfBirth ? ageFromDob(patient.dateOfBirth) : null;
   return (
     <span>
       {patient?.fullName ?? 'Loading…'}
+      {clinicAppointment && <span className="badge badge-info" style={{ marginLeft: 8 }}>Clinic Follow-Up · {clinicAppointment.clinic} · Scheduled {formatDateTime(clinicAppointment.scheduledAt)} · Arrived {formatDateTime(clinicAppointment.arrivedAt)} · {priorClinicVisits} prior clinic visits</span>}
       {age != null && ` · ${age}${patient?.gender?.[0] ?? ''}`}
       {patient?.hospitalNo && ` · ${patient.hospitalNo}`}
+      {history.isLoading ? ' · Loading visits…' : history.isError ? ' · Visit history unavailable' :
+        ` · ${prior.length === 0 ? 'New' : 'Returning'} · ${valid.length} visit${valid.length === 1 ? '' : 's'} · ${prior.length} previous · Last ${prior[0]?.createdAt ? new Intl.DateTimeFormat('en-TZ', { dateStyle: 'medium', timeZone: 'Africa/Dar_es_Salaam' }).format(new Date(prior[0].createdAt)) : 'none'}`}
     </span>
   );
 }

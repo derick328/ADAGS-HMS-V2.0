@@ -15,7 +15,9 @@ import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { fetchDepartments } from '../../shared/api/departments';
+import { ApiError } from '../../shared/api/client';
 import { openEncounter } from '../../shared/api/encounters';
+import { fetchClinicPlans, fetchActiveClinicAppointments, fetchPatientAppointments, clinicArrivalLabel, type ClinicAppointment } from '../../shared/api/appointments';
 import { fetchInsuranceSchemes } from '../../shared/api/insuranceSchemes';
 import {
   DuplicatePatientError,
@@ -28,7 +30,7 @@ import {
 } from '../../shared/api/patients';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
-import { formatDate, formatWeekdayDate } from '../../shared/format/date';
+import { formatDate, formatDateTime, formatWeekdayDate } from '../../shared/format/date';
 import { formatPhone } from '../../shared/format/phone';
 import { Modal } from '../../shared/components/Modal';
 import { BOOTSTRAP_FACILITY_ID } from '../../shared/facility';
@@ -121,7 +123,7 @@ export function PatientIntakePage() {
 // Shared between the search-results row action and the post-registration
 // success panel — same "open an encounter for this patient" action, same
 // auto-pick-the-sole-department / else-show-a-picker behaviour either way.
-function SendToTriageControl({ patientId, onSent }: { patientId: string; onSent?: () => void }) {
+function SendToTriageControl({ patientId, onSent, appointment }: { patientId: string; onSent?: () => void; appointment?: ClinicAppointment }) {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
   const canOpenEncounter = usePermission('ENCOUNTER_OPEN');
@@ -135,12 +137,17 @@ function SendToTriageControl({ patientId, onSent }: { patientId: string; onSent?
   const [picking, setPicking] = useState(false);
 
   const sendToTriage = useMutation({
-    mutationFn: (departmentId: string) => openEncounter({ patientId, departmentId }, accessToken as string),
+    mutationFn: (departmentId: string) => openEncounter({ patientId, departmentId, appointmentId: appointment?.id }, accessToken as string),
     onSuccess: () => {
       setPicking(false);
       queryClient.invalidateQueries({ queryKey: ['here-now'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['visit-summary'] });
       queryClient.invalidateQueries({ queryKey: ['visit-summaries'] });
+      queryClient.invalidateQueries({ queryKey: ['triage-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['encounters', 'search'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'waiting-for-triage'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'in-progress-today'] });
     },
   });
 
@@ -152,42 +159,59 @@ function SendToTriageControl({ patientId, onSent }: { patientId: string; onSent?
     if (!departments || departments.length === 0) {
       return;
     }
-    if (departments.length === 1) {
+    if (appointment?.departmentId) {
+      sendToTriage.mutate(appointment.departmentId);
+    } else if (departments.length === 1) {
       sendToTriage.mutate(departments[0].id as string);
     } else {
       setPicking(true);
     }
   }
 
-  if (sendToTriage.isSuccess) return <div role="status">
-    <p>{sendToTriage.data.existingEncounter ? 'Existing open encounter returned. No new visit was created.' : 'New encounter opened and sent to triage.'}</p>
-    {onSent && <button className="btn btn-secondary" onClick={onSent}>Done</button>}
-  </div>;
+  if (sendToTriage.isSuccess) {
+    const awaitingTriage = sendToTriage.data.state === 'AWAITING_TRIAGE';
+    return <div role={awaitingTriage ? 'status' : 'alert'}>
+      <p>{awaitingTriage
+        ? sendToTriage.data.existingEncounter
+          ? 'This patient is already waiting for triage.'
+          : 'New encounter opened and sent to triage.'
+        : `This patient already has an open encounter in ${sendToTriage.data.state?.replaceAll('_', ' ').toLowerCase()}. They were not added to the triage queue.`}</p>
+      {!awaitingTriage && <Link to={`/receptionist/patient-records?patientId=${patientId}`}>View patient record</Link>}
+      {onSent && <button type="button" className="btn btn-secondary" onClick={onSent}>{awaitingTriage ? 'Done' : 'Close'}</button>}
+    </div>;
+  }
 
   if (picking) {
     return (
-      <select className="clinical-control"
-        autoFocus
-        onChange={(e) => sendToTriage.mutate(e.target.value)}
-        style={{ font: 'inherit' }}
-        defaultValue=""
-      >
-        <option value="" disabled>
-          Choose department…
-        </option>
-        {departments?.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.name}
+      <div>
+        <select className="clinical-control"
+          autoFocus
+          disabled={sendToTriage.isPending}
+          onChange={(e) => sendToTriage.mutate(e.target.value)}
+          style={{ font: 'inherit' }}
+          defaultValue=""
+        >
+          <option value="" disabled>
+            Choose department…
           </option>
-        ))}
-      </select>
+          {departments?.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
+        </select>
+        {sendToTriage.error && <div className="form-error" role="alert">{sendToTriage.error instanceof ApiError ? sendToTriage.error.message : 'Could not send this patient to triage. Please try again.'}</div>}
+      </div>
     );
   }
 
   return (
-    <button type="button" className="btn btn-primary" disabled={sendToTriage.isPending} onClick={handleClick}>
-      Send to triage
-    </button>
+    <div>
+      <button type="button" className="btn btn-primary" disabled={sendToTriage.isPending || !departments?.length} onClick={handleClick}>
+        {appointment ? 'Check In for Clinic / Send to Triage' : 'Send to triage'}
+      </button>
+      {sendToTriage.error && <div className="form-error" role="alert">{sendToTriage.error instanceof ApiError ? sendToTriage.error.message : 'Could not send this patient to triage. Please try again.'}</div>}
+    </div>
   );
 }
 
@@ -195,6 +219,9 @@ function SearchResultsTable({ results }: { results: PatientSearchResult[] }) {
   const { accessToken } = useAuth();
   const facilityId = useAdminFacilityId();
   const ids = results.map(p => p.id!).filter(Boolean).slice(0, 100);
+  const clinics = useQuery({ queryKey: ['appointments', 'clinic-plans', facilityId],
+    queryFn: () => fetchClinicPlans(facilityId!, accessToken!), enabled: !!facilityId && !!accessToken });
+  const scheduledClinics = useQuery({ queryKey: ['appointments', 'clinic-active'], queryFn: () => fetchActiveClinicAppointments(accessToken!), enabled: !!accessToken });
   const summaries = useQuery({ queryKey: ['visit-summaries', facilityId, ids],
     queryFn: () => fetchVisitSummaries(facilityId!, ids, accessToken!), enabled: !!facilityId && !!accessToken && ids.length > 0 });
 
@@ -216,6 +243,7 @@ function SearchResultsTable({ results }: { results: PatientSearchResult[] }) {
             <th>Name</th>
             <th>Age</th>
             <th>Phone</th>
+            <th>Clinic follow-up</th>
             <th />
           </tr>
         </thead>
@@ -226,6 +254,7 @@ function SearchResultsTable({ results }: { results: PatientSearchResult[] }) {
               <td style={{ fontWeight: 'var(--weight-medium)' }}>
                 {patient.fullName ?? '—'}
                 {summaries.data?.find(s => s.patientId === patient.id) && <span className="badge badge-neutral">{summaries.data.find(s => s.patientId === patient.id)!.totalVisits === 0 ? 'First visit' : `Returning patient · ${summaries.data.find(s => s.patientId === patient.id)!.totalVisits} recorded visits`}</span>}
+                {clinics.data?.some(c => c.patientId === patient.id && c.active) && <span className="badge badge-info" style={{ marginLeft: 'var(--space-2)' }}>Clinic Patient</span>}
                 {patient.dobIsEstimated && (
                   <span className="badge badge-neutral" style={{ marginLeft: 'var(--space-2)' }}>
                     est. DOB
@@ -234,6 +263,10 @@ function SearchResultsTable({ results }: { results: PatientSearchResult[] }) {
               </td>
               <td>{ageFromDob(patient.dateOfBirth)}</td>
               <td>{formatPhone(patient.phone)}</td>
+              <td>{scheduledClinics.data?.filter(a => a.patientId === patient.id).map(a => <div key={a.id}>
+                <span className="badge badge-info">Clinic Patient</span> {a.clinic} · {a.doctor}<br />
+                {formatDateTime(a.scheduledAt)} · {a.status} · {clinicArrivalLabel(a.scheduledAt)}
+              </div>) ?? '—'}</td>
               <td style={{ width: 1, whiteSpace: 'nowrap' }}>
                 {canOpenEncounter && (
                   <button type="button" className="btn btn-primary" onClick={() => setStartEncounterFor(patient)}>
@@ -265,6 +298,11 @@ function StartEncounterModal({ patient, onClose }: { patient: PatientSearchResul
   const summary = useQuery({ queryKey: ['visit-summary', facilityId, patientId],
     queryFn: () => fetchVisitSummaries(facilityId!, [patientId!], accessToken!), enabled: !!facilityId && !!patientId && !!accessToken && canReadVisitHistory });
   const stats = summary.data?.[0];
+  const appointments = useQuery({ queryKey: ['appointments', 'patient', patientId],
+    queryFn: () => fetchPatientAppointments(patientId!, accessToken!), enabled: !!patientId && !!accessToken });
+  const scheduledClinic = appointments.data?.filter(a => a.clinicFollowUpId && (a.status === 'SCHEDULED' || a.status === 'NO_SHOW')) ?? [];
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState('');
+  const selectedAppointment = scheduledClinic.find(a => a.id === selectedAppointmentId) ?? (scheduledClinic.length === 1 ? scheduledClinic[0] : undefined);
 
 
   const { data: history, isLoading } = useQuery({
@@ -292,10 +330,18 @@ function StartEncounterModal({ patient, onClose }: { patient: PatientSearchResul
           <button type="button" className="btn btn-ghost" onClick={onClose}>
             Cancel
           </button>
-          {patientId && <SendToTriageControl patientId={patientId} onSent={onClose} />}
+          {patientId && <SendToTriageControl patientId={patientId} appointment={selectedAppointment} onSent={onClose} />}
         </>
       }
     >
+      {scheduledClinic.length > 0 && <div style={{ padding: 'var(--space-3)', background: 'var(--bg-subtle)', borderRadius: 'var(--radius)', marginBottom: 'var(--space-3)' }}>
+        <strong className="badge badge-info">Clinic Patient</strong>
+        <p>Select the appointment to check in. The patient may arrive before or after the scheduled day.</p>
+        {scheduledClinic.map(a => <label key={a.id} style={{ display: 'block', marginBottom: 'var(--space-2)' }}>
+          <input type="radio" name="clinicAppointment" checked={selectedAppointment?.id === a.id} onChange={() => setSelectedAppointmentId(a.id!)} />{' '}
+          {a.clinic} · {a.doctor} · {formatDateTime(a.scheduledAt)} · {clinicArrivalLabel(a.scheduledAt)} · {a.status}
+        </label>)}
+      </div>}
       {stats && <p>{stats.totalVisits === 0 ? 'First visit' : 'Returning patient'} · Recorded visits: {stats.totalVisits}<br />
         {stats.activeEncounter ? 'An open encounter already exists. Send to triage will return that encounter.' : `Next attendance: visit ${(stats.totalVisits ?? 0) + 1}`}<br />
         Last visit: {formatDate(stats.latestVisit)}</p>}
@@ -563,7 +609,7 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
               <p style={{ margin: '0 0 var(--space-3)', color: 'var(--text-secondary)' }}>
                 Matched by {candidate.reasons.includes('NATIONAL_ID_EXACT') ? 'national ID' : 'full name'}
               </p>
-              <SendToTriageControl patientId={candidate.patientId} onSent={() => setDuplicateCandidates(null)} />
+              <SendToTriageControl patientId={candidate.patientId} onSent={onRegistered} />
             </div>
           ))}
         </div>
@@ -719,7 +765,7 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
         )}
       </FormSection>
 
-      {submit.error && !duplicateCandidates && (
+      {submit.error && !(submit.error instanceof DuplicatePatientError) && (
         <div className="form-error">Something went wrong. Check the values and try again.</div>
       )}
 

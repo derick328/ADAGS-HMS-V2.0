@@ -203,7 +203,7 @@ public class PrescriptionController {
                     }
                     return new PrescriptionHistoryResponse(line.id(), order.id(), order.encounterId(), order.patientId(),
                             item == null ? null : item.code(), item == null ? "Unknown item" : item.name(),
-                            line.quantityPrescribed(), order.prescribedBy(), order.prescribedAt(), status, line.doseAmount(), line.doseUnit(), line.route(), line.frequency(), line.durationDays(), line.quantityDispensed());
+                            line.quantityPrescribed(), order.prescribedBy(), order.prescribedAt(), status, line.doseAmount(), line.doseUnit(), line.route(), line.frequency(), line.durationDays(), line.quantityDispensed(), line.dosageInstructions());
                 })
                 .toList();
     }
@@ -211,7 +211,7 @@ public class PrescriptionController {
     public record PrescriptionHistoryResponse(
             UUID prescriptionLineId, UUID prescriptionOrderId, UUID encounterId, UUID patientId,
             String itemCode, String itemName, int quantityPrescribed,
-            UUID prescribedBy, java.time.Instant prescribedAt, String status, Double doseAmount, String doseUnit, String route, com.adags.modules.pharmacy.domain.PrescriptionFrequency frequency, Integer durationDays, int quantityDispensed
+            UUID prescribedBy, java.time.Instant prescribedAt, String status, Double doseAmount, String doseUnit, String route, com.adags.modules.pharmacy.domain.PrescriptionFrequency frequency, Integer durationDays, int quantityDispensed, String dosageInstructions
     ) {
     }
 }

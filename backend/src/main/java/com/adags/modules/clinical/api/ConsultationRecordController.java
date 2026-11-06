@@ -4,6 +4,7 @@ import com.adags.modules.clinical.application.AddDiagnosisService;
 import com.adags.modules.clinical.application.AutosaveConsultationRecordCommand;
 import com.adags.modules.clinical.application.AutosaveConsultationRecordService;
 import com.adags.modules.clinical.application.IncompleteConsultationService;
+import com.adags.modules.clinical.application.VoidDiagnosisService;
 import com.adags.modules.clinical.domain.ConsultationRecord;
 import com.adags.modules.clinical.domain.ConsultationRecordRepository;
 import com.adags.modules.clinical.domain.Diagnosis;
@@ -41,6 +42,7 @@ public class ConsultationRecordController {
     private final DiagnosisRepository diagnosisRepository;
     private final AutosaveConsultationRecordService autosaveService;
     private final AddDiagnosisService addDiagnosisService;
+    private final VoidDiagnosisService voidDiagnosisService;
     private final IncompleteConsultationService incompleteConsultationService;
     private final EncounterFacade encounterFacade;
     private final AuthorizationService authorizationService;
@@ -51,6 +53,7 @@ public class ConsultationRecordController {
             DiagnosisRepository diagnosisRepository,
             AutosaveConsultationRecordService autosaveService,
             AddDiagnosisService addDiagnosisService,
+            VoidDiagnosisService voidDiagnosisService,
             IncompleteConsultationService incompleteConsultationService,
             EncounterFacade encounterFacade,
             AuthorizationService authorizationService,
@@ -60,6 +63,7 @@ public class ConsultationRecordController {
         this.diagnosisRepository = diagnosisRepository;
         this.autosaveService = autosaveService;
         this.addDiagnosisService = addDiagnosisService;
+        this.voidDiagnosisService = voidDiagnosisService;
         this.incompleteConsultationService = incompleteConsultationService;
         this.encounterFacade = encounterFacade;
         this.authorizationService = authorizationService;
@@ -113,6 +117,15 @@ public class ConsultationRecordController {
         Diagnosis diagnosis = addDiagnosisService.addDiagnosis(record.encounterId(), id, request.icd10Code(),
                 request.freeTextClarifier(), request.certainty(), request.isPrimary(), actor.userId());
         return DiagnosisResponse.from(diagnosis);
+    }
+
+    @DeleteMapping("/api/consultation-records/{id}/diagnoses/{diagnosisId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void voidDiagnosis(@PathVariable UUID id, @PathVariable UUID diagnosisId,
+                              @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "DIAGNOSIS_CREATE");
+        requireOwnRecord(id, actor.userId());
+        voidDiagnosisService.voidDiagnosis(id, diagnosisId, actor.userId());
     }
 
     @GetMapping("/api/encounters/{encounterId}/diagnoses")

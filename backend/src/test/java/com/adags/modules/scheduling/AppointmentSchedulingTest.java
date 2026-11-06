@@ -2,6 +2,7 @@ package com.adags.modules.scheduling;
 
 import com.adags.modules.scheduling.application.CreateFollowUpAppointmentCommand;
 import com.adags.modules.scheduling.application.CreateFollowUpAppointmentService;
+import com.adags.modules.scheduling.application.ClinicFollowUpService;
 import com.adags.modules.scheduling.domain.Appointment;
 import com.adags.modules.scheduling.domain.AppointmentRepository;
 import com.adags.modules.scheduling.domain.AppointmentStatus;
@@ -31,6 +32,9 @@ class AppointmentSchedulingTest extends IntegrationTestSupport {
 
     @Autowired
     private SchedulingFacade schedulingFacade;
+
+    @Autowired
+    private ClinicFollowUpService clinicFollowUpService;
 
     @Autowired
     private AppointmentRepository appointmentRepository;
@@ -133,6 +137,52 @@ class AppointmentSchedulingTest extends IntegrationTestSupport {
 
         Appointment reloaded = appointmentRepository.findById(appointment.id()).orElseThrow();
         assertThat(reloaded.attendedEncounterId()).isEqualTo(firstEncounterId);
+    }
+
+    @Test
+    void clinicEnrollmentSurvivesAttendedVisitsAndRejectsDuplicateScheduledReturns() {
+        UUID patientId = insertFixturePatient();
+        UUID sourceEncounterId = insertFixtureEncounter(patientId);
+        UUID departmentId = jdbcTemplate.queryForObject("SELECT department_id FROM encounter WHERE id = :id",
+                new MapSqlParameterSource("id", sourceEncounterId), UUID.class);
+        UUID doctor = bootstrapAdminId();
+        jdbcTemplate.update("UPDATE encounter SET assigned_provider_id = :doctor WHERE id = :id",
+                new MapSqlParameterSource().addValue("doctor", doctor).addValue("id", sourceEncounterId));
+        Instant due = Instant.now().plus(10, ChronoUnit.DAYS);
+
+        Appointment first = clinicFollowUpService.schedule(patientId, sourceEncounterId, departmentId, "Diabetes", due,
+                "Bring glucose log", doctor);
+        assertThatThrownBy(() -> clinicFollowUpService.schedule(patientId, sourceEncounterId, departmentId, "Diabetes",
+                due.plus(1, ChronoUnit.DAYS), null, doctor)).isInstanceOf(IllegalArgumentException.class);
+        UUID attendedEncounterId = insertFixtureEncounter(insertFixturePatient());
+        schedulingFacade.markAttended(first.id(), attendedEncounterId);
+        Appointment second = clinicFollowUpService.schedule(patientId, sourceEncounterId, departmentId, "Diabetes",
+                due.plus(30, ChronoUnit.DAYS), null, doctor);
+        assertThat(second.clinicFollowUpId()).isEqualTo(first.clinicFollowUpId());
+        assertThat(appointmentRepository.findById(first.id()).orElseThrow().arrivedAt()).isNotNull();
+        clinicFollowUpService.close(first.clinicFollowUpId());
+        assertThat(appointmentRepository.findById(second.id()).orElseThrow().status()).isEqualTo(AppointmentStatus.CANCELLED);
+    }
+
+    @Test
+    void lateArrivalAfterNoShowPreservesTheMissedAppointmentMarker() {
+        UUID patientId = insertFixturePatient();
+        UUID sourceEncounterId = insertFixtureEncounter(patientId);
+        UUID departmentId = jdbcTemplate.queryForObject("SELECT department_id FROM encounter WHERE id = :id",
+                new MapSqlParameterSource("id", sourceEncounterId), UUID.class);
+        UUID doctor = bootstrapAdminId();
+        jdbcTemplate.update("UPDATE encounter SET assigned_provider_id = :doctor WHERE id = :id",
+                new MapSqlParameterSource().addValue("doctor", doctor).addValue("id", sourceEncounterId));
+        Appointment appointment = clinicFollowUpService.schedule(patientId, sourceEncounterId, departmentId,
+                "General review", Instant.now().plus(1, ChronoUnit.DAYS), null, doctor);
+        appointmentRepository.setStatus(appointment.id(), AppointmentStatus.NO_SHOW);
+        UUID arrivalEncounterId = insertFixtureEncounter(insertFixturePatient());
+        schedulingFacade.validateCheckIn(appointment.id(), patientId, departmentId);
+        schedulingFacade.markAttended(appointment.id(), arrivalEncounterId);
+        Appointment attended = appointmentRepository.findById(appointment.id()).orElseThrow();
+        assertThat(attended.status()).isEqualTo(AppointmentStatus.ATTENDED);
+        assertThat(attended.noShowAt()).isNotNull();
+        assertThat(attended.arrivedAt()).isNotNull();
     }
 
     private UUID insertFixturePatient() {

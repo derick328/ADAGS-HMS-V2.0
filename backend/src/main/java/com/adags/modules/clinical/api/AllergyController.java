@@ -7,6 +7,8 @@ import com.adags.modules.clinical.domain.AllergyRecordRepository;
 import com.adags.modules.clinical.domain.AllergySource;
 import com.adags.modules.identity.IdentityFacade;
 import com.adags.shared.authz.Actor;
+import com.adags.shared.authz.CareRelationshipPort;
+import com.adags.shared.authz.AuditRecorder;
 import com.adags.shared.authz.AuthorizationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -35,22 +37,33 @@ public class AllergyController {
     private final ReconcileAllergyRecordService reconcileAllergyRecordService;
     private final IdentityFacade identityFacade;
     private final AuthorizationService authorizationService;
+    private final CareRelationshipPort careRelationship;
+    private final AuditRecorder historyAudit;
 
     public AllergyController(
             AllergyRecordRepository allergyRecordRepository,
             ReconcileAllergyRecordService reconcileAllergyRecordService,
             IdentityFacade identityFacade,
-            AuthorizationService authorizationService
+            AuthorizationService authorizationService,
+            CareRelationshipPort careRelationship,
+            AuditRecorder historyAudit
     ) {
         this.allergyRecordRepository = allergyRecordRepository;
         this.reconcileAllergyRecordService = reconcileAllergyRecordService;
         this.identityFacade = identityFacade;
         this.authorizationService = authorizationService;
+        this.careRelationship = careRelationship;
+        this.historyAudit = historyAudit;
     }
 
     @GetMapping("/api/patients/{patientId}/allergies")
     public List<AllergyRecordResponse> byPatient(@PathVariable UUID patientId, @AuthenticationPrincipal Actor actor) {
         requirePermission(actor, "ALLERGY_READ");
+        if (authorizationService.hasPermission(actor, "CONSULTATION_CREATE")
+                && !careRelationship.hasCareRelationship(actor.userId(), patientId)) {
+            throw new AccessDeniedException("An active care relationship is required for clinical history.");
+        }
+        historyAudit.record(actor.userId(), "ALLERGY_HISTORY_READ", "patient", patientId, patientId);
         return allergyRecordRepository.findByPatientId(patientId).stream()
                 .map(this::toResponse)
                 .toList();

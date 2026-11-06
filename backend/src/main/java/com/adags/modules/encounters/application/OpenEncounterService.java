@@ -61,7 +61,12 @@ public class OpenEncounterService {
         // the real guard, not this read.
         Optional<Encounter> existing = encounterRepository.findOpenByPatientId(command.patientId());
         if (existing.isPresent()) {
-            return new CheckInResult(existing.get(), true);
+            Encounter previous = existing.get();
+            boolean completed = previous.state() == EncounterState.CONSULT_COMPLETE
+                    || previous.state() == EncounterState.PENDING_SETTLEMENT;
+            if (!completed || !previous.departmentId().equals(command.departmentId())) {
+                return new CheckInResult(previous, true);
+            }
         }
 
         UUID facilityId = facilityIdFor(command.departmentId());
@@ -72,6 +77,9 @@ public class OpenEncounterService {
                 payerType, 0, null, command.actorUserId());
 
         try {
+            if (existing.isPresent()) {
+                return openEncounterTransaction.runAfterCompletedVisit(toInsert, command.actorUserId());
+            }
             return new CheckInResult(openEncounterTransaction.run(toInsert, command.actorUserId()), false);
         } catch (DuplicateKeyException raceLost) {
             // Two concurrent check-ins for the same patient both passed the

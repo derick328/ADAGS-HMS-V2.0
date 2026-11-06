@@ -5,11 +5,16 @@ import com.adags.modules.encounters.domain.TriageAssessment;
 import com.adags.modules.encounters.domain.TriageAssessmentRepository;
 import com.adags.modules.identity.IdentityFacade;
 import com.adags.shared.authz.Actor;
+import com.adags.shared.authz.AuditRecorder;
 import com.adags.shared.authz.AuthorizationService;
+import com.adags.shared.authz.ScopeRef;
+import com.adags.shared.authz.ScopeType;
+import com.adags.shared.authz.PolicyResult;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -31,17 +36,20 @@ public class TriageAssessmentController {
     private final EncounterRepository encounterRepository;
     private final IdentityFacade identityFacade;
     private final AuthorizationService authorizationService;
+    private final AuditRecorder historyAudit;
 
     public TriageAssessmentController(
             TriageAssessmentRepository triageAssessmentRepository,
             EncounterRepository encounterRepository,
             IdentityFacade identityFacade,
-            AuthorizationService authorizationService
+            AuthorizationService authorizationService,
+            AuditRecorder historyAudit
     ) {
         this.triageAssessmentRepository = triageAssessmentRepository;
         this.encounterRepository = encounterRepository;
         this.identityFacade = identityFacade;
         this.authorizationService = authorizationService;
+        this.historyAudit = historyAudit;
     }
 
     // §7.12 ("this nurse's work only, or the whole shift's?") resolved as
@@ -64,6 +72,20 @@ public class TriageAssessmentController {
         return triageAssessmentRepository.search(assessedBy, assessedFrom, assessedTo).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @GetMapping("/api/encounters/{encounterId}/triage-assessments/history")
+    public List<CompletedTriageAssessmentResponse> byEncounter(@PathVariable UUID encounterId,
+                                                                 @AuthenticationPrincipal Actor actor) {
+        var encounter = encounterRepository.findById(encounterId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Encounter not found: " + encounterId));
+        if (authorizationService.checkPatientAccess(actor, "CLINICAL_NOTE_READ", encounter.patientId(),
+                ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId())) != PolicyResult.ALLOWED) {
+            throw new AccessDeniedException("Missing clinical history access");
+        }
+        historyAudit.record(actor.userId(), "CLINICAL_HISTORY_READ", "encounter", encounterId, encounter.patientId());
+        return triageAssessmentRepository.findByEncounterId(encounterId).stream()
+                .map(this::toResponse).toList();
     }
 
     private CompletedTriageAssessmentResponse toResponse(TriageAssessment assessment) {

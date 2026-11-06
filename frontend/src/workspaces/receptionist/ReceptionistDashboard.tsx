@@ -6,12 +6,15 @@ import { Link } from 'react-router-dom';
 import {
   fetchAppointmentsScheduledBetween,
   fetchRecentAppointments,
+  fetchActiveClinicAppointments,
+  clinicArrivalLabel,
+  type ClinicAppointment,
   type AppointmentResponse,
 } from '../../shared/api/appointments';
 import { fetchCashierShiftPayments, fetchCurrentCashierShift } from '../../shared/api/cashierShifts';
 import { searchEncounters } from '../../shared/api/encounters';
 import { searchInvoices } from '../../shared/api/invoices';
-import { fetchRegisteredPatientCount } from '../../shared/api/patients';
+import { fetchRegisteredPatientCount, fetchPatientById } from '../../shared/api/patients';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { useMe } from '../../shared/auth/useMe';
 import { formatDateTime, todayRange } from '../../shared/format/date';
@@ -66,6 +69,12 @@ export function ReceptionistDashboard() {
     queryKey: ['cashier-shift', 'payments', currentShift.data?.id],
     queryFn: () => fetchCashierShiftPayments(currentShift.data?.id as string, accessToken as string),
     enabled: accessToken != null && currentShift.data != null,
+  });
+
+  const activeClinics = useQuery({
+    queryKey: ['dashboard', 'active-clinics'],
+    queryFn: () => fetchActiveClinicAppointments(accessToken as string),
+    enabled: accessToken != null,
   });
 
   const recentAppointments = useQuery({
@@ -138,6 +147,14 @@ export function ReceptionistDashboard() {
         />
       </div>
 
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <Link to="/receptionist/expected-returns" className="btn btn-secondary">
+          Clinic patients: {activeClinics.data?.length ?? '…'} · Review scheduled returns
+        </Link>
+        {activeClinics.data?.slice(0, 3).map((a: ClinicAppointment) => <span key={a.id} className="badge badge-info" style={{ marginLeft: 'var(--space-2)' }}>
+          {a.clinic} · {formatDateTime(a.scheduledAt)} · {clinicArrivalLabel(a.scheduledAt)}
+        </span>)}
+      </div>
       <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 'var(--space-4)' }}>
         <AppointmentPanel title="Recent appointments" rows={recentAppointments.data} isLoading={recentAppointments.isLoading} emptyMessage="No recent appointments" />
         <AppointmentPanel title="Next up today" rows={upcomingAppointments.data} isLoading={upcomingAppointments.isLoading} emptyMessage="No appointments left today" />
@@ -221,20 +238,25 @@ function AppointmentPanel({
         <TableRegion><table className="table">
           <caption className="sr-only">{title}</caption>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td style={{ width: 1, whiteSpace: 'nowrap' }}>
-                  <StatusBadge status={row.status} />
-                </td>
-                <td style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>{formatDateTime(row.scheduledAt)}</td>
-                <td style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{row.notes || '—'}</td>
-              </tr>
-            ))}
+            {rows.map((row) => <AppointmentPanelRow key={row.id} row={row} />)}
           </tbody>
         </table></TableRegion>
       )}
     </section>
   );
+}
+
+function AppointmentPanelRow({ row }: { row: AppointmentResponse }) {
+  const { accessToken } = useAuth();
+  const { data: patient } = useQuery({ queryKey: ['patient', row.patientId],
+    queryFn: () => fetchPatientById(row.patientId!, accessToken!), enabled: !!accessToken && !!row.patientId });
+  return <tr>
+    <td><StatusBadge status={row.status} /></td>
+    <td><strong>{patient?.fullName ?? 'Loading…'}</strong><br /><small>{patient?.hospitalNo ?? '—'}</small></td>
+    <td>{(row as ClinicAppointment).clinic ?? 'General follow-up'} · {(row as ClinicAppointment).doctor ?? '—'}<br />
+      {formatDateTime(row.scheduledAt)} · {row.status === 'SCHEDULED' ? clinicArrivalLabel(row.scheduledAt) : row.status}
+    </td>
+  </tr>;
 }
 
 function StatusBadge({ status }: { status: AppointmentResponse['status'] }) {

@@ -49,6 +49,7 @@ import { TriageAssessmentFormPage } from './workspaces/triage/TriageAssessmentFo
 import { TriageNurseShell } from './workspaces/triage/TriageNurseShell';
 import { AdmittedPatientsPage } from './workspaces/doctor/AdmittedPatientsPage';
 import { ConsultationPage } from './workspaces/doctor/ConsultationPage';
+import { ClinicFollowUpsPage } from './workspaces/doctor/ClinicFollowUpsPage';
 import { DoctorShell } from './workspaces/doctor/DoctorShell';
 import { EncounterDetailPage } from './workspaces/doctor/EncounterDetailPage';
 import { HospitalCataloguePage } from './workspaces/doctor/HospitalCataloguePage';
@@ -179,6 +180,7 @@ export function App() {
         }
       >
         <Route index element={<MyQueuePage />} />
+        <Route path="clinic-follow-ups" element={<ClinicFollowUpsPage />} />
         <Route path="consultation/:encounterId" element={<ConsultationPage />} />
         <Route path="schedule-surgery/:encounterId" element={<ScheduleSurgeryPage />} />
         <Route path="scheduled-surgeries" element={<MyScheduledSurgeriesPage />} />

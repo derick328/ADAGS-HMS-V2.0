@@ -2,6 +2,11 @@ package com.adags.modules.scheduling.api;
 
 import com.adags.modules.scheduling.application.CreateFollowUpAppointmentCommand;
 import com.adags.modules.scheduling.application.CreateFollowUpAppointmentService;
+import com.adags.modules.scheduling.application.ClinicFollowUpService;
+import com.adags.shared.authz.ScopeRef;
+import com.adags.shared.authz.ScopeType;
+import com.adags.modules.scheduling.domain.AppointmentStatus;
+import java.util.UUID;
 import com.adags.modules.scheduling.domain.Appointment;
 import com.adags.modules.scheduling.domain.AppointmentRepository;
 import com.adags.shared.authz.Actor;
@@ -33,17 +38,20 @@ public class AppointmentController {
     private final AppointmentRepository appointmentRepository;
     private final AuthorizationService authorizationService;
     private final Clock clock;
+    private final ClinicFollowUpService clinics;
 
     public AppointmentController(
             CreateFollowUpAppointmentService createFollowUpAppointmentService,
             AppointmentRepository appointmentRepository,
             AuthorizationService authorizationService,
-            Clock clock
+            Clock clock,
+            ClinicFollowUpService clinics
     ) {
         this.createFollowUpAppointmentService = createFollowUpAppointmentService;
         this.appointmentRepository = appointmentRepository;
         this.authorizationService = authorizationService;
         this.clock = clock;
+        this.clinics = clinics;
     }
 
     @PostMapping
@@ -63,14 +71,14 @@ public class AppointmentController {
             @AuthenticationPrincipal Actor actor
     ) {
         requirePermission(actor, "APPOINTMENT_READ");
-        return appointmentRepository.findScheduledBetween(from, to).stream().map(AppointmentResponse::from).toList();
+        return appointmentRepository.findScheduledBetween(from, to).stream().filter(a -> visible(a, actor)).map(a -> response(a, actor)).toList();
     }
 
     /** Dashboard's "8 most recent" panel. */
     @GetMapping("/recent")
     public List<AppointmentResponse> recent(@RequestParam(defaultValue = "8") int limit, @AuthenticationPrincipal Actor actor) {
         requirePermission(actor, "APPOINTMENT_READ");
-        return appointmentRepository.findRecentPast(clock.instant(), limit).stream().map(AppointmentResponse::from).toList();
+        return appointmentRepository.findRecentPast(clock.instant(), limit).stream().filter(a -> visible(a, actor)).map(a -> response(a, actor)).toList();
     }
 
     /** Expected Returns §3.2 — still SCHEDULED, due within 48h or already overdue, no upper bound. */
@@ -78,7 +86,101 @@ public class AppointmentController {
     public List<AppointmentResponse> expectedReturns(@AuthenticationPrincipal Actor actor) {
         requirePermission(actor, "APPOINTMENT_READ");
         Instant windowEnd = clock.instant().plus(EXPECTED_RETURNS_WINDOW_HOURS, ChronoUnit.HOURS);
-        return appointmentRepository.findExpectedReturns(windowEnd).stream().map(AppointmentResponse::from).toList();
+        return appointmentRepository.findExpectedReturns(windowEnd).stream().filter(a -> visible(a, actor)).map(a -> response(a, actor)).toList();
+    }
+
+    public record ClinicBookingRequest(UUID patientId, UUID sourceEncounterId, UUID departmentId, String clinicName,
+                                       Instant scheduledAt, String instructions) {}
+    public record RescheduleRequest(Instant scheduledAt, String instructions) {}
+
+    @PostMapping("/clinic")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AppointmentResponse scheduleClinic(@RequestBody ClinicBookingRequest request, @AuthenticationPrincipal Actor actor) {
+        if (request.patientId() == null || request.sourceEncounterId() == null || request.departmentId() == null) {
+            throw new IllegalArgumentException("Patient, encounter and clinic are required.");
+        }
+        requireScoped(actor, "APPOINTMENT_CREATE_FOLLOWUP", request.departmentId());
+        return response(clinics.schedule(request.patientId(), request.sourceEncounterId(), request.departmentId(), request.clinicName(),
+                request.scheduledAt(), request.instructions(), actor.userId()), actor);
+    }
+
+    @GetMapping("/patient/{patientId}")
+    public List<AppointmentResponse> patientHistory(@PathVariable UUID patientId, @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "APPOINTMENT_READ");
+        return appointmentRepository.findByPatientId(patientId).stream().filter(a -> visible(a, actor)).map(a -> response(a, actor)).toList();
+    }
+
+    @GetMapping("/clinic-plans")
+    public List<ClinicFollowUpService.Plan> clinicPlans(@RequestParam(required = false) UUID patientId,
+                                                        @RequestParam(required = false) UUID facilityId,
+                                                        @RequestParam(defaultValue = "false") boolean mine,
+                                                        @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "APPOINTMENT_READ");
+        if (patientId == null && facilityId == null && !mine) throw new IllegalArgumentException("Specify patient, facility or mine.");
+        var plans = mine ? clinics.plansForProvider(actor.userId()) : clinics.plans(patientId, facilityId);
+        return plans.stream().filter(p ->
+                authorizationService.hasPermission(actor, "APPOINTMENT_READ",
+                        ScopeRef.of(ScopeType.DEPARTMENT, p.departmentId()))).toList();
+    }
+
+    @GetMapping("/clinic-active")
+    public List<AppointmentResponse> activeClinicAppointments(@AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "APPOINTMENT_READ");
+        return appointmentRepository.findActiveClinicAppointments().stream().filter(a -> visible(a, actor)).map(a -> response(a, actor)).toList();
+    }
+
+    @PostMapping("/{id}/no-show")
+    public AppointmentResponse markNoShow(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
+        Appointment appointment = appointmentRepository.findById(id).orElseThrow();
+        if (appointment.clinicFollowUpId() == null || appointment.status() != AppointmentStatus.SCHEDULED
+                || appointment.scheduledAt().isAfter(clock.instant())) {
+            throw new IllegalArgumentException("Only a missed scheduled clinic appointment can be marked no-show.");
+        }
+        requireScoped(actor, "APPOINTMENT_CANCEL", clinics.plan(appointment.clinicFollowUpId()).departmentId());
+        appointmentRepository.setStatus(id, AppointmentStatus.NO_SHOW);
+        return response(appointmentRepository.findById(id).orElseThrow(), actor);
+    }
+
+    @PatchMapping("/{id}/reschedule")
+    public AppointmentResponse reschedule(@PathVariable UUID id, @RequestBody RescheduleRequest request,
+                                          @AuthenticationPrincipal Actor actor) {
+        Appointment appointment = appointmentRepository.findById(id).orElseThrow();
+        if (appointment.clinicFollowUpId() == null) throw new IllegalArgumentException("Not a clinic appointment.");
+        var plan = clinics.plan(appointment.clinicFollowUpId());
+        requireScoped(actor, "APPOINTMENT_RESCHEDULE", plan.departmentId());
+        if (!plan.providerId().equals(actor.userId()) && !authorizationService.hasPermission(actor, "APPOINTMENT_CANCEL")) {
+            throw new AccessDeniedException("Only the assigned doctor may reschedule this clinic visit.");
+        }
+        return response(clinics.reschedule(id, request.scheduledAt(), request.instructions()), actor);
+    }
+
+    @PostMapping("/clinic-plans/{id}/close")
+    public void closeClinic(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
+        var plan = clinics.plan(id);
+        requireScoped(actor, "APPOINTMENT_CREATE_FOLLOWUP", plan.departmentId());
+        if (!plan.providerId().equals(actor.userId())) throw new AccessDeniedException("Only the assigned doctor may close this clinic plan.");
+        clinics.close(id);
+    }
+
+    private boolean visible(Appointment appointment, Actor actor) {
+        UUID departmentId = appointment.clinicFollowUpId() == null
+                ? clinics.sourceDepartment(appointment.sourceEncounterId())
+                : clinics.plan(appointment.clinicFollowUpId()).departmentId();
+        return authorizationService.hasPermission(actor, "APPOINTMENT_READ",
+                ScopeRef.of(ScopeType.DEPARTMENT, departmentId));
+    }
+
+    private AppointmentResponse response(Appointment appointment, Actor actor) {
+        if (appointment.clinicFollowUpId() == null) return AppointmentResponse.from(appointment);
+        var plan = clinics.plan(appointment.clinicFollowUpId());
+        requireScoped(actor, "APPOINTMENT_READ", plan.departmentId());
+        return AppointmentResponse.from(appointment).withClinic(plan.departmentId(), plan.clinic(), clinics.providerName(appointment.providerId()));
+    }
+
+    private void requireScoped(Actor actor, String permission, UUID departmentId) {
+        if (!authorizationService.hasPermission(actor, permission, ScopeRef.of(ScopeType.DEPARTMENT, departmentId))) {
+            throw new AccessDeniedException("Missing permission: " + permission);
+        }
     }
 
     private void requirePermission(Actor actor, String permissionCode) {

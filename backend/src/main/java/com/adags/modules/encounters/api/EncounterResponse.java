@@ -20,13 +20,18 @@ public record EncounterResponse(
         PayerType payerType,
         int version,
         Instant createdAt,
-        boolean existingEncounter
+        boolean existingEncounter,
+        String clinicianName
 ) {
     public static EncounterResponse from(Encounter encounter) { return from(encounter, false); }
+    public EncounterResponse withClinicianName(String name) {
+        return new EncounterResponse(id, patientId, facilityId, departmentId, appointmentId,
+                assignedProviderId, type, state, payerType, version, createdAt, existingEncounter, name);
+    }
     public static EncounterResponse from(Encounter encounter, boolean existingEncounter) {
         return new EncounterResponse(
                 encounter.id(), encounter.patientId(), encounter.facilityId(), encounter.departmentId(),
                 encounter.appointmentId(), encounter.assignedProviderId(), encounter.type(), encounter.state(),
-                encounter.payerType(), encounter.version(), encounter.createdAt(), existingEncounter);
+                encounter.payerType(), encounter.version(), encounter.createdAt(), existingEncounter, null);
     }
 }

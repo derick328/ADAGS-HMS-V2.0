@@ -15,12 +15,25 @@ public record AppointmentResponse(
         AppointmentStatus status,
         UUID attendedEncounterId,
         String notes,
-        Instant createdAt
+        Instant createdAt,
+        UUID clinicFollowUpId,
+        Instant arrivedAt,
+        Instant noShowAt,
+        UUID departmentId,
+        String clinic,
+        String doctor
 ) {
+
+    public AppointmentResponse withClinic(UUID departmentId, String clinic, String doctor) {
+        return new AppointmentResponse(id, patientId, providerId, sourceEncounterId, scheduledAt,
+                status, attendedEncounterId, notes, createdAt, clinicFollowUpId, arrivedAt, noShowAt,
+                departmentId, clinic, doctor);
+    }
 
     public static AppointmentResponse from(Appointment appointment) {
         return new AppointmentResponse(appointment.id(), appointment.patientId(), appointment.providerId(),
                 appointment.sourceEncounterId(), appointment.scheduledAt(), appointment.status(),
-                appointment.attendedEncounterId(), appointment.notes(), appointment.createdAt());
+                appointment.attendedEncounterId(), null, appointment.createdAt(),
+                appointment.clinicFollowUpId(), appointment.arrivedAt(), appointment.noShowAt(), null, null, null);
     }
 }

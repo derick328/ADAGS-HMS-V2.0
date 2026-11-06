@@ -67,6 +67,10 @@ export function addDiagnosis(
   });
 }
 
+export function removeDiagnosis(consultationRecordId: string, diagnosisId: string, accessToken: string): Promise<void> {
+  return authFetch(`/api/consultation-records/${consultationRecordId}/diagnoses/${diagnosisId}`, accessToken, { method: 'DELETE' });
+}
+
 export function fetchDiagnosesByEncounter(encounterId: string, accessToken: string): Promise<DiagnosisResponse[]> {
   return authFetch(`/api/encounters/${encounterId}/diagnoses`, accessToken);
 }

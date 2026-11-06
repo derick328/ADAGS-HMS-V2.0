@@ -45,6 +45,9 @@ spring:
 adags:
   minio:
     endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    # Used only to sign browser-facing download links. In production this is
+    # the HTTPS hostname that proxies to the private MinIO API.
+    public-endpoint: ${MINIO_PUBLIC_ENDPOINT:}
     access-key: ${MINIO_ACCESS_KEY:adags}
     secret-key: ${MINIO_SECRET_KEY:adags-minio-secret}
     lab-machine-output-bucket: ${MINIO_LAB_MACHINE_OUTPUT_BUCKET:lab-machine-output}

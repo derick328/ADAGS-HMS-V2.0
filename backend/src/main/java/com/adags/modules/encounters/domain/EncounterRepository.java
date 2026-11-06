@@ -12,6 +12,9 @@ public interface EncounterRepository {
     /** The patient's open encounter, if any — state not in the terminal set (root CLAUDE.md "Concurrency"). */
     Optional<Encounter> findOpenByPatientId(UUID patientId);
 
+    /** Locks the open visit while a completed visit is finalized during a new check-in. */
+    Optional<Encounter> findOpenByPatientIdForUpdate(UUID patientId);
+
     /** 08-doctor-navigation.md §3.3: every encounter for this patient, across every clinician, newest first. */
     List<Encounter> findByPatientId(UUID patientId);
 

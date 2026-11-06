@@ -76,6 +76,13 @@ export function StockInPage() {
     setKey(crypto.randomUUID());
   };
 
+  const editDelivery = (change: () => void) => {
+    change();
+    setReviewing(false);
+    setError('');
+    setKey(crypto.randomUUID());
+  };
+
   function validate(): StockReceiptLineRequest[] | null {
     if (!store || !supplierChoice || supplierChoice === '__new__' && !newSupplierName.trim() ||
         !invoiceNumber.trim() || !deliveryNoteNumber.trim() || !invoiceDate || !deliveryDate) {
@@ -167,13 +174,13 @@ export function StockInPage() {
           <button type="button" className="btn btn-ghost" onClick={() => { setSupplierChoice('__new__'); setReviewing(false); setKey(crypto.randomUUID()); }}>
             Add a new supplier</button>
         </div>
-        {supplierChoice === '__new__' && <label>New supplier name <input className="clinical-control" value={newSupplierName} onChange={(e) => setNewSupplierName(e.target.value)} /></label>}
-        <label>Invoice number <input className="clinical-control" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} /></label>
-        <label>Delivery note number <input className="clinical-control" value={deliveryNoteNumber} onChange={(e) => setDeliveryNoteNumber(e.target.value)} /></label>
-        <label>Invoice date <input className="clinical-control" type="date" max={facilityDate()} value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></label>
-        <label>Delivery date <input className="clinical-control" type="date" max={facilityDate()} value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} /></label>
+        {supplierChoice === '__new__' && <label>New supplier name <input className="clinical-control" value={newSupplierName} onChange={(e) => editDelivery(() => setNewSupplierName(e.target.value))} /></label>}
+        <label>Invoice number <input className="clinical-control" value={invoiceNumber} onChange={(e) => editDelivery(() => setInvoiceNumber(e.target.value))} /></label>
+        <label>Delivery note number <input className="clinical-control" value={deliveryNoteNumber} onChange={(e) => editDelivery(() => setDeliveryNoteNumber(e.target.value))} /></label>
+        <label>Invoice date <input className="clinical-control" type="date" max={facilityDate()} value={invoiceDate} onChange={(e) => editDelivery(() => setInvoiceDate(e.target.value))} /></label>
+        <label>Delivery date <input className="clinical-control" type="date" max={facilityDate()} value={deliveryDate} onChange={(e) => editDelivery(() => setDeliveryDate(e.target.value))} /></label>
         <label>Receiving store <input className="clinical-control" value={store?.name ?? 'Loading…'} readOnly /></label>
-        <label>Notes <input className="clinical-control" value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
+        <label>Notes <input className="clinical-control" value={notes} onChange={(e) => editDelivery(() => setNotes(e.target.value))} /></label>
       </div>
     </section>
 
@@ -202,6 +209,7 @@ export function StockInPage() {
             <td>{line.discrepancyReason || '—'}</td>
             <td>{formatMoney(Number(line.accepted) * Number(line.unitCost), 'TZS')}</td></tr>)}
         </tbody></table></TableRegion>
+        <p className="stock-in-total">Total received purchase value: {formatMoney(lines.reduce((sum, line) => sum + Number(line.received) * Number(line.unitCost), 0), 'TZS')}</p>
         <p className="stock-in-total">Accepted stock value: {formatMoney(lines.reduce((sum, line) => sum + Number(line.accepted) * Number(line.unitCost), 0), 'TZS')}</p>
         <div className="stock-in-actions"><button type="button" className="btn btn-secondary" onClick={() => setReviewing(false)}>Back to edit</button>
           <button type="button" className="btn btn-primary" onClick={() => confirm.mutate()} disabled={confirm.isPending}>{confirm.isPending ? 'Confirming…' : 'Confirm stock in'}</button></div>

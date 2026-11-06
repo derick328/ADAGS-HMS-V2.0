@@ -1,5 +1,6 @@
 package com.adags.modules.encounters.application;
 
+import com.adags.modules.billing.BillingFacade;
 import com.adags.modules.encounters.domain.Encounter;
 import com.adags.modules.encounters.domain.EncounterEvent;
 import com.adags.modules.encounters.domain.EncounterRepository;
@@ -25,17 +26,53 @@ class OpenEncounterTransaction {
 
     private final EncounterRepository encounterRepository;
     private final SchedulingFacade schedulingFacade;
+    private final BillingFacade billingFacade;
     private final DomainEventPublisher eventPublisher;
 
     OpenEncounterTransaction(EncounterRepository encounterRepository, SchedulingFacade schedulingFacade,
-                              DomainEventPublisher eventPublisher) {
+                              BillingFacade billingFacade, DomainEventPublisher eventPublisher) {
         this.encounterRepository = encounterRepository;
         this.schedulingFacade = schedulingFacade;
+        this.billingFacade = billingFacade;
         this.eventPublisher = eventPublisher;
     }
 
     @Transactional
+    OpenEncounterService.CheckInResult runAfterCompletedVisit(Encounter toInsert, UUID actorUserId) {
+        // The lock serializes a new arrival with another check-in or a state change.
+        // Only a clinically completed visit in the same department can be
+        // finalized by this receptionist action.
+        var current = encounterRepository.findOpenByPatientIdForUpdate(toInsert.patientId());
+        if (current.isPresent()) {
+            Encounter previous = current.get();
+            if ((previous.state() != EncounterState.CONSULT_COMPLETE
+                    && previous.state() != EncounterState.PENDING_SETTLEMENT)
+                    || !previous.departmentId().equals(toInsert.departmentId())) {
+                return new OpenEncounterService.CheckInResult(previous, true);
+            }
+            if (previous.state() == EncounterState.CONSULT_COMPLETE) {
+                transition(previous.id(), EncounterState.CONSULT_COMPLETE, EncounterState.PENDING_SETTLEMENT, actorUserId);
+            }
+            transition(previous.id(), EncounterState.PENDING_SETTLEMENT, EncounterState.CLOSED, actorUserId);
+            billingFacade.createReceivablesForOutstandingBalance(previous.id());
+            eventPublisher.publish("EncounterClosed", Map.of(
+                    "encounterId", previous.id().toString(),
+                    "patientId", previous.patientId().toString(),
+                    "toState", EncounterState.CLOSED.name()));
+        }
+        return new OpenEncounterService.CheckInResult(run(toInsert, actorUserId), false);
+    }
+
+    private void transition(UUID encounterId, EncounterState from, EncounterState to, UUID actorUserId) {
+        encounterRepository.updateState(encounterId, to);
+        encounterRepository.insertEvent(new EncounterEvent(null, encounterId, from, to, actorUserId, null, null));
+    }
+
+    @Transactional
     Encounter run(Encounter toInsert, UUID actorUserId) {
+        if (toInsert.appointmentId() != null) {
+            schedulingFacade.validateCheckIn(toInsert.appointmentId(), toInsert.patientId(), toInsert.departmentId());
+        }
         Encounter saved = encounterRepository.insert(toInsert);
 
         // Same transaction as the insert above — if this write fails, the

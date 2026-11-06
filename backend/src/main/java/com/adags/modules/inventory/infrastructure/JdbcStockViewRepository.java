@@ -33,10 +33,13 @@ public class JdbcStockViewRepository implements StockViewRepository {
                 SELECT i.id AS item_id, i.code AS item_code, i.name AS item_name,
                        i.strength, i.unit AS base_unit,
                        CASE WHEN b.expiry_date <= (now() AT TIME ZONE 'Africa/Dar_es_Salaam')::date
-                            THEN 'EXPIRED' ELSE b.status END AS stock_status,
+                            THEN 'EXPIRED'
+                            WHEN NOT i.active OR i.regulatory_schedule = 'CONTROLLED'
+                            THEN 'UNAVAILABLE' ELSE b.status END AS stock_status,
                        b.id AS batch_id, b.batch_number, b.expiry_date,
                        s.id AS store_id, s.name AS store_name, sb.quantity,
-                       CASE WHEN b.status = 'ACTIVE' AND
+                       CASE WHEN i.active AND i.regulatory_schedule <> 'CONTROLLED'
+                         AND b.status = 'ACTIVE' AND
                          b.expiry_date > (now() AT TIME ZONE 'Africa/Dar_es_Salaam')::date
                          THEN sb.quantity ELSE 0 END AS available_quantity
                 FROM stock_balance sb
@@ -70,6 +73,7 @@ public class JdbcStockViewRepository implements StockViewRepository {
                   AND EXISTS (SELECT 1 FROM stock_batch b WHERE b.id = sb.batch_id
                     AND b.status = 'ACTIVE'
                     AND b.expiry_date > (now() AT TIME ZONE 'Africa/Dar_es_Salaam')::date)
+                WHERE i.active AND i.regulatory_schedule <> 'CONTROLLED'
                 GROUP BY i.id, i.code, i.name, i.reorder_level
                 HAVING COALESCE(SUM(sb.quantity), 0) < i.reorder_level
                 ORDER BY i.name

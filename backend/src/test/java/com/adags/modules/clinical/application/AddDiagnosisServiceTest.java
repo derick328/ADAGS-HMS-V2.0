@@ -4,6 +4,7 @@ import com.adags.modules.clinical.domain.ConsultationRecord;
 import com.adags.modules.clinical.domain.ConsultationRecordRepository;
 import com.adags.modules.clinical.domain.Diagnosis;
 import com.adags.modules.clinical.domain.DiagnosisCertainty;
+import com.adags.modules.clinical.domain.DiagnosisRepository;
 import com.adags.support.IntegrationTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,12 @@ class AddDiagnosisServiceTest extends IntegrationTestSupport {
 
     @Autowired
     private AddDiagnosisService service;
+
+    @Autowired
+    private VoidDiagnosisService voidDiagnosisService;
+
+    @Autowired
+    private DiagnosisRepository diagnosisRepository;
 
     @Autowired
     private ConsultationRecordRepository consultationRecordRepository;
@@ -51,6 +58,36 @@ class AddDiagnosisServiceTest extends IntegrationTestSupport {
 
         assertThat(saved.icd10TitleSnapshot()).isEqualTo("P. falciparum malaria, unspecified");
         assertThat(saved.freeTextClarifier()).isEqualTo("with severe anaemia");
+    }
+
+    @Test
+    void mistakenPrimaryCanBeVoidedAndReplacedWithoutErasingTheOriginal() {
+        insertIcd10Code("B50.9", "P. falciparum malaria, unspecified", true, true);
+        UUID encounterId = insertFixtureEncounter();
+        UUID recordId = openConsultationRecord(encounterId);
+        UUID authorId = bootstrapAdminId();
+        Diagnosis mistaken = service.addDiagnosis(encounterId, recordId, "B50.9",
+                null, DiagnosisCertainty.PROVISIONAL, true, authorId);
+
+        voidDiagnosisService.voidDiagnosis(recordId, mistaken.id(), authorId);
+
+        assertThat(diagnosisRepository.findByEncounterId(encounterId)).isEmpty();
+        assertThat(diagnosisRepository.existsPrimaryForEncounter(encounterId)).isFalse();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT voided_by FROM diagnosis WHERE id = :id",
+                new MapSqlParameterSource("id", mistaken.id()), UUID.class)).isEqualTo(authorId);
+        Diagnosis replacement = service.addDiagnosis(encounterId, recordId, "B50.9",
+                null, DiagnosisCertainty.CONFIRMED, true, authorId);
+        assertThat(replacement.id()).isNotNull();
+        assertThatThrownBy(() -> voidDiagnosisService.voidDiagnosis(recordId, mistaken.id(), authorId))
+                .isInstanceOf(NoSuchElementException.class);
+
+        jdbcTemplate.update("""
+                UPDATE consultation_record SET status = 'FINALIZED', completed_at = now()
+                WHERE id = :recordId
+                """, new MapSqlParameterSource("recordId", recordId));
+        assertThatThrownBy(() -> voidDiagnosisService.voidDiagnosis(recordId, replacement.id(), authorId))
+                .isInstanceOf(NoSuchElementException.class);
     }
 
     @Test

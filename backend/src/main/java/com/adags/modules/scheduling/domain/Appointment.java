@@ -18,8 +18,18 @@ public record Appointment(
         UUID attendedEncounterId,
         String notes,
         Instant createdAt,
-        UUID createdBy
+        UUID createdBy,
+        UUID clinicFollowUpId,
+        Instant arrivedAt,
+        Instant noShowAt
 ) {
+
+    public Appointment(UUID id, UUID patientId, UUID providerId, UUID sourceEncounterId,
+                       Instant scheduledAt, AppointmentStatus status, UUID attendedEncounterId,
+                       String notes, Instant createdAt, UUID createdBy) {
+        this(id, patientId, providerId, sourceEncounterId, scheduledAt, status,
+                attendedEncounterId, notes, createdAt, createdBy, null, null, null);
+    }
 
     public static Appointment scheduleFollowUp(UUID patientId, UUID providerId, UUID sourceEncounterId,
                                                 Instant scheduledAt, String notes, UUID createdBy) {

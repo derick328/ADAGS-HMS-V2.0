@@ -73,7 +73,21 @@ public class MachineOutputStorageService {
     /** A short-lived, directly-fetchable URL for viewing a stored machine output file, e.g. from My History. */
     public String presignedUrl(String objectKey) {
         try {
-            return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+            // The internal MinIO hostname is unreachable from a user's browser.
+            // Signing against the public endpoint also signs the correct Host
+            // header; rewriting an already signed URL would invalidate it.
+            MinioClient signingClient = properties.getPublicEndpoint() == null
+                    || properties.getPublicEndpoint().isBlank()
+                    ? minioClient
+                    : MinioClient.builder()
+                            .endpoint(properties.getPublicEndpoint())
+                            .credentials(properties.getAccessKey(), properties.getSecretKey())
+                            // This deployment uses MinIO's default region.
+                            // Supplying it avoids an outbound bucket-location
+                            // request while generating the signed URL.
+                            .region("us-east-1")
+                            .build();
+            return signingClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                     .method(Method.GET)
                     .bucket(properties.getLabMachineOutputBucket())
                     .object(objectKey)

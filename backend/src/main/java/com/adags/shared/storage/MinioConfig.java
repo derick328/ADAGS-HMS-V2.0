@@ -29,6 +29,7 @@ public class MinioConfig {
 
     public static class MinioProperties {
         private String endpoint;
+        private String publicEndpoint;
         private String accessKey;
         private String secretKey;
         private String labMachineOutputBucket;
@@ -40,6 +41,14 @@ public class MinioConfig {
 
         public void setEndpoint(String endpoint) {
             this.endpoint = endpoint;
+        }
+
+        public String getPublicEndpoint() {
+            return publicEndpoint;
+        }
+
+        public void setPublicEndpoint(String publicEndpoint) {
+            this.publicEndpoint = publicEndpoint;
         }
 
         public String getAccessKey() {

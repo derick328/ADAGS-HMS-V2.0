@@ -94,3 +94,7 @@ export function searchCompletedAssessments(
   query.set('assessedTo', params.assessedTo);
   return authFetch(`/api/triage-assessments?${query.toString()}`, accessToken);
 }
+
+export function fetchTriageHistoryByEncounter(encounterId: string, accessToken: string): Promise<CompletedTriageAssessmentResponse[]> {
+  return authFetch(`/api/encounters/${encounterId}/triage-assessments/history`, accessToken);
+}

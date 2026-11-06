@@ -4,7 +4,7 @@ import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { EncounterResponse } from '../../shared/api/encounters';
 import { resumeEncounter, searchEncounters } from '../../shared/api/encounters';
-import { fetchExpectedReturnAppointments, type AppointmentResponse } from '../../shared/api/appointments';
+import { fetchExpectedReturnAppointments, markClinicNoShow, clinicArrivalLabel, type ClinicAppointment } from '../../shared/api/appointments';
 import { fetchPatientById } from '../../shared/api/patients';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
@@ -154,9 +154,11 @@ function FollowUpAppointmentsSection() {
           <thead>
             <tr>
               <th>Patient</th>
-              <th>Due</th>
-              <th>Notes</th>
+              <th>Hospital no.</th>
+              <th>Clinic / assigned doctor</th>
+              <th>Scheduled return</th>
               <th>Status</th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -170,7 +172,7 @@ function FollowUpAppointmentsSection() {
   );
 }
 
-function FollowUpRow({ appointment }: { appointment: AppointmentResponse }) {
+function FollowUpRow({ appointment }: { appointment: ClinicAppointment }) {
   const { accessToken } = useAuth();
   const { data: patient } = useQuery({
     queryKey: ['patient', appointment.patientId],
@@ -179,16 +181,21 @@ function FollowUpRow({ appointment }: { appointment: AppointmentResponse }) {
     staleTime: 60_000,
   });
 
-  const overdue = appointment.scheduledAt != null && new Date(appointment.scheduledAt).getTime() < Date.now();
+  const arrival = clinicArrivalLabel(appointment.scheduledAt);
+  const queryClient = useQueryClient();
+  const canManage = usePermission('APPOINTMENT_CANCEL');
+  const noShow = useMutation({ mutationFn: () => markClinicNoShow(appointment.id!, accessToken as string),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['expected-returns'] }); queryClient.invalidateQueries({ queryKey: ['appointments'] }); } });
 
   return (
-    <tr className={overdue ? 'row-warning' : ''}>
+    <tr className={arrival === 'Overdue' ? 'row-warning' : ''}>
       <td style={{ fontWeight: 'var(--weight-medium)' }}>{patient?.fullName ?? '…'}</td>
+      <td>{patient?.hospitalNo ?? '—'}</td>
+      <td>{appointment.clinic ?? 'General follow-up'} · {appointment.doctor ?? '—'}</td>
       <td style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>{formatDateTime(appointment.scheduledAt)}</td>
-      <td style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{appointment.notes || '—'}</td>
-      <td>
-        {overdue ? <span className="badge badge-warning">due</span> : <span className="badge badge-info">upcoming</span>}
-      </td>
+      <td><span className={arrival === 'Overdue' ? 'badge badge-warning' : 'badge badge-info'}>{appointment.status} · {arrival}</span></td>
+      <td>{canManage && appointment.clinicFollowUpId && arrival === 'Overdue' && <button type="button" className="btn btn-ghost" disabled={noShow.isPending} onClick={() => noShow.mutate()}>Mark no-show</button>}
+        {noShow.error && <span className="form-error">Could not update appointment.</span>}</td>
     </tr>
   );
 }

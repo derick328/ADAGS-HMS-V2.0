@@ -26,4 +26,10 @@ public interface AppointmentRepository {
 
     /** SCHEDULED -> ATTENDED, and records which new encounter it turned into (§3.3). */
     void markAttended(UUID id, UUID encounterId);
+
+    List<Appointment> findByPatientId(UUID patientId);
+    List<Appointment> findByClinicFollowUpId(UUID clinicFollowUpId);
+    List<Appointment> findActiveClinicAppointments();
+    void reschedule(UUID id, Instant scheduledAt, String notes);
+    void setStatus(UUID id, AppointmentStatus status);
 }

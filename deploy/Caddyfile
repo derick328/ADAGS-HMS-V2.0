@@ -1,0 +1,16 @@
+{$APP_DOMAIN} {
+    encode zstd gzip
+
+    @backend path /api/* /auth/* /me /me/* /actuator/health
+    handle @backend {
+        reverse_proxy backend:8080
+    }
+    handle {
+        reverse_proxy frontend:80
+    }
+}
+
+{$FILES_DOMAIN} {
+    # Preserve the original Host: MinIO checks it in signed requests.
+    reverse_proxy minio:9000
+}

@@ -14,5 +14,7 @@ public interface SchedulingFacade {
      * with this same encounterId (idempotent against a retried check-in) —
      * never re-marks a CANCELLED or NO_SHOW appointment.
      */
+    void validateCheckIn(UUID appointmentId, UUID patientId, UUID departmentId);
+
     void markAttended(UUID appointmentId, UUID encounterId);
 }

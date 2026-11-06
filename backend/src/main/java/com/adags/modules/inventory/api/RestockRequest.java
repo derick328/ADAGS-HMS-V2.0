@@ -1,6 +1,5 @@
 package com.adags.modules.inventory.api;
 
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,7 +12,9 @@ public record RestockRequest(
         @NotNull UUID itemId,
         @NotNull UUID storeId,
         @NotBlank String batchNumber,
-        @NotNull @Future LocalDate expiryDate,
+        // RestockService checks this against the facility-local date. Bean Validation's
+        // @Future uses the server clock zone and can reject a valid local date.
+        @NotNull LocalDate expiryDate,
         @Positive int quantity,
         @Min(0) long unitCostAmountMinor,
         String unitCostCurrencyCode,

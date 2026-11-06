@@ -64,9 +64,18 @@ public class JdbcEncounterRepository implements EncounterRepository {
     }
 
     @Override
+    public Optional<Encounter> findOpenByPatientIdForUpdate(UUID patientId) {
+        List<Encounter> results = jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE patient_id = :patientId AND state NOT IN (" + NON_TERMINAL_STATES + ") FOR UPDATE",
+                new MapSqlParameterSource("patientId", patientId),
+                this::mapRow);
+        return results.stream().findFirst();
+    }
+
+    @Override
     public List<Encounter> findByPatientId(UUID patientId) {
         return jdbcTemplate.query(
-                SELECT_COLUMNS + " WHERE patient_id = :patientId ORDER BY created_at DESC",
+                SELECT_COLUMNS + " WHERE patient_id IN (SELECT alias_id FROM patient_canonical_identity WHERE patient_id = (SELECT patient_id FROM patient_canonical_identity WHERE alias_id = :patientId)) ORDER BY created_at DESC",
                 new MapSqlParameterSource("patientId", patientId),
                 this::mapRow);
     }

@@ -25,7 +25,7 @@ public record StockReceiptRequest(
     public record Line(
             @NotNull UUID itemId,
             @NotBlank String purchaseUnit,
-            @PositiveOrZero Integer orderedQuantity,
+            @Positive Integer orderedQuantity,
             @PositiveOrZero int receivedQuantity,
             @PositiveOrZero int acceptedQuantity,
             @PositiveOrZero int rejectedQuantity,

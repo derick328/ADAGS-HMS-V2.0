@@ -134,6 +134,34 @@ class OpenEncounterServiceTest extends IntegrationTestSupport {
         assertThat(eventCount).isEqualTo(1);
     }
 
+    @Test
+    void returningPatientWithCompletedConsultationGetsANewTriageVisit() {
+        UUID patientId = insertFixturePatient();
+        UUID departmentId = insertFixtureDepartment();
+        UUID actor = bootstrapAdminId();
+        Encounter previous = openEncounterService.checkIn(
+                new OpenEncounterCommand(patientId, departmentId, null, actor));
+        encounterRepository.updateState(previous.id(), EncounterState.CONSULT_COMPLETE);
+
+        OpenEncounterService.CheckInResult result = openEncounterService.checkInResult(
+                new OpenEncounterCommand(patientId, departmentId, null, actor));
+
+        assertThat(result.existingEncounter()).isFalse();
+        assertThat(result.encounter().id()).isNotEqualTo(previous.id());
+        assertThat(result.encounter().state()).isEqualTo(EncounterState.AWAITING_TRIAGE);
+        assertThat(encounterRepository.findById(previous.id()).orElseThrow().state()).isEqualTo(EncounterState.CLOSED);
+        assertThat(encounterRepository.findOpenByPatientId(patientId).orElseThrow().id()).isEqualTo(result.encounter().id());
+        assertThat(openEncounterService.checkInResult(
+                new OpenEncounterCommand(patientId, departmentId, null, actor)).existingEncounter()).isTrue();
+        assertThat(encounterRepository.findByPatientId(patientId)).hasSize(2);
+        List<String> transitions = jdbcTemplate.queryForList("""
+                SELECT from_state || ' -> ' || to_state FROM encounter_event
+                WHERE encounter_id = :id AND from_state IS NOT NULL
+                """, new MapSqlParameterSource("id", previous.id()), String.class);
+        assertThat(transitions).containsExactlyInAnyOrder(
+                "CONSULT_COMPLETE -> PENDING_SETTLEMENT", "PENDING_SETTLEMENT -> CLOSED");
+    }
+
     // 05-receptionist.md ⚠7: "An impatient patient clicked through twice
     // must not produce a duplicate queue entry or a second consultation
     // charge." Fires two real concurrent transactions against the same

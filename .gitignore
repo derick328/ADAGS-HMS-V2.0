@@ -16,3 +16,4 @@ backend/out/
 # Local env overrides — never commit real secrets
 .env
 .env.local
+.env.production

@@ -1,5 +1,6 @@
 package com.adags.modules.encounters.api;
 
+import com.adags.modules.identity.IdentityFacade;
 import com.adags.modules.encounters.application.CloseEncounterCommand;
 import com.adags.modules.encounters.application.CloseEncounterService;
 import com.adags.modules.encounters.application.MoveToAwaitingConsultService;
@@ -43,19 +44,22 @@ public class EncounterController {
     private final MoveToAwaitingConsultService moveToAwaitingConsultService;
     private final EncounterRepository encounterRepository;
     private final AuthorizationService authorizationService;
+    private final IdentityFacade identityFacade;
 
     public EncounterController(
             OpenEncounterService openEncounterService,
             CloseEncounterService closeEncounterService,
             MoveToAwaitingConsultService moveToAwaitingConsultService,
             EncounterRepository encounterRepository,
-            AuthorizationService authorizationService
+            AuthorizationService authorizationService,
+            IdentityFacade identityFacade
     ) {
         this.openEncounterService = openEncounterService;
         this.closeEncounterService = closeEncounterService;
         this.moveToAwaitingConsultService = moveToAwaitingConsultService;
         this.encounterRepository = encounterRepository;
         this.authorizationService = authorizationService;
+        this.identityFacade = identityFacade;
     }
 
     // Three callers share this list, each holding a different one of these
@@ -100,7 +104,12 @@ public class EncounterController {
         return encounterRepository.findByPatientId(patientId).stream()
                 .filter(encounter -> authorizationService.hasAnyPermission(actor, ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId()),
                         "PATIENT_READ_VISIT_HISTORY", "ENCOUNTER_OPEN", "CONSULTATION_CREATE"))
-                .map(EncounterResponse::from)
+                .filter(encounter -> !authorizationService.hasPermission(actor, "CLINICAL_NOTE_READ",
+                        ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId()))
+                        || authorizationService.checkPatientAccess(actor, "CLINICAL_NOTE_READ", encounter.patientId(),
+                        ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId())) == com.adags.shared.authz.PolicyResult.ALLOWED)
+                .map(e -> EncounterResponse.from(e).withClinicianName(
+                        e.assignedProviderId() == null ? null : identityFacade.findUsername(e.assignedProviderId()).orElse(null)))
                 .toList();
     }
 
