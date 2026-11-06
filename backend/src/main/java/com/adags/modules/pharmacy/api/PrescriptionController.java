@@ -94,7 +94,8 @@ public class PrescriptionController {
         PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
                 request.encounterId(), request.itemId(), request.quantityPrescribed(), request.dosageInstructions(),
                 request.substitutionAllowed(), actor.userId(), request.route(), request.doseAmount(),
-                request.doseUnit(), request.frequency(), request.durationDays()));
+                request.doseUnit(), request.frequency(), request.durationDays(),
+                request.requestedQuantity(), request.requestedUnit()));
         return PrescriptionLineResponse.from(line);
     }
 

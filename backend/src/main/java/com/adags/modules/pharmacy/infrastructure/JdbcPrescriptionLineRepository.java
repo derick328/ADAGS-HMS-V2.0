@@ -4,6 +4,7 @@ import com.adags.modules.pharmacy.domain.PrescriptionFrequency;
 import com.adags.modules.pharmacy.domain.PrescriptionLine;
 import com.adags.modules.pharmacy.domain.PrescriptionLineRepository;
 import com.adags.modules.pharmacy.domain.PrescriptionLineStatus;
+import com.adags.modules.pharmacy.domain.PrescriptionUnitSnapshot;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -29,6 +30,29 @@ public class JdbcPrescriptionLineRepository implements PrescriptionLineRepositor
 
     public JdbcPrescriptionLineRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    public void insertUnitSnapshot(PrescriptionUnitSnapshot snapshot) {
+        jdbcTemplate.update("""
+                INSERT INTO prescription_unit_snapshot
+                  (prescription_line_id, requested_quantity, requested_unit, conversion_factor, base_unit)
+                VALUES (:lineId, :quantity, :unit, :factor, :baseUnit)
+                """, new MapSqlParameterSource().addValue("lineId", snapshot.prescriptionLineId())
+                .addValue("quantity", snapshot.requestedQuantity()).addValue("unit", snapshot.requestedUnit())
+                .addValue("factor", snapshot.conversionFactor()).addValue("baseUnit", snapshot.baseUnit()));
+    }
+
+    @Override
+    public Optional<PrescriptionUnitSnapshot> findUnitSnapshot(UUID prescriptionLineId) {
+        List<PrescriptionUnitSnapshot> rows = jdbcTemplate.query("""
+                SELECT prescription_line_id, requested_quantity, requested_unit, conversion_factor, base_unit
+                FROM prescription_unit_snapshot WHERE prescription_line_id = :id
+                """, new MapSqlParameterSource("id", prescriptionLineId),
+                (rs, row) -> new PrescriptionUnitSnapshot((UUID) rs.getObject("prescription_line_id"),
+                        rs.getInt("requested_quantity"), rs.getString("requested_unit"),
+                        rs.getInt("conversion_factor"), rs.getString("base_unit")));
+        return rows.stream().findFirst();
     }
 
     @Override
@@ -71,6 +95,14 @@ public class JdbcPrescriptionLineRepository implements PrescriptionLineRepositor
     }
 
     @Override
+    public Optional<PrescriptionLine> findByIdForUpdate(UUID id) {
+        List<PrescriptionLine> results = jdbcTemplate.query(
+                SELECT_COLUMNS + " WHERE id = :id FOR UPDATE",
+                new MapSqlParameterSource("id", id), this::mapRow);
+        return results.stream().findFirst();
+    }
+
+    @Override
     public List<PrescriptionLine> findByPrescriptionOrderId(UUID prescriptionOrderId) {
         return jdbcTemplate.query(
                 SELECT_COLUMNS + " WHERE prescription_order_id = :prescriptionOrderId ORDER BY created_at",
@@ -102,7 +134,8 @@ public class JdbcPrescriptionLineRepository implements PrescriptionLineRepositor
 
     private PrescriptionLine mapRow(ResultSet rs, int rowNum) throws SQLException {
         String frequency = rs.getString("frequency");
-        Double doseAmount = (Double) rs.getObject("dose_amount");
+        Number storedDose = (Number) rs.getObject("dose_amount");
+        Double doseAmount = storedDose == null ? null : storedDose.doubleValue();
         Integer durationDays = (Integer) rs.getObject("duration_days");
         return new PrescriptionLine(
                 (UUID) rs.getObject("id"),

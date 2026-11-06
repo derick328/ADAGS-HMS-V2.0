@@ -28,8 +28,16 @@ public class StockReportService {
         return stockViewRepository.findCurrentStock();
     }
 
+    public List<CurrentStockRow> currentStock(List<java.util.UUID> storeIds) {
+        return storeIds.isEmpty() ? List.of() : stockViewRepository.findCurrentStock(storeIds);
+    }
+
     public List<LowStockRow> lowStock() {
         return stockViewRepository.findLowStock();
+    }
+
+    public List<LowStockRow> lowStock(List<java.util.UUID> storeIds) {
+        return storeIds.isEmpty() ? List.of() : stockViewRepository.findLowStock(storeIds);
     }
 
     /** §7.3's own default (90 days), admin-tunable without a redeploy. */
@@ -38,7 +46,17 @@ public class StockReportService {
         return stockViewRepository.findExpiringWithin(windowDays);
     }
 
+    public List<ExpiringBatchRow> expiringBatches(List<java.util.UUID> storeIds) {
+        if (storeIds.isEmpty()) return List.of();
+        int windowDays = (int) protocolSettingReader.getDouble(EXPIRY_WINDOW_KEY);
+        return stockViewRepository.findExpiringWithin(windowDays, storeIds);
+    }
+
     public List<StockValuationRow> stockValuation() {
         return stockViewRepository.findStockValuation();
+    }
+
+    public List<StockValuationRow> stockValuation(List<java.util.UUID> storeIds) {
+        return storeIds.isEmpty() ? List.of() : stockViewRepository.findStockValuation(storeIds);
     }
 }

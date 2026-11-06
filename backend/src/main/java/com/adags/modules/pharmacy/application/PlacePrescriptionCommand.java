@@ -18,6 +18,15 @@ public record PlacePrescriptionCommand(
         Double doseAmount,
         String doseUnit,
         PrescriptionFrequency frequency,
-        Integer durationDays
+        Integer durationDays,
+        Integer requestedQuantity,
+        String requestedUnit
 ) {
+    public PlacePrescriptionCommand(UUID encounterId, UUID itemId, int quantityPrescribed,
+            String dosageInstructions, boolean substitutionAllowed, UUID prescribedBy,
+            String route, Double doseAmount, String doseUnit,
+            PrescriptionFrequency frequency, Integer durationDays) {
+        this(encounterId, itemId, quantityPrescribed, dosageInstructions, substitutionAllowed,
+                prescribedBy, route, doseAmount, doseUnit, frequency, durationDays, null, null);
+    }
 }

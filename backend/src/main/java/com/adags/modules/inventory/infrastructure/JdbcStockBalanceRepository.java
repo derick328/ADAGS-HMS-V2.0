@@ -67,11 +67,13 @@ public class JdbcStockBalanceRepository implements StockBalanceRepository {
 
     @Override
     public int quantityOnHand(UUID batchId) {
-        // A batch is received into exactly one store (stock_batch.store_id
-        // is fixed at restock), so batch_id alone identifies at most one
-        // stock_balance row — no store_id needed here.
+        // Lab transfers can create another balance row for the same batch.
+        // Dispensing availability is the batch's source pharmacy store only.
         List<Integer> result = jdbcTemplate.query(
-                "SELECT quantity FROM stock_balance WHERE batch_id = :batchId",
+                """
+                SELECT sb.quantity FROM stock_balance sb JOIN stock_batch b ON b.id = sb.batch_id
+                WHERE sb.batch_id = :batchId AND sb.store_id = b.store_id
+                """,
                 new MapSqlParameterSource("batchId", batchId), (rs, rowNum) -> rs.getInt("quantity"));
         return result.stream().findFirst().orElse(0);
     }

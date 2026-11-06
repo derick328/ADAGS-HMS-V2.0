@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/api/lab-orders/{labOrderId}/result-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_3"];
+        put: operations["save"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/encounters/{encounterId}/triage-draft": {
         parameters: {
             query?: never;
@@ -436,6 +452,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["recent"];
+        put?: never;
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock-batches": {
         parameters: {
             query?: never;
@@ -446,6 +478,38 @@ export interface paths {
         get: operations["list_3"];
         put?: never;
         post: operations["restock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_4"];
+        put?: never;
+        post: operations["request"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-adjustments/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["review_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -701,7 +765,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["review_1"];
+        post: operations["review_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -811,9 +875,41 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         post: operations["add"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/medicine-packaging/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/medicine-packaging/items/{itemId}/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["propose_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -932,7 +1028,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/lab-results/machine-output": {
+    "/api/lab-results/report/{labOrderId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -942,6 +1038,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-results/machine-output/{labOrderId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["upload_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -964,6 +1076,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lab-orders/{labOrderId}/result-draft/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lab-item-proposals": {
         parameters: {
             query?: never;
@@ -973,7 +1101,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["propose_1"];
+        post: operations["propose_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1181,7 +1309,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submit"];
+        post: operations["submit_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1197,7 +1325,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["approve"];
+        post: operations["approve_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1277,7 +1405,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["confirm"];
+        post: operations["confirm_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1389,7 +1517,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submit_1"];
+        post: operations["submit_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1485,7 +1613,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["review_2"];
+        post: operations["review_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1501,7 +1629,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["review_3"];
+        post: operations["review_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1517,7 +1645,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["request"];
+        post: operations["request_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1533,7 +1661,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["request_1"];
+        post: operations["request_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1565,7 +1693,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["request_2"];
+        post: operations["request_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1581,7 +1709,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["review_4"];
+        post: operations["review_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1597,7 +1725,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["review_5"];
+        post: operations["review_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1771,7 +1899,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         post: operations["record_5"];
         delete?: never;
@@ -1803,7 +1931,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         post: operations["record_7"];
         delete?: never;
@@ -2052,6 +2180,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stores/authorized-stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["authorizedStock"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock-reports/valuation": {
         parameters: {
             query?: never;
@@ -2116,6 +2260,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock-receipts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["recent_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock-adjustments/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["batches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/roles": {
         parameters: {
             query?: never;
@@ -2123,7 +2315,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2523,7 +2715,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2580,6 +2772,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/medicine-packaging/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pending_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/medicine-packaging/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["forItem"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lab-tests": {
         parameters: {
             query?: never;
@@ -2587,7 +2811,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2651,7 +2875,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending_1"];
+        get: operations["pending_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2708,6 +2932,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lab-results/report/{resultId}/url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["url"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lab-results/mine": {
         parameters: {
             query?: never;
@@ -2724,14 +2964,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/lab-results/machine-output/{objectKey}": {
+    "/api/lab-results/machine-output/{resultId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["url"];
+        get: operations["url_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-results/machine-output/draft/{labOrderId}/{objectKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["draftUrl"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2827,7 +3083,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_3"];
+        get: operations["get_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2859,7 +3115,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_4"];
+        get: operations["get_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2907,7 +3163,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3147,7 +3403,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3259,7 +3515,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending_2"];
+        get: operations["pending_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3291,7 +3547,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending_3"];
+        get: operations["pending_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3307,7 +3563,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_10"];
+        get: operations["list_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3355,7 +3611,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending_4"];
+        get: operations["pending_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3387,7 +3643,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["pending_5"];
+        get: operations["pending_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3403,7 +3659,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["recent"];
+        get: operations["recent_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3451,7 +3707,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_13"];
+        get: operations["list_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3483,7 +3739,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_14"];
+        get: operations["list_15"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3707,7 +3963,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_15"];
+        get: operations["list_16"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3723,7 +3979,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_5"];
+        get: operations["get_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3736,6 +3992,30 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        JsonNode: Record<string, never>;
+        SaveDraftRequest: {
+            /** Format: int64 */
+            version?: number;
+            payload?: components["schemas"]["JsonNode"];
+        };
+        DraftResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            specimenId?: string;
+            /** Format: uuid */
+            ownerId?: string;
+            payload?: components["schemas"]["JsonNode"];
+            /** Format: int64 */
+            version?: number;
+            status?: string;
+            /** Format: uuid */
+            submittedResultId?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         TriageAssessmentDraftRequest: {
             /** @enum {string} */
             priority?: "IMMEDIATE" | "URGENT" | "LESS_URGENT" | "NON_URGENT";
@@ -4163,6 +4443,107 @@ export interface components {
             cancelledLine?: components["schemas"]["PrescriptionLineResponse"];
             replacementLine?: components["schemas"]["PrescriptionLineResponse"];
         };
+        Line: {
+            /** Format: uuid */
+            itemId: string;
+            purchaseUnit: string;
+            /** Format: int32 */
+            orderedQuantity?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int32 */
+            acceptedQuantity?: number;
+            /** Format: int32 */
+            rejectedQuantity?: number;
+            batchNumber: string;
+            /** Format: date */
+            expiryDate: string;
+            /** Format: int64 */
+            unitPurchaseCostMinor?: number;
+            discrepancyReason?: string;
+            notes?: string;
+        };
+        StockReceiptRequest: {
+            /** Format: uuid */
+            supplierId: string;
+            /** Format: uuid */
+            storeId: string;
+            invoiceNumber: string;
+            deliveryNoteNumber: string;
+            /** Format: date */
+            invoiceDate: string;
+            /** Format: date */
+            deliveryDate: string;
+            notes?: string;
+            idempotencyKey: string;
+            lines: components["schemas"]["Line"][];
+        };
+        LineResult: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            itemId?: string;
+            itemName?: string;
+            baseUnit?: string;
+            purchaseUnit?: string;
+            /** Format: int32 */
+            factor?: number;
+            /** Format: int32 */
+            receivedQuantity?: number;
+            /** Format: int32 */
+            acceptedQuantity?: number;
+            /** Format: int32 */
+            rejectedQuantity?: number;
+            /** Format: int32 */
+            missingQuantity?: number;
+            /** Format: int32 */
+            acceptedBaseQuantity?: number;
+            /** Format: int32 */
+            rejectedBaseQuantity?: number;
+            /** Format: int64 */
+            receivedCostMinor?: number;
+            /** Format: int64 */
+            acceptedCostMinor?: number;
+            batchNumber?: string;
+            /** Format: date */
+            expiryDate?: string;
+            /** Format: int32 */
+            orderedQuantity?: number;
+            /** Format: int64 */
+            unitPurchaseCostMinor?: number;
+            discrepancyReason?: string;
+            notes?: string;
+        };
+        Receipt: {
+            /** Format: uuid */
+            id?: string;
+            receiptNumber?: string;
+            /** Format: uuid */
+            facilityId?: string;
+            /** Format: uuid */
+            storeId?: string;
+            /** Format: uuid */
+            supplierId?: string;
+            supplierName?: string;
+            /** Format: uuid */
+            receivedBy?: string;
+            receivedByName?: string;
+            invoiceNumber?: string;
+            deliveryNoteNumber?: string;
+            /** Format: date */
+            invoiceDate?: string;
+            /** Format: date */
+            deliveryDate?: string;
+            notes?: string;
+            /** Format: int64 */
+            totalReceivedCostMinor?: number;
+            /** Format: int64 */
+            totalAcceptedCostMinor?: number;
+            currencyCode?: string;
+            /** Format: date-time */
+            confirmedAt?: string;
+            lines?: components["schemas"]["LineResult"][];
+        };
         RestockRequest: {
             /** Format: uuid */
             itemId: string;
@@ -4200,12 +4581,51 @@ export interface components {
             /** @enum {string} */
             status?: "ACTIVE" | "QUARANTINED" | "EXPIRED" | "WRITTEN_OFF";
         };
+        Request: {
+            /** Format: uuid */
+            batchId: string;
+            type: string;
+            /** Format: int32 */
+            quantityDelta?: number;
+            reason: string;
+            idempotencyKey: string;
+        };
+        Adjustment: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            batchId?: string;
+            /** Format: uuid */
+            itemId?: string;
+            /** Format: uuid */
+            storeId?: string;
+            type?: string;
+            /** Format: int32 */
+            quantityDelta?: number;
+            reason?: string;
+            status?: string;
+            /** Format: uuid */
+            requestedBy?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            /** Format: uuid */
+            reviewedBy?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewReason?: string;
+        };
+        Review: {
+            approve?: boolean;
+            reason?: string;
+        };
         CollectSpecimenRequest: {
             /** Format: uuid */
             labOrderId: string;
             /** @enum {string} */
             quality: "ADEQUATE" | "HAEMOLYSED" | "CLOTTED" | "INSUFFICIENT_VOLUME" | "WRONG_CONTAINER" | "MISLABELLED" | "DELAYED_TRANSPORT";
             qualityNote?: string;
+            sampleType?: string;
+            sampleTypeOverrideReason?: string;
         };
         SpecimenResponse: {
             /** Format: uuid */
@@ -4386,6 +4806,9 @@ export interface components {
             frequency?: "STAT" | "OD" | "BD" | "TDS" | "QDS" | "PRN";
             /** Format: int32 */
             durationDays?: number;
+            /** Format: int32 */
+            requestedQuantity?: number;
+            requestedUnit?: string;
         };
         ProposeSubstitutionRequest: {
             /** Format: uuid */
@@ -4606,6 +5029,26 @@ export interface components {
             /** Format: date */
             sourceDate?: string;
         };
+        Packaging: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            itemId?: string;
+            unit?: string;
+            /** Format: int32 */
+            factor?: number;
+            canSplit?: boolean;
+            /** Format: int32 */
+            version?: number;
+            status?: string;
+        };
+        ProposalRequest: {
+            unit: string;
+            /** Format: int32 */
+            quantityInBaseUnits?: number;
+            canSplit?: boolean;
+            reason: string;
+        };
         CreateLabStockRequestRequest: {
             /** Format: uuid */
             itemId: string;
@@ -4670,6 +5113,12 @@ export interface components {
             machineOutputObjectKey?: string;
             parameterValues?: components["schemas"]["ParameterValueRequest"][];
             reagents?: components["schemas"]["ReagentRequest"][];
+            resultType?: string;
+            singleValue?: string;
+            singleValueUnit?: string;
+            overallInterpretation?: string;
+            remarks?: string;
+            labReportObjectKey?: string;
         };
         LabResultResponse: {
             /** Format: uuid */
@@ -4714,8 +5163,14 @@ export interface components {
             referenceRangeNote?: string;
             conclusion?: string;
             machineOutputObjectKey?: string;
-            parameterValues: components["schemas"]["ParameterValueRequest"][];
+            parameterValues?: components["schemas"]["ParameterValueRequest"][];
             reagents?: components["schemas"]["ReagentRequest"][];
+            resultType?: string;
+            singleValue?: string;
+            singleValueUnit?: string;
+            overallInterpretation?: string;
+            remarks?: string;
+            labReportObjectKey?: string;
         };
         UploadMachineOutputResponse: {
             objectKey?: string;
@@ -4725,6 +5180,7 @@ export interface components {
             encounterId: string;
             labTestCode: string;
             clinicalIndication?: string;
+            specialInstructions?: string;
             /** @enum {string} */
             urgency: "STAT" | "URGENT" | "ROUTINE";
         };
@@ -4738,12 +5194,18 @@ export interface components {
             /** Format: uuid */
             labTestId?: string;
             clinicalIndication?: string;
+            specialInstructions?: string;
             /** @enum {string} */
             urgency?: "STAT" | "URGENT" | "ROUTINE";
             /** Format: uuid */
             invoiceLineId?: string;
             /** Format: date-time */
             orderedAt?: string;
+        };
+        SubmitDraftRequest: {
+            /** Format: int64 */
+            version?: number;
+            result?: components["schemas"]["RecordLabResultRequest"];
         };
         ProposeLabItemRequest: {
             proposedName: string;
@@ -5193,6 +5655,7 @@ export interface components {
             /** Format: int32 */
             quantity?: number;
             overrideReason?: string;
+            requestedUnit?: string;
         };
         DispenseRequest: {
             /** Format: uuid */
@@ -5215,6 +5678,11 @@ export interface components {
             unitCostAmountMinor?: number;
             unitCostCurrencyCode?: string;
             fefoOverrideReason?: string;
+            /** Format: int32 */
+            requestedQuantity?: number;
+            requestedUnit?: string;
+            /** Format: int32 */
+            conversionFactor?: number;
         };
         DispenseResponse: {
             /** Format: uuid */
@@ -5908,6 +6376,24 @@ export interface components {
             storeName?: string;
             /** Format: int32 */
             quantity?: number;
+            strength?: string;
+            baseUnit?: string;
+            stockStatus?: string;
+            /** Format: int32 */
+            availableQuantity?: number;
+        };
+        Movement: {
+            /** Format: uuid */
+            id?: string;
+            itemName?: string;
+            itemCode?: string;
+            batchNumber?: string;
+            /** Format: int32 */
+            quantityDelta?: number;
+            movementType?: string;
+            referenceType?: string;
+            /** Format: date-time */
+            occurredAt?: string;
         };
         RestockLedgerEntry: {
             /** Format: uuid */
@@ -5932,6 +6418,21 @@ export interface components {
             /** Format: uuid */
             receivedById?: string;
             receivedByName?: string;
+        };
+        PhysicalBatch: {
+            /** Format: uuid */
+            batchId?: string;
+            itemName?: string;
+            itemCode?: string;
+            batchNumber?: string;
+            baseUnit?: string;
+            status?: string;
+            /** Format: date */
+            expiryDate?: string;
+            /** Format: int32 */
+            quantity?: number;
+            /** Format: uuid */
+            storeId?: string;
         };
         RoleResponse: {
             /** Format: uuid */
@@ -6214,6 +6715,12 @@ export interface components {
             fefoSuggestion?: components["schemas"]["BatchAllocationResponse"][];
             /** Format: double */
             weightKg?: number;
+            /** Format: int32 */
+            requestedQuantity?: number;
+            requestedUnit?: string;
+            /** Format: int32 */
+            conversionFactor?: number;
+            baseUnit?: string;
         };
         ItemSummaryResponse: {
             /** Format: uuid */
@@ -6465,6 +6972,12 @@ export interface components {
             amendsOriginalEnteredAt?: string;
             amendmentReason?: string;
             parameterValues?: components["schemas"]["DetailParameterValueResponse"][];
+            resultType?: string;
+            singleValue?: string;
+            singleValueUnit?: string;
+            overallInterpretation?: string;
+            remarks?: string;
+            labReportObjectKey?: string;
         };
         MachineOutputUrlResponse: {
             url?: string;
@@ -6504,6 +7017,13 @@ export interface components {
             labTestCode?: string;
             labTestName?: string;
             clinicalIndication?: string;
+            specialInstructions?: string;
+            urgency?: string;
+            orderStatus?: string;
+            sampleType?: string;
+            /** Format: date-time */
+            collectedAt?: string;
+            nationalId?: string;
             producesMachineOutput?: boolean;
             parameters?: components["schemas"]["ParameterFieldResponse"][];
         };
@@ -6563,6 +7083,7 @@ export interface components {
             name?: string;
             form?: string;
             strength?: string;
+            unit?: string;
             /** @enum {string} */
             regulatorySchedule?: "CONTROLLED" | "PRESCRIPTION_ONLY" | "PHARMACY_ONLY_BTC" | "PHARMACY_ONLY_OTC" | "GENERAL_SALES" | "ADDO_PRESCRIPTION" | "RADIOPHARMACEUTICAL" | "UNCLASSIFIED";
             selectable?: boolean;
@@ -7026,6 +7547,54 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                labOrderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DraftResponse"];
+                };
+            };
+        };
+    };
+    save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                labOrderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DraftResponse"];
+                };
+            };
+        };
+    };
     findOwn: {
         parameters: {
             query?: never;
@@ -7862,6 +8431,52 @@ export interface operations {
             };
         };
     };
+    recent: {
+        parameters: {
+            query: {
+                storeId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Receipt"][];
+                };
+            };
+        };
+    };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockReceiptRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Receipt"];
+                };
+            };
+        };
+    };
     list_3: {
         parameters: {
             query: {
@@ -7905,6 +8520,78 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["StockBatchResponse"];
+                };
+            };
+        };
+    };
+    list_4: {
+        parameters: {
+            query: {
+                storeId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Adjustment"][];
+                };
+            };
+        };
+    };
+    request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Adjustment"];
+                };
+            };
+        };
+    };
+    review_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Review"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Adjustment"];
                 };
             };
         };
@@ -8316,7 +9003,7 @@ export interface operations {
             };
         };
     };
-    review_1: {
+    review_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -8536,7 +9223,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -8576,6 +9263,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["WatchlistEntryResponse"];
+                };
+            };
+        };
+    };
+    approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Packaging"];
+                };
+            };
+        };
+    };
+    propose_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposalRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Packaging"];
                 };
             };
         };
@@ -8760,7 +9495,38 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                labOrderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UploadMachineOutputResponse"];
+                };
+            };
+        };
+    };
+    upload_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                labOrderId: string;
+            };
             cookie?: never;
         };
         requestBody?: {
@@ -8807,7 +9573,33 @@ export interface operations {
             };
         };
     };
-    propose_1: {
+    submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                labOrderId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LabResultResponse"];
+                };
+            };
+        };
+    };
+    propose_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -9176,7 +9968,7 @@ export interface operations {
             };
         };
     };
-    submit: {
+    submit_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9198,7 +9990,7 @@ export interface operations {
             };
         };
     };
-    approve: {
+    approve_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9341,7 +10133,7 @@ export interface operations {
             };
         };
     };
-    confirm: {
+    confirm_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9535,7 +10327,7 @@ export interface operations {
             };
         };
     };
-    submit_1: {
+    submit_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -9681,7 +10473,7 @@ export interface operations {
             };
         };
     };
-    review_2: {
+    review_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -9707,7 +10499,7 @@ export interface operations {
             };
         };
     };
-    review_3: {
+    review_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -9733,7 +10525,7 @@ export interface operations {
             };
         };
     };
-    request: {
+    request_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -9759,7 +10551,7 @@ export interface operations {
             };
         };
     };
-    request_1: {
+    request_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -9811,7 +10603,7 @@ export interface operations {
             };
         };
     };
-    request_2: {
+    request_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -9837,7 +10629,7 @@ export interface operations {
             };
         };
     };
-    review_4: {
+    review_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -9863,7 +10655,7 @@ export interface operations {
             };
         };
     };
-    review_5: {
+    review_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -10206,7 +10998,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -10280,7 +11072,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_13: {
         parameters: {
             query?: never;
             header?: never;
@@ -10662,6 +11454,26 @@ export interface operations {
             };
         };
     };
+    authorizedStock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StoreResponse"][];
+                };
+            };
+        };
+    };
     valuation: {
         parameters: {
             query?: never;
@@ -10742,7 +11554,73 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Receipt"];
+                };
+            };
+        };
+    };
+    recent_1: {
+        parameters: {
+            query: {
+                storeId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Movement"][];
+                };
+            };
+        };
+    };
+    batches: {
+        parameters: {
+            query: {
+                storeId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PhysicalBatch"][];
+                };
+            };
+        };
+    };
+    list_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -11307,7 +12185,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query: {
                 facilityId: string;
@@ -11396,7 +12274,49 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    pending_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Packaging"][];
+                };
+            };
+        };
+    };
+    forItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Packaging"][];
+                };
+            };
+        };
+    };
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -11482,7 +12402,7 @@ export interface operations {
             };
         };
     };
-    pending_1: {
+    pending_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -11567,6 +12487,28 @@ export interface operations {
             };
         };
     };
+    url: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resultId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MachineOutputUrlResponse"];
+                };
+            };
+        };
+    };
     mine_4: {
         parameters: {
             query?: never;
@@ -11587,11 +12529,34 @@ export interface operations {
             };
         };
     };
-    url: {
+    url_1: {
         parameters: {
             query?: never;
             header?: never;
             path: {
+                resultId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MachineOutputUrlResponse"];
+                };
+            };
+        };
+    };
+    draftUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                labOrderId: string;
                 objectKey: string;
             };
             cookie?: never;
@@ -11715,7 +12680,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -11759,7 +12724,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -11823,7 +12788,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -12151,7 +13116,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -12299,7 +13264,7 @@ export interface operations {
             };
         };
     };
-    pending_2: {
+    pending_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -12341,7 +13306,7 @@ export interface operations {
             };
         };
     };
-    pending_3: {
+    pending_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -12361,7 +13326,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_11: {
         parameters: {
             query?: {
                 payerCategory?: "CASH" | "NHIF" | "PRIVATE_SCHEME" | "CORPORATE" | "STAFF";
@@ -12426,7 +13391,7 @@ export interface operations {
             };
         };
     };
-    pending_4: {
+    pending_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -12468,7 +13433,7 @@ export interface operations {
             };
         };
     };
-    pending_5: {
+    pending_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -12488,7 +13453,7 @@ export interface operations {
             };
         };
     };
-    recent: {
+    recent_2: {
         parameters: {
             query?: {
                 limit?: number;
@@ -12552,7 +13517,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_14: {
         parameters: {
             query?: never;
             header?: never;
@@ -12596,7 +13561,7 @@ export interface operations {
             };
         };
     };
-    list_14: {
+    list_15: {
         parameters: {
             query?: never;
             header?: never;
@@ -12936,7 +13901,7 @@ export interface operations {
             };
         };
     };
-    list_15: {
+    list_16: {
         parameters: {
             query?: never;
             header?: never;
@@ -12956,7 +13921,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;

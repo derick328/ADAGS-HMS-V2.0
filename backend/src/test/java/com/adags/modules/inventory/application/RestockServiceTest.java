@@ -92,7 +92,7 @@ class RestockServiceTest extends IntegrationTestSupport {
         assertThatThrownBy(() -> restockService.restock(new RestockCommand(itemId, storeId, "EXPIRED-1",
                 LocalDate.now().minusDays(1), 10, new Money(1000, "TZS"), supplierId, "DN-X", null,
                 bootstrapAdminId())))
-                .isInstanceOf(org.springframework.dao.DataAccessException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

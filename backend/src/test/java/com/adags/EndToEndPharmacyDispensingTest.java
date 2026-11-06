@@ -130,6 +130,57 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
         assertThat(balance).isEqualTo(70);
     }
 
+    @Test
+    void oneBlisterPrescriptionCanBePartiallyDispensedAsBaseUnits() {
+        UUID admin = bootstrapAdminId();
+        UUID itemId = createFixtureItem("BLISTER-AMX", admin);
+        UUID storeId = insertFixtureStore();
+        UUID supplierId = insertFixtureSupplier();
+        StockBatch batch = restock(itemId, storeId, supplierId, "BLISTER-BATCH",
+                LocalDate.now().plusYears(1), 30, admin);
+        UUID approver = jdbcTemplate.queryForObject("""
+                INSERT INTO app_user (username, password_hash)
+                VALUES (:name, 'test-hash') RETURNING id
+                """, new MapSqlParameterSource("name", "blister-approver-" + UUID.randomUUID()), UUID.class);
+        jdbcTemplate.update("""
+                INSERT INTO medicine_packaging
+                  (item_id, packaging_unit, quantity_in_base_units, can_split, version,
+                   status, reason, proposed_by, approved_by, approved_at)
+                VALUES (:itemId, 'BLISTER', 3, TRUE, 1, 'APPROVED',
+                        'Three-capsule presentation', :admin, :approver, now())
+                """, new MapSqlParameterSource().addValue("itemId", itemId)
+                .addValue("admin", admin).addValue("approver", approver));
+        insertFixtureServiceItemAndPrice("BLISTER-AMX", 200, admin);
+        Patient patient = registerPatientService.register(patientCommand("Blister", "Patient", admin));
+        Encounter encounter = openEncounterService.checkIn(
+                new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
+        PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
+                encounter.id(), itemId, 3, "As directed", false, admin,
+                "ORAL", 1.0, "CAPSULE", null, null, 1, "BLISTER"));
+        assertThat(line.quantityPrescribed()).isEqualTo(3);
+        var snapshot = jdbcTemplate.queryForMap("""
+                SELECT requested_quantity, requested_unit, conversion_factor FROM prescription_unit_snapshot
+                WHERE prescription_line_id = :id
+                """, new MapSqlParameterSource("id", line.id()));
+        assertThat(snapshot.get("requested_quantity")).isEqualTo(1);
+        assertThat(snapshot.get("requested_unit")).isEqualTo("BLISTER");
+        assertThat(snapshot.get("conversion_factor")).isEqualTo(3);
+
+        payLine(line.invoiceLineId(), patient.id(), admin);
+        DispenseResult first = dispenseService.dispense(new DispenseCommand(line.id(),
+                List.of(new DispenseLineInput(batch.id(), 2, null, "CAPSULE")),
+                admin, "idem-" + UUID.randomUUID(), null, null));
+        assertThat(first.dispense().quantityDispensed()).isEqualTo(2);
+        assertThat(first.lines().getFirst().conversionFactor()).isEqualTo(1);
+        assertThat(first.prescriptionLine().remaining()).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("SELECT quantity FROM stock_balance WHERE batch_id = :id",
+                new MapSqlParameterSource("id", batch.id()), Integer.class)).isEqualTo(28);
+        DispenseResult second = dispenseService.dispense(new DispenseCommand(line.id(),
+                List.of(new DispenseLineInput(batch.id(), 1, null, "CAPSULE")),
+                admin, "idem-" + UUID.randomUUID(), null, null));
+        assertThat(second.prescriptionLine().remaining()).isZero();
+    }
+
     // §4.3: "Several lines per item, summing to quantity_dispensed" — 30
     // tablets, batch A holds 20, batch B holds 10.
     @Test

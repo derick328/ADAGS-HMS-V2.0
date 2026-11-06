@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.NoSuchElementException;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 // 12-pharmacist.md §7.2 (D3, D6): batch_number, expiry_date, unit_cost,
 // supplier and delivery_note_ref are all mandatory — "the minimum control
@@ -52,6 +54,10 @@ public class RestockService {
     public StockBatch restock(RestockCommand command) {
         if (command.quantity() <= 0) {
             throw new IllegalArgumentException("quantity must be > 0.");
+        }
+        if (command.expiryDate() == null || !command.expiryDate().isAfter(
+                LocalDate.now(ZoneId.of("Africa/Dar_es_Salaam")))) {
+            throw new IllegalArgumentException("Expiry date must be after today's facility-local date.");
         }
 
         Item item = itemRepository.findById(command.itemId())

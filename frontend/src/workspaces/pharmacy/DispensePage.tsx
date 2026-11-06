@@ -18,12 +18,14 @@ import { proposeSubstitution } from '../../shared/api/substitutions';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { formatDate, formatDateTime } from '../../shared/format/date';
 import { formatMoney } from '../../shared/format/money';
+import { fetchMedicinePackaging } from '../../shared/api/medicinePackaging';
 
 type Mode = 'dispense' | 'markUnavailable' | 'substitute';
 
 const lineSchema = z.object({
   batchId: z.string().min(1, 'Select a batch'),
   quantity: z.coerce.number({ invalid_type_error: 'Enter a quantity' }).int().positive('Enter a quantity'),
+  requestedUnit: z.string().optional(),
   overrideReason: z.string().optional(),
 });
 const dispenseSchema = z.object({
@@ -73,23 +75,33 @@ export function DispensePage() {
     queryFn: () => fetchDispenseContext(prescriptionLineId as string, accessToken as string),
     enabled: accessToken != null && prescriptionLineId != null,
   });
+  const { data: packages = [] } = useQuery({
+    queryKey: ['medicine-packaging', context?.item?.itemId],
+    queryFn: () => fetchMedicinePackaging(context?.item?.itemId as string, accessToken as string),
+    enabled: Boolean(context?.item?.itemId && accessToken),
+  });
 
   const {
     register,
     control,
     handleSubmit,
     reset,
+    watch,
     setError,
     formState: { errors },
   } = useForm<DispenseValues>({ resolver: zodResolver(dispenseSchema), defaultValues: { lines: [] } });
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' });
+  const watchedLines = watch('lines');
+  const baseUnit = context?.baseUnit ?? context?.item?.unit ?? '';
+  const factorFor = (unit?: string) => unit && unit !== baseUnit
+    ? (packages.find((p) => p.unit === unit && p.status === 'APPROVED')?.factor ?? 1) : 1;
   const [originalSuggestion, setOriginalSuggestion] = useState<{ batchId: string; quantity: number }[]>([]);
 
   useEffect(() => {
     if (!context) return;
     const suggestion = (context.fefoSuggestion ?? []).map((a) => ({ batchId: a.batchId as string, quantity: a.quantity as number }));
     setOriginalSuggestion(suggestion);
-    reset({ lines: suggestion.map((s) => ({ ...s, overrideReason: '' })), counsellingNotes: '', dispensingNotes: '' });
+    reset({ lines: suggestion.map((s) => ({ ...s, requestedUnit: context.baseUnit ?? context.item?.unit ?? '', overrideReason: '' })), counsellingNotes: '', dispensingNotes: '' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context]);
 
@@ -99,7 +111,8 @@ export function DispensePage() {
         {
           prescriptionLineId: prescriptionLineId as string,
           idempotencyKey: crypto.randomUUID(),
-          lines: values.lines.map((l) => ({ batchId: l.batchId, quantity: l.quantity, overrideReason: l.overrideReason || undefined })),
+          lines: values.lines.map((l) => ({ batchId: l.batchId, quantity: l.quantity,
+            requestedUnit: l.requestedUnit || baseUnit, overrideReason: l.overrideReason || undefined })),
           counsellingNotes: values.counsellingNotes || undefined,
           dispensingNotes: values.dispensingNotes || undefined,
         },
@@ -119,7 +132,8 @@ export function DispensePage() {
     let hasMissingReason = false;
     values.lines.forEach((line, index) => {
       const suggested = originalSuggestion[index];
-      const matchesSuggestion = suggested && suggested.batchId === line.batchId && suggested.quantity === line.quantity;
+      const matchesSuggestion = suggested && suggested.batchId === line.batchId &&
+        suggested.quantity === line.quantity * factorFor(line.requestedUnit);
       if (!matchesSuggestion && !line.overrideReason?.trim()) {
         setError(`lines.${index}.overrideReason`, { message: 'Enter a reason for overriding the FEFO suggestion' });
         hasMissingReason = true;
@@ -176,7 +190,11 @@ export function DispensePage() {
             <dl className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', margin: 0 }}>
               <div>
                 <dt style={{ color: 'var(--text-muted)' }}>Prescribed</dt>
-                <dd style={{ margin: 0 }}>{context.prescriptionLine?.dosageInstructions}</dd>
+                <dd style={{ margin: 0 }}>
+                  {context.requestedQuantity ?? context.prescriptionLine?.quantityPrescribed} {context.requestedUnit ?? context.item?.unit}
+                  {' '}= {context.prescriptionLine?.quantityPrescribed} {context.baseUnit ?? context.item?.unit}
+                  <br />{context.prescriptionLine?.dosageInstructions}
+                </dd>
               </div>
               <div>
                 <dt style={{ color: 'var(--text-muted)' }}>Route / dose</dt>
@@ -188,7 +206,7 @@ export function DispensePage() {
               </div>
               <div>
                 <dt style={{ color: 'var(--text-muted)' }}>Remaining to dispense</dt>
-                <dd style={{ margin: 0, fontWeight: 'var(--weight-medium)' }}>{context.prescriptionLine?.remaining}</dd>
+                <dd style={{ margin: 0, fontWeight: 'var(--weight-medium)' }}>{context.prescriptionLine?.remaining} {context.baseUnit ?? context.item?.unit}</dd>
               </div>
               {context.weightKg != null && (
                 <div>
@@ -222,6 +240,7 @@ export function DispensePage() {
                     <tr>
                       <th>Batch</th>
                       <th>Quantity</th>
+                      <th>Unit</th>
                       <th>Override reason</th>
                       <th></th>
                     </tr>
@@ -243,6 +262,14 @@ export function DispensePage() {
                         <td>
                           <input className="clinical-control" type="text" inputMode="numeric" {...register(`lines.${index}.quantity` as const)} style={{ ...inputStyle, width: 80 }} />
                           {errors.lines?.[index]?.quantity && <div className="field-error">{errors.lines[index]?.quantity?.message}</div>}
+                        </td>
+                        <td>
+                          <select className="clinical-control" {...register(`lines.${index}.requestedUnit` as const)} style={selectStyle}>
+                            <option value={baseUnit}>{baseUnit}</option>
+                            {packages.filter((p) => p.status === 'APPROVED' && p.unit !== baseUnit).map((p) =>
+                              <option key={p.id} value={p.unit}>{p.unit} ({p.factor} {baseUnit})</option>)}
+                          </select>
+                          <small>{(Number(watchedLines?.[index]?.quantity) || 0) * factorFor(watchedLines?.[index]?.requestedUnit)} {baseUnit}</small>
                         </td>
                         <td>
                           <input aria-label="Reason, if overriding FEFO" className="clinical-control" type="text" placeholder="Reason, if overriding FEFO" {...register(`lines.${index}.overrideReason` as const)} style={inputStyle} />
@@ -267,7 +294,7 @@ export function DispensePage() {
                 type="button"
                 className="btn btn-secondary"
                 style={{ alignSelf: 'flex-start' }}
-                onClick={() => append({ batchId: '', quantity: 1, overrideReason: '' })}
+                onClick={() => append({ batchId: '', quantity: 1, requestedUnit: baseUnit, overrideReason: '' })}
               >
                 Add batch line
               </button>

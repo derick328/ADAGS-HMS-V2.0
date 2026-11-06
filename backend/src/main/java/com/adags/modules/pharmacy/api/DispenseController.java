@@ -96,7 +96,7 @@ public class DispenseController {
         DispenseResult result = dispenseService.dispense(new DispenseCommand(
                 request.prescriptionLineId(),
                 request.lines().stream()
-                        .map(l -> new DispenseLineInput(l.batchId(), l.quantity(), l.overrideReason()))
+                        .map(l -> new DispenseLineInput(l.batchId(), l.quantity(), l.overrideReason(), l.requestedUnit()))
                         .toList(),
                 actor.userId(), request.idempotencyKey(), request.counsellingNotes(), request.dispensingNotes()));
         return DispenseResponse.from(result);

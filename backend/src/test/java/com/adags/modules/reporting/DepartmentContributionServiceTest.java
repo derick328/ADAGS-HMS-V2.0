@@ -126,8 +126,10 @@ class DepartmentContributionServiceTest extends IntegrationTestSupport {
                         .addValue("quantity", quantity),
                 UUID.class);
         jdbcTemplate.update("""
-                        INSERT INTO dispense_line (dispense_id, item_id, batch_id, quantity, unit_cost_amount_minor)
-                        VALUES (:dispenseId, :itemId, :batchId, :quantity, :unitCostMinor)
+                        INSERT INTO dispense_line (dispense_id, item_id, batch_id, quantity, unit_cost_amount_minor,
+                                                   requested_quantity, requested_unit, conversion_factor)
+                        VALUES (:dispenseId, :itemId, :batchId, :quantity, :unitCostMinor,
+                                :quantity, 'UNIT', 1)
                         """,
                 new MapSqlParameterSource()
                         .addValue("dispenseId", dispenseId)

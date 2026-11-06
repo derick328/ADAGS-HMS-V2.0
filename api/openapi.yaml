@@ -6,6 +6,49 @@ servers:
 - url: http://localhost
   description: Generated server url
 paths:
+  /api/lab-orders/{labOrderId}/result-draft:
+    get:
+      tags:
+      - lab-result-draft-controller
+      operationId: get_3
+      parameters:
+      - name: labOrderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DraftResponse"
+    put:
+      tags:
+      - lab-result-draft-controller
+      operationId: save
+      parameters:
+      - name: labOrderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveDraftRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/DraftResponse"
   /api/encounters/{encounterId}/triage-draft:
     get:
       tags:
@@ -713,6 +756,44 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SubstitutionReviewResponse"
+  /api/stock-receipts:
+    get:
+      tags:
+      - stock-receipt-controller
+      operationId: recent
+      parameters:
+      - name: storeId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Receipt"
+    post:
+      tags:
+      - stock-receipt-controller
+      operationId: confirm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StockReceiptRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Receipt"
   /api/stock-batches:
     get:
       tags:
@@ -757,6 +838,69 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/StockBatchResponse"
+  /api/stock-adjustments:
+    get:
+      tags:
+      - stock-adjustment-controller
+      operationId: list_4
+      parameters:
+      - name: storeId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Adjustment"
+    post:
+      tags:
+      - stock-adjustment-controller
+      operationId: request
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Request"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Adjustment"
+  /api/stock-adjustments/{id}/review:
+    post:
+      tags:
+      - stock-adjustment-controller
+      operationId: review_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Review"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Adjustment"
   /api/specimens:
     post:
       tags:
@@ -1109,7 +1253,7 @@ paths:
     post:
       tags:
       - pharmacy-item-proposal-controller
-      operationId: review_1
+      operationId: review_2
       parameters:
       - name: id
         in: path
@@ -1312,7 +1456,7 @@ paths:
     get:
       tags:
       - watchlist-controller
-      operationId: list_6
+      operationId: list_7
       responses:
         "200":
           description: OK
@@ -1337,6 +1481,50 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/WatchlistEntryResponse"
+  /api/medicine-packaging/{id}/approve:
+    post:
+      tags:
+      - medicine-packaging-controller
+      operationId: approve
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Packaging"
+  /api/medicine-packaging/items/{itemId}/proposals:
+    post:
+      tags:
+      - medicine-packaging-controller
+      operationId: propose_1
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposalRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Packaging"
   /api/lab-stock-requests:
     post:
       tags:
@@ -1493,11 +1681,48 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/LabResultResponse"
-  /api/lab-results/machine-output:
+  /api/lab-results/report/{labOrderId}:
+    post:
+      tags:
+      - lab-report-controller
+      operationId: upload
+      parameters:
+      - name: labOrderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - file
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UploadMachineOutputResponse"
+  /api/lab-results/machine-output/{labOrderId}:
     post:
       tags:
       - machine-output-controller
-      operationId: upload
+      operationId: upload_1
+      parameters:
+      - name: labOrderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       requestBody:
         content:
           application/json:
@@ -1534,11 +1759,36 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/LabOrderResponse"
+  /api/lab-orders/{labOrderId}/result-draft/submit:
+    post:
+      tags:
+      - lab-result-draft-controller
+      operationId: submit
+      parameters:
+      - name: labOrderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitDraftRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/LabResultResponse"
   /api/lab-item-proposals:
     post:
       tags:
       - lab-item-proposal-controller
-      operationId: propose_1
+      operationId: propose_2
       requestBody:
         content:
           application/json:
@@ -1899,7 +2149,7 @@ paths:
     post:
       tags:
       - expense-controller
-      operationId: submit
+      operationId: submit_1
       parameters:
       - name: id
         in: path
@@ -1918,7 +2168,7 @@ paths:
     post:
       tags:
       - expense-controller
-      operationId: approve
+      operationId: approve_1
       parameters:
       - name: id
         in: path
@@ -2074,7 +2324,7 @@ paths:
     post:
       tags:
       - outpatient-departure-controller
-      operationId: confirm
+      operationId: confirm_1
       parameters:
       - name: id
         in: path
@@ -2254,7 +2504,7 @@ paths:
     post:
       tags:
       - submit-triage-assessment-controller
-      operationId: submit_1
+      operationId: submit_2
       parameters:
       - name: encounterId
         in: path
@@ -2380,7 +2630,7 @@ paths:
     post:
       tags:
       - invoice-write-off-controller
-      operationId: review_2
+      operationId: review_3
       parameters:
       - name: id
         in: path
@@ -2405,7 +2655,7 @@ paths:
     post:
       tags:
       - refund-controller
-      operationId: review_3
+      operationId: review_4
       parameters:
       - name: id
         in: path
@@ -2430,7 +2680,7 @@ paths:
     post:
       tags:
       - refund-controller
-      operationId: request
+      operationId: request_1
       parameters:
       - name: paymentAllocationId
         in: path
@@ -2455,7 +2705,7 @@ paths:
     post:
       tags:
       - invoice-write-off-controller
-      operationId: request_1
+      operationId: request_2
       parameters:
       - name: invoiceId
         in: path
@@ -2505,7 +2755,7 @@ paths:
     post:
       tags:
       - invoice-cancellation-controller
-      operationId: request_2
+      operationId: request_3
       parameters:
       - name: invoiceId
         in: path
@@ -2530,7 +2780,7 @@ paths:
     post:
       tags:
       - credit-note-controller
-      operationId: review_4
+      operationId: review_5
       parameters:
       - name: id
         in: path
@@ -2555,7 +2805,7 @@ paths:
     post:
       tags:
       - invoice-cancellation-controller
-      operationId: review_5
+      operationId: review_6
       parameters:
       - name: id
         in: path
@@ -2869,7 +3119,7 @@ paths:
     get:
       tags:
       - wound-care-controller
-      operationId: list_11
+      operationId: list_12
       parameters:
       - name: admissionId
         in: path
@@ -2940,7 +3190,7 @@ paths:
     get:
       tags:
       - shift-handover-controller
-      operationId: list_12
+      operationId: list_13
       parameters:
       - name: admissionId
         in: path
@@ -3279,6 +3529,20 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/StoreResponse"
+  /api/stores/authorized-stock:
+    get:
+      tags:
+      - store-controller
+      operationId: authorizedStock
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StoreResponse"
   /api/stock-reports/valuation:
     get:
       tags:
@@ -3335,11 +3599,72 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CurrentStockResponse"
+  /api/stock-receipts/{id}:
+    get:
+      tags:
+      - stock-receipt-controller
+      operationId: detail
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Receipt"
+  /api/stock-movements:
+    get:
+      tags:
+      - stock-movement-controller
+      operationId: recent_1
+      parameters:
+      - name: storeId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Movement"
+  /api/stock-adjustments/batches:
+    get:
+      tags:
+      - stock-adjustment-controller
+      operationId: batches
+      parameters:
+      - name: storeId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PhysicalBatch"
   /api/roles:
     get:
       tags:
       - role-controller
-      operationId: list_4
+      operationId: list_5
       responses:
         "200":
           description: OK
@@ -3972,7 +4297,7 @@ paths:
     get:
       tags:
       - patient-presence-controller
-      operationId: list_5
+      operationId: list_6
       parameters:
       - name: facilityId
         in: query
@@ -4065,11 +4390,46 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/NurseWorkloadResponse"
+  /api/medicine-packaging/pending:
+    get:
+      tags:
+      - medicine-packaging-controller
+      operationId: pending_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Packaging"
+  /api/medicine-packaging/items/{itemId}:
+    get:
+      tags:
+      - medicine-packaging-controller
+      operationId: forItem
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Packaging"
   /api/lab-tests:
     get:
       tags:
       - lab-test-controller
-      operationId: list_7
+      operationId: list_8
       responses:
         "200":
           description: OK
@@ -4142,7 +4502,7 @@ paths:
     get:
       tags:
       - lab-stock-request-controller
-      operationId: pending_1
+      operationId: pending_2
       responses:
         "200":
           description: OK
@@ -4211,6 +4571,25 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/LabResultDetailResponse"
+  /api/lab-results/report/{resultId}/url:
+    get:
+      tags:
+      - lab-report-controller
+      operationId: url
+      parameters:
+      - name: resultId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MachineOutputUrlResponse"
   /api/lab-results/mine:
     get:
       tags:
@@ -4225,12 +4604,36 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/LabResultDetailResponse"
-  /api/lab-results/machine-output/{objectKey}:
+  /api/lab-results/machine-output/{resultId}:
     get:
       tags:
       - machine-output-controller
-      operationId: url
+      operationId: url_1
       parameters:
+      - name: resultId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MachineOutputUrlResponse"
+  /api/lab-results/machine-output/draft/{labOrderId}/{objectKey}:
+    get:
+      tags:
+      - machine-output-controller
+      operationId: draftUrl
+      parameters:
+      - name: labOrderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       - name: objectKey
         in: path
         required: true
@@ -4336,7 +4739,7 @@ paths:
     get:
       tags:
       - item-controller
-      operationId: get_3
+      operationId: get_4
       parameters:
       - name: id
         in: path
@@ -4375,7 +4778,7 @@ paths:
     get:
       tags:
       - misclassification-report-controller
-      operationId: get_4
+      operationId: get_5
       responses:
         "200":
           description: OK
@@ -4427,7 +4830,7 @@ paths:
     get:
       tags:
       - insurance-scheme-controller
-      operationId: list_8
+      operationId: list_9
       responses:
         "200":
           description: OK
@@ -4732,7 +5135,7 @@ paths:
     get:
       tags:
       - department-controller
-      operationId: list_9
+      operationId: list_10
       responses:
         "200":
           description: OK
@@ -4854,7 +5257,7 @@ paths:
     get:
       tags:
       - invoice-write-off-controller
-      operationId: pending_2
+      operationId: pending_3
       responses:
         "200":
           description: OK
@@ -4887,7 +5290,7 @@ paths:
     get:
       tags:
       - refund-controller
-      operationId: pending_3
+      operationId: pending_4
       responses:
         "200":
           description: OK
@@ -4901,7 +5304,7 @@ paths:
     get:
       tags:
       - receivables-controller
-      operationId: list_10
+      operationId: list_11
       parameters:
       - name: payerCategory
         in: query
@@ -4970,7 +5373,7 @@ paths:
     get:
       tags:
       - credit-note-controller
-      operationId: pending_4
+      operationId: pending_5
       responses:
         "200":
           description: OK
@@ -5003,7 +5406,7 @@ paths:
     get:
       tags:
       - invoice-cancellation-controller
-      operationId: pending_5
+      operationId: pending_6
       responses:
         "200":
           description: OK
@@ -5017,7 +5420,7 @@ paths:
     get:
       tags:
       - appointment-controller
-      operationId: recent
+      operationId: recent_2
       parameters:
       - name: limit
         in: query
@@ -5072,7 +5475,7 @@ paths:
     get:
       tags:
       - medication-administration-controller
-      operationId: list_13
+      operationId: list_14
       parameters:
       - name: admissionId
         in: path
@@ -5114,7 +5517,7 @@ paths:
     get:
       tags:
       - ward-alert-notification-controller
-      operationId: list_14
+      operationId: list_15
       parameters:
       - name: admissionId
         in: path
@@ -5423,6 +5826,7 @@ paths:
         schema:
           type: integer
           format: int32
+          default: 0
       responses:
         "200":
           description: OK
@@ -5586,7 +5990,7 @@ paths:
     get:
       tags:
       - catalog-import-controller
-      operationId: list_15
+      operationId: list_16
       responses:
         "200":
           description: OK
@@ -5600,7 +6004,7 @@ paths:
     get:
       tags:
       - catalog-import-controller
-      operationId: get_5
+      operationId: get_6
       parameters:
       - name: batchId
         in: path
@@ -5617,6 +6021,44 @@ paths:
                 $ref: "#/components/schemas/CatalogImportBatchResponse"
 components:
   schemas:
+    JsonNode:
+      type: object
+    SaveDraftRequest:
+      type: object
+      properties:
+        version:
+          type: integer
+          format: int64
+        payload:
+          $ref: "#/components/schemas/JsonNode"
+    DraftResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        specimenId:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+          format: uuid
+        payload:
+          $ref: "#/components/schemas/JsonNode"
+        version:
+          type: integer
+          format: int64
+        status:
+          type: string
+        submittedResultId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     TriageAssessmentDraftRequest:
       type: object
       properties:
@@ -6493,6 +6935,187 @@ components:
           $ref: "#/components/schemas/PrescriptionLineResponse"
         replacementLine:
           $ref: "#/components/schemas/PrescriptionLineResponse"
+    Line:
+      required:
+      - batchNumber
+      - expiryDate
+      - itemId
+      - purchaseUnit
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        purchaseUnit:
+          type: string
+        orderedQuantity:
+          type: integer
+          format: int32
+        receivedQuantity:
+          type: integer
+          format: int32
+        acceptedQuantity:
+          type: integer
+          format: int32
+        rejectedQuantity:
+          type: integer
+          format: int32
+        batchNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        unitPurchaseCostMinor:
+          type: integer
+          format: int64
+        discrepancyReason:
+          type: string
+        notes:
+          type: string
+    StockReceiptRequest:
+      required:
+      - deliveryDate
+      - deliveryNoteNumber
+      - idempotencyKey
+      - invoiceDate
+      - invoiceNumber
+      - lines
+      - storeId
+      - supplierId
+      type: object
+      properties:
+        supplierId:
+          type: string
+          format: uuid
+        storeId:
+          type: string
+          format: uuid
+        invoiceNumber:
+          type: string
+        deliveryNoteNumber:
+          type: string
+        invoiceDate:
+          type: string
+          format: date
+        deliveryDate:
+          type: string
+          format: date
+        notes:
+          type: string
+        idempotencyKey:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/Line"
+    LineResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        itemName:
+          type: string
+        baseUnit:
+          type: string
+        purchaseUnit:
+          type: string
+        factor:
+          type: integer
+          format: int32
+        receivedQuantity:
+          type: integer
+          format: int32
+        acceptedQuantity:
+          type: integer
+          format: int32
+        rejectedQuantity:
+          type: integer
+          format: int32
+        missingQuantity:
+          type: integer
+          format: int32
+        acceptedBaseQuantity:
+          type: integer
+          format: int32
+        rejectedBaseQuantity:
+          type: integer
+          format: int32
+        receivedCostMinor:
+          type: integer
+          format: int64
+        acceptedCostMinor:
+          type: integer
+          format: int64
+        batchNumber:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        orderedQuantity:
+          type: integer
+          format: int32
+        unitPurchaseCostMinor:
+          type: integer
+          format: int64
+        discrepancyReason:
+          type: string
+        notes:
+          type: string
+    Receipt:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        receiptNumber:
+          type: string
+        facilityId:
+          type: string
+          format: uuid
+        storeId:
+          type: string
+          format: uuid
+        supplierId:
+          type: string
+          format: uuid
+        supplierName:
+          type: string
+        receivedBy:
+          type: string
+          format: uuid
+        receivedByName:
+          type: string
+        invoiceNumber:
+          type: string
+        deliveryNoteNumber:
+          type: string
+        invoiceDate:
+          type: string
+          format: date
+        deliveryDate:
+          type: string
+          format: date
+        notes:
+          type: string
+        totalReceivedCostMinor:
+          type: integer
+          format: int64
+        totalAcceptedCostMinor:
+          type: integer
+          format: int64
+        currencyCode:
+          type: string
+        confirmedAt:
+          type: string
+          format: date-time
+        lines:
+          type: array
+          items:
+            $ref: "#/components/schemas/LineResult"
     RestockRequest:
       required:
       - batchNumber
@@ -6564,6 +7187,71 @@ components:
           - QUARANTINED
           - EXPIRED
           - WRITTEN_OFF
+    Request:
+      required:
+      - batchId
+      - idempotencyKey
+      - reason
+      - type
+      type: object
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        type:
+          type: string
+        quantityDelta:
+          type: integer
+          format: int32
+        reason:
+          type: string
+        idempotencyKey:
+          type: string
+    Adjustment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        storeId:
+          type: string
+          format: uuid
+        type:
+          type: string
+        quantityDelta:
+          type: integer
+          format: int32
+        reason:
+          type: string
+        status:
+          type: string
+        requestedBy:
+          type: string
+          format: uuid
+        requestedAt:
+          type: string
+          format: date-time
+        reviewedBy:
+          type: string
+          format: uuid
+        reviewedAt:
+          type: string
+          format: date-time
+        reviewReason:
+          type: string
+    Review:
+      type: object
+      properties:
+        approve:
+          type: boolean
+        reason:
+          type: string
     CollectSpecimenRequest:
       required:
       - labOrderId
@@ -6584,6 +7272,10 @@ components:
           - MISLABELLED
           - DELAYED_TRANSPORT
         qualityNote:
+          type: string
+        sampleType:
+          type: string
+        sampleTypeOverrideReason:
           type: string
     SpecimenResponse:
       type: object
@@ -6934,6 +7626,11 @@ components:
         durationDays:
           type: integer
           format: int32
+        requestedQuantity:
+          type: integer
+          format: int32
+        requestedUnit:
+          type: string
     ProposeSubstitutionRequest:
       required:
       - proposedItemId
@@ -7381,6 +8078,43 @@ components:
         sourceDate:
           type: string
           format: date
+    Packaging:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        unit:
+          type: string
+        factor:
+          type: integer
+          format: int32
+        canSplit:
+          type: boolean
+        version:
+          type: integer
+          format: int32
+        status:
+          type: string
+    ProposalRequest:
+      required:
+      - reason
+      - unit
+      type: object
+      properties:
+        unit:
+          type: string
+        quantityInBaseUnits:
+          minimum: 2
+          type: integer
+          format: int32
+        canSplit:
+          type: boolean
+        reason:
+          type: string
     CreateLabStockRequestRequest:
       required:
       - itemId
@@ -7513,6 +8247,18 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ReagentRequest"
+        resultType:
+          type: string
+        singleValue:
+          type: string
+        singleValueUnit:
+          type: string
+        overallInterpretation:
+          type: string
+        remarks:
+          type: string
+        labReportObjectKey:
+          type: string
     LabResultResponse:
       type: object
       properties:
@@ -7588,7 +8334,6 @@ components:
     AmendLabResultRequest:
       required:
       - amendmentReason
-      - parameterValues
       type: object
       properties:
         amendmentReason:
@@ -7615,6 +8360,18 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ReagentRequest"
+        resultType:
+          type: string
+        singleValue:
+          type: string
+        singleValueUnit:
+          type: string
+        overallInterpretation:
+          type: string
+        remarks:
+          type: string
+        labReportObjectKey:
+          type: string
     UploadMachineOutputResponse:
       type: object
       properties:
@@ -7633,6 +8390,8 @@ components:
         labTestCode:
           type: string
         clinicalIndication:
+          type: string
+        specialInstructions:
           type: string
         urgency:
           type: string
@@ -7657,6 +8416,8 @@ components:
           format: uuid
         clinicalIndication:
           type: string
+        specialInstructions:
+          type: string
         urgency:
           type: string
           enum:
@@ -7669,6 +8430,14 @@ components:
         orderedAt:
           type: string
           format: date-time
+    SubmitDraftRequest:
+      type: object
+      properties:
+        version:
+          type: integer
+          format: int64
+        result:
+          $ref: "#/components/schemas/RecordLabResultRequest"
     ProposeLabItemRequest:
       required:
       - containerType
@@ -8635,6 +9404,8 @@ components:
           format: int32
         overrideReason:
           type: string
+        requestedUnit:
+          type: string
     DispenseRequest:
       required:
       - idempotencyKey
@@ -8677,6 +9448,14 @@ components:
           type: string
         fefoOverrideReason:
           type: string
+        requestedQuantity:
+          type: integer
+          format: int32
+        requestedUnit:
+          type: string
+        conversionFactor:
+          type: integer
+          format: int32
     DispenseResponse:
       type: object
       properties:
@@ -9995,6 +10774,37 @@ components:
         quantity:
           type: integer
           format: int32
+        strength:
+          type: string
+        baseUnit:
+          type: string
+        stockStatus:
+          type: string
+        availableQuantity:
+          type: integer
+          format: int32
+    Movement:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        itemName:
+          type: string
+        itemCode:
+          type: string
+        batchNumber:
+          type: string
+        quantityDelta:
+          type: integer
+          format: int32
+        movementType:
+          type: string
+        referenceType:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
     RestockLedgerEntry:
       type: object
       properties:
@@ -10034,6 +10844,31 @@ components:
           format: uuid
         receivedByName:
           type: string
+    PhysicalBatch:
+      type: object
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        itemName:
+          type: string
+        itemCode:
+          type: string
+        batchNumber:
+          type: string
+        baseUnit:
+          type: string
+        status:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        quantity:
+          type: integer
+          format: int32
+        storeId:
+          type: string
+          format: uuid
     RoleResponse:
       type: object
       properties:
@@ -10517,6 +11352,16 @@ components:
         weightKg:
           type: number
           format: double
+        requestedQuantity:
+          type: integer
+          format: int32
+        requestedUnit:
+          type: string
+        conversionFactor:
+          type: integer
+          format: int32
+        baseUnit:
+          type: string
     ItemSummaryResponse:
       type: object
       properties:
@@ -10962,6 +11807,18 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DetailParameterValueResponse"
+        resultType:
+          type: string
+        singleValue:
+          type: string
+        singleValueUnit:
+          type: string
+        overallInterpretation:
+          type: string
+        remarks:
+          type: string
+        labReportObjectKey:
+          type: string
     MachineOutputUrlResponse:
       type: object
       properties:
@@ -11033,6 +11890,19 @@ components:
         labTestName:
           type: string
         clinicalIndication:
+          type: string
+        specialInstructions:
+          type: string
+        urgency:
+          type: string
+        orderStatus:
+          type: string
+        sampleType:
+          type: string
+        collectedAt:
+          type: string
+          format: date-time
+        nationalId:
           type: string
         producesMachineOutput:
           type: boolean
@@ -11149,6 +12019,8 @@ components:
         form:
           type: string
         strength:
+          type: string
+        unit:
           type: string
         regulatorySchedule:
           type: string

@@ -15,6 +15,7 @@ public record ItemSearchResultResponse(
         String name,
         String form,
         String strength,
+        String unit,
         RegulatorySchedule regulatorySchedule,
         boolean selectable,
         String unselectableReason
@@ -28,7 +29,7 @@ public record ItemSearchResultResponse(
         } else if (!item.active()) {
             reason = "Not yet active in the catalogue.";
         }
-        return new ItemSearchResultResponse(item.id(), item.code(), item.name(), item.form(), item.strength(),
+        return new ItemSearchResultResponse(item.id(), item.code(), item.name(), item.form(), item.strength(), item.unit(),
                 item.regulatorySchedule(), selectable, reason);
     }
 
@@ -44,7 +45,7 @@ public record ItemSearchResultResponse(
     public static ItemSearchResultResponse pendingClassification(
             java.util.UUID serviceItemId, String code, String name) {
         return new ItemSearchResultResponse(
-                serviceItemId, code, name, "—", null,
+                serviceItemId, code, name, "—", null, null,
                 RegulatorySchedule.UNCLASSIFIED, false,
                 "Pending pharmacy classification — a pharmacist must set form, unit and regulatory schedule before this can be prescribed.");
     }

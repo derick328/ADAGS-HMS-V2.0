@@ -23,6 +23,7 @@ import {
 } from '../../shared/api/pricing';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
+import { approveMedicinePackaging, fetchPendingMedicinePackaging } from '../../shared/api/medicinePackaging';
 import { formatDateTime } from '../../shared/format/date';
 import { formatMoney } from '../../shared/format/money';
 import { QueueShell, type QueueRow } from '../../shared/components/QueueShell';
@@ -76,6 +77,8 @@ export function PricingPage() {
       <CatalogueImportSection />
       <CatalogueItemsBrowser />
 
+      <PackagingApprovalSection />
+
       <QueueShell
         title="Pricing / price proposals"
         rows={rows}
@@ -99,6 +102,32 @@ export function PricingPage() {
       )}
     </div>
   );
+}
+
+function PackagingApprovalSection() {
+  const { accessToken } = useAuth();
+  const canApprove = usePermission('PACKAGING_APPROVE');
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useQuery({ queryKey: ['medicine-packaging', 'pending'],
+    queryFn: () => fetchPendingMedicinePackaging(accessToken as string),
+    enabled: accessToken != null && canApprove });
+  const approve = useMutation({ mutationFn: (id: string) => approveMedicinePackaging(id, accessToken as string),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['medicine-packaging'] }) });
+  if (!canApprove) return null;
+  return <section style={{ marginBottom: 'var(--space-5)' }}>
+    <h2>Packaging approvals</h2>
+    {isLoading ? <FeedbackState loading>Loading proposals…</FeedbackState> : !data?.length ?
+      <FeedbackState>No packaging proposals pending.</FeedbackState> :
+      <TableRegion label="Pending packaging conversions"><table className="table"><thead><tr>
+        <th>Medicine ID</th><th>Unit</th><th>Base units</th><th>Split allowed</th><th>Version</th><th>Decision</th>
+      </tr></thead><tbody>{data.map((proposal) => <tr key={proposal.id}>
+        <td>{proposal.itemId}</td><td>{proposal.unit}</td><td>{proposal.factor}</td>
+        <td>{proposal.canSplit ? 'Yes' : 'No'}</td><td>{proposal.version}</td>
+        <td><button type="button" className="btn btn-primary" disabled={approve.isPending || !proposal.id}
+          onClick={() => proposal.id && approve.mutate(proposal.id)}>Approve</button></td>
+      </tr>)}</tbody></table></TableRegion>}
+    {approve.error && <p className="field-error" role="alert">Could not approve packaging. The proposer cannot approve their own proposal.</p>}
+  </section>;
 }
 
 function ReviewPanel({

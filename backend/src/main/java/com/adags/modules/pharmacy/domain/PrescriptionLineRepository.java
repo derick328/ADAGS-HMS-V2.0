@@ -6,9 +6,15 @@ import java.util.UUID;
 
 public interface PrescriptionLineRepository {
 
+    void insertUnitSnapshot(PrescriptionUnitSnapshot snapshot);
+
+    java.util.Optional<PrescriptionUnitSnapshot> findUnitSnapshot(java.util.UUID prescriptionLineId);
+
     PrescriptionLine insert(PrescriptionLine line);
 
     Optional<PrescriptionLine> findById(UUID id);
+
+    Optional<PrescriptionLine> findByIdForUpdate(UUID id);
 
     /** Every line under one prescription order — Request History and the patient timeline both need the order's line items, not just its header. */
     List<PrescriptionLine> findByPrescriptionOrderId(UUID prescriptionOrderId);

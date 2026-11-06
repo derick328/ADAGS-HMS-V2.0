@@ -11,6 +11,12 @@ public interface StockBatchRepository {
 
     Optional<StockBatch> findById(UUID id);
 
+    record PackagingRule(UUID receiptLineId, int dispenseMultipleBase) {
+    }
+
+    /** Snapshot attached to a received batch; legacy batches use a multiple of one. */
+    PackagingRule packagingRule(UUID batchId);
+
     /**
      * ACTIVE, not-yet-expired batches for an item, earliest expiry first —
      * the FEFO order §5.3 requires. Across every store the item is held
@@ -19,6 +25,8 @@ public interface StockBatchRepository {
      * detail InventoryFacade.decrementForDispense resolves internally.
      */
     List<StockBatch> findActiveByItemFefo(UUID itemId);
+
+    List<StockBatch> findActiveByItemFefo(UUID itemId, UUID facilityId);
 
     /**
      * 18-admin.md §8 medication-and-pharmacy view: every pharmacist
@@ -29,4 +37,6 @@ public interface StockBatchRepository {
      * resolved that way.
      */
     List<RestockLedgerEntry> findRestocksBetween(Instant from, Instant to);
+
+    List<RestockLedgerEntry> findRestocksBetween(Instant from, Instant to, List<UUID> storeIds);
 }

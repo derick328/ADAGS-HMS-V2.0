@@ -13,6 +13,7 @@ import com.adags.modules.pharmacy.domain.ItemNotDispensableException;
 import com.adags.modules.pharmacy.domain.MissingFefoOverrideReasonException;
 import com.adags.modules.pharmacy.domain.PrescriptionLine;
 import com.adags.modules.pharmacy.domain.PrescriptionLineRepository;
+import com.adags.modules.pharmacy.domain.PrescriptionOrderRepository;
 import com.adags.shared.kernel.BatchAvailability;
 import com.adags.shared.kernel.Money;
 import org.springframework.dao.DuplicateKeyException;
@@ -46,6 +47,7 @@ import java.util.UUID;
 public class DispenseService {
 
     private final PrescriptionLineRepository prescriptionLineRepository;
+    private final PrescriptionOrderRepository prescriptionOrderRepository;
     private final DispenseRepository dispenseRepository;
     private final DispenseLineRepository dispenseLineRepository;
     private final InventoryFacade inventoryFacade;
@@ -53,12 +55,14 @@ public class DispenseService {
 
     public DispenseService(
             PrescriptionLineRepository prescriptionLineRepository,
+            PrescriptionOrderRepository prescriptionOrderRepository,
             DispenseRepository dispenseRepository,
             DispenseLineRepository dispenseLineRepository,
             InventoryFacade inventoryFacade,
             BillingFacade billingFacade
     ) {
         this.prescriptionLineRepository = prescriptionLineRepository;
+        this.prescriptionOrderRepository = prescriptionOrderRepository;
         this.dispenseRepository = dispenseRepository;
         this.dispenseLineRepository = dispenseLineRepository;
         this.inventoryFacade = inventoryFacade;
@@ -81,10 +85,28 @@ public class DispenseService {
             throw new IllegalArgumentException("At least one dispense line is required.");
         }
 
-        PrescriptionLine prescriptionLine = prescriptionLineRepository.findById(command.prescriptionLineId())
+        PrescriptionLine prescriptionLine = prescriptionLineRepository.findByIdForUpdate(command.prescriptionLineId())
                 .orElseThrow(() -> new NoSuchElementException("Prescription line not found: " + command.prescriptionLineId()));
+        UUID facilityId = prescriptionOrderRepository.findById(prescriptionLine.prescriptionOrderId())
+                .orElseThrow(() -> new NoSuchElementException("Prescription order not found"))
+                .facilityId();
 
-        int totalQuantity = command.lines().stream().mapToInt(DispenseLineInput::quantity).sum();
+        // Normalize each requested package quantity before FEFO, billing and stock mutation.
+        // The selected factor is saved on the dispense line, so later packaging edits
+        // cannot reinterpret this transaction.
+        record Normalized(DispenseLineInput input, int baseQuantity, int factor, String unit) {}
+        List<Normalized> normalized = command.lines().stream().map(input -> {
+            if (input.quantity() <= 0) throw new IllegalArgumentException("Dispense quantity must be positive");
+            String unit = input.requestedUnit() == null
+                    ? inventoryFacade.findItemSummary(prescriptionLine.itemId()).orElseThrow().unit()
+                    : input.requestedUnit();
+            int factor = inventoryFacade.conversionFactor(prescriptionLine.itemId(), unit);
+            return new Normalized(input, Math.multiplyExact(input.quantity(), factor), factor, unit);
+        }).toList();
+        List<DispenseLineInput> baseLines = normalized.stream().map(n ->
+                new DispenseLineInput(n.input().batchId(), n.baseQuantity(), n.input().overrideReason())).toList();
+        int totalQuantity = baseLines.stream().map(DispenseLineInput::quantity)
+                .reduce(0, Math::addExact);
         // §4.4's three-way rule — pure, no side effects, before anything is touched.
         PrescriptionLine updatedLine = prescriptionLine.applyDispense(totalQuantity);
 
@@ -94,7 +116,14 @@ public class DispenseService {
             throw new ItemNotDispensableException(prescriptionLine.itemId());
         }
 
-        requireOverrideReasonIfFefoWasNotFollowed(prescriptionLine.itemId(), command.lines(), totalQuantity);
+        for (DispenseLineInput input : baseLines) {
+            inventoryFacade.assertBatchFacility(input.batchId(), facilityId);
+        }
+        requireOverrideReasonIfFefoWasNotFollowed(prescriptionLine.itemId(), facilityId, baseLines, totalQuantity);
+
+        Map<UUID, Integer> quantitiesByBatch = new HashMap<>();
+        baseLines.forEach(line -> quantitiesByBatch.merge(line.batchId(), line.quantity(), Math::addExact));
+        inventoryFacade.assertDispensePackaging(prescriptionLine.itemId(), quantitiesByBatch);
 
         // §5.1: evaluated NOW, never cached from prescribing time. Throws
         // BillingGateRejectedException (-> 402) if unsatisfied; nothing
@@ -115,17 +144,19 @@ public class DispenseService {
         }
 
         List<DispenseLine> savedLines = new ArrayList<>();
-        for (DispenseLineInput input : command.lines()) {
+        for (Normalized n : normalized) {
+            DispenseLineInput input = n.input();
             UUID dispenseLineId = UUID.randomUUID();
             // Decrements the materialised balance (InsufficientStockException
             // on the CHECK (quantity >= 0) guard), hard-blocks an expired
             // or non-ACTIVE batch (BatchExpiredException), and returns the
             // batch's current unit cost to snapshot.
             Money unitCostSnapshot = inventoryFacade.decrementForDispense(
-                    prescriptionLine.itemId(), input.batchId(), input.quantity(), dispenseLineId, command.actorUserId());
+                    prescriptionLine.itemId(), input.batchId(), n.baseQuantity(), dispenseLineId, command.actorUserId());
 
             DispenseLine line = DispenseLine.create(savedDispense.id(), prescriptionLine.itemId(), input.batchId(),
-                    input.quantity(), unitCostSnapshot, input.overrideReason()).withId(dispenseLineId);
+                    n.baseQuantity(), unitCostSnapshot, input.overrideReason()).withId(dispenseLineId)
+                    .withUnitSnapshot(input.quantity(), n.unit(), n.factor());
             savedLines.add(dispenseLineRepository.insert(line));
         }
 
@@ -140,8 +171,9 @@ public class DispenseService {
     // — attributing the deviation to one specific line would require
     // guessing which one "caused" it, and a blanket requirement is no
     // easier to satisfy honestly.
-    private void requireOverrideReasonIfFefoWasNotFollowed(UUID itemId, List<DispenseLineInput> lines, int totalQuantity) {
-        List<BatchAvailability> available = inventoryFacade.findFefoBatches(itemId);
+    private void requireOverrideReasonIfFefoWasNotFollowed(UUID itemId, UUID facilityId,
+                                                             List<DispenseLineInput> lines, int totalQuantity) {
+        List<BatchAvailability> available = inventoryFacade.findFefoBatches(itemId, facilityId);
         List<BatchAllocation> suggested;
         try {
             suggested = FefoAllocator.allocate(itemId, available, totalQuantity);

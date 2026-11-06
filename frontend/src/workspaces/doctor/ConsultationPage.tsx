@@ -33,6 +33,7 @@ import {
 import { fetchEncounterById, fetchEncountersByPatient } from '../../shared/api/encounters';
 import { recordIcd10Selection, searchIcd10, type Icd10SearchResult } from '../../shared/api/icd10';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
+import { fetchMedicinePackaging } from '../../shared/api/medicinePackaging';
 import { fetchLabOrdersByEncounter, placeLabOrder, type LabOrderUrgency } from '../../shared/api/labOrders';
 import { fetchLabTests, fetchPendingLabClassifications } from '../../shared/api/labTests';
 import { fetchPatientById, type PatientResponse } from '../../shared/api/patients';
@@ -1528,6 +1529,8 @@ interface DraftRxLine {
   item: ItemSearchResultResponse;
   priceMinor: number | null;
   quantity: number;
+  requestedQuantity: number;
+  requestedUnit: string;
   dosageInstructions: string;
   route: string;
   doseAmount?: number;
@@ -1571,6 +1574,7 @@ function PrescriptionTab({
   const [durationDays, setDurationDays] = useState(3);
   const [dosageInstructions, setDosageInstructions] = useState('');
   const [route, setRoute] = useState('Oral');
+  const [selectedUnit, setSelectedUnit] = useState('');
   const [sendResult, setSendResult] = useState<string | null>(null);
 
   const { data: stock } = useQuery({
@@ -1578,6 +1582,12 @@ function PrescriptionTab({
     queryFn: () => fetchCurrentStock(accessToken as string),
     enabled: accessToken != null,
     staleTime: 30_000,
+  });
+
+  const { data: medicinePackages } = useQuery({
+    queryKey: ['medicine-packaging', pending?.id],
+    queryFn: () => fetchMedicinePackaging(pending?.id as string, accessToken as string),
+    enabled: accessToken != null && pending?.id != null,
   });
   const stockByItem = useMemo(() => {
     const map: Record<string, number> = {};
@@ -1596,12 +1606,17 @@ function PrescriptionTab({
   }
 
   const dosesPerDay = FREQUENCY_DOSES_PER_DAY[frequency];
-  const computedQuantity =
+  const requestedQuantity =
     mode === 'whole' ? wholeQuantity : dosesPerDay != null ? quantityPerDose * dosesPerDay * durationDays : wholeQuantity;
+  const baseUnit = pending?.unit || 'unit';
+  const effectiveUnit = mode === 'structured' ? baseUnit : selectedUnit || baseUnit;
+  const selectedPackage = medicinePackages?.find((p) => p.unit === effectiveUnit);
+  const conversionFactor = effectiveUnit.toUpperCase() === baseUnit.toUpperCase() ? 1 : selectedPackage?.factor ?? 0;
+  const computedQuantity = requestedQuantity * conversionFactor;
   const overCeiling = computedQuantity > QUANTITY_SANITY_CEILING;
 
   function addLine() {
-    if (!pending) return;
+    if (!pending || conversionFactor <= 0 || !Number.isSafeInteger(computedQuantity) || computedQuantity <= 0) return;
     setLines((prev) => [
       ...prev,
       {
@@ -1609,6 +1624,8 @@ function PrescriptionTab({
         item: pending,
         priceMinor,
         quantity: computedQuantity,
+        requestedQuantity,
+        requestedUnit: effectiveUnit,
         dosageInstructions: dosageInstructions || `${route}, ${mode === 'whole' ? `${wholeQuantity} total` : `${frequency} x${durationDays}d`}`,
         route,
         doseAmount: mode === 'structured' ? quantityPerDose : undefined,
@@ -1635,6 +1652,8 @@ function PrescriptionTab({
             encounterId,
             itemId: line.item.id as string,
             quantityPrescribed: line.quantity,
+            requestedQuantity: line.requestedQuantity,
+            requestedUnit: line.requestedUnit,
             dosageInstructions: line.dosageInstructions,
             route: line.route,
             doseAmount: line.doseAmount,
@@ -1688,6 +1707,7 @@ function PrescriptionTab({
           isOptionDisabled={(o) => o.selectable === false}
           onSelect={(o) => {
             setPending(o);
+            setSelectedUnit(o.unit ?? '');
             setPriceMinor(latestPriceByCode.current[o.code as string]?.priceMinor ?? null);
           }}
         />
@@ -1714,9 +1734,17 @@ function PrescriptionTab({
           <Radio  className="clinical-choice" checked={mode === 'structured'} onChange={() => setMode('structured')} label={<>Structured dosing</>} />
 
           {mode === 'whole' ? (
-            <FormRow label="Total quantity">
-              <input className="clinical-control" type="number" min={1} value={wholeQuantity} onChange={(e) => setWholeQuantity(Number(e.target.value))} style={fieldStyle} />
-            </FormRow>
+            <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
+              <FormRow label="Requested quantity">
+                <input className="clinical-control" type="number" min={1} value={wholeQuantity} onChange={(e) => setWholeQuantity(Number(e.target.value))} style={fieldStyle} />
+              </FormRow>
+              <FormRow label="Requested unit">
+                <select className="clinical-control" value={effectiveUnit} onChange={(e) => setSelectedUnit(e.target.value)} style={fieldStyle}>
+                  <option value={baseUnit}>{baseUnit}</option>
+                  {(medicinePackages ?? []).map((p) => <option key={p.id} value={p.unit}>{p.unit}</option>)}
+                </select>
+              </FormRow>
+            </div>
           ) : (
             <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)', flexWrap: 'wrap' }}>
               <FormRow label="Quantity per dose">
@@ -1741,10 +1769,13 @@ function PrescriptionTab({
                 </FormRow>
               )}
               <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', alignSelf: 'center' }}>
-                = {computedQuantity} total units
+                = {computedQuantity} {baseUnit}
               </div>
             </div>
           )}
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
+            {requestedQuantity} {effectiveUnit} = {computedQuantity} {baseUnit}
+          </p>
           {overCeiling && <p className="field-error">Quantity looks unusually high for one item — double-check before adding.</p>}
 
           <FormRow label="Route / instructions">
@@ -1752,7 +1783,7 @@ function PrescriptionTab({
             <textarea className="clinical-control" rows={2} value={dosageInstructions} onChange={(e) => setDosageInstructions(e.target.value)} style={fieldStyle} placeholder="Dosage instructions" />
           </FormRow>
 
-          <button type="button" className="btn btn-primary" onClick={addLine} style={{ marginTop: 'var(--space-2)' }}>
+          <button type="button" className="btn btn-primary" onClick={addLine} disabled={conversionFactor <= 0 || overCeiling} style={{ marginTop: 'var(--space-2)' }}>
             Add to prescription
           </button>
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
@@ -1766,7 +1797,7 @@ function PrescriptionTab({
           {lines.map((l) => (
             <tr key={l.key}>
               <td>
-                {l.item.name} — {l.quantity} units
+                {l.item.name} — {l.requestedQuantity} {l.requestedUnit} ({l.quantity} {l.item.unit ?? 'base units'})
                 <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{l.dosageInstructions}</div>
               </td>
               <td className="money">{l.priceMinor != null ? formatMoney(l.priceMinor * l.quantity, 'TZS') : '—'}</td>

@@ -55,7 +55,7 @@ public class DispenseContextService {
         // confirmation status — never filtered, never collapsed.
         List<AllergySummary> allergies = clinicalFacade.findAllergies(order.patientId());
 
-        List<BatchAvailability> availableBatches = inventoryFacade.findFefoBatches(line.itemId());
+        List<BatchAvailability> availableBatches = inventoryFacade.findFefoBatches(line.itemId(), order.facilityId());
 
         List<BatchAllocation> fefoSuggestion = List.of();
         if (line.remaining() > 0) {
@@ -75,6 +75,10 @@ public class DispenseContextService {
         // from the order's own patient.
         Double weightKg = clinicalFacade.findLatestWeightKg(order.encounterId()).orElse(null);
 
-        return new DispenseContext(line, item, allergies, availableBatches, fefoSuggestion, weightKg);
+        var unitSnapshot = prescriptionLineRepository.findUnitSnapshot(line.id())
+                .orElse(new com.adags.modules.pharmacy.domain.PrescriptionUnitSnapshot(
+                        line.id(), line.quantityPrescribed(), item.unit(), 1, item.unit()));
+        return new DispenseContext(line, item, allergies, availableBatches, fefoSuggestion,
+                weightKg, unitSnapshot);
     }
 }

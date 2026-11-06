@@ -51,6 +51,12 @@ public class JdbcStoreRepository implements StoreRepository {
     }
 
     @Override
+    public List<Store> findAllActive() {
+        return jdbcTemplate.query(SELECT_COLUMNS + " WHERE active = TRUE ORDER BY name",
+                new MapSqlParameterSource(), this::mapRow);
+    }
+
+    @Override
     public Optional<Store> findByFacilityIdAndType(UUID facilityId, String type) {
         List<Store> results = jdbcTemplate.query(
                 SELECT_COLUMNS + " WHERE facility_id = :facilityId AND type = :type",

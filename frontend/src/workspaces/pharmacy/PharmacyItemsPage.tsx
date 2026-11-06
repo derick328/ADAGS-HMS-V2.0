@@ -1,7 +1,7 @@
 import { Tabs } from '../../shared/components/Tabs';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -9,8 +9,11 @@ import { Combobox } from '../../shared/components/Combobox';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
 import { proposeNewItem, proposePriceChange } from '../../shared/api/pharmacyItemProposals';
 import { useAuth } from '../../shared/auth/AuthProvider';
+import { usePermission } from '../../shared/auth/usePermission';
+import { fetchMedicinePackaging, proposeMedicinePackaging } from '../../shared/api/medicinePackaging';
+import './StockInPage.css';
 
-type Tab = 'newItem' | 'priceChange';
+type Tab = 'newItem' | 'priceChange' | 'packaging';
 
 // 12-pharmacist.md §9.2: new items and price changes both go through admin
 // approval — a pharmacist can never set a live price or activate an item
@@ -26,10 +29,56 @@ export function PharmacyItemsPage() {
       <Tabs aria-label="Proposal type" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} unmountInactivePanels items={[
         { id: 'newItem', label: 'New item', content: <NewItemForm /> },
         { id: 'priceChange', label: 'Price change', content: <PriceChangeForm /> },
+        { id: 'packaging', label: 'Packaging', content: <PackagingProposalForm /> },
       ]} />
 
     </div>
   );
+}
+
+function PackagingProposalForm() {
+  const { accessToken } = useAuth();
+  const canPropose = usePermission('PACKAGING_PROPOSE');
+  const queryClient = useQueryClient();
+  const [item, setItem] = useState<ItemSearchResultResponse | null>(null);
+  const [unit, setUnit] = useState('');
+  const [factor, setFactor] = useState('');
+  const [canSplit, setCanSplit] = useState(true);
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState('');
+  const { data: approved } = useQuery({ queryKey: ['medicine-packaging', item?.id],
+    queryFn: () => fetchMedicinePackaging(item?.id as string, accessToken as string),
+    enabled: item?.id != null && accessToken != null });
+  const submit = useMutation({ mutationFn: () => proposeMedicinePackaging(item?.id as string,
+    { unit: unit.trim().toUpperCase(), quantityInBaseUnits: Number(factor), canSplit,
+      reason: reason.trim() }, accessToken as string),
+    onSuccess: () => { setUnit(''); setFactor(''); setReason('');
+      queryClient.invalidateQueries({ queryKey: ['medicine-packaging', item?.id] }); } });
+  if (!canPropose) return <p>Packaging proposals require PACKAGING_PROPOSE permission.</p>;
+  return <div className="stock-in-card" style={{ maxWidth: 680, display: 'grid', gap: 'var(--space-3)' }}>
+    <p>Conversions are specific to each catalogue product. An authorized second person approves a proposal before it can be used.</p>
+    <Combobox<ItemSearchResultResponse> label="Medicine" placeholder="Search catalogue"
+      search={(query) => searchItems(query, accessToken as string)} getKey={(option) => option.id as string}
+      renderOption={(option) => <span>{option.name} {option.strength}</span>}
+      onSelect={setItem} />
+    {item && <><p>Base unit: <strong>{item.unit ?? 'Not configured'}</strong></p>
+      <p>Approved packages: {(approved ?? []).map((p) => `${p.unit} = ${p.factor} ${item.unit}`).join(' · ') || 'none'}</p></>}
+    <div className="stock-in-grid">
+      <label>Packaging unit <input className="clinical-control" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="BLISTER, PACK, BOX…" /></label>
+      <label>Base units per package <input className="clinical-control" type="number" min="2" value={factor} onChange={(e) => setFactor(e.target.value)} /></label>
+      <label><input type="checkbox" checked={canSplit} onChange={(e) => setCanSplit(e.target.checked)} /> May dispense individual base units from this package</label>
+      <label>Reason and manufacturer specification <textarea className="clinical-control" value={reason} onChange={(e) => setReason(e.target.value)} /></label>
+    </div>
+    {error && <p className="field-error" role="alert">{error}</p>}
+    {submit.error && <p className="field-error" role="alert">Could not submit packaging proposal.</p>}
+    {submit.isSuccess && <p role="status">Packaging proposal submitted for approval.</p>}
+    <button type="button" className="btn btn-primary" disabled={submit.isPending} onClick={() => {
+      if (!item?.unit || !unit.trim() || !Number.isSafeInteger(Number(factor)) || Number(factor) <= 1 || !reason.trim()) {
+        setError('Select a medicine and enter a package unit, whole conversion factor, and reason.'); return;
+      }
+      setError(''); submit.mutate();
+    }}>Propose packaging</button>
+  </div>;
 }
 
 const newItemSchema = z.object({

@@ -12,3 +12,7 @@ export function fetchMyStore(accessToken: string): Promise<StoreResponse> {
 export function fetchMyPharmacyStore(accessToken: string): Promise<StoreResponse> {
   return authFetch('/api/stores/mine-pharmacy', accessToken);
 }
+
+export function fetchAuthorizedStockStores(accessToken: string): Promise<StoreResponse[]> {
+  return authFetch('/api/stores/authorized-stock', accessToken);
+}

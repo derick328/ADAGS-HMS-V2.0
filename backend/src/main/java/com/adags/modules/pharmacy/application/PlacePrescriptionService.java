@@ -7,6 +7,7 @@ import com.adags.modules.inventory.InventoryFacade;
 import com.adags.modules.pharmacy.domain.ItemNotDispensableException;
 import com.adags.modules.pharmacy.domain.PrescriptionLine;
 import com.adags.modules.pharmacy.domain.PrescriptionLineRepository;
+import com.adags.modules.pharmacy.domain.PrescriptionUnitSnapshot;
 import com.adags.modules.pharmacy.domain.PrescriptionOrder;
 import com.adags.modules.pharmacy.domain.PrescriptionOrderRepository;
 import com.adags.shared.events.DomainEventPublisher;
@@ -71,6 +72,19 @@ public class PlacePrescriptionService {
             throw new ItemNotDispensableException(command.itemId());
         }
 
+        int requestedQuantity = command.requestedQuantity() == null
+                ? command.quantityPrescribed() : command.requestedQuantity();
+        String requestedUnit = command.requestedUnit() == null
+                ? item.unit() : command.requestedUnit();
+        if (requestedQuantity <= 0) {
+            throw new IllegalArgumentException("Requested quantity must be positive");
+        }
+        int factor = command.requestedUnit() == null ? 1
+                : inventoryFacade.conversionFactor(command.itemId(), requestedUnit);
+        if (Math.multiplyExact(requestedQuantity, factor) != command.quantityPrescribed()) {
+            throw new IllegalArgumentException("Prescribed base quantity does not match selected package unit");
+        }
+
         EncounterContext encounterContext = encounterFacade.findContext(command.encounterId())
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + command.encounterId()));
 
@@ -94,6 +108,8 @@ public class PlacePrescriptionService {
                 command.quantityPrescribed(), command.dosageInstructions(), invoiceLineId, command.substitutionAllowed(),
                 command.route(), command.doseAmount(), command.doseUnit(), command.frequency(), command.durationDays());
         PrescriptionLine savedLine = prescriptionLineRepository.insert(line);
+        prescriptionLineRepository.insertUnitSnapshot(new PrescriptionUnitSnapshot(savedLine.id(),
+                requestedQuantity, requestedUnit, factor, item.unit()));
 
         eventPublisher.publish(PRESCRIPTION_ISSUED_EVENT, Map.of(
                 "prescriptionOrderId", savedOrder.id().toString(),

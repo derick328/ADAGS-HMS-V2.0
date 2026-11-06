@@ -5,5 +5,5 @@ import jakarta.validation.constraints.Positive;
 
 import java.util.UUID;
 
-public record DispenseLineRequest(@NotNull UUID batchId, @Positive int quantity, String overrideReason) {
+public record DispenseLineRequest(@NotNull UUID batchId, @Positive int quantity, String overrideReason, String requestedUnit) {
 }

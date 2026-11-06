@@ -2,38 +2,29 @@ import { Tabs } from '../../shared/components/Tabs';
 import { FeedbackState } from '../../shared/components/FeedbackState';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { TableRegion } from '../../shared/components/TableRegion';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { ApiError } from '../../shared/api/client';
-import { Combobox } from '../../shared/components/Combobox';
-import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
-import { restock } from '../../shared/api/stockBatches';
 import { fetchCurrentStock, fetchExpiringBatches, fetchLowStock, fetchStockValuation } from '../../shared/api/stockReports';
-import { fetchMyPharmacyStore } from '../../shared/api/stores';
-import { createSupplier, fetchSuppliers, type SupplierResponse } from '../../shared/api/suppliers';
+import { fetchStockReceipts } from '../../shared/api/stockReceipts';
+import { fetchStockMovements } from '../../shared/api/stockMovements';
+import { fetchAuthorizedStockStores } from '../../shared/api/stores';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { formatDate } from '../../shared/format/date';
 import { formatMoney } from '../../shared/format/money';
+import { formatDateTime } from '../../shared/format/date';
+import { StockInPage } from './StockInPage';
+import { StockAdjustmentsPage } from './StockAdjustmentsPage';
 
-const OTHER_SUPPLIER_VALUE = '__other__';
-function todayInFacilityTz(): string {
-  // The backend rejects a past expiry (V23 restock check) and there's no
-  // reason a pharmacist would ever intentionally receive expired stock —
-  // block it at the input, not just at the API. Uses today in the
-  // browser's local zone; the facility runs on Africa/Dar_es_Salaam and
-  // the pharmacist is on-site, so browser-local matches facility-local.
-  return new Date().toISOString().slice(0, 10);
-}
-
-type Tab = 'current' | 'low' | 'expiring' | 'valuation';
+type Tab = 'current' | 'stockIn' | 'movements' | 'low' | 'expiring' | 'history' | 'adjustments' | 'valuation';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'current', label: 'Current stock' },
+  { key: 'stockIn', label: 'Stock in' },
+  { key: 'movements', label: 'Movements' },
   { key: 'low', label: 'Low stock' },
   { key: 'expiring', label: 'Expiring (90d)' },
+  { key: 'history', label: 'Receiving history' },
+  { key: 'adjustments', label: 'Adjustments' },
   { key: 'valuation', label: 'Valuation' },
 ];
 
@@ -46,49 +37,149 @@ export function StockPage() {
     <div>
       <PageHeader title={<>Stock</>} description={<>Review available batches, expiry dates, and incoming stock.</>} />
 
-      <RestockForm />
-
       <Tabs aria-label="Stock views" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} unmountInactivePanels
         items={TABS.map(({ key, label }) => ({ id: key, label, content: {
-          current: <CurrentStockView />, low: <LowStockView />, expiring: <ExpiringView />, valuation: <ValuationView />,
+          current: <CurrentStockView />, stockIn: <StockInPage />, movements: <MovementsView />,
+          low: <LowStockView />, expiring: <ExpiringView />, history: <ReceivingHistoryView />,
+          adjustments: <StockAdjustmentsPage />,
+          valuation: <ValuationView />,
         }[key] }))} />
 
     </div>
   );
 }
 
+function MovementsView() {
+  const { accessToken } = useAuth();
+  const [selectedStoreId, setSelectedStoreId] = useState('');
+  const { data: stores } = useQuery({ queryKey: ['stores', 'authorized-stock'],
+    queryFn: () => fetchAuthorizedStockStores(accessToken as string), enabled: accessToken != null });
+  const storeId = selectedStoreId || stores?.[0]?.id || '';
+  const { data, isLoading } = useQuery({ queryKey: ['stock-movements', storeId],
+    queryFn: () => fetchStockMovements(storeId, accessToken as string),
+    enabled: accessToken != null && !!storeId });
+  const rows = data ?? [];
+  return <><StorePicker stores={stores ?? []} value={storeId} onChange={setSelectedStoreId} />
+  <TableShell isLoading={isLoading} isEmpty={rows.length === 0} emptyMessage="No movements recorded.">
+    <thead><tr><th>Date</th><th>Medicine</th><th>Batch</th><th>Movement</th><th>Base units</th></tr></thead>
+    <tbody>{rows.map((row) => <tr key={row.id}><td>{formatDateTime(row.occurredAt)}</td>
+      <td>{row.itemName} · {row.itemCode}</td><td>{row.batchNumber}</td><td>{row.movementType}</td>
+      <td className="tabular">{row.quantityDelta > 0 ? '+' : ''}{row.quantityDelta}</td></tr>)}</tbody>
+  </TableShell></>;
+}
+
+function ReceivingHistoryView() {
+  const { accessToken } = useAuth();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedStoreId, setSelectedStoreId] = useState('');
+  const { data: stores } = useQuery({ queryKey: ['stores', 'authorized-stock'],
+    queryFn: () => fetchAuthorizedStockStores(accessToken as string), enabled: accessToken != null });
+  const storeId = selectedStoreId || stores?.[0]?.id || '';
+  const { data, isLoading } = useQuery({ queryKey: ['stock-receipts', storeId],
+    queryFn: () => fetchStockReceipts(storeId, accessToken as string),
+    enabled: accessToken != null && !!storeId });
+  const rows = data ?? [];
+  const selected = rows.find((row) => row.id === selectedId);
+  return <>
+    <StorePicker stores={stores ?? []} value={storeId} onChange={(id) => { setSelectedStoreId(id); setSelectedId(null); }} />
+    <TableShell isLoading={isLoading} isEmpty={rows.length === 0} emptyMessage="No confirmed deliveries.">
+      <thead><tr><th>Receipt</th><th>Supplier</th><th>Invoice</th><th>Delivery note</th><th>Delivery date</th><th>Confirmed</th><th>Received by</th><th>Lines</th><th>Value</th><th>Status</th></tr></thead>
+      <tbody>{rows.map((row) => <tr key={row.id}>
+        <td><button type="button" className="btn btn-ghost" onClick={() => setSelectedId(row.id)}>{row.receiptNumber}</button></td>
+        <td>{row.supplierName}</td><td>{row.invoiceNumber}</td><td>{row.deliveryNoteNumber}</td>
+        <td>{formatDate(row.deliveryDate)}</td><td>{formatDateTime(row.confirmedAt)}</td><td>{row.receivedByName ?? row.receivedBy}</td>
+        <td className="tabular">{row.lines.length}</td><td className="money">{formatMoney(row.totalReceivedCostMinor, row.currencyCode)}</td>
+        <td>Confirmed</td></tr>)}</tbody>
+    </TableShell>
+    {selected && <section className="stock-in-card" aria-label="Receipt detail">
+      <div className="stock-in-section-heading"><h3>{selected.receiptNumber}</h3>
+        <button type="button" className="btn btn-secondary" onClick={() => window.print()}>Print receipt</button></div>
+      <p>{selected.supplierName} · Invoice {selected.invoiceNumber} ({formatDate(selected.invoiceDate)})
+        {' '}· Delivery note {selected.deliveryNoteNumber} · Delivered {formatDate(selected.deliveryDate)}
+        {' '}· Received by {selected.receivedByName ?? selected.receivedBy}</p>
+      {selected.notes && <p>Notes: {selected.notes}</p>}
+      <TableRegion label="Receipt lines"><table className="table"><thead><tr><th>Medicine</th><th>Batch</th><th>Purchased unit</th><th>Cost per purchase unit</th><th>Ordered</th><th>Received</th><th>Accepted base</th><th>Rejected base</th><th>Missing</th><th>Reason</th><th>Accepted value</th></tr></thead>
+        <tbody>{selected.lines.map((line) => <tr key={line.id}>
+          <td>{line.itemName}</td><td>{line.batchNumber} · exp {formatDate(line.expiryDate)}</td>
+          <td>{line.purchaseUnit} = {line.factor} {line.baseUnit}</td><td>{formatMoney(line.unitPurchaseCostMinor, selected.currencyCode)}</td><td>{line.orderedQuantity ?? '—'}</td><td>{line.receivedQuantity}</td>
+          <td>{line.acceptedBaseQuantity} {line.baseUnit}</td><td>{line.rejectedBaseQuantity} {line.baseUnit}</td><td>{line.missingQuantity}</td>
+          <td>{line.discrepancyReason ?? '—'}</td>
+          <td>{formatMoney(line.acceptedCostMinor, selected.currencyCode)}</td>
+        </tr>)}</tbody></table></TableRegion>
+      <p>Accepted inventory value: {formatMoney(selected.totalAcceptedCostMinor, selected.currencyCode)}</p>
+    </section>}
+  </>;
+}
+
+function StorePicker({ stores, value, onChange }: { stores: { id?: string; name?: string }[];
+  value: string; onChange: (id: string) => void }) {
+  return <label style={{ display: 'inline-grid', gap: 'var(--space-1)', marginBottom: 'var(--space-3)' }}>
+    Store <select className="clinical-control" value={value} onChange={(e) => onChange(e.target.value)}>
+      {stores.map((store) => <option key={store.id} value={store.id}>{store.name}</option>)}
+    </select>
+  </label>;
+}
+
 function CurrentStockView() {
   const { accessToken } = useAuth();
+  const [search, setSearch] = useState('');
+  const [storeFilter, setStoreFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const { data, isLoading } = useQuery({
     queryKey: ['stock-reports', 'current-stock'],
     queryFn: () => fetchCurrentStock(accessToken as string),
     enabled: accessToken != null,
   });
-  const rows = data ?? [];
+  const rows = (data ?? []).filter((row) =>
+    (!storeFilter || row.storeId === storeFilter) &&
+    (!statusFilter || row.stockStatus === statusFilter) &&
+    (!search || `${row.itemName} ${row.itemCode}`.toLowerCase().includes(search.toLowerCase())));
 
   return (
+    <>
+    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-3)' }}>
+      <label>Search medicine <input className="clinical-control" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or code" /></label>
+      <label>Store <select className="clinical-control" value={storeFilter} onChange={(e) => setStoreFilter(e.target.value)}>
+        <option value="">All authorized stores</option>
+        {[...new Map((data ?? []).map((row) => [row.storeId, row.storeName])).entries()].map(([id, name]) =>
+          <option key={id} value={id}>{name}</option>)}
+      </select></label>
+      <label>Status <select className="clinical-control" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <option value="">All statuses</option>
+        {[...new Set((data ?? []).map((row) => row.stockStatus).filter(Boolean))].map((status) =>
+          <option key={status} value={status}>{status}</option>)}
+      </select></label>
+    </div>
     <TableShell isLoading={isLoading} isEmpty={rows.length === 0} emptyMessage="No stock on hand.">
       <thead>
         <tr>
           <th>Item</th>
+          <th>Strength</th>
           <th>Batch</th>
           <th>Expiry</th>
           <th>Store</th>
-          <th>Quantity</th>
+          <th>Physical quantity</th>
+          <th>Available</th>
+          <th>Status</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((r, i) => (
           <tr key={i}>
             <td>{r.itemName} <span style={{ color: 'var(--text-muted)' }}>· {r.itemCode}</span></td>
+            <td>{r.strength ?? '—'}</td>
             <td style={{ fontFamily: 'var(--font-mono)' }}>{r.batchNumber}</td>
             <td className="tabular">{formatDate(r.expiryDate)}</td>
             <td>{r.storeName}</td>
-            <td className="tabular">{r.quantity}</td>
+            <td className="tabular">{r.quantity} {r.baseUnit}</td>
+            <td className="tabular">{r.availableQuantity ?? (r.stockStatus === 'ACTIVE' ? r.quantity : 0)} {r.baseUnit}</td>
+            <td><span className={r.stockStatus === 'ACTIVE' ? 'badge badge-success' : 'badge badge-warning'}>
+              {r.stockStatus === 'ACTIVE' ? 'Available' : r.stockStatus}</span></td>
           </tr>
         ))}
       </tbody>
     </TableShell>
+    </>
   );
 }
 
@@ -201,205 +292,3 @@ function TableShell({ isLoading, isEmpty, emptyMessage, children }: { isLoading:
     </div>
   );
 }
-
-// 12-pharmacist.md §7.2 (D3, D6): batchNumber, unitCost, and
-// deliveryNoteRef are all required — the minimum control on stock
-// creation. Supplier is a managed list, with an "Other" branch that
-// creates a new supplier row on submit (still not free-text-only — the
-// row is persisted before the batch is written, so future restocks pick
-// it from the dropdown).
-const restockSchema = z.object({
-  itemId: z.string().min(1, 'Select an item'),
-  batchNumber: z.string().min(1, 'Enter the batch number'),
-  expiryDate: z.string()
-    .min(1, 'Enter the expiry date')
-    .refine((v) => v >= todayInFacilityTz(), 'Expiry must be today or later — expired stock cannot be received'),
-  quantity: z.coerce.number({ invalid_type_error: 'Enter a quantity' }).int().positive('Enter a quantity'),
-  unitCostAmountMinor: z.coerce.number({ invalid_type_error: 'Enter the unit cost' }).min(0, 'Enter the unit cost'),
-  supplierChoice: z.string().min(1, 'Select a supplier'),
-  newSupplierName: z.string().optional(),
-  deliveryNoteRef: z.string().min(1, 'Enter the delivery note reference'),
-  notes: z.string().optional(),
-}).refine(
-  (v) => v.supplierChoice !== OTHER_SUPPLIER_VALUE || (v.newSupplierName?.trim().length ?? 0) > 0,
-  { path: ['newSupplierName'], message: "Enter the new supplier's name" },
-);
-type RestockValues = z.infer<typeof restockSchema>;
-
-function RestockForm() {
-  const { accessToken } = useAuth();
-  const queryClient = useQueryClient();
-  const [selectedItem, setSelectedItem] = useState<ItemSearchResultResponse | null>(null);
-  const [open, setOpen] = useState(false);
-
-  const { data: store } = useQuery({
-    queryKey: ['stores', 'mine-pharmacy'],
-    queryFn: () => fetchMyPharmacyStore(accessToken as string),
-    enabled: accessToken != null,
-  });
-  const { data: suppliers } = useQuery({
-    queryKey: ['suppliers'],
-    queryFn: () => fetchSuppliers(accessToken as string),
-    enabled: accessToken != null,
-  });
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<RestockValues>({ resolver: zodResolver(restockSchema) });
-  const supplierChoice = watch('supplierChoice');
-
-  const submit = useMutation({
-    mutationFn: async (values: RestockValues) => {
-      // "Other" branch: create the supplier first, then restock against
-      // the new id. Backend is idempotent on the trimmed name, so a
-      // double-click doesn't double-create.
-      const supplierId = values.supplierChoice === OTHER_SUPPLIER_VALUE
-        ? (await createSupplier({ name: values.newSupplierName!.trim() }, accessToken as string)).id as string
-        : values.supplierChoice;
-      return restock(
-        {
-          itemId: values.itemId,
-          storeId: store?.id as string,
-          batchNumber: values.batchNumber,
-          expiryDate: values.expiryDate,
-          quantity: values.quantity,
-          unitCostAmountMinor: values.unitCostAmountMinor,
-          supplierId,
-          deliveryNoteRef: values.deliveryNoteRef,
-          notes: values.notes || undefined,
-        },
-        accessToken as string,
-      );
-    },
-    onSuccess: () => {
-      reset();
-      setSelectedItem(null);
-      queryClient.invalidateQueries({ queryKey: ['stock-reports'] });
-      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-    },
-  });
-
-  return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', marginBottom: 'var(--space-6)', maxWidth: 640 }}>
-      <button type="button" className="btn btn-secondary" onClick={() => setOpen((o) => !o)}>
-        {open ? 'Close restock form' : 'Restock'}
-      </button>
-
-      {open && (
-        <form onSubmit={handleSubmit((v) => submit.mutate(v))} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginTop: 'var(--space-4)' }}>
-          <div>
-            <Combobox<ItemSearchResultResponse>
-              label="Item"
-              placeholder="Search the formulary"
-              search={(q) => searchItems(q, accessToken as string)}
-              getKey={(i) => i.id as string}
-              renderOption={(i) => (
-                <span style={{ opacity: i.selectable === false ? 0.5 : 1 }}>
-                  {i.name} {i.strength && <span style={{ color: 'var(--text-muted)' }}>· {i.strength}</span>}
-                  {i.selectable === false && <span style={{ color: 'var(--critical)' }}> — {i.unselectableReason}</span>}
-                </span>
-              )}
-              isOptionDisabled={(i) => i.selectable === false}
-              onSelect={(i) => {
-                setSelectedItem(i);
-                setValue('itemId', i.id as string, { shouldValidate: true });
-              }}
-            />
-            {selectedItem && (
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginTop: 4 }}>
-                Selected: <strong>{selectedItem.name}</strong>
-                {selectedItem.strength && <> · {selectedItem.strength}</>}
-                {selectedItem.form && <> · {selectedItem.form}</>}
-              </div>
-            )}
-            {errors.itemId && <span className="field-error">{errors.itemId.message}</span>}
-          </div>
-
-          <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
-            <Field label="Batch number" error={errors.batchNumber?.message}>
-              <input className="clinical-control" {...register('batchNumber')} style={inputStyle} />
-            </Field>
-            <Field label="Expiry date" error={errors.expiryDate?.message}>
-              <input className="clinical-control" type="date" min={todayInFacilityTz()} {...register('expiryDate')} style={inputStyle} />
-            </Field>
-            <Field label="Quantity" error={errors.quantity?.message}>
-              <input className="clinical-control" type="text" inputMode="numeric" {...register('quantity')} style={inputStyle} />
-            </Field>
-            <Field label="Unit cost (TZS minor units)" error={errors.unitCostAmountMinor?.message}>
-              <input className="clinical-control" type="text" inputMode="numeric" {...register('unitCostAmountMinor')} style={inputStyle} />
-            </Field>
-            <Field label="Supplier" error={errors.supplierChoice?.message}>
-              <select className="clinical-control" {...register('supplierChoice')} style={inputStyle} defaultValue="">
-                <option value="" disabled>Select a supplier</option>
-                {(suppliers ?? []).map((s: SupplierResponse) => (
-                  <option key={s.id} value={s.id as string}>
-                    {s.name}
-                  </option>
-                ))}
-                <option value={OTHER_SUPPLIER_VALUE}>Other — add a new supplier</option>
-              </select>
-            </Field>
-            <Field label="Delivery note reference" error={errors.deliveryNoteRef?.message}>
-              <input className="clinical-control" {...register('deliveryNoteRef')} style={inputStyle} />
-            </Field>
-            {supplierChoice === OTHER_SUPPLIER_VALUE && (
-              <Field label="New supplier name" error={errors.newSupplierName?.message}>
-                <input aria-label="e.g. Zenufa Laboratories" className="clinical-control"
-                  {...register('newSupplierName')}
-                  style={inputStyle}
-                  placeholder="e.g. Zenufa Laboratories"
-                  autoFocus
-                />
-              </Field>
-            )}
-          </div>
-
-          <Field label="Notes (optional)">
-            <textarea className="clinical-control" rows={2} {...register('notes')} style={inputStyle} />
-          </Field>
-
-          {submit.error && (
-            <div className="form-error">
-              {submit.error instanceof ApiError ? submit.error.message : 'Something went wrong. Try again.'}
-            </div>
-          )}
-          {submit.isSuccess && <div style={{ color: 'var(--green-600)', fontSize: 'var(--text-sm)' }}>Batch received.</div>}
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <button type="submit" className="btn btn-primary" disabled={submit.isPending || !store}>
-              {submit.isPending ? 'Submitting…' : 'Receive stock'}
-            </button>
-            {!store && (
-              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-                Loading your pharmacy store…
-              </span>
-            )}
-          </div>
-        </form>
-      )}
-    </div>
-  );
-}
-
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>{label}</label>
-      {children}
-      {error && <span className="field-error">{error}</span>}
-    </div>
-  );
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: 'var(--space-2)',
-  border: '1px solid var(--border-strong)',
-  borderRadius: 'var(--radius)',
-  font: 'inherit',
-};

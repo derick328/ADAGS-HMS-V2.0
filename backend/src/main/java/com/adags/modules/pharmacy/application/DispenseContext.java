@@ -2,6 +2,7 @@ package com.adags.modules.pharmacy.application;
 
 import com.adags.modules.pharmacy.domain.BatchAllocation;
 import com.adags.modules.pharmacy.domain.PrescriptionLine;
+import com.adags.modules.pharmacy.domain.PrescriptionUnitSnapshot;
 import com.adags.shared.kernel.AllergySummary;
 import com.adags.shared.kernel.BatchAvailability;
 import com.adags.shared.kernel.ItemSummary;
@@ -18,6 +19,7 @@ public record DispenseContext(
         List<AllergySummary> allergies,
         List<BatchAvailability> availableBatches,
         List<BatchAllocation> fefoSuggestion,
-        Double weightKg
+        Double weightKg,
+        PrescriptionUnitSnapshot unitSnapshot
 ) {
 }

@@ -5,8 +5,11 @@ import com.adags.modules.inventory.application.RestockService;
 import com.adags.modules.inventory.domain.RestockLedgerEntry;
 import com.adags.modules.inventory.domain.StockBatch;
 import com.adags.modules.inventory.domain.StockBatchRepository;
+import com.adags.modules.inventory.domain.StoreRepository;
 import com.adags.shared.authz.Actor;
 import com.adags.shared.authz.AuthorizationService;
+import com.adags.shared.authz.ScopeRef;
+import com.adags.shared.authz.ScopeType;
 import com.adags.shared.kernel.Money;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -25,12 +28,8 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 
-// 12-pharmacist.md §7.2 (D3, D6): the restock form. STOCK_RESTOCK is
-// unscoped here the same way ITEM_CLASSIFY is on ItemController — a store
-// belongs to a facility, but this build brief doesn't yet model per-store
-// permission scoping (no caller needs it yet); tightened to a
-// facility/store ScopeRef once a multi-facility pharmacist role exists to
-// distinguish (21-multi-facility.md).
+// Legacy single-batch restock endpoint. Access is checked against the
+// destination store; new deliveries use /api/stock-receipts.
 @RestController
 @RequestMapping("/api/stock-batches")
 public class StockBatchController {
@@ -40,21 +39,27 @@ public class StockBatchController {
     private final RestockService restockService;
     private final StockBatchRepository stockBatchRepository;
     private final AuthorizationService authorizationService;
+    private final StoreRepository storeRepository;
 
     public StockBatchController(
             RestockService restockService,
             StockBatchRepository stockBatchRepository,
-            AuthorizationService authorizationService
+            AuthorizationService authorizationService,
+            StoreRepository storeRepository
     ) {
         this.restockService = restockService;
         this.stockBatchRepository = stockBatchRepository;
         this.authorizationService = authorizationService;
+        this.storeRepository = storeRepository;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public StockBatchResponse restock(@Valid @RequestBody RestockRequest request, @AuthenticationPrincipal Actor actor) {
-        if (!authorizationService.hasPermission(actor, "STOCK_RESTOCK")) {
+        var store = storeRepository.findById(request.storeId())
+                .orElseThrow(() -> new java.util.NoSuchElementException("Store not found"));
+        if (!authorizationService.hasPermission(actor, "STOCK_RESTOCK",
+                ScopeRef.of(ScopeType.STORE, store.id()))) {
             throw new AccessDeniedException("Missing permission: STOCK_RESTOCK");
         }
         String currency = request.unitCostCurrencyCode() == null || request.unitCostCurrencyCode().isBlank()
@@ -80,8 +85,13 @@ public class StockBatchController {
         if (!authorizationService.hasPermission(actor, "STOCK_READ")) {
             throw new AccessDeniedException("Missing permission: STOCK_READ");
         }
+        var allowedStores = storeRepository.findAllActive().stream()
+                .filter(store -> authorizationService.hasPermission(actor, "STOCK_READ",
+                        ScopeRef.of(ScopeType.STORE, store.id())))
+                .map(store -> store.id()).toList();
+        if (allowedStores.isEmpty()) return List.of();
         return stockBatchRepository.findRestocksBetween(
                 from.atStartOfDay().toInstant(ZoneOffset.UTC),
-                to.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC));
+                to.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC), allowedStores);
     }
 }

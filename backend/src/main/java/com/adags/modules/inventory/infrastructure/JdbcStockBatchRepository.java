@@ -73,16 +73,46 @@ public class JdbcStockBatchRepository implements StockBatchRepository {
     }
 
     @Override
+    public PackagingRule packagingRule(UUID batchId) {
+        return jdbcTemplate.queryForObject("""
+                SELECT receipt_line_id, dispense_multiple_base FROM stock_batch WHERE id = :id
+                """, new MapSqlParameterSource("id", batchId),
+                (rs, row) -> new PackagingRule((UUID) rs.getObject("receipt_line_id"),
+                        rs.getInt("dispense_multiple_base")));
+    }
+
+    @Override
     public List<StockBatch> findActiveByItemFefo(UUID itemId) {
         return jdbcTemplate.query(
-                SELECT_COLUMNS + " WHERE item_id = :itemId AND status = 'ACTIVE' AND expiry_date > CURRENT_DATE "
+                SELECT_COLUMNS + " WHERE item_id = :itemId AND status = 'ACTIVE' "
+                        + "AND expiry_date > (now() AT TIME ZONE 'Africa/Dar_es_Salaam')::date "
                         + "ORDER BY expiry_date ASC",
                 new MapSqlParameterSource("itemId", itemId),
                 this::mapRow);
     }
 
     @Override
+    public List<StockBatch> findActiveByItemFefo(UUID itemId, UUID facilityId) {
+        return jdbcTemplate.query("""
+                SELECT b.id, b.item_id, b.store_id, b.batch_number, b.expiry_date,
+                       b.unit_cost_amount_minor, b.unit_cost_currency_code, b.supplier_id,
+                       b.delivery_note_ref, b.status, b.received_by, b.received_at, b.notes
+                FROM stock_batch b JOIN store s ON s.id = b.store_id
+                WHERE b.item_id = :itemId AND s.facility_id = :facilityId
+                  AND b.status = 'ACTIVE'
+                  AND b.expiry_date > (now() AT TIME ZONE 'Africa/Dar_es_Salaam')::date
+                ORDER BY b.expiry_date ASC, b.received_at ASC
+                """, new MapSqlParameterSource().addValue("itemId", itemId)
+                .addValue("facilityId", facilityId), this::mapRow);
+    }
+
+    @Override
     public List<RestockLedgerEntry> findRestocksBetween(Instant from, Instant to) {
+        return findRestocksBetween(from, to, null);
+    }
+
+    @Override
+    public List<RestockLedgerEntry> findRestocksBetween(Instant from, Instant to, List<UUID> storeIds) {
         String sql = """
                 SELECT sb.id           AS batch_id,
                        sb.item_id      AS item_id,
@@ -110,9 +140,11 @@ public class JdbcStockBatchRepository implements StockBatchRepository {
                    AND sb.received_at <  :toTs
                  ORDER BY sb.received_at DESC
                 """;
+        if (storeIds != null) sql = sql.replace("ORDER BY sb.received_at DESC",
+                "AND sb.store_id IN (:storeIds) ORDER BY sb.received_at DESC");
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("fromTs", Timestamp.from(from))
-                .addValue("toTs", Timestamp.from(to));
+                .addValue("toTs", Timestamp.from(to)).addValue("storeIds", storeIds);
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
             long unitCost = rs.getLong("unit_cost_amount_minor");
             int receivedQty = rs.getInt("received_qty");

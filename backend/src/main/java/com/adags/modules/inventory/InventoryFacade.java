@@ -5,6 +5,7 @@ import com.adags.shared.kernel.ItemSummary;
 import com.adags.shared.kernel.Money;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,11 +39,23 @@ public interface InventoryFacade {
 
     Optional<ItemSummary> findItemSummary(UUID itemId);
 
+    /** Approved product-specific purchase/prescription unit to base-unit factor. */
+    int conversionFactor(UUID itemId, String unit);
+
     /** ACTIVE, not-yet-expired batches for the item, earliest expiry first — 12-pharmacist.md §5.3's FEFO order. */
     List<BatchAvailability> findFefoBatches(UUID itemId);
 
+    /** FEFO pool limited to the prescription's facility. */
+    List<BatchAvailability> findFefoBatches(UUID itemId, UUID facilityId);
+
+    /** Reject a selected batch from another facility before consumption. */
+    void assertBatchFacility(UUID batchId, UUID facilityId);
+
     /** Any batch by id, regardless of status or expiry — 12-pharmacist.md §4.6's dispensing label needs the batch number and expiry of what was actually dispensed, even if since expired. */
     Optional<BatchAvailability> findBatch(UUID batchId);
+
+    /** Reject an incomplete sealed package, aggregating cost tranches from one receipt line. */
+    void assertDispensePackaging(UUID itemId, Map<UUID, Integer> quantityByBatch);
 
     /**
      * Dispenses {@code quantity} of {@code itemId} from {@code batchId}:

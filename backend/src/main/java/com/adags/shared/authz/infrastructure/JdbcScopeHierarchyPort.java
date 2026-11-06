@@ -25,7 +25,8 @@ public class JdbcScopeHierarchyPort implements ScopeHierarchyPort {
         return switch (scope.type()) {
             case WARD -> lookupParent("SELECT department_id FROM ward WHERE id = :id", scope.id(), ScopeType.DEPARTMENT);
             case DEPARTMENT -> lookupParent("SELECT facility_id FROM department WHERE id = :id", scope.id(), ScopeType.FACILITY);
-            case FACILITY, GLOBAL, CLINIC, STORE -> Optional.empty();
+            case STORE -> lookupParent("SELECT facility_id FROM store WHERE id = :id", scope.id(), ScopeType.FACILITY);
+            case FACILITY, GLOBAL, CLINIC -> Optional.empty();
         };
     }
 

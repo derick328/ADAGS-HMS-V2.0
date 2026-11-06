@@ -5,6 +5,7 @@ import com.adags.modules.inventory.domain.StoreRepository;
 import com.adags.shared.authz.Actor;
 import com.adags.shared.authz.AuthorizationService;
 import com.adags.shared.authz.ScopeType;
+import com.adags.shared.authz.ScopeRef;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
+import java.util.List;
 
 // 15-lab-technician.md §5/§11: resolves "this technician's own lab
 // sub-store" so the Stock Requests form has a requestingStoreId without a
@@ -61,6 +63,14 @@ public class StoreController {
         Store store = storeRepository.findByFacilityIdAndType(facilityId, PHARMACY_STORE_TYPE)
                 .orElseGet(() -> createStore(PHARMACY_STORE_NAME, PHARMACY_STORE_TYPE, facilityId));
         return StoreResponse.from(store);
+    }
+
+    @GetMapping("/authorized-stock")
+    public List<StoreResponse> authorizedStock(@AuthenticationPrincipal Actor actor) {
+        return storeRepository.findAllActive().stream()
+                .filter(store -> authorizationService.hasPermission(actor, "STOCK_READ",
+                        ScopeRef.of(ScopeType.STORE, store.id())))
+                .map(StoreResponse::from).toList();
     }
 
     // Fixed id of the bootstrap facility inserted by V4 — the well-known
