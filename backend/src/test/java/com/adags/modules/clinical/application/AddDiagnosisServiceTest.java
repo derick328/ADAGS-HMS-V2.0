@@ -42,18 +42,19 @@ class AddDiagnosisServiceTest extends IntegrationTestSupport {
     @AfterEach
     void cleanUp() {
         jdbcTemplate.update("""
-                        TRUNCATE diagnosis, consultation_record, encounter, patient, icd10_code CASCADE
+                        TRUNCATE diagnosis, consultation_record, encounter, patient CASCADE
                         """,
                 new MapSqlParameterSource());
+        jdbcTemplate.update("DELETE FROM icd10_code WHERE code LIKE 'TEST-DIAG-%'", new MapSqlParameterSource());
     }
 
     @Test
     void addDiagnosisSnapshotsTheCurrentTitle() {
-        insertIcd10Code("B50.9", "P. falciparum malaria, unspecified", true, true);
+        insertIcd10Code("TEST-DIAG-B50.9", "P. falciparum malaria, unspecified", true, true);
         UUID encounterId = insertFixtureEncounter();
         UUID consultationRecordId = openConsultationRecord(encounterId);
 
-        Diagnosis saved = service.addDiagnosis(encounterId, consultationRecordId, "B50.9",
+        Diagnosis saved = service.addDiagnosis(encounterId, consultationRecordId, "TEST-DIAG-B50.9",
                 "with severe anaemia", DiagnosisCertainty.PROVISIONAL, true, bootstrapAdminId());
 
         assertThat(saved.icd10TitleSnapshot()).isEqualTo("P. falciparum malaria, unspecified");
@@ -62,11 +63,11 @@ class AddDiagnosisServiceTest extends IntegrationTestSupport {
 
     @Test
     void mistakenPrimaryCanBeVoidedAndReplacedWithoutErasingTheOriginal() {
-        insertIcd10Code("B50.9", "P. falciparum malaria, unspecified", true, true);
+        insertIcd10Code("TEST-DIAG-B50.9", "P. falciparum malaria, unspecified", true, true);
         UUID encounterId = insertFixtureEncounter();
         UUID recordId = openConsultationRecord(encounterId);
         UUID authorId = bootstrapAdminId();
-        Diagnosis mistaken = service.addDiagnosis(encounterId, recordId, "B50.9",
+        Diagnosis mistaken = service.addDiagnosis(encounterId, recordId, "TEST-DIAG-B50.9",
                 null, DiagnosisCertainty.PROVISIONAL, true, authorId);
 
         voidDiagnosisService.voidDiagnosis(recordId, mistaken.id(), authorId);
@@ -76,7 +77,7 @@ class AddDiagnosisServiceTest extends IntegrationTestSupport {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT voided_by FROM diagnosis WHERE id = :id",
                 new MapSqlParameterSource("id", mistaken.id()), UUID.class)).isEqualTo(authorId);
-        Diagnosis replacement = service.addDiagnosis(encounterId, recordId, "B50.9",
+        Diagnosis replacement = service.addDiagnosis(encounterId, recordId, "TEST-DIAG-B50.9",
                 null, DiagnosisCertainty.CONFIRMED, true, authorId);
         assertThat(replacement.id()).isNotNull();
         assertThatThrownBy(() -> voidDiagnosisService.voidDiagnosis(recordId, mistaken.id(), authorId))
@@ -92,22 +93,22 @@ class AddDiagnosisServiceTest extends IntegrationTestSupport {
 
     @Test
     void aRetiredCodeIsRejected() {
-        insertIcd10Code("A99", "Zika virus disease, retired", true, false);
+        insertIcd10Code("TEST-DIAG-A99", "Zika virus disease, retired", true, false);
         UUID encounterId = insertFixtureEncounter();
         UUID consultationRecordId = openConsultationRecord(encounterId);
 
-        assertThatThrownBy(() -> service.addDiagnosis(encounterId, consultationRecordId, "A99",
+        assertThatThrownBy(() -> service.addDiagnosis(encounterId, consultationRecordId, "TEST-DIAG-A99",
                 null, DiagnosisCertainty.PROVISIONAL, true, bootstrapAdminId()))
                 .isInstanceOf(NoSuchElementException.class);
     }
 
     @Test
     void aNonBillableCategoryHeaderIsRejected() {
-        insertIcd10Code("B50", "Plasmodium falciparum malaria", false, true);
+        insertIcd10Code("TEST-DIAG-B50", "Plasmodium falciparum malaria", false, true);
         UUID encounterId = insertFixtureEncounter();
         UUID consultationRecordId = openConsultationRecord(encounterId);
 
-        assertThatThrownBy(() -> service.addDiagnosis(encounterId, consultationRecordId, "B50",
+        assertThatThrownBy(() -> service.addDiagnosis(encounterId, consultationRecordId, "TEST-DIAG-B50",
                 null, DiagnosisCertainty.PROVISIONAL, true, bootstrapAdminId()))
                 .isInstanceOf(NoSuchElementException.class);
     }
@@ -117,7 +118,7 @@ class AddDiagnosisServiceTest extends IntegrationTestSupport {
         UUID encounterId = insertFixtureEncounter();
         UUID consultationRecordId = openConsultationRecord(encounterId);
 
-        assertThatThrownBy(() -> service.addDiagnosis(encounterId, consultationRecordId, "Z99.9",
+        assertThatThrownBy(() -> service.addDiagnosis(encounterId, consultationRecordId, "TEST-DIAG-Z99.9",
                 null, DiagnosisCertainty.PROVISIONAL, true, bootstrapAdminId()))
                 .isInstanceOf(NoSuchElementException.class);
     }

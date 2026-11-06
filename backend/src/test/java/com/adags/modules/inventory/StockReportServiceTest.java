@@ -156,6 +156,10 @@ class StockReportServiceTest extends IntegrationTestSupport {
     private UUID createFixtureItem(String code, int reorderLevel, UUID admin) {
         Item item = createItemService.create(new CreateItemCommand(code + "-" + UUID.randomUUID().toString().substring(0, 6),
                 "Amoxicillin 500mg capsule", "ANTIBIOTIC", "CAPSULE", "500mg", "CAPSULE", reorderLevel, admin));
+        // The low-stock report intentionally excludes inactive catalogue items.
+        // Activate the fixture so low-stock assertions exercise quantity, not status.
+        jdbcTemplate.update("UPDATE item SET active = TRUE WHERE id = :id",
+                new MapSqlParameterSource("id", item.id()));
         return item.id();
     }
 
