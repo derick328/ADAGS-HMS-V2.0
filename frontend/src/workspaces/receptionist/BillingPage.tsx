@@ -113,6 +113,7 @@ export function BillingPage() {
                 <thead>
                   <tr>
                     <th>Number</th>
+                    <th>Patient</th>
                     <th>State</th>
                     <th>Created</th>
                     <th>Outstanding</th>
@@ -123,6 +124,7 @@ export function BillingPage() {
                   {invoices.map((inv) => (
                     <tr key={inv.id} onClick={() => setSelectedInvoiceId(inv.id ?? null)} style={{ cursor: 'pointer' }} className={inv.id === selectedInvoiceId ? 'row-selected' : ''}>
                       <td style={{ fontWeight: 'var(--weight-medium)' }}>{inv.invoiceNumber ?? <span className="badge badge-neutral">draft</span>}</td>
+                      <td><InvoicePatientName patientId={inv.patientId} /></td>
                       <td><InvoiceStateBadge state={inv.state} /></td>
                       <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{formatDateTime(inv.createdAt)}</td>
                       <td className="money">{formatMoney(inv.outstandingTotalMinor, inv.currencyCode)}</td>
@@ -150,6 +152,18 @@ export function BillingPage() {
       {tab === 'payment' && <RecordPaymentPanel initialPatientId={paymentPatientId} />}
     </div>
   );
+}
+
+function InvoicePatientName({ patientId }: { patientId: string | undefined }) {
+  const { accessToken } = useAuth();
+  const { data: patient, isError } = useQuery({
+    queryKey: ['patient', patientId],
+    queryFn: () => fetchPatientById(patientId as string, accessToken as string),
+    enabled: accessToken != null && patientId != null,
+    staleTime: 60_000,
+  });
+
+  return <span>{patient?.fullName ?? (isError ? 'Name unavailable' : '…')}</span>;
 }
 
 function InvoiceStateBadge({ state }: { state: InvoiceResponse['state'] }) {

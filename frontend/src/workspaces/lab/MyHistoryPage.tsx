@@ -1,3 +1,4 @@
+import { LabResultAttachments } from '../../shared/components/LabResultAttachments';
 import { FeedbackState } from '../../shared/components/FeedbackState';
 import { Tabs } from '../../shared/components/Tabs';
 import { PageHeader } from '../../shared/components/PageHeader';
@@ -181,7 +182,7 @@ function ResultsTable({
   );
 }
 
-function ResultDetail({ resultId, onBack }: { resultId: string; onBack: () => void }) {
+export function ResultDetail({ resultId, onBack }: { resultId: string; onBack: () => void }) {
   const { accessToken } = useAuth();
   const { data: result, isLoading } = useQuery({
     queryKey: ['lab-results', resultId],
@@ -237,6 +238,10 @@ function ResultDetail({ resultId, onBack }: { resultId: string; onBack: () => vo
             <dt style={{ color: 'var(--text-muted)' }}>Released</dt>
             <dd style={{ margin: 0 }}>{formatDateTime(result.releasedAt)}</dd>
           </div>
+          <div>
+            <dt style={{ color: 'var(--text-muted)' }}>Verification</dt>
+            <dd style={{ margin: 0 }}>{result.verificationState}</dd>
+          </div>
           {result.verifiedByName && (
             <div>
               <dt style={{ color: 'var(--text-muted)' }}>Verified by</dt>
@@ -277,7 +282,12 @@ function ResultDetail({ resultId, onBack }: { resultId: string; onBack: () => vo
         </table></TableRegion>
       </section>
 
+      <LabResultAttachments resultId={result.id as string} machineOutputObjectKey={result.machineOutputObjectKey} labReportObjectKey={result.labReportObjectKey} />
       <section style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', fontSize: 'var(--text-sm)' }}>
+        <DetailField label="Recorded value" value={result.singleValue ? `${result.singleValue} ${result.singleValueUnit ?? ''}` : null} />
+        <DetailField label="Result type" value={result.resultType} />
+        <DetailField label="Overall interpretation" value={result.overallInterpretation} />
+        <DetailField label="Remarks" value={result.remarks} />
         <DetailField label="Methodology" value={result.methodology} />
         <DetailField label="Findings" value={result.findings} />
         <DetailField label="Interpretation" value={result.interpretation} />

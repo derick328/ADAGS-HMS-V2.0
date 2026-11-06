@@ -5344,6 +5344,94 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/TatDepartment"
+  /api/admin/tat/departments/{workflowType}/users:
+    get:
+      tags:
+      - tat-analytics-controller
+      operationId: departmentUsers
+      parameters:
+      - name: workflowType
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TatUserSummary"
+  /api/admin/tat/departments/{workflowType}/users/{userId}/patients:
+    get:
+      tags:
+      - tat-analytics-controller
+      operationId: userPatients
+      parameters:
+      - name: workflowType
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: facilityId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TatUserPatient"
   /api/admin/tat/currently-waiting:
     get:
       tags:
@@ -11723,6 +11811,63 @@ components:
           type: number
           format: double
         longestWaitingSeconds:
+          type: number
+          format: double
+        averageServiceSeconds:
+          type: number
+          format: double
+        averageTatSeconds:
+          type: number
+          format: double
+    TatUserSummary:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        userName:
+          type: string
+        services:
+          type: integer
+          format: int64
+        completedServices:
+          type: integer
+          format: int64
+        patients:
+          type: integer
+          format: int64
+        averageWaitingSeconds:
+          type: number
+          format: double
+        averageServiceSeconds:
+          type: number
+          format: double
+        averageTatSeconds:
+          type: number
+          format: double
+    TatUserPatient:
+      type: object
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        encounterId:
+          type: string
+          format: uuid
+        hospitalNo:
+          type: string
+        patientName:
+          type: string
+        services:
+          type: integer
+          format: int64
+        completedServices:
+          type: integer
+          format: int64
+        firstServiceAt:
+          type: string
+          format: date-time
+        averageWaitingSeconds:
           type: number
           format: double
         averageServiceSeconds:

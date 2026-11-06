@@ -26,6 +26,9 @@ public class MachineOutputStorageService {
 
     private static final int PRESIGNED_URL_EXPIRY_MINUTES = 15;
 
+    @org.springframework.beans.factory.annotation.Value("${lab.report.max-file-size-bytes:10485760}")
+    private long maxReportBytes = 10L * 1024 * 1024;
+
     private final MinioClient minioClient;
     private final MinioProperties properties;
 
@@ -50,6 +53,21 @@ public class MachineOutputStorageService {
         } catch (Exception e) {
             throw new MachineOutputStorageException("Failed to store machine output.", e);
         }
+    }
+
+    public String uploadReportPdf(MultipartFile file) {
+        if (file.isEmpty() || file.getSize() > maxReportBytes)
+            throw new IllegalArgumentException("Report PDF must be between 1 byte and 10 MB.");
+        if (!"application/pdf".equals(file.getContentType()))
+            throw new IllegalArgumentException("Report attachment must be a PDF.");
+        try (InputStream in = file.getInputStream()) {
+            byte[] signature = in.readNBytes(5);
+            if (!java.util.Arrays.equals(signature, "%PDF-".getBytes(java.nio.charset.StandardCharsets.US_ASCII)))
+                throw new IllegalArgumentException("Report attachment is not a valid PDF.");
+        } catch (java.io.IOException e) {
+            throw new MachineOutputStorageException("Could not inspect report PDF.", e);
+        }
+        return upload(file);
     }
 
     /** A short-lived, directly-fetchable URL for viewing a stored machine output file, e.g. from My History. */

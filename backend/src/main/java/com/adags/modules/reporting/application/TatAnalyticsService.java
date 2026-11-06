@@ -87,11 +87,73 @@ public class TatAnalyticsService {
                   avg(extract(epoch FROM s.completed_at - s.ready_at)) FILTER (WHERE s.completed_at >= s.ready_at) AS avg_tat
                 FROM tat_stage_instance s JOIN encounter e ON e.id = s.encounter_id
                 WHERE e.state <> 'CANCELLED_IN_ERROR' AND e.facility_id = :facility AND e.created_at >= :from AND e.created_at < :to
-                  AND (:workflow IS NULL OR s.workflow_type = :workflow)
+                  AND (CAST(:workflow AS text) IS NULL OR s.workflow_type = :workflow)
                 GROUP BY s.workflow_type ORDER BY s.workflow_type
                 """, p, (rs, n) -> new TatDepartment(rs.getString("workflow_type"), rs.getLong("completed_services"),
                 nullableDouble(rs, "avg_wait"), nullableDouble(rs, "median_wait"), nullableDouble(rs, "p90_wait"),
                 nullableDouble(rs, "max_wait"), nullableDouble(rs, "avg_service"), nullableDouble(rs, "avg_tat")));
+    }
+
+    // Attribute each service to the user who performed its recorded work. A queue-only
+    // stage has no service user and is intentionally absent from staff summaries.
+    private static final String ATTRIBUTED_STAGES = """
+            WITH attributed AS (
+              SELECT s.*, e.patient_id,
+                CASE s.workflow_type
+                  WHEN 'TRIAGE' THEN COALESCE(
+                    (SELECT ta.assessed_by FROM triage_assessment ta WHERE ta.encounter_id=s.encounter_id AND ta.supersedes_id IS NULL ORDER BY ta.assessed_at LIMIT 1),
+                    (SELECT te.recorded_by FROM tat_workflow_event te WHERE te.workflow_type='TRIAGE' AND te.workflow_reference_id=s.reference_id ORDER BY te.occurred_at LIMIT 1))
+                  WHEN 'DOCTOR' THEN (SELECT ev.actor_user_id FROM encounter_event ev WHERE ev.id=s.reference_id)
+                  WHEN 'LABORATORY' THEN COALESCE(
+                    (SELECT lr.entered_by FROM lab_result lr WHERE lr.lab_order_id=s.reference_id AND lr.amends_id IS NULL ORDER BY lr.released_at, lr.id LIMIT 1),
+                    (SELECT sp.collected_by FROM specimen sp WHERE sp.lab_order_id=s.reference_id AND sp.status <> 'REJECTED' ORDER BY sp.collected_at, sp.id LIMIT 1))
+                  WHEN 'PHARMACY' THEN COALESCE(
+                    (SELECT d.dispensed_by FROM dispense d WHERE d.prescription_line_id=s.reference_id ORDER BY d.dispensed_at DESC, d.id DESC LIMIT 1),
+                    (SELECT te.recorded_by FROM tat_workflow_event te WHERE te.workflow_type='PHARMACY' AND te.workflow_reference_id=s.reference_id ORDER BY te.occurred_at LIMIT 1))
+                END AS user_id
+              FROM tat_stage_instance s JOIN encounter e ON e.id=s.encounter_id
+              WHERE e.state <> 'CANCELLED_IN_ERROR' AND e.facility_id=:facility
+                AND e.created_at >= :from AND e.created_at < :to AND s.workflow_type=:workflow
+            )
+            """;
+
+    public List<TatUserSummary> departmentUsers(UUID facilityId, LocalDate from, LocalDate to, String workflowType) {
+        var p = period(facilityId, from, to).addValue("workflow", workflowType);
+        return jdbc.query(ATTRIBUTED_STAGES + """
+                SELECT a.user_id, COALESCE(max(st.full_name), max(u.username)) AS user_name,
+                  count(*) AS services, count(*) FILTER (WHERE a.completed_at IS NOT NULL) AS completed_services,
+                  count(DISTINCT a.patient_id) AS patients,
+                  avg(extract(epoch FROM a.start_at-a.ready_at)) FILTER (WHERE a.start_at >= a.ready_at) AS avg_wait,
+                  avg(extract(epoch FROM a.completed_at-a.start_at)) FILTER (WHERE a.completed_at >= a.start_at) AS avg_service,
+                  avg(extract(epoch FROM a.completed_at-a.ready_at)) FILTER (WHERE a.completed_at >= a.ready_at) AS avg_tat
+                FROM attributed a JOIN app_user u ON u.id=a.user_id
+                LEFT JOIN LATERAL (SELECT full_name FROM staff WHERE app_user_id=u.id ORDER BY created_at DESC LIMIT 1) st ON TRUE
+                GROUP BY a.user_id ORDER BY user_name, a.user_id
+                """, p, (rs, n) -> new TatUserSummary((UUID) rs.getObject("user_id"), rs.getString("user_name"),
+                rs.getLong("services"), rs.getLong("completed_services"), rs.getLong("patients"),
+                nullableDouble(rs, "avg_wait"), nullableDouble(rs, "avg_service"), nullableDouble(rs, "avg_tat")));
+    }
+
+    public List<TatUserPatient> userPatients(UUID facilityId, LocalDate from, LocalDate to,
+                                              String workflowType, UUID userId, int page) {
+        var p = period(facilityId, from, to).addValue("workflow", workflowType)
+                .addValue("user", userId).addValue("offset", Math.max(0, Math.min(page, 1000)) * 50);
+        return jdbc.query(ATTRIBUTED_STAGES + """
+                SELECT a.patient_id, a.encounter_id, p.hospital_no,
+                  trim(p.given_name || ' ' || p.family_name) AS patient_name,
+                  count(*) AS services, count(*) FILTER (WHERE a.completed_at IS NOT NULL) AS completed_services,
+                  min(a.source_at) AS first_service_at,
+                  avg(extract(epoch FROM a.start_at-a.ready_at)) FILTER (WHERE a.start_at >= a.ready_at) AS avg_wait,
+                  avg(extract(epoch FROM a.completed_at-a.start_at)) FILTER (WHERE a.completed_at >= a.start_at) AS avg_service,
+                  avg(extract(epoch FROM a.completed_at-a.ready_at)) FILTER (WHERE a.completed_at >= a.ready_at) AS avg_tat
+                FROM attributed a JOIN patient p ON p.id=a.patient_id
+                WHERE a.user_id=:user
+                GROUP BY a.patient_id, a.encounter_id, p.hospital_no, p.given_name, p.family_name
+                ORDER BY first_service_at DESC, a.encounter_id LIMIT 50 OFFSET :offset
+                """, p, (rs, n) -> new TatUserPatient((UUID) rs.getObject("patient_id"),
+                (UUID) rs.getObject("encounter_id"), rs.getString("hospital_no"), rs.getString("patient_name"),
+                rs.getLong("services"), rs.getLong("completed_services"), instant(rs, "first_service_at"),
+                nullableDouble(rs, "avg_wait"), nullableDouble(rs, "avg_service"), nullableDouble(rs, "avg_tat")));
     }
 
     public List<TatTrend> trend(UUID facilityId, LocalDate from, LocalDate to, String workflowType) {
@@ -106,7 +168,7 @@ public class TatAnalyticsService {
                 FROM tat_stage_instance s JOIN encounter e ON e.id = s.encounter_id
                 JOIN facility f ON f.id = e.facility_id
                 WHERE e.state <> 'CANCELLED_IN_ERROR' AND e.facility_id = :facility AND e.created_at >= :from AND e.created_at < :to
-                  AND s.start_at >= s.ready_at AND (:workflow IS NULL OR s.workflow_type = :workflow)
+                  AND s.start_at >= s.ready_at AND (CAST(:workflow AS text) IS NULL OR s.workflow_type = :workflow)
                 GROUP BY day, s.workflow_type ORDER BY day, s.workflow_type LIMIT 400
                 """, p, (rs, n) -> new TatTrend(rs.getDate("day").toLocalDate(), rs.getString("workflow_type"),
                 rs.getDouble("avg_wait_seconds"), rs.getLong("sample_count")));
@@ -123,7 +185,7 @@ public class TatAnalyticsService {
                 JOIN patient p ON p.id = e.patient_id
                 WHERE e.facility_id = :facility AND s.status = 'WAITING' AND s.ready_at IS NOT NULL
                   AND e.state NOT IN ('CLOSED','DISCHARGED','REFERRED_OUT','DECEASED','LEFT_WITHOUT_BEING_SEEN','ABANDONED_UNPAID','CANCELLED_IN_ERROR')
-                  AND (:workflow IS NULL OR s.workflow_type = :workflow)
+                  AND (CAST(:workflow AS text) IS NULL OR s.workflow_type = :workflow)
                 ORDER BY s.ready_at LIMIT :limit
                 """, p, (rs, n) -> new TatWaiting((UUID) rs.getObject("encounter_id"),
                 (UUID) rs.getObject("reference_id"), rs.getString("workflow_type"),
@@ -140,8 +202,8 @@ public class TatAnalyticsService {
                 FROM tat_stage_instance s JOIN encounter e ON e.id = s.encounter_id
                 JOIN patient p ON p.id = e.patient_id
                 WHERE e.state <> 'CANCELLED_IN_ERROR' AND e.facility_id = :facility AND e.created_at >= :from AND e.created_at < :to
-                  AND (:workflow IS NULL OR s.workflow_type = :workflow)
-                  AND (:status IS NULL OR s.status = :status)
+                  AND (CAST(:workflow AS text) IS NULL OR s.workflow_type = :workflow)
+                  AND (CAST(:status AS text) IS NULL OR s.status = :status)
                 ORDER BY s.source_at DESC, s.reference_id LIMIT 50 OFFSET :offset
                 """, p, (rs, n) -> new TatActivity((UUID) rs.getObject("encounter_id"),
                 rs.getString("hospital_no"), rs.getString("patient_name"), stage(rs)));
@@ -225,6 +287,12 @@ public class TatAnalyticsService {
     public record TatDepartment(String workflowType, long completedServices, Double averageWaitingSeconds,
                                 Double medianWaitingSeconds, Double p90WaitingSeconds, Double longestWaitingSeconds,
                                 Double averageServiceSeconds, Double averageTatSeconds) {}
+    public record TatUserSummary(UUID userId, String userName, long services, long completedServices,
+                                 long patients, Double averageWaitingSeconds, Double averageServiceSeconds,
+                                 Double averageTatSeconds) {}
+    public record TatUserPatient(UUID patientId, UUID encounterId, String hospitalNo, String patientName,
+                                 long services, long completedServices, Instant firstServiceAt,
+                                 Double averageWaitingSeconds, Double averageServiceSeconds, Double averageTatSeconds) {}
     public record TatTrend(LocalDate day, String workflowType, double averageWaitingSeconds, long sampleCount) {}
     public record TatWaiting(UUID encounterId, UUID referenceId, String workflowType, Instant readyAt,
                              String status, String hospitalNo, String patientName, long currentWaitingSeconds) {}

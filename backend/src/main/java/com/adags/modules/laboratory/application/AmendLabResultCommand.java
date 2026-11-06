@@ -15,6 +15,19 @@ public record AmendLabResultCommand(
         String conclusion,
         String machineOutputObjectKey,
         List<ParameterEntry> parameterValues,
-        List<ReagentEntry> reagents
+        List<ReagentEntry> reagents,
+        String resultType,
+        String singleValue,
+        String singleValueUnit,
+        String overallInterpretation,
+        String remarks,
+        String labReportObjectKey
 ) {
+    public AmendLabResultCommand(java.util.UUID originalResultId, java.util.UUID amendedBy, String amendmentReason,
+                                 String methodology, String reagentsUsedNote, String findings, String interpretation,
+                                 String referenceRangeNote, String conclusion, String machineOutputObjectKey,
+                                 List<ParameterEntry> parameterValues, List<ReagentEntry> reagents) {
+        this(originalResultId, amendedBy, amendmentReason, methodology, reagentsUsedNote, findings,
+                interpretation, referenceRangeNote, conclusion, machineOutputObjectKey, parameterValues, reagents, null, null, null, null, null, null);
+    }
 }

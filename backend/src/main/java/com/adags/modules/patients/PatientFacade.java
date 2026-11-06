@@ -49,4 +49,6 @@ public interface PatientFacade {
 
     /** Name and hospital number — 12-pharmacist.md §4.6's dispensing label needs these; nothing clinical. */
     Optional<PatientIdentity> findIdentity(UUID patientId);
+
+    Optional<String> findNationalId(UUID patientId);
 }

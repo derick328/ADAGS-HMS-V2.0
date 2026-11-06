@@ -60,7 +60,8 @@ public class SpecimenController {
         }
 
         Specimen specimen = collectSpecimenService.collect(new CollectSpecimenCommand(
-                request.labOrderId(), request.quality(), request.qualityNote(), actor.userId()));
+                request.labOrderId(), request.quality(), request.qualityNote(),
+                request.sampleType(), request.sampleTypeOverrideReason(), actor.userId()));
         return SpecimenResponse.from(specimen);
     }
 }

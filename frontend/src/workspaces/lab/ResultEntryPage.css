@@ -1,0 +1,11 @@
+.result-info-grid { display: grid; grid-template-columns: minmax(10rem, 1fr) 2fr; gap: var(--space-2) var(--space-3); margin: 0; }
+.result-info-grid dt { color: var(--text-muted); }
+.result-info-grid dd { margin: 0; overflow-wrap: anywhere; }
+.result-parameter-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+@media (max-width: 600px) { .result-info-grid { grid-template-columns: 1fr; } .result-info-grid dt { margin-top: var(--space-2); } }
+
+.result-entry-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+@media (max-width: 600px) { .result-entry-fields { grid-template-columns: 1fr; } }
+
+.result-readonly-label { display: block; color: var(--text-muted); font-size: var(--text-sm); margin-bottom: var(--space-1); }
+.result-entry-fields input.clinical-control { width: 100%; }

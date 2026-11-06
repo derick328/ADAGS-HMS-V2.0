@@ -7,6 +7,7 @@ import com.adags.modules.laboratory.application.ReagentEntry;
 import com.adags.modules.laboratory.application.RecordLabResultCommand;
 import com.adags.modules.laboratory.application.RecordLabResultResult;
 import com.adags.modules.laboratory.application.RecordLabResultService;
+import com.adags.modules.laboratory.application.MachineOutputRegistry;
 import com.adags.modules.laboratory.application.VerifyLabResultCommand;
 import com.adags.modules.laboratory.application.VerifyLabResultService;
 import com.adags.modules.laboratory.domain.LabOrder;
@@ -55,6 +56,7 @@ import java.util.UUID;
 public class LabResultController {
 
     private final RecordLabResultService recordLabResultService;
+    private final MachineOutputRegistry machineOutputRegistry;
     private final AmendLabResultService amendLabResultService;
     private final VerifyLabResultService verifyLabResultService;
     private final SpecimenRepository specimenRepository;
@@ -71,6 +73,7 @@ public class LabResultController {
 
     public LabResultController(
             RecordLabResultService recordLabResultService,
+            MachineOutputRegistry machineOutputRegistry,
             AmendLabResultService amendLabResultService,
             VerifyLabResultService verifyLabResultService,
             SpecimenRepository specimenRepository,
@@ -86,6 +89,7 @@ public class LabResultController {
             com.adags.shared.authz.AuditRecorder historyAudit
     ) {
         this.recordLabResultService = recordLabResultService;
+        this.machineOutputRegistry = machineOutputRegistry;
         this.amendLabResultService = amendLabResultService;
         this.verifyLabResultService = verifyLabResultService;
         this.specimenRepository = specimenRepository;
@@ -109,11 +113,14 @@ public class LabResultController {
         LabOrder order = labOrderRepository.findById(specimen.labOrderId())
                 .orElseThrow(() -> new NoSuchElementException("Lab order not found: " + specimen.labOrderId()));
         requirePermission(actor, "LAB_RESULT_ENTER", order.facilityId());
+        machineOutputRegistry.requireOwned(request.machineOutputObjectKey(), order.id(), actor.userId());
 
         RecordLabResultResult result = recordLabResultService.record(new RecordLabResultCommand(
                 request.specimenId(), actor.userId(), request.methodology(), request.reagentsUsedNote(),
                 request.findings(), request.interpretation(), request.referenceRangeNote(), request.conclusion(),
-                request.machineOutputObjectKey(), toParameterEntries(request.parameterValues()), toReagentEntries(request.reagents())));
+                request.machineOutputObjectKey(), toParameterEntries(request.parameterValues()), toReagentEntries(request.reagents()),
+                request.resultType(), request.singleValue(), request.singleValueUnit(), request.overallInterpretation(),
+                request.remarks(), request.labReportObjectKey()));
         return LabResultResponse.from(result);
     }
 
@@ -126,11 +133,16 @@ public class LabResultController {
         LabOrder order = labOrderRepository.findById(original.labOrderId())
                 .orElseThrow(() -> new NoSuchElementException("Lab order not found: " + original.labOrderId()));
         requirePermission(actor, "LAB_RESULT_AMEND", order.facilityId());
+        if (request.machineOutputObjectKey() != null &&
+                !request.machineOutputObjectKey().equals(original.machineOutputObjectKey()))
+            machineOutputRegistry.requireOwned(request.machineOutputObjectKey(), order.id(), actor.userId());
 
         RecordLabResultResult result = amendLabResultService.amend(new AmendLabResultCommand(
                 id, actor.userId(), request.amendmentReason(), request.methodology(), request.reagentsUsedNote(),
                 request.findings(), request.interpretation(), request.referenceRangeNote(), request.conclusion(),
-                request.machineOutputObjectKey(), toParameterEntries(request.parameterValues()), toReagentEntries(request.reagents())));
+                request.machineOutputObjectKey(), toParameterEntries(request.parameterValues()), toReagentEntries(request.reagents()),
+                request.resultType(), request.singleValue(), request.singleValueUnit(), request.overallInterpretation(),
+                request.remarks(), request.labReportObjectKey()));
         return LabResultResponse.from(result);
     }
 
@@ -195,7 +207,11 @@ public class LabResultController {
             throw new AccessDeniedException("Missing permission: LAB_RESULT_READ");
         }
         return labResultRepository.findByEnteredBy(actor.userId()).stream()
-                .map(r -> toDetailResponse(r, requireOrder(r)))
+                .filter(r -> r.releasedAt() != null)
+                .map(r -> java.util.Map.entry(r, requireOrder(r)))
+                .filter(entry -> authorizationService.hasPermission(actor, "LAB_RESULT_READ",
+                        ScopeRef.of(ScopeType.FACILITY, entry.getValue().facilityId())))
+                .map(entry -> toDetailResponse(entry.getKey(), entry.getValue()))
                 .toList();
     }
 
@@ -260,7 +276,9 @@ public class LabResultController {
                 result.referenceRangeNote(), result.conclusion(), result.machineOutputObjectKey(),
                 enteredByName, result.enteredAt(), result.releasedAt(),
                 result.verificationState(), result.verificationLevelApplied(), verifiedByName, result.verifiedAt(),
-                result.amendsId(), amendsOriginalEnteredAt, result.amendmentReason(), parameterValues);
+                result.amendsId(), amendsOriginalEnteredAt, result.amendmentReason(), parameterValues,
+                result.resultType(), result.singleValue(), result.singleValueUnit(), result.overallInterpretation(),
+                result.remarks(), result.labReportObjectKey());
     }
 
     private LabResultDetailResponse.DetailParameterValueResponse toDetailParameterValue(
@@ -279,6 +297,7 @@ public class LabResultController {
     }
 
     private List<ParameterEntry> toParameterEntries(List<ParameterValueRequest> requests) {
+        if (requests == null) return List.of();
         return requests.stream()
                 .map(r -> new ParameterEntry(r.parameterId(), r.resultValue(), r.overrideFlag(), r.overrideReason()))
                 .toList();

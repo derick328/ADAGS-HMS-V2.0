@@ -1,126 +1,92 @@
+import { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { type LucideIcon, Activity, ChevronDown, ClipboardList, Clock3, CreditCard, Hospital, LayoutDashboard, LogOut, Menu, Package, Receipt, Settings, Tags, UserRound, UserRoundCog, Users, Wallet, X } from 'lucide-react';
 import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
-import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { useMe } from '../../shared/auth/useMe';
 import { usePermission } from '../../shared/auth/usePermission';
 import './AdminShell.css';
 
-interface NavLeaf {
-  to: string;
-  label: string;
-  /** Omitted where docs/spec/18-admin.md §2 names a screen whose module
-   *  (audit log, facility settings) hasn't shipped a backend endpoint yet.
-   *  Those items render unguarded rather than behind a code that doesn't
-   *  exist, which would just hide them forever. Revenue/expenses/analytics/
-   *  patients/pricing/users now have real backends (InvoiceCancellationController,
-   *  ExpenseController, ReportingController, PatientController,
-   *  PharmacyItemProposalController, UserController) and gate on the
-   *  permission each one actually requires server-side — this is visibility
-   *  only, not the check (usePermission's own contract). */
-  permission?: string;
+interface NavLeaf { to: string; label: string; icon: LucideIcon; permission?: string; end?: boolean }
+interface NavGroup { title: string; items: NavLeaf[]; collapsible?: boolean }
+
+// Routes and permission codes are the existing admin contract. Grouping only changes presentation.
+const NAV: NavGroup[] = [
+  { title: 'Overview', items: [
+    { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
+    { to: '/admin/patients', label: 'Patients', icon: Users, permission: 'PATIENT_SEARCH' },
+    { to: '/admin/tat', label: 'Turnaround time', icon: Clock3, permission: 'TAT_ANALYTICS_READ' },
+  ] },
+  { title: 'Finance', items: [
+    { to: '/admin/revenue', label: 'Revenue & cancellations', icon: Wallet, permission: 'INVOICE_CANCEL_APPROVE' },
+    { to: '/admin/pricing', label: 'Pricing & proposals', icon: Tags, permission: 'PHARMACY_ITEM_APPROVE' },
+    { to: '/admin/payment-bypass-waivers', label: 'Payment bypass waivers', icon: CreditCard, permission: 'PAYMENT_BYPASS_WAIVE' },
+    { to: '/admin/expense-analytics', label: 'Expense analytics', icon: Activity, permission: 'FINANCIAL_REPORT_READ' },
+  ], collapsible: true },
+  { title: 'Expense management', items: [
+    { to: '/admin/expenses/medication-pharmacy', label: 'Medication & pharmacy', icon: Package, permission: 'EXPENSE_CREATE' },
+    { to: '/admin/expenses/medications', label: 'Medications', icon: Receipt, permission: 'EXPENSE_CREATE' },
+    { to: '/admin/expenses/salaries', label: 'Salaries', icon: Receipt, permission: 'EXPENSE_CREATE' },
+    { to: '/admin/expenses/utilities', label: 'Utilities', icon: Receipt, permission: 'EXPENSE_CREATE' },
+    { to: '/admin/expenses/maintenance', label: 'Maintenance', icon: Receipt, permission: 'EXPENSE_CREATE' },
+    { to: '/admin/expenses/equipment', label: 'Equipment', icon: Receipt, permission: 'EXPENSE_CREATE' },
+    { to: '/admin/expenses/other', label: 'Other expenses', icon: Receipt, permission: 'EXPENSE_CREATE' },
+  ], collapsible: true },
+  { title: 'Hospital management', items: [
+    { to: '/admin/users', label: 'Users & staff', icon: UserRoundCog, permission: 'USER_MANAGE' },
+    { to: '/admin/theatres', label: 'Theatres', icon: Hospital, permission: 'THEATRE_MANAGE' },
+  ], collapsible: true },
+  { title: 'Administration', items: [
+    { to: '/admin/audit-log', label: 'Audit log', icon: ClipboardList, permission: 'AUDIT_LOG_READ' },
+    { to: '/admin/facility-settings', label: 'Facility settings', icon: Settings, permission: 'FACILITY_CONFIG' },
+    { to: '/admin/profile', label: 'Profile', icon: UserRound },
+  ], collapsible: true },
+];
+
+function NavItem({ item, onNavigate }: { item: NavLeaf; onNavigate: () => void }) {
+  const canSee = usePermission(item.permission ?? '__NONE__');
+  if (item.permission && !canSee) return null;
+  const IconComponent = item.icon;
+  return <NavLink to={item.to} end={item.end} onClick={onNavigate} className={({ isActive }) => `nav-item${isActive ? ' nav-item-active' : ''}`}>
+    <IconComponent size={18} aria-hidden={true} /><span>{item.label}</span>
+  </NavLink>;
 }
 
-// docs/spec/18-admin.md §2. Badge counts ("● 7 pending", "3", "1" in the
-// spec) are left off — a fabricated number is worse than none.
-//
-// Pricing is scoped to the pharmacy item/price-change approval queue
-// (12-pharmacist.md §9.2, PharmacyItemProposalController) — the only
-// pricing-adjacent backend that exists. 18-admin.md §7's fuller catalogue
-// (payer-aware PriceListEntry versioning, bulk import) has no backend yet.
-const MAIN_NAV: NavLeaf[] = [
-  { to: '/admin/pricing', label: 'Pricing / price proposals', permission: 'PHARMACY_ITEM_APPROVE' },
-  { to: '/admin/revenue', label: 'Revenue / invoice cancellations', permission: 'INVOICE_CANCEL_APPROVE' },
-  { to: '/admin/payment-bypass-waivers', label: 'Payment bypass waivers', permission: 'PAYMENT_BYPASS_WAIVE' },
-  { to: '/admin/patients', label: 'Patients', permission: 'PATIENT_SEARCH' },
-  { to: '/admin/tat', label: 'Turnaround Time', permission: 'TAT_ANALYTICS_READ' },
-  { to: '/admin/users', label: 'Users / add nurse / staff', permission: 'USER_MANAGE' },
-  { to: '/admin/theatres', label: 'Theatres', permission: 'THEATRE_MANAGE' },
-];
-
-// EXPENSE_CREATE and EXPENSE_APPROVE are granted together to every role
-// that holds either (ADMIN, ACCOUNTANT) — gating on EXPENSE_CREATE alone
-// is enough to decide link visibility for both.
-const EXPENSE_CATEGORIES: NavLeaf[] = [
-  { to: '/admin/expenses/medication-pharmacy', label: 'Medication & pharmacy', permission: 'EXPENSE_CREATE' },
-  { to: '/admin/expenses/medications', label: 'Medications', permission: 'EXPENSE_CREATE' },
-  { to: '/admin/expenses/salaries', label: 'Salaries', permission: 'EXPENSE_CREATE' },
-  { to: '/admin/expenses/utilities', label: 'Utilities', permission: 'EXPENSE_CREATE' },
-  { to: '/admin/expenses/maintenance', label: 'Maintenance', permission: 'EXPENSE_CREATE' },
-  { to: '/admin/expenses/equipment', label: 'Equipment', permission: 'EXPENSE_CREATE' },
-  { to: '/admin/expenses/other', label: 'Other', permission: 'EXPENSE_CREATE' },
-];
-
-const AFTER_EXPENSES_NAV: NavLeaf[] = [
-  { to: '/admin/expense-analytics', label: 'Expense analytics', permission: 'FINANCIAL_REPORT_READ' },
-];
-
-// §2's divider — Audit log and Facility & settings are called out as
-// "added — no other role can hold it".
-const ADMIN_ONLY_NAV: NavLeaf[] = [
-  { to: '/admin/audit-log', label: 'Audit log', permission: 'AUDIT_LOG_READ' },
-  { to: '/admin/facility-settings', label: 'Facility & settings', permission: 'FACILITY_CONFIG' },
-  { to: '/admin/profile', label: 'Profile' },
-];
-
-function NavItemLink({ item }: { item: NavLeaf }) {
-  // Called unconditionally to satisfy the rules of hooks; the result is only
-  // consulted when the item actually names a permission to check.
-  const canSee = usePermission(item.permission ?? '__NONE__');
-  if (item.permission && !canSee) {
-    return null;
-  }
-  return (
-    <NavLink to={item.to} className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
-      {item.label}
-    </NavLink>
-  );
+function NavigationGroup({ group, pathname, onNavigate }: { group: NavGroup; pathname: string; onNavigate: () => void }) {
+  const active = group.items.some(item => pathname === item.to || (!item.end && pathname.startsWith(`${item.to}/`)));
+  const [expanded, setExpanded] = useState(!group.collapsible || active);
+  useEffect(() => { if (active) setExpanded(true); }, [active]);
+  const id = `admin-nav-${group.title.toLowerCase().replaceAll(' ', '-')}`;
+  return <div className="admin-nav-group">
+    {group.collapsible ? <button type="button" className="admin-nav-heading admin-nav-toggle" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(value => active ? true : !value)}>
+      <span>{group.title}</span><ChevronDown size={15} aria-hidden="true" className={expanded ? 'admin-chevron-open' : ''} />
+    </button> : <div className="admin-nav-heading">{group.title}</div>}
+    {expanded && <div id={id} className="admin-nav-items">{group.items.map(item => <NavItem key={item.to} item={item} onNavigate={onNavigate} />)}</div>}
+  </div>;
 }
 
 export function AdminShell() {
   const { logout } = useAuth();
   const { data: me } = useMe();
-
-  return (
-    <div className="admin-shell app-shell">
-        <a className="skip-link" href="#workspace-main">Skip to content</a>
-      <aside className="admin-sidebar app-sidebar">
-        <WorkspaceBrand workspace="Administration" />
-        <nav className="admin-nav app-nav" aria-label="Administration navigation">
-          <NavLink to="/admin" end className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
-            Dashboard
-          </NavLink>
-
-          {MAIN_NAV.map((item) => (
-            <NavItemLink key={item.to} item={item} />
-          ))}
-
-          <div className="nav-section-label">Expenses</div>
-          <div className="nav-subgroup">
-            {EXPENSE_CATEGORIES.map((item) => (
-              <NavItemLink key={item.to} item={item} />
-            ))}
-          </div>
-
-          {AFTER_EXPENSES_NAV.map((item) => (
-            <NavItemLink key={item.to} item={item} />
-          ))}
-
-          <div className="nav-divider" role="separator" />
-
-          {ADMIN_ONLY_NAV.map((item) => (
-            <NavItemLink key={item.to} item={item} />
-          ))}
-        </nav>
-        <div className="admin-sidebar-footer app-sidebar-footer">
-          <div className="admin-user">{me?.username}</div>
-          <button type="button" className="admin-logout app-logout" onClick={() => logout()}>
-            Sign out
-          </button>
-        </div>
-      </aside>
-      <main id="workspace-main" tabIndex={-1} className="admin-content app-content">
-        <div className="workspace-body"><Outlet /></div>
-      </main>
-    </div>
-  );
+  const { pathname } = useLocation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const closeDrawer = () => { setDrawerOpen(false); document.querySelector<HTMLButtonElement>('.admin-mobile-toggle')?.focus(); };
+  useEffect(() => { setDrawerOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') { setDrawerOpen(false); document.querySelector<HTMLButtonElement>('.admin-mobile-toggle')?.focus(); } };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [drawerOpen]);
+  return <div className="admin-shell app-shell">
+    <a className="skip-link" href="#workspace-main">Skip to content</a>
+    <header className="admin-mobile-header"><WorkspaceBrand workspace="Administration" /><button type="button" className="admin-mobile-toggle" aria-label="Open navigation" aria-expanded={drawerOpen} aria-controls="admin-sidebar" onClick={() => setDrawerOpen(true)}><Menu size={22} /></button></header>
+    {drawerOpen && <button type="button" className="admin-drawer-scrim" aria-label="Close navigation" onClick={closeDrawer} />}
+    <aside id="admin-sidebar" className={`admin-sidebar app-sidebar${drawerOpen ? ' admin-sidebar-open' : ''}`}>
+      <div className="admin-brand-row"><WorkspaceBrand workspace="Administration" /><button type="button" className="admin-drawer-close" aria-label="Close navigation" onClick={closeDrawer}><X size={20} /></button></div>
+      <nav className="admin-nav app-nav" aria-label="Administration navigation">{NAV.map(group => <NavigationGroup key={group.title} group={group} pathname={pathname} onNavigate={() => { setDrawerOpen(false); if (window.matchMedia('(max-width: 900px)').matches) document.getElementById('workspace-main')?.focus(); }} />)}</nav>
+      <div className="admin-sidebar-footer app-sidebar-footer"><div className="admin-user"><span className="admin-user-avatar" aria-hidden="true">{me?.username?.slice(0, 1).toUpperCase() || 'A'}</span><span><strong>{me?.username || 'Administrator'}</strong><small>Administration</small></span></div><button type="button" className="admin-logout app-logout" onClick={logout}><LogOut size={17} aria-hidden="true" />Sign out</button></div>
+    </aside>
+    <main id="workspace-main" tabIndex={-1} className="admin-content app-content"><div className="workspace-body"><Outlet /></div></main>
+  </div>;
 }

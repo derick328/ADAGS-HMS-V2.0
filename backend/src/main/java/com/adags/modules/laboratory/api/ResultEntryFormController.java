@@ -48,6 +48,7 @@ public class ResultEntryFormController {
     private final LabTestParameterRepository labTestParameterRepository;
     private final LabReferenceRangeRepository labReferenceRangeRepository;
     private final SpecimenRepository specimenRepository;
+    private final com.adags.modules.laboratory.domain.LabResultRepository labResultRepository;
     private final PatientFacade patientFacade;
     private final AuthorizationService authorizationService;
 
@@ -57,6 +58,7 @@ public class ResultEntryFormController {
             LabTestParameterRepository labTestParameterRepository,
             LabReferenceRangeRepository labReferenceRangeRepository,
             SpecimenRepository specimenRepository,
+            com.adags.modules.laboratory.domain.LabResultRepository labResultRepository,
             PatientFacade patientFacade,
             AuthorizationService authorizationService
     ) {
@@ -65,6 +67,7 @@ public class ResultEntryFormController {
         this.labTestParameterRepository = labTestParameterRepository;
         this.labReferenceRangeRepository = labReferenceRangeRepository;
         this.specimenRepository = specimenRepository;
+        this.labResultRepository = labResultRepository;
         this.patientFacade = patientFacade;
         this.authorizationService = authorizationService;
     }
@@ -80,7 +83,8 @@ public class ResultEntryFormController {
 
         LabTest test = labTestRepository.findById(order.labTestId())
                 .orElseThrow(() -> new NoSuchElementException("Lab test not found: " + order.labTestId()));
-        Specimen specimen = specimenRepository.findByLabOrderId(order.id()).stream().findFirst()
+        Specimen specimen = specimenRepository.findByLabOrderId(order.id()).stream()
+                .filter(s -> s.status() == com.adags.modules.laboratory.domain.SpecimenStatus.IN_PROGRESS).findFirst()
                 .orElseThrow(() -> new NoSuchElementException("No specimen accepted for order: " + id));
 
         PatientIdentity identity = patientFacade.findIdentity(order.patientId()).orElse(null);
@@ -100,6 +104,13 @@ public class ResultEntryFormController {
                 order.id(), specimen.id(), specimen.accessionNo(), specimen.quality(), specimen.qualityNote(),
                 identity == null ? null : identity.fullName(), identity == null ? null : identity.hospitalNumber(),
                 ageYears, sex.name(), test.code(), test.name(), order.clinicalIndication(),
+                order.specialInstructions(), order.urgency().name(),
+                labResultRepository.findByLabOrderId(order.id()).stream().anyMatch(r -> r.releasedAt() != null)
+                        ? "RELEASED" : specimen.status().name(),
+                specimen.sampleType(), specimen.collectedAt(),
+                authorizationService.hasPermission(actor, "PATIENT_READ_DEMOGRAPHIC",
+                        ScopeRef.of(ScopeType.FACILITY, order.facilityId()))
+                        ? patientFacade.findNationalId(order.patientId()).orElse(null) : null,
                 test.producesMachineOutput(), fields);
     }
 

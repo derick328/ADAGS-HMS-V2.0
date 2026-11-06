@@ -1,3 +1,4 @@
+import { LabResultAttachments } from '../../shared/components/LabResultAttachments';
 import { FeedbackState } from '../../shared/components/FeedbackState';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { WorkspacePage, QueryState } from '../../shared/components/WorkspacePage';
@@ -7,7 +8,7 @@ import { Fragment, useState } from 'react';
 import { fetchDispensesByPrescriptionLine, type DispenseHistoryResponse } from '../../shared/api/dispenses';
 import { fetchLabResultsByOrder, type LabResultDetailResponse, type DetailParameterValueResponse } from '../../shared/api/labResults';
 import { fetchMyLabOrders } from '../../shared/api/labOrders';
-import { fetchMyPrescriptions } from '../../shared/api/prescriptions';
+import { fetchMyPrescriptions, type PrescriptionHistoryResponse } from '../../shared/api/prescriptions';
 import { fetchPatientById } from '../../shared/api/patients';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { formatDateTime, formatWaitingSince } from '../../shared/format/date';
@@ -26,10 +27,12 @@ type Row = {
   label: string;
   status: string;
   occurredAt?: string;
+  prescription?: PrescriptionHistoryResponse;
 };
 
 export function RequestHistoryPage() {
   const { accessToken } = useAuth();
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'LAB' | 'RX'>('ALL');
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -47,7 +50,7 @@ export function RequestHistoryPage() {
     refetchInterval: 30_000,
   });
 
-  const rows: Row[] = [
+  const allRows: Row[] = [
     ...(labs ?? []).map((l) => ({
       id: l.id as string,
       type: 'LAB' as const,
@@ -63,16 +66,29 @@ export function RequestHistoryPage() {
       label: `${r.itemName ?? r.itemCode ?? 'Drug'} × ${r.quantityPrescribed}`,
       status: r.status as string,
       occurredAt: r.prescribedAt,
+      prescription: r,
     })),
-  ]
+  ].sort((a, b) => new Date(b.occurredAt ?? 0).getTime() - new Date(a.occurredAt ?? 0).getTime());
+  const patients = Array.from(new Set(allRows.map(row => row.patientId))).map(patientId => {
+    const patientRows = allRows.filter(row => row.patientId === patientId);
+    return {
+      id: patientId,
+      latestAt: patientRows[0]?.occurredAt,
+      labCount: patientRows.filter(row => row.type === 'LAB').length,
+      prescriptionCount: patientRows.filter(row => row.type === 'RX').length,
+    };
+  });
+  const rows = allRows
+    .filter((r) => r.patientId === selectedPatientId)
     .filter((r) => statusFilter === 'ALL' || r.status === statusFilter)
-    .filter((r) => typeFilter === 'ALL' || r.type === typeFilter)
-    .sort((a, b) => new Date(b.occurredAt ?? 0).getTime() - new Date(a.occurredAt ?? 0).getTime());
+    .filter((r) => typeFilter === 'ALL' || r.type === typeFilter);
 
   return (
-    <WorkspacePage title="Request history" description="Track your lab requests and prescriptions, and open a request to review its details.">
+    <WorkspacePage title="Request history" description="Select a patient to review the lab requests and prescriptions you ordered for them.">
 
-      <div className="workspace-toolbar">
+      {selectedPatientId && <div className="workspace-toolbar">
+        <button type="button" className="btn" onClick={() => { setSelectedPatientId(null); setExpanded(null); }}>← Patients</button>
+        <strong><PatientName patientId={selectedPatientId} /></strong>
         <select className="clinical-control" aria-label="Request type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)} style={selectStyle}>
           <option value="ALL">All types</option>
           <option value="LAB">Lab</option>
@@ -86,12 +102,25 @@ export function RequestHistoryPage() {
           <option value="COMPLETED">Completed</option>
           <option value="CANCELLED">Cancelled</option>
         </select>
-      </div>
+      </div>}
 
       {labsError || rxError ? (
         <QueryState title="Unable to load request history" description="Retry to load your lab requests and prescriptions." onRetry={() => { void retryLabs(); void retryRx(); }} />
       ) : labsPending || rxPending ? (
         <QueryState loading title="Loading request history…" />
+      ) : patients.length === 0 ? (
+        <div className="workspace-panel"><EmptyState role="status" title="No request history yet" description="Your lab requests and prescriptions will appear here by patient." /></div>
+      ) : !selectedPatientId ? (
+        <div className="workspace-table" role="region" aria-label="Patients with requests" tabIndex={0}><TableRegion><table className="table">
+          <thead><tr><th scope="col">Patient</th><th scope="col">Your requests</th><th scope="col">Most recent</th></tr></thead>
+          <tbody>{patients.map(patient => <tr key={patient.id}>
+            <td><button type="button" className="btn btn-ghost" onClick={() => { setSelectedPatientId(patient.id); setExpanded(null); setStatusFilter('ALL'); setTypeFilter('ALL'); }}>
+              <PatientName patientId={patient.id} />
+            </button></td>
+            <td>{patient.labCount} lab · {patient.prescriptionCount} prescription{patient.prescriptionCount === 1 ? '' : 's'}</td>
+            <td>{formatDateTime(patient.latestAt)}</td>
+          </tr>)}</tbody>
+        </table></TableRegion></div>
       ) : rows.length === 0 ? (
         <div className="workspace-panel"><EmptyState role="status" title="No requests match these filters" description="Choose another type or status to review other requests." /></div>
       ) : (
@@ -124,7 +153,7 @@ export function RequestHistoryPage() {
                         }}
                       >
                         <span style={{ display: 'inline-block', width: 14 }}>{isOpen ? '▾' : '▸'}</span>
-                        {formatDateTime(row.occurredAt)} <PatientName patientId={row.patientId} /> ·{' '}
+                        {formatDateTime(row.occurredAt)} ·{' '}
                         <span className="badge badge-neutral">{row.type}</span> {row.label}
                       </button>
                     </td>
@@ -136,7 +165,7 @@ export function RequestHistoryPage() {
                   {isOpen && (
                     <tr>
                       <td colSpan={2} style={{ background: 'var(--bg-subtle)', padding: 'var(--space-4)' }}>
-                        {row.type === 'LAB' ? <LabDetail labOrderId={row.id} /> : <DispenseDetail prescriptionLineId={row.id} />}
+                        {row.type === 'LAB' ? <LabDetail labOrderId={row.id} /> : <PrescriptionDetail prescription={row.prescription as PrescriptionHistoryResponse} />}
                       </td>
                     </tr>
                   )}
@@ -228,6 +257,9 @@ function LabResultCard({ result, superseded }: { result: LabResultDetailResponse
         </table></TableRegion>
       )}
 
+      {result.singleValue && <p><strong>Recorded value:</strong> {result.singleValue} {result.singleValueUnit}</p>}
+      {result.overallInterpretation && <p><strong>Overall interpretation:</strong> {result.overallInterpretation}</p>}
+      <LabResultAttachments resultId={result.id as string} machineOutputObjectKey={result.machineOutputObjectKey} labReportObjectKey={result.labReportObjectKey} />
       <NotesBlock result={result} />
     </div>
   );
@@ -267,6 +299,7 @@ function NotesBlock({ result }: { result: LabResultDetailResponse }) {
     ['Interpretation', result.interpretation],
     ['Reference range note', result.referenceRangeNote],
     ['Conclusion', result.conclusion],
+    ['Remarks', result.remarks],
   ];
   const populated = notes.filter(([, value]) => value && value.trim().length > 0);
   if (populated.length === 0) {
@@ -282,6 +315,20 @@ function NotesBlock({ result }: { result: LabResultDetailResponse }) {
       ))}
     </dl>
   );
+}
+
+function PrescriptionDetail({ prescription }: { prescription: PrescriptionHistoryResponse }) {
+  return <div>
+    <dl className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '4px var(--space-3)', margin: '0 0 var(--space-3)' }}>
+      <dt>Medicine</dt><dd style={{ margin: 0 }}>{prescription.itemName ?? prescription.itemCode ?? 'Unknown item'}</dd>
+      <dt>Dose</dt><dd style={{ margin: 0 }}>{prescription.doseAmount != null ? `${prescription.doseAmount} ${prescription.doseUnit ?? ''}`.trim() : 'Not recorded'}</dd>
+      <dt>Route</dt><dd style={{ margin: 0 }}>{prescription.route ?? 'Not recorded'}</dd>
+      <dt>Frequency</dt><dd style={{ margin: 0 }}>{prescription.frequency ?? 'Not recorded'}</dd>
+      <dt>Duration</dt><dd style={{ margin: 0 }}>{prescription.durationDays != null ? `${prescription.durationDays} days` : 'Not recorded'}</dd>
+      <dt>Quantity prescribed</dt><dd style={{ margin: 0 }}>{prescription.quantityPrescribed ?? 'Not recorded'}</dd>
+    </dl>
+    <DispenseDetail prescriptionLineId={prescription.prescriptionLineId as string} />
+  </div>;
 }
 
 function DispenseDetail({ prescriptionLineId }: { prescriptionLineId: string }) {
@@ -353,13 +400,13 @@ function DispenseCard({ d }: { d: DispenseHistoryResponse }) {
 
 function PatientName({ patientId }: { patientId: string }) {
   const { accessToken } = useAuth();
-  const { data: patient } = useQuery({
+  const { data: patient, isError } = useQuery({
     queryKey: ['patients', patientId],
     queryFn: () => fetchPatientById(patientId, accessToken as string),
     enabled: accessToken != null,
     staleTime: 60_000,
   });
-  return <>{patient?.fullName ?? 'Loading…'}</>;
+  return <>{patient?.fullName ?? (isError ? 'Patient unavailable' : 'Loading…')}</>;
 }
 
 function statusLabel(status: string): string {

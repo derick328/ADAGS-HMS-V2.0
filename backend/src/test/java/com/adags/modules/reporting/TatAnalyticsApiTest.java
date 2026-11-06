@@ -56,6 +56,14 @@ class TatAnalyticsApiTest extends IntegrationTestSupport {
         mvc.perform(get("/api/admin/tat/encounters/" + UUID.randomUUID())
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token).param("facilityId", FACILITY.toString()))
                 .andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/tat/departments/DOCTOR/users")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .param("facilityId", FACILITY.toString()).param("from", today()).param("to", today()))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/tat/departments/DOCTOR/users/" + UUID.randomUUID() + "/patients")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .param("facilityId", FACILITY.toString()).param("from", today()).param("to", today()))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -68,6 +76,28 @@ class TatAnalyticsApiTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.completedEncounters").isNumber())
                 .andExpect(jsonPath("$.currentlyWaiting").isNumber())
                 .andExpect(jsonPath("$.timezone").value("Africa/Dar_es_Salaam"));
+    }
+
+    @Test
+    void adminCanLoadDepartmentTrendAndActivityWithOptionalFilters() throws Exception {
+        String token = login("admin");
+        for (String path : new String[]{"/api/admin/tat/departments", "/api/admin/tat/trend", "/api/admin/tat/activity"}) {
+            mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .param("facilityId", FACILITY.toString()).param("from", today()).param("to", today()))
+                    .andExpect(status().isOk());
+            mvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .param("facilityId", FACILITY.toString()).param("from", today()).param("to", today())
+                    .param("workflowType", "TRIAGE"))
+                    .andExpect(status().isOk());
+        }
+        mvc.perform(get("/api/admin/tat/departments/DOCTOR/users")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .param("facilityId", FACILITY.toString()).param("from", today()).param("to", today()))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/admin/tat/departments/DOCTOR/users/" + UUID.randomUUID() + "/patients")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .param("facilityId", FACILITY.toString()).param("from", today()).param("to", today()))
+                .andExpect(status().isOk());
     }
 
     private String loginReceptionist() throws Exception {

@@ -9,6 +9,8 @@ export type TatVisit = components['schemas']['TatVisit'];
 export type TatStage = components['schemas']['TatStage'];
 export type TatJourney = components['schemas']['TatJourney'];
 export type TatActivity = components['schemas']['TatActivity'];
+export type TatUserSummary = { userId: string; userName: string; services: number; completedServices: number; patients: number; averageWaitingSeconds: number | null; averageServiceSeconds: number | null; averageTatSeconds: number | null };
+export type TatUserPatient = { patientId: string; encounterId: string; hospitalNo: string; patientName: string; services: number; completedServices: number; firstServiceAt: string; averageWaitingSeconds: number | null; averageServiceSeconds: number | null; averageTatSeconds: number | null };
 
 type Period = { facilityId: string; from: string; to: string; workflowType?: string };
 
@@ -28,6 +30,14 @@ export function fetchTatOverview(params: Period, token: string): Promise<TatOver
 
 export function fetchTatDepartments(params: Period, token: string): Promise<TatDepartment[]> {
   return authFetch(`/api/admin/tat/departments?${query(params)}`, token);
+}
+
+export function fetchTatDepartmentUsers(params: Period & { workflowType: string }, token: string): Promise<TatUserSummary[]> {
+  return authFetch(`/api/admin/tat/departments/${encodeURIComponent(params.workflowType)}/users?${query(params)}`, token);
+}
+
+export function fetchTatUserPatients(params: Period & { workflowType: string; userId: string; page: number }, token: string): Promise<TatUserPatient[]> {
+  return authFetch(`/api/admin/tat/departments/${encodeURIComponent(params.workflowType)}/users/${encodeURIComponent(params.userId)}/patients?${query({ ...params, page: String(params.page) })}`, token);
 }
 
 export function fetchTatTrend(params: Period, token: string): Promise<TatTrend[]> {

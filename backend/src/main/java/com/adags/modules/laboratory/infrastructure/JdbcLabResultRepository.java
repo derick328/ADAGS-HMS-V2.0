@@ -24,7 +24,8 @@ public class JdbcLabResultRepository implements LabResultRepository {
                    verification_state, verified_by, verified_at, verification_comment,
                    verification_level_applied, result_version_hash,
                    methodology, reagents_used_note, findings, interpretation, reference_range_note, conclusion,
-                   machine_output_object_key, amends_id, amendment_reason, created_at
+                   machine_output_object_key, amends_id, amendment_reason, created_at,
+                   result_type, single_value, single_value_unit, overall_interpretation, remarks, lab_report_object_key
             FROM lab_result
             """;
 
@@ -40,11 +41,14 @@ public class JdbcLabResultRepository implements LabResultRepository {
                 INSERT INTO lab_result (lab_order_id, specimen_id, entered_by, verification_state,
                                          verification_level_applied, methodology, reagents_used_note, findings,
                                          interpretation, reference_range_note, conclusion,
-                                         machine_output_object_key, amends_id, amendment_reason)
+                                         machine_output_object_key, amends_id, amendment_reason,
+                                         result_type, single_value, single_value_unit, overall_interpretation,
+                                         remarks, lab_report_object_key)
                 VALUES (:labOrderId, :specimenId, :enteredBy, :verificationState,
                         :verificationLevelApplied, :methodology, :reagentsUsedNote, :findings,
                         :interpretation, :referenceRangeNote, :conclusion,
-                        :machineOutputObjectKey, :amendsId, :amendmentReason)
+                        :machineOutputObjectKey, :amendsId, :amendmentReason,
+                        :resultType, :singleValue, :singleValueUnit, :overallInterpretation, :remarks, :labReportObjectKey)
                 RETURNING id, entered_at, released_at, created_at
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -61,7 +65,13 @@ public class JdbcLabResultRepository implements LabResultRepository {
                 .addValue("conclusion", result.conclusion())
                 .addValue("machineOutputObjectKey", result.machineOutputObjectKey())
                 .addValue("amendsId", result.amendsId(), Types.OTHER)
-                .addValue("amendmentReason", result.amendmentReason());
+                .addValue("amendmentReason", result.amendmentReason())
+                .addValue("resultType", result.resultType())
+                .addValue("singleValue", result.singleValue())
+                .addValue("singleValueUnit", result.singleValueUnit())
+                .addValue("overallInterpretation", result.overallInterpretation())
+                .addValue("remarks", result.remarks())
+                .addValue("labReportObjectKey", result.labReportObjectKey());
 
         return jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> new LabResult(
                 (UUID) rs.getObject("id"), result.labOrderId(), result.specimenId(), result.enteredBy(),
@@ -69,7 +79,9 @@ public class JdbcLabResultRepository implements LabResultRepository {
                 result.verificationState(), null, null, null, result.verificationLevelApplied(), null,
                 result.methodology(), result.reagentsUsedNote(), result.findings(), result.interpretation(),
                 result.referenceRangeNote(), result.conclusion(), result.machineOutputObjectKey(),
-                result.amendsId(), result.amendmentReason(), rs.getTimestamp("created_at").toInstant()));
+                result.amendsId(), result.amendmentReason(), rs.getTimestamp("created_at").toInstant(),
+                result.resultType(), result.singleValue(), result.singleValueUnit(), result.overallInterpretation(),
+                result.remarks(), result.labReportObjectKey()));
     }
 
     @Override
@@ -77,6 +89,12 @@ public class JdbcLabResultRepository implements LabResultRepository {
         List<LabResult> results = jdbcTemplate.query(
                 SELECT_COLUMNS + " WHERE id = :id", new MapSqlParameterSource("id", id), this::mapRow);
         return results.stream().findFirst();
+    }
+
+    @Override
+    public Optional<LabResult> findByMachineOutputObjectKey(String objectKey) {
+        return jdbcTemplate.query(SELECT_COLUMNS + " WHERE machine_output_object_key = :key ORDER BY entered_at DESC LIMIT 1",
+                new MapSqlParameterSource("key", objectKey), this::mapRow).stream().findFirst();
     }
 
     @Override
@@ -164,6 +182,8 @@ public class JdbcLabResultRepository implements LabResultRepository {
                 rs.getString("machine_output_object_key"),
                 amendsId == null ? null : (UUID) amendsId,
                 rs.getString("amendment_reason"),
-                rs.getTimestamp("created_at").toInstant());
+                rs.getTimestamp("created_at").toInstant(), rs.getString("result_type"), rs.getString("single_value"),
+                rs.getString("single_value_unit"), rs.getString("overall_interpretation"),
+                rs.getString("remarks"), rs.getString("lab_report_object_key"));
     }
 }

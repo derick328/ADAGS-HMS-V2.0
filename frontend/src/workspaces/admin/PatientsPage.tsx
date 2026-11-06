@@ -1,4 +1,6 @@
 import { PatientPresencePanel } from '../../shared/components/PatientPresencePanel';
+import { CalendarDays, Search, UserRound, Users } from 'lucide-react';
+import './PatientsPage.css';
 import { Checkbox } from '../../shared/components/Checkbox';
 import { FeedbackState } from '../../shared/components/FeedbackState';
 import { PageHeader } from '../../shared/components/PageHeader';
@@ -6,6 +8,8 @@ import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { searchInvoices, type InvoiceResponse } from '../../shared/api/invoices';
+import { fetchPresence, fetchVisitSummaries } from '../../shared/api/presence';
+import { useAdminFacilityId } from '../../shared/auth/useFacilityScope';
 import {
   fetchPatientById,
   fetchRegisteredPatientCount,
@@ -83,7 +87,7 @@ export function PatientsPage() {
   });
 
   return (
-    <div>
+    <div className="admin-patients-page">
       <PageHeader title={<>Patients</>} description={<>Identity, hospital number, and invoice history. Clinical detail is restricted to clinical workspaces.</>} />
 
       <PatientSummary accessToken={accessToken} />
@@ -98,7 +102,7 @@ export function PatientsPage() {
         }}
       >
         <h2 style={{ margin: '0 0 var(--space-3)', fontSize: 'var(--text-base)', fontWeight: 'var(--weight-medium)' }}>
-          Search & filters
+          <Search size={18} aria-hidden="true" /> Search and filters
         </h2>
 
         <form className="clinical-filter-bar"
@@ -126,7 +130,7 @@ export function PatientsPage() {
             }}
           />
           <button type="submit" className="btn btn-primary" disabled={query.trim() === ''}>
-            Search
+            <Search size={16} aria-hidden="true" /> Search
           </button>
           {searchActive && (
             <button
@@ -278,12 +282,10 @@ export function PatientsPage() {
               {listRows.map((patient) => (
                 <tr
                   key={patient.id}
-                  onClick={() => setSelectedId(patient.id ?? null)}
-                  style={{ cursor: 'pointer' }}
                   className={patient.id === selectedId ? 'row-selected' : ''}
                 >
                   <td>{patient.hospitalNo ?? '—'}</td>
-                  <td style={{ fontWeight: 'var(--weight-medium)' }}>{patient.fullName ?? '—'}</td>
+                  <td><button type="button" className="patients-name-button" onClick={() => setSelectedId(patient.id ?? null)} aria-label={`View ${patient.fullName ?? 'patient'}`} disabled={!patient.id}>{patient.fullName ?? '—'}</button></td>
                   <td>
                     {patient.dateOfBirth ?? '—'}
                     {patient.dobIsEstimated && (
@@ -343,7 +345,7 @@ function PatientSummary({ accessToken }: { accessToken: string | null }) {
   });
 
   return (
-    <section className="clinical-grid"
+    <section className="clinical-grid patients-counts"
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
@@ -351,14 +353,14 @@ function PatientSummary({ accessToken }: { accessToken: string | null }) {
         marginBottom: 'var(--space-4)',
       }}
     >
-      <SummaryTile label="Registered today" value={formatCount(today.data)} loading={today.isLoading} />
-      <SummaryTile label="Registered this month" value={formatCount(month.data)} loading={month.isLoading} />
-      <SummaryTile label="Registered this year" value={formatCount(year.data)} loading={year.isLoading} />
+      <SummaryTile label="Registered today" value={formatCount(today.data)} loading={today.isLoading} icon={<CalendarDays size={19} />} />
+      <SummaryTile label="Registered this month" value={formatCount(month.data)} loading={month.isLoading} icon={<Users size={19} />} />
+      <SummaryTile label="Registered this year" value={formatCount(year.data)} loading={year.isLoading} icon={<UserRound size={19} />} />
     </section>
   );
 }
 
-function SummaryTile({ label, value, loading }: { label: string; value: string; loading: boolean }) {
+function SummaryTile({ label, value, loading, icon }: { label: string; value: string; loading: boolean; icon: ReactNode }) {
   return (
     <div
       style={{
@@ -368,7 +370,7 @@ function SummaryTile({ label, value, loading }: { label: string; value: string; 
         padding: 'var(--space-3) var(--space-4)',
       }}
     >
-      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{label}</div>
+      <div className="patients-count-label"><span>{icon}</span>{label}</div>
       <div style={{ marginTop: 'var(--space-1)', fontSize: 'var(--text-2xl)', fontWeight: 'var(--weight-medium)' }}>
         {loading ? '…' : value}
       </div>
@@ -393,42 +395,17 @@ function PatientDetailCard({
   to: string;
   outstandingOnly: boolean;
 }) {
+  const facilityId = useAdminFacilityId();
+  const presence = useQuery({ queryKey: ['here-now', facilityId, patient.id, false], queryFn: () => fetchPresence(facilityId!, accessToken!, patient.id, false), enabled: !!facilityId && !!accessToken && !!patient.id });
+  const visitSummary = useQuery({ queryKey: ['visit-summary', facilityId, patient.id], queryFn: () => fetchVisitSummaries(facilityId!, [patient.id!], accessToken!), enabled: !!facilityId && !!accessToken && !!patient.id });
+  const visitCount = visitSummary.data?.[0]?.totalVisits;
+  const presenceStatus = presence.data?.[0]?.presence;
   return (
     <div style={{ display: 'grid', gap: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
-      <div
-        style={{
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-4)',
-          maxWidth: 480,
-        }}
-      >
-        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)', marginTop: 0 }}>
-          {patient.fullName}
-          {!patient.active && (
-            <span className="badge badge-neutral" style={{ marginLeft: 'var(--space-2)' }}>
-              inactive
-            </span>
-          )}
-        </h2>
-        <dl style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
-          <DetailRow label="Hospital no." value={patient.hospitalNo} />
-          <DetailRow
-            label="Date of birth"
-            value={
-              patient.dateOfBirth
-                ? `${patient.dateOfBirth}${patient.dobIsEstimated ? ' (estimated)' : ''}`
-                : undefined
-            }
-          />
-          <DetailRow label="Gender" value={patient.gender} />
-          <DetailRow label="Marital status" value={patient.maritalStatus} />
-          <DetailRow label="National ID" value={patient.nationalId} />
-          <DetailRow label="Phone" value={patient.phone} />
-          <DetailRow label="Email" value={patient.email} />
-        </dl>
-      </div>
+      <section className="patient-profile">
+        <div className="patient-profile-heading"><div className="patient-profile-avatar" aria-hidden="true">{(patient.fullName ?? 'P').split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase()}</div><div><span className="patient-profile-kicker">Patient profile</span><h2>{patient.fullName}</h2><div className="patient-profile-tags"><span className="badge badge-success">{patient.hospitalNo ?? 'Hospital number unavailable'}</span>{visitCount != null && <span className="badge badge-info">{visitCount > 1 ? 'Returning patient' : 'First visit'}</span>}{presenceStatus && <span className="badge badge-info">{presenceStatus.replaceAll('_', ' ').toLowerCase()}</span>}{!patient.active && <span className="badge badge-neutral">Inactive</span>}</div></div></div>
+        <dl className="patient-profile-details"><DetailRow label="Date of birth" value={patient.dateOfBirth ? `${patient.dateOfBirth}${patient.dobIsEstimated ? ' (estimated)' : ''}` : undefined} /><DetailRow label="Gender" value={patient.gender} /><DetailRow label="Marital status" value={patient.maritalStatus} /><DetailRow label="National ID" value={patient.nationalId} /><DetailRow label="Phone" value={patient.phone} /><DetailRow label="Email" value={patient.email} /></dl>
+      </section>
 
       {showInvoices && patient.id && accessToken && (
         <PatientInvoiceHistory
@@ -711,12 +688,7 @@ const filterFieldStyle: CSSProperties = {
 };
 
 function DetailRow({ label, value }: { label: string; value: string | undefined | null }) {
-  return (
-    <>
-      <dt style={{ fontWeight: 'var(--weight-medium)' }}>{label}</dt>
-      <dd style={{ margin: '0 0 var(--space-2)' }}>{value ?? '—'}</dd>
-    </>
-  );
+  return <div><dt>{label}</dt><dd>{value ?? '—'}</dd></div>;
 }
 
 function EmptyState({ message }: { message: ReactNode }) {

@@ -6,10 +6,13 @@ export type PlaceLabOrderRequest = components['schemas']['PlaceLabOrderRequest']
 export type LabOrderUrgency = NonNullable<PlaceLabOrderRequest['urgency']>;
 export type LabOrderHistoryResponse = components['schemas']['LabOrderHistoryResponse'];
 export type LabOrderQueueRowResponse = components['schemas']['LabOrderQueueRowResponse'];
-export type ResultEntryFormResponse = components['schemas']['ResultEntryFormResponse'];
+export type ResultEntryFormResponse = components['schemas']['ResultEntryFormResponse'] & {
+  specialInstructions?: string | null; urgency?: string; orderStatus?: string;
+  sampleType?: string; collectedAt?: string; nationalId?: string | null;
+};
 export type ParameterFieldResponse = components['schemas']['ParameterFieldResponse'];
 
-export function placeLabOrder(body: PlaceLabOrderRequest, accessToken: string): Promise<LabOrderResponse> {
+export function placeLabOrder(body: PlaceLabOrderRequest & { specialInstructions?: string }, accessToken: string): Promise<LabOrderResponse> {
   return authFetch('/api/lab-orders', accessToken, { method: 'POST', body: JSON.stringify(body) });
 }
 

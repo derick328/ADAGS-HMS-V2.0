@@ -22,6 +22,12 @@ public record ResultEntryFormResponse(
         String labTestCode,
         String labTestName,
         String clinicalIndication,
+        String specialInstructions,
+        String urgency,
+        String orderStatus,
+        String sampleType,
+        java.time.Instant collectedAt,
+        String nationalId,
         boolean producesMachineOutput,
         List<ParameterFieldResponse> parameters
 ) {

@@ -92,7 +92,7 @@ public class LabOrderController {
 
         LabOrder order = placeLabOrderService.placeOrder(new PlaceLabOrderCommand(
                 request.encounterId(), request.labTestCode(), request.clinicalIndication(),
-                request.urgency(), actor.userId()));
+                request.specialInstructions(), request.urgency(), actor.userId()));
         return LabOrderResponse.from(order);
     }
 

@@ -47,6 +47,14 @@ public class LabResultAssembler {
         Sex patientSex = Sex.fromPatientGender(demographics.gender());
         int ageMonths = LabReferenceRangeResolver.ageInMonths(demographics.dateOfBirth(), LocalDate.now(clock));
 
+        if (submitted == null) throw new IllegalArgumentException("Parameter values are required.");
+        java.util.Set<UUID> seen = new java.util.HashSet<>();
+        for (ParameterEntry entry : submitted) {
+            if (entry.parameterId() == null || !seen.add(entry.parameterId()))
+                throw new IllegalArgumentException("Duplicate or missing parameter identity.");
+            if (!Double.isFinite(entry.resultValue()))
+                throw new IllegalArgumentException("Parameter value must be finite.");
+        }
         return submitted.stream().map(entry -> evaluateOne(byId, entry, ageMonths, patientSex)).toList();
     }
 
@@ -63,6 +71,11 @@ public class LabResultAssembler {
 
         ResultFlag computedFlag = LabResultFlagEvaluator.evaluate(parameter.code(), entry.resultValue(), range);
 
+        // A critical value must keep its alerting path. A disputed critical reading
+        // can be corrected through the audited amendment workflow after release.
+        if (computedFlag == ResultFlag.CRITICAL && entry.overrideFlag() != null
+                && entry.overrideFlag() != ResultFlag.CRITICAL)
+            throw new IllegalArgumentException("A critical flag cannot be downgraded during entry.");
         ResultFlag finalFlag = entry.overrideFlag() != null ? entry.overrideFlag() : computedFlag;
         boolean overridden = entry.overrideFlag() != null && entry.overrideFlag() != computedFlag;
         if (overridden && (entry.overrideReason() == null || entry.overrideReason().isBlank())) {

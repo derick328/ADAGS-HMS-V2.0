@@ -62,6 +62,29 @@ public class TatAnalyticsController {
         return service.departments(facilityId, from, to, workflow(workflowType));
     }
 
+    @GetMapping("/departments/{workflowType}/users")
+    public List<TatAnalyticsService.TatUserSummary> departmentUsers(@PathVariable String workflowType,
+            @RequestParam UUID facilityId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @AuthenticationPrincipal Actor actor) {
+        requireRead(actor, facilityId);
+        return service.departmentUsers(facilityId, from, to, workflow(workflowType));
+    }
+
+    @GetMapping("/departments/{workflowType}/users/{userId}/patients")
+    public List<TatAnalyticsService.TatUserPatient> userPatients(@PathVariable String workflowType,
+            @PathVariable UUID userId, @RequestParam UUID facilityId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "0") int page, @AuthenticationPrincipal Actor actor) {
+        requireRead(actor, facilityId);
+        var result = service.userPatients(facilityId, from, to, workflow(workflowType), userId, page);
+        result.stream().map(TatAnalyticsService.TatUserPatient::patientId).distinct()
+                .forEach(patientId -> audit.record(actor.userId(), "TAT_USER_PATIENTS_READ", "patient", patientId, patientId));
+        return result;
+    }
+
     @GetMapping("/trend")
     public List<TatAnalyticsService.TatTrend> trend(@RequestParam UUID facilityId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,

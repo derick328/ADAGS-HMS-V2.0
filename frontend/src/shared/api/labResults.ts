@@ -2,7 +2,10 @@ import { ApiError, authFetch } from './client';
 import type { components } from './types';
 
 export type LabResultResponse = components['schemas']['LabResultResponse'];
-export type LabResultDetailResponse = components['schemas']['LabResultDetailResponse'];
+export type LabResultDetailResponse = components['schemas']['LabResultDetailResponse'] & {
+  resultType?: string; singleValue?: string; singleValueUnit?: string;
+  overallInterpretation?: string; remarks?: string; labReportObjectKey?: string;
+};
 export type DetailParameterValueResponse = components['schemas']['DetailParameterValueResponse'];
 export type RecordLabResultRequest = components['schemas']['RecordLabResultRequest'];
 export type AmendLabResultRequest = components['schemas']['AmendLabResultRequest'];
@@ -14,7 +17,10 @@ export type ResultFlag = NonNullable<ParameterValueRequest['overrideFlag']>;
 // workspace (LAB_RESULT_VERIFY is granted to nobody in the current seed
 // data, so lab.verification_active is effectively false — v0.2 §6: no
 // badge in that state).
-export function recordLabResult(body: RecordLabResultRequest, accessToken: string): Promise<LabResultResponse> {
+export function recordLabResult(body: RecordLabResultRequest & {
+  resultType?: string; singleValue?: string; singleValueUnit?: string;
+  overallInterpretation?: string; remarks?: string; labReportObjectKey?: string;
+}, accessToken: string): Promise<LabResultResponse> {
   return authFetch('/api/lab-results', accessToken, { method: 'POST', body: JSON.stringify(body) });
 }
 
@@ -55,10 +61,10 @@ export function searchLabResults(
  * JSON content-type default — a multipart body needs the browser-set
  * boundary, not an explicit header.
  */
-export async function uploadMachineOutput(file: File, accessToken: string): Promise<{ objectKey: string }> {
+export async function uploadMachineOutput(labOrderId: string, file: File, accessToken: string): Promise<{ objectKey: string }> {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await fetch('/api/lab-results/machine-output', {
+  const response = await fetch(`/api/lab-results/machine-output/${labOrderId}`,  {
     method: 'POST',
     credentials: 'include',
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -72,6 +78,53 @@ export async function uploadMachineOutput(file: File, accessToken: string): Prom
 }
 
 /** A short-lived signed URL for viewing a stored machine output file — My History. */
-export function fetchMachineOutputUrl(objectKey: string, accessToken: string): Promise<{ url: string }> {
-  return authFetch(`/api/lab-results/machine-output/${encodeURIComponent(objectKey)}`, accessToken);
+export function fetchMachineOutputUrl(resultId: string, accessToken: string): Promise<{ url: string }> {
+  return authFetch(`/api/lab-results/machine-output/${resultId}`, accessToken);
+}
+
+export interface LabResultDraft {
+  id: string;
+  specimenId: string;
+  payload: Record<string, unknown>;
+  version: number;
+  status: 'DRAFT' | 'SUBMITTED';
+  submittedResultId?: string;
+  updatedAt: string;
+}
+
+export function fetchLabResultDraft(labOrderId: string, accessToken: string): Promise<LabResultDraft | null> {
+  return authFetch(`/api/lab-orders/${labOrderId}/result-draft`, accessToken);
+}
+
+export function saveLabResultDraft(labOrderId: string, version: number, payload: Record<string, unknown>, accessToken: string): Promise<LabResultDraft> {
+  return authFetch(`/api/lab-orders/${labOrderId}/result-draft`, accessToken, {
+    method: 'PUT', body: JSON.stringify({ version, payload }),
+  });
+}
+
+export function submitLabResultDraft(labOrderId: string, version: number, result: RecordLabResultRequest & {
+  resultType?: string; singleValue?: string; singleValueUnit?: string;
+  overallInterpretation?: string; remarks?: string; labReportObjectKey?: string;
+}, accessToken: string): Promise<LabResultResponse> {
+  return authFetch(`/api/lab-orders/${labOrderId}/result-draft/submit`, accessToken, {
+    method: 'POST', body: JSON.stringify({ version, result }),
+  });
+}
+
+export async function uploadLabReportPdf(labOrderId: string, file: File, accessToken: string): Promise<{ objectKey: string }> {
+  const body = new FormData();
+  body.append('file', file);
+  const response = await fetch(`/api/lab-results/report/${labOrderId}`, {
+    method: 'POST', credentials: 'include', headers: { Authorization: `Bearer ${accessToken}` }, body,
+  });
+  if (!response.ok) throw new ApiError(response.status, await response.json().catch(() => null));
+  return response.json();
+}
+
+export function fetchLabReportUrl(resultId: string, accessToken: string): Promise<{ url: string }> {
+  return authFetch(`/api/lab-results/report/${resultId}/url`, accessToken);
+}
+
+export function fetchDraftMachineOutputUrl(labOrderId: string, objectKey: string, accessToken: string): Promise<{ url: string }> {
+  return authFetch(`/api/lab-results/machine-output/draft/${labOrderId}/${encodeURIComponent(objectKey)}`, accessToken);
 }

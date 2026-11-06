@@ -12,6 +12,7 @@ public record LabOrderResponse(
         UUID patientId,
         UUID labTestId,
         String clinicalIndication,
+        String specialInstructions,
         Urgency urgency,
         UUID invoiceLineId,
         Instant orderedAt
@@ -19,6 +20,6 @@ public record LabOrderResponse(
 
     public static LabOrderResponse from(LabOrder order) {
         return new LabOrderResponse(order.id(), order.encounterId(), order.patientId(), order.labTestId(),
-                order.clinicalIndication(), order.urgency(), order.invoiceLineId(), order.orderedAt());
+                order.clinicalIndication(), order.specialInstructions(), order.urgency(), order.invoiceLineId(), order.orderedAt());
     }
 }

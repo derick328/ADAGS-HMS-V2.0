@@ -1838,6 +1838,7 @@ interface DraftLabLine {
   test: PriceCatalogItemResponse;
   urgency: LabOrderUrgency;
   instructions: string;
+  clinicalIndication: string;
   priceMinor: number | null;
 }
 
@@ -1867,16 +1868,18 @@ function LabTab({
   const [pending, setPending] = useState<PriceCatalogItemResponse | null>(null);
   const [urgency, setUrgency] = useState<LabOrderUrgency>('ROUTINE');
   const [instructions, setInstructions] = useState('');
+  const [clinicalIndication, setClinicalIndication] = useState('');
   const [sendResult, setSendResult] = useState<string | null>(null);
 
   function addLine() {
     if (!pending) return;
     setLines((prev) => [
       ...prev,
-      { key: `${pending.serviceItemId}-${Date.now()}`, test: pending, urgency, instructions, priceMinor: pending.priceMinor ?? null },
+      { key: `${pending.serviceItemId}-${Date.now()}`, test: pending, urgency, instructions, clinicalIndication, priceMinor: pending.priceMinor ?? null },
     ]);
     setPending(null);
     setInstructions('');
+    setClinicalIndication('');
   }
 
   const send = useMutation({
@@ -1885,7 +1888,7 @@ function LabTab({
     mutationFn: async () => {
       for (const line of [...lines]) {
         await placeLabOrder(
-          { encounterId, labTestCode: line.test.code as string, clinicalIndication: line.instructions || undefined, urgency: line.urgency },
+          { encounterId, labTestCode: line.test.code as string, clinicalIndication: line.clinicalIndication || undefined, specialInstructions: line.instructions || undefined, urgency: line.urgency },
           accessToken as string,
         );
         setLines((prev) => prev.filter((x) => x.key !== line.key));
@@ -1980,7 +1983,10 @@ function LabTab({
               <option value="STAT">STAT</option>
             </select>
           </FormRow>
-          <FormRow label="Clinical indication / instructions">
+          <FormRow label="Clinical indication">
+            <textarea className="clinical-control" rows={2} value={clinicalIndication} onChange={(e) => setClinicalIndication(e.target.value)} style={fieldStyle} />
+          </FormRow>
+          <FormRow label="Special instructions">
             <textarea className="clinical-control" rows={2} value={instructions} onChange={(e) => setInstructions(e.target.value)} style={fieldStyle} />
           </FormRow>
           <button type="button" className="btn btn-secondary" onClick={addLine} style={{ marginTop: 'var(--space-2)' }}>

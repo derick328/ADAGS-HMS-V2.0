@@ -11,6 +11,6 @@ export type SpecimenQuality = NonNullable<CollectSpecimenRequest['quality']>;
  * 402 (ApiError.status === 402) carries outstandingAmountMinor/serviceName
  * for the "send to cashier" action, never cached from order time.
  */
-export function collectSpecimen(body: CollectSpecimenRequest, accessToken: string): Promise<SpecimenResponse> {
+export function collectSpecimen(body: CollectSpecimenRequest & { sampleType?: string; sampleTypeOverrideReason?: string }, accessToken: string): Promise<SpecimenResponse> {
   return authFetch('/api/specimens', accessToken, { method: 'POST', body: JSON.stringify(body) });
 }

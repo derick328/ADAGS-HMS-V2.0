@@ -10,6 +10,8 @@ public interface LabResultRepository {
 
     Optional<LabResult> findById(UUID id);
 
+    Optional<LabResult> findByMachineOutputObjectKey(String objectKey);
+
     /** Every row for this specimen, including superseded ones — an amendment appends, never replaces. */
     List<LabResult> findBySpecimenId(UUID specimenId);
 

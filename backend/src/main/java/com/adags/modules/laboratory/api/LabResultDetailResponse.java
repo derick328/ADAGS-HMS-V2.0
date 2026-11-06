@@ -40,7 +40,13 @@ public record LabResultDetailResponse(
         UUID amendsId,
         Instant amendsOriginalEnteredAt,
         String amendmentReason,
-        List<DetailParameterValueResponse> parameterValues
+        List<DetailParameterValueResponse> parameterValues,
+        String resultType,
+        String singleValue,
+        String singleValueUnit,
+        String overallInterpretation,
+        String remarks,
+        String labReportObjectKey
 ) {
     public record DetailParameterValueResponse(
             UUID parameterId,

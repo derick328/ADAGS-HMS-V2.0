@@ -49,6 +49,7 @@ public class AmendLabResultService {
     private final LabResultAssembler labResultAssembler;
     private final PatientFacade patientFacade;
     private final DomainEventPublisher eventPublisher;
+    private final LabReportRegistry reportRegistry;
 
     public AmendLabResultService(
             LabResultRepository labResultRepository,
@@ -60,7 +61,8 @@ public class AmendLabResultService {
             LabTestParameterRepository labTestParameterRepository,
             LabResultAssembler labResultAssembler,
             PatientFacade patientFacade,
-            DomainEventPublisher eventPublisher
+            DomainEventPublisher eventPublisher,
+            LabReportRegistry reportRegistry
     ) {
         this.labResultRepository = labResultRepository;
         this.labResultParameterValueRepository = labResultParameterValueRepository;
@@ -72,6 +74,7 @@ public class AmendLabResultService {
         this.labResultAssembler = labResultAssembler;
         this.patientFacade = patientFacade;
         this.eventPublisher = eventPublisher;
+        this.reportRegistry = reportRegistry;
     }
 
     @Transactional
@@ -97,13 +100,28 @@ public class AmendLabResultService {
         List<LabResultAssembler.Evaluated> evaluated = labResultAssembler.evaluate(
                 labTestParameterRepository.findByTestId(order.labTestId()), command.parameterValues(), demographics);
 
+        String overall = command.overallInterpretation() == null
+                ? original.overallInterpretation() : command.overallInterpretation();
+        if ("NORMAL".equals(overall) && evaluated.stream().anyMatch(e -> e.flag() == ResultFlag.CRITICAL))
+            throw new IllegalArgumentException("Overall interpretation cannot be NORMAL with a critical parameter.");
+        if (command.labReportObjectKey() != null &&
+                !command.labReportObjectKey().equals(original.labReportObjectKey()) &&
+                !reportRegistry.belongsToOrder(command.labReportObjectKey(), order.id(), command.amendedBy()))
+            throw new IllegalArgumentException("Report attachment does not belong to this order.");
+
         // Fresh entry, its own current-verification-level snapshot — an
         // amendment is an entry event like any other (see class comment).
         LabResult amendment = labResultRepository.insert(LabResult.create(
                 order.id(), original.specimenId(), command.amendedBy(), labTest.verificationLevel(),
                 command.methodology(), command.reagentsUsedNote(), command.findings(), command.interpretation(),
                 command.referenceRangeNote(), command.conclusion(), command.machineOutputObjectKey(),
-                original.id(), command.amendmentReason()));
+                original.id(), command.amendmentReason(),
+                command.resultType() == null ? original.resultType() : command.resultType(),
+                command.singleValue() == null ? original.singleValue() : command.singleValue(),
+                command.singleValueUnit() == null ? original.singleValueUnit() : command.singleValueUnit(),
+                command.overallInterpretation() == null ? original.overallInterpretation() : command.overallInterpretation(),
+                command.remarks() == null ? original.remarks() : command.remarks(),
+                command.labReportObjectKey() == null ? original.labReportObjectKey() : command.labReportObjectKey()));
 
         labResultRepository.markAmended(original.id());
 

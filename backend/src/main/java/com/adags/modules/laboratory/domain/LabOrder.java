@@ -17,25 +17,26 @@ public record LabOrder(
         UUID orderedBy,
         Instant orderedAt,
         String clinicalIndication,
+        String specialInstructions,
         Urgency urgency,
         UUID invoiceLineId,
         Instant createdAt
 ) {
 
     public static LabOrder create(UUID encounterId, UUID patientId, UUID facilityId, UUID labTestId, UUID orderedBy,
-                                   String clinicalIndication, Urgency urgency, UUID invoiceLineId) {
+                                   String clinicalIndication, String specialInstructions, Urgency urgency, UUID invoiceLineId) {
         return new LabOrder(null, encounterId, patientId, facilityId, labTestId, orderedBy, null,
-                clinicalIndication, urgency, invoiceLineId, null);
+                clinicalIndication, specialInstructions, urgency, invoiceLineId, null);
     }
 
     /** Pre-generated id, so the charge posted before insert (sourceEventId) can point at this order. */
     public LabOrder withId(UUID id) {
         return new LabOrder(id, encounterId, patientId, facilityId, labTestId, orderedBy, orderedAt,
-                clinicalIndication, urgency, invoiceLineId, createdAt);
+                clinicalIndication, specialInstructions, urgency, invoiceLineId, createdAt);
     }
 
     public LabOrder withInvoiceLineId(UUID invoiceLineId) {
         return new LabOrder(id, encounterId, patientId, facilityId, labTestId, orderedBy, orderedAt,
-                clinicalIndication, urgency, invoiceLineId, createdAt);
+                clinicalIndication, specialInstructions, urgency, invoiceLineId, createdAt);
     }
 }

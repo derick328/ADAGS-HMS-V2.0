@@ -53,6 +53,7 @@ public class RecordLabResultService {
     private final LabResultAssembler labResultAssembler;
     private final PatientFacade patientFacade;
     private final DomainEventPublisher eventPublisher;
+    private final LabReportRegistry reportRegistry;
 
     public RecordLabResultService(
             SpecimenRepository specimenRepository,
@@ -65,7 +66,8 @@ public class RecordLabResultService {
             CriticalResultNotificationRepository criticalResultNotificationRepository,
             LabResultAssembler labResultAssembler,
             PatientFacade patientFacade,
-            DomainEventPublisher eventPublisher
+            DomainEventPublisher eventPublisher,
+            LabReportRegistry reportRegistry
     ) {
         this.specimenRepository = specimenRepository;
         this.labOrderRepository = labOrderRepository;
@@ -78,6 +80,7 @@ public class RecordLabResultService {
         this.labResultAssembler = labResultAssembler;
         this.patientFacade = patientFacade;
         this.eventPublisher = eventPublisher;
+        this.reportRegistry = reportRegistry;
     }
 
     @Transactional
@@ -105,10 +108,16 @@ public class RecordLabResultService {
         List<LabResultAssembler.Evaluated> evaluated = labResultAssembler.evaluate(
                 labTestParameterRepository.findByTestId(order.labTestId()), command.parameterValues(), demographics);
 
+        validateResultContent(command, evaluated);
+        if (command.labReportObjectKey() != null &&
+                !reportRegistry.belongsToOrder(command.labReportObjectKey(), order.id(), command.enteredBy()))
+            throw new IllegalArgumentException("Report attachment does not belong to this order.");
         LabResult saved = labResultRepository.insert(LabResult.create(
                 order.id(), specimen.id(), command.enteredBy(), labTest.verificationLevel(),
                 command.methodology(), command.reagentsUsedNote(), command.findings(), command.interpretation(),
-                command.referenceRangeNote(), command.conclusion(), command.machineOutputObjectKey(), null, null));
+                command.referenceRangeNote(), command.conclusion(), command.machineOutputObjectKey(), null, null,
+                command.resultType(), command.singleValue(), command.singleValueUnit(), command.overallInterpretation(),
+                command.remarks(), command.labReportObjectKey()));
 
         List<LabResultParameterValue> values = insertParameterValues(saved.id(), evaluated);
         insertReagents(saved.id(), command.reagents());
@@ -123,6 +132,40 @@ public class RecordLabResultService {
                 "hasCritical", !criticalNotifications.isEmpty()));
 
         return new RecordLabResultResult(saved, values, criticalNotifications);
+    }
+
+    private void validateResultContent(RecordLabResultCommand command, List<LabResultAssembler.Evaluated> evaluated) {
+        String type = command.resultType() == null ? "NUMERIC" : command.resultType();
+        if (!List.of("NUMERIC", "QUALITATIVE", "FREE_TEXT", "NARRATIVE").contains(type))
+            throw new IllegalArgumentException("Unsupported result type.");
+        if ((type.equals("QUALITATIVE") || type.equals("FREE_TEXT")) &&
+                (command.singleValue() == null || command.singleValue().isBlank()))
+            throw new IllegalArgumentException("Enter the single result value.");
+        if (type.equals("NARRATIVE") && (command.findings() == null || command.findings().isBlank()))
+            throw new IllegalArgumentException("Narrative results require findings.");
+        if (type.equals("NUMERIC") && evaluated.isEmpty() &&
+                command.singleValue() != null && !command.singleValue().isBlank()) {
+            try {
+                if (!Double.isFinite(Double.parseDouble(command.singleValue().trim())))
+                    throw new NumberFormatException("non-finite result");
+            } catch (NumberFormatException invalid) {
+                throw new IllegalArgumentException("Enter a numeric single-value result.");
+            }
+            if (command.singleValueUnit() == null || command.singleValueUnit().isBlank())
+                throw new IllegalArgumentException("Enter the unit for a numeric single-value result.");
+        }
+        if (type.equals("NUMERIC") && evaluated.isEmpty() &&
+                (command.singleValue() == null || command.singleValue().isBlank()) &&
+                (command.findings() == null || command.findings().isBlank()) &&
+                (command.interpretation() == null || command.interpretation().isBlank()) &&
+                (command.conclusion() == null || command.conclusion().isBlank()))
+            throw new IllegalArgumentException("Enter a numeric result or clinical narrative.");
+        boolean critical = evaluated.stream().anyMatch(e -> e.flag() == ResultFlag.CRITICAL);
+        if (critical && "NORMAL".equals(command.overallInterpretation()))
+            throw new IllegalArgumentException("Overall interpretation cannot be NORMAL with a critical parameter.");
+        if (command.overallInterpretation() != null &&
+                !List.of("NORMAL", "ABNORMAL", "CRITICAL").contains(command.overallInterpretation()))
+            throw new IllegalArgumentException("Unsupported overall interpretation.");
     }
 
     private List<LabResultParameterValue> insertParameterValues(UUID resultId, List<LabResultAssembler.Evaluated> evaluated) {

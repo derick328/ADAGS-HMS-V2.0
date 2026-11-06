@@ -8,7 +8,12 @@ public record PlaceLabOrderCommand(
         UUID encounterId,
         String labTestCode,
         String clinicalIndication,
+        String specialInstructions,
         Urgency urgency,
         UUID orderedBy
 ) {
+    public PlaceLabOrderCommand(UUID encounterId, String labTestCode, String clinicalIndication,
+                                Urgency urgency, UUID orderedBy) {
+        this(encounterId, labTestCode, clinicalIndication, null, urgency, orderedBy);
+    }
 }

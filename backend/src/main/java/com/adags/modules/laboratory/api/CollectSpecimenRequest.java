@@ -8,6 +8,8 @@ import java.util.UUID;
 public record CollectSpecimenRequest(
         @NotNull UUID labOrderId,
         @NotNull SpecimenQuality quality,
-        String qualityNote
+        String qualityNote,
+        String sampleType,
+        String sampleTypeOverrideReason
 ) {
 }

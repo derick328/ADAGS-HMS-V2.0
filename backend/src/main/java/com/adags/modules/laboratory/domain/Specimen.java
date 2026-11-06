@@ -26,15 +26,30 @@ public record Specimen(
         String qualityNote,
         SpecimenStatus status,
         String rejectionReason,
-        Instant createdAt
+        Instant createdAt,
+        String sampleTypeOverrideReason
 ) {
 
     public static Specimen accept(UUID labOrderId, String accessionNo, String sampleType, String containerType,
                                    UUID actorUserId, Instant now, SpecimenQuality quality, String qualityNote) {
+        return accept(labOrderId, accessionNo, sampleType, containerType, actorUserId, now,
+                quality, qualityNote, null);
+    }
+
+    public static Specimen accept(UUID labOrderId, String accessionNo, String sampleType, String containerType,
+                                   UUID actorUserId, Instant now, SpecimenQuality quality, String qualityNote,
+                                   String sampleTypeOverrideReason) {
         boolean adequate = quality == SpecimenQuality.ADEQUATE;
         return new Specimen(null, labOrderId, accessionNo, sampleType, containerType,
                 actorUserId, now, actorUserId, now, quality, qualityNote,
                 adequate ? SpecimenStatus.IN_PROGRESS : SpecimenStatus.REJECTED,
-                adequate ? null : qualityNote, null);
+                adequate ? null : qualityNote, null, sampleTypeOverrideReason);
+    }
+    public Specimen(UUID id, UUID labOrderId, String accessionNo, String sampleType, String containerType,
+                    UUID collectedBy, Instant collectedAt, UUID receivedBy, Instant receivedAt,
+                    SpecimenQuality quality, String qualityNote, SpecimenStatus status,
+                    String rejectionReason, Instant createdAt) {
+        this(id, labOrderId, accessionNo, sampleType, containerType, collectedBy, collectedAt, receivedBy,
+                receivedAt, quality, qualityNote, status, rejectionReason, createdAt, null);
     }
 }

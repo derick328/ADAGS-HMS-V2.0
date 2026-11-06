@@ -1,0 +1,7 @@
+# BC-10 CSV import compatibility
+
+The supplied description names `Patient ID`, `Draw Date`, `Draw Time`, `Background`, and 20 measurements. It does not include a raw CSV export or the analyser's configured units. Mindray's [BC-10 brochure](https://www.mindray.com/content/dam/xpace/en_in/resources/brochures/bc-10-product-brochure-en_in.pdf) corroborates the 20 measurement names, but does not establish this installation's CSV layout or unit configuration.
+
+`frontend/src/workspaces/lab/bc10Csv.ts` recognizes a conservative comma-separated, one-patient header profile with those names. It preserves patient ID, draw time, sample code, source row and raw values, and marks invalid numeric cells. The UI previews catalogue code matches, unknown columns and unit uncertainty. **Apply is disabled** until an exact de-identified export establishes delimiter, row layout, unit strings and a verified code-to-`LabTestParameter` mapping. No current importer value bypasses server-side validation because no value is applied.
+
+To finish the adapter, obtain one complete de-identified export and confirm units for all measurements, including whether the instrument is configured for SI or conventional units. Add fixtures covering patient mismatch, invalid numbers, unknown codes, unit mismatch and manual-value overwrite confirmation. Imported values must then be submitted through the existing result-release validation and flag evaluator.

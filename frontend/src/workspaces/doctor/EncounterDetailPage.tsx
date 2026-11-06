@@ -1,3 +1,4 @@
+import { LabResultAttachments } from '../../shared/components/LabResultAttachments';
 import { fetchLabResultsByOrder } from '../../shared/api/labResults';
 import type { PrescriptionHistoryResponse } from '../../shared/api/prescriptions';
 import { FeedbackState } from '../../shared/components/FeedbackState';
@@ -998,7 +999,9 @@ function HistoricalLabResults({ orderId }: { orderId: string }) {
     {released.map(r => <article key={r.id}>
       <p><strong>{superseded.has(r.id) ? 'Superseded result' : 'Released result'}</strong> · {formatDateTime(r.releasedAt)} · Verification: {r.verificationState}<br />
         {r.amendsId && `Amends ${r.amendsId} · ${r.amendmentReason ?? ''}`}</p>
-      <p>{r.findings} {r.interpretation} {r.conclusion}</p>
+      {r.singleValue && <p><strong>Recorded value:</strong> {r.singleValue} {r.singleValueUnit}</p>}
+      <p>{r.findings} {r.interpretation} {r.conclusion} {r.remarks}</p>
+      <LabResultAttachments resultId={r.id as string} machineOutputObjectKey={r.machineOutputObjectKey} labReportObjectKey={r.labReportObjectKey} />
       <table className="table"><thead><tr><th>Parameter</th><th>Value</th><th>Reference range</th><th>Flag</th></tr></thead><tbody>
         {r.parameterValues?.map(v => <tr key={v.parameterId}><td>{v.parameterName}</td><td>{v.resultValue} {v.unit}</td><td>{v.normalLow ?? '—'} – {v.normalHigh ?? '—'}</td><td>{v.flag}</td></tr>)}
       </tbody></table>

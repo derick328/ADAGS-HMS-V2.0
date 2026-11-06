@@ -74,7 +74,7 @@ public class PlaceLabOrderService {
 
         LabOrder order = LabOrder.create(
                 command.encounterId(), encounterContext.patientId(), encounterContext.facilityId(),
-                labTest.id(), command.orderedBy(), command.clinicalIndication(), command.urgency(), invoiceLineId
+                labTest.id(), command.orderedBy(), command.clinicalIndication(), command.specialInstructions(), command.urgency(), invoiceLineId
         ).withId(labOrderId);
         LabOrder saved = labOrderRepository.insert(order);
 

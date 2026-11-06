@@ -9,6 +9,14 @@ import com.adags.modules.encounters.domain.ImmediateReason;
 import com.adags.modules.encounters.domain.ModeOfAmbulation;
 import com.adags.modules.encounters.domain.PregnancyStatus;
 import com.adags.modules.encounters.domain.TriagePriority;
+import com.adags.modules.laboratory.api.LabResultDraftController;
+import com.adags.modules.laboratory.api.LabReportController;
+import org.springframework.security.access.AccessDeniedException;
+import com.adags.modules.laboratory.api.RecordLabResultRequest;
+import com.adags.modules.laboratory.api.ParameterValueRequest;
+import com.adags.shared.authz.Actor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.web.server.ResponseStatusException;
 import com.adags.modules.laboratory.application.AcknowledgeCriticalResultService;
 import com.adags.modules.laboratory.application.AmendLabResultCommand;
 import com.adags.modules.laboratory.application.AmendLabResultService;
@@ -110,6 +118,12 @@ class LabResultIntegrationTest extends IntegrationTestSupport {
     private CriticalResultNotificationRepository criticalResultNotificationRepository;
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
+    @Autowired
+    private LabResultDraftController draftController;
+    @Autowired
+    private LabReportController labReportController;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @AfterEach
     void cleanUp() {
@@ -177,6 +191,30 @@ class LabResultIntegrationTest extends IntegrationTestSupport {
                 fixture.specimenId(), fixture.actorId(), null, null, null, null, null, null, null,
                 List.of(new ParameterEntry(fixture.parameterId(), 4.2, null, null)), List.of())))
                 .isInstanceOf(MissingMachineOutputException.class);
+    }
+
+    @Test
+    void assessedSampleTypeOverrideRequiresAReasonAndIsRecordedOnSpecimen() {
+        UUID admin = bootstrapAdminId();
+        UUID doctorId = insertFixtureDoctor();
+        Patient patient = registerPatientService.register(patientCommand("Asha", "Specimen-" + UUID.randomUUID(), admin));
+        Encounter checkedIn = checkInAndTriageImmediate(patient, doctorId);
+        String code = "LAB-TYPE-" + UUID.randomUUID();
+        insertFixtureLabTestWithParameter(code, 4_000, admin);
+        LabOrder order = placeLabOrderService.placeOrder(new PlaceLabOrderCommand(
+                checkedIn.id(), code, null, Urgency.ROUTINE, doctorId));
+
+        assertThatThrownBy(() -> collectSpecimenService.collect(new CollectSpecimenCommand(
+                order.id(), SpecimenQuality.ADEQUATE, null, "Whole Blood (EDTA)", null, doctorId)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM specimen WHERE lab_order_id = :id",
+                new MapSqlParameterSource("id", order.id()), Integer.class)).isZero();
+
+        Specimen accepted = collectSpecimenService.collect(new CollectSpecimenCommand(
+                order.id(), SpecimenQuality.ADEQUATE, null, "Whole Blood (EDTA)",
+                "Catalogue type is generic; verified EDTA tube at receipt", doctorId));
+        assertThat(accepted.sampleType()).isEqualTo("Whole Blood (EDTA)");
+        assertThat(accepted.sampleTypeOverrideReason()).contains("EDTA tube");
     }
 
     @Test
@@ -364,6 +402,119 @@ class LabResultIntegrationTest extends IntegrationTestSupport {
         assertThat(escalated).isZero();
         CriticalResultNotification reloaded = criticalResultNotificationRepository.findById(notificationId).orElseThrow();
         assertThat(reloaded.isEscalated()).isFalse();
+    }
+
+    @Test
+    void numericSingleValueRequiresARealNumberAndUnit() {
+        Fixture fixture = readySpecimen("LAB-SINGLE-" + UUID.randomUUID());
+        assertThatThrownBy(() -> recordLabResultService.record(new RecordLabResultCommand(
+                fixture.specimenId(), fixture.actorId(), null, null, null, null, null, null,
+                "s3://bucket/key", List.of(), List.of(), "NUMERIC", "not a number", "mmol/L",
+                null, null, null))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> recordLabResultService.record(new RecordLabResultCommand(
+                fixture.specimenId(), fixture.actorId(), null, null, null, null, null, null,
+                "s3://bucket/key", List.of(), List.of(), "NUMERIC", "5.2", null,
+                null, null, null))).isInstanceOf(IllegalArgumentException.class);
+        var released = recordLabResultService.record(new RecordLabResultCommand(
+                fixture.specimenId(), fixture.actorId(), null, null, null, null, null, null,
+                "s3://bucket/key", List.of(), List.of(), "NUMERIC", "5.2", "mmol/L",
+                null, null, null));
+        assertThat(released.result().singleValue()).isEqualTo("5.2");
+        assertThat(released.result().singleValueUnit()).isEqualTo("mmol/L");
+        assertThat(released.parameterValues()).isEmpty();
+    }
+
+    @Test
+    void qualitativeValueIsStoredWithoutAFalseNumericParameter() {
+        Fixture fixture = readySpecimen("LAB-QUAL-" + UUID.randomUUID());
+        RecordLabResultResult released = recordLabResultService.record(new RecordLabResultCommand(
+                fixture.specimenId(), fixture.actorId(), null, null, null, null, null, null,
+                "s3://bucket/key", List.of(), List.of(), "QUALITATIVE", "Positive", null,
+                "ABNORMAL", null, null));
+        LabResult reloaded = labResultRepository.findById(released.result().id()).orElseThrow();
+        assertThat(reloaded.singleValue()).isEqualTo("Positive");
+        assertThat(reloaded.resultType()).isEqualTo("QUALITATIVE");
+        assertThat(released.parameterValues()).isEmpty();
+        assertThat(released.criticalNotifications()).isEmpty();
+    }
+
+    @Test
+    void aCriticalValueCannotBeDowngradedOrHiddenByOverallNormal() {
+        Fixture fixture = readySpecimen("LAB-CRIT-" + UUID.randomUUID());
+        assertThatThrownBy(() -> recordLabResultService.record(new RecordLabResultCommand(
+                fixture.specimenId(), fixture.actorId(), null, null, null, null, null, null,
+                "s3://bucket/key", List.of(new ParameterEntry(fixture.parameterId(), 7.5,
+                ResultFlag.NORMAL, "disputed")), List.of())))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> recordLabResultService.record(new RecordLabResultCommand(
+                fixture.specimenId(), fixture.actorId(), null, null, null, null, null, null,
+                "s3://bucket/key", List.of(new ParameterEntry(fixture.parameterId(), 7.5,
+                null, null)), List.of(), "NUMERIC", null, null, "NORMAL", null, null)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(labResultRepository.findBySpecimenId(fixture.specimenId())).isEmpty();
+    }
+
+    @Test
+    void reportDownloadRequiresResultReadPermission() {
+        Fixture fixture = readySpecimen("LAB-REPORT-" + UUID.randomUUID());
+        RecordLabResultResult released = recordLabResultService.record(new RecordLabResultCommand(
+                fixture.specimenId(), fixture.actorId(), null, null, null, null, null, null,
+                "s3://bucket/key", List.of(new ParameterEntry(fixture.parameterId(), 4.2, null, null)), List.of()));
+        assertThatThrownBy(() -> labReportController.url(released.result().id(), new Actor(UUID.randomUUID())))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void duplicateCatalogueParameterAndSecondInitialReleaseAreRejected() {
+        Fixture fixture = readySpecimen("LAB-DUP-" + UUID.randomUUID());
+        assertThatThrownBy(() -> recordLabResultService.record(new RecordLabResultCommand(
+                fixture.specimenId(), fixture.actorId(), null, null, null, null, null, null,
+                "s3://bucket/key", List.of(
+                        new ParameterEntry(fixture.parameterId(), 4.2, null, null),
+                        new ParameterEntry(fixture.parameterId(), 4.3, null, null)), List.of())))
+                .isInstanceOf(IllegalArgumentException.class);
+        RecordLabResultCommand valid = new RecordLabResultCommand(fixture.specimenId(), fixture.actorId(),
+                null, null, null, null, null, null, "s3://bucket/key",
+                List.of(new ParameterEntry(fixture.parameterId(), 4.2, null, null)), List.of());
+        recordLabResultService.record(valid);
+        assertThatThrownBy(() -> recordLabResultService.record(valid)).isInstanceOf(DataAccessException.class);
+        assertThat(labResultRepository.findBySpecimenId(fixture.specimenId())).hasSize(1);
+    }
+
+    @Test
+    void draftCanBeSavedReopenedAndSubmittedOnlyOnce() {
+        Fixture fixture = readySpecimen("LAB-DRAFT-" + UUID.randomUUID());
+        jdbcTemplate.update("""
+                INSERT INTO role_assignment (user_id, role_id, scope_type, scope_id)
+                SELECT :userId, id, 'GLOBAL', NULL FROM role WHERE code = 'LAB_TECHNICIAN'
+                """, new MapSqlParameterSource("userId", fixture.actorId()));
+        UUID orderId = jdbcTemplate.queryForObject("SELECT lab_order_id FROM specimen WHERE id = :id",
+                new MapSqlParameterSource("id", fixture.specimenId()), UUID.class);
+        Actor actor = new Actor(fixture.actorId());
+        var partial = objectMapper.createObjectNode().put("findings", "work in progress");
+        var saved = draftController.save(orderId, new LabResultDraftController.SaveDraftRequest(0L, partial), actor);
+        assertThat(saved.status()).isEqualTo("DRAFT");
+        assertThat(labResultRepository.findByLabOrderId(orderId)).isEmpty();
+        assertThat(draftController.get(orderId, actor).payload().get("findings").asText()).isEqualTo("work in progress");
+        var edited = draftController.save(orderId,
+                new LabResultDraftController.SaveDraftRequest(saved.version(), partial.put("findings", "complete")), actor);
+        assertThatThrownBy(() -> draftController.save(orderId,
+                new LabResultDraftController.SaveDraftRequest(saved.version(), partial), actor))
+                .isInstanceOf(ResponseStatusException.class);
+        jdbcTemplate.update("""
+                INSERT INTO lab_machine_output_upload (object_key, lab_order_id, uploaded_by)
+                VALUES ('s3://bucket/key', :orderId, :userId)
+                """, new MapSqlParameterSource().addValue("orderId", orderId).addValue("userId", fixture.actorId()));
+        var request = new RecordLabResultRequest(fixture.specimenId(), null, null, "complete", null, null,
+                null, "s3://bucket/key", List.of(new ParameterValueRequest(fixture.parameterId(), 4.2, null, null)), List.of());
+        var released = draftController.submit(orderId,
+                new LabResultDraftController.SubmitDraftRequest(edited.version(), request), actor);
+        assertThat(released.releasedAt()).isNotNull();
+        assertThat(draftController.get(orderId, actor).status()).isEqualTo("SUBMITTED");
+        assertThatThrownBy(() -> draftController.submit(orderId,
+                new LabResultDraftController.SubmitDraftRequest(edited.version(), request), actor))
+                .isInstanceOf(ResponseStatusException.class);
+        assertThat(labResultRepository.findByLabOrderId(orderId)).hasSize(1);
     }
 
     private record Fixture(UUID specimenId, UUID parameterId, UUID rangeId, UUID actorId) {

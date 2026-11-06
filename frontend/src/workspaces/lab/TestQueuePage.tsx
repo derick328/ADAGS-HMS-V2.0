@@ -149,7 +149,7 @@ function renderAction(
   }
   return (
     <button type="button" className="btn btn-primary" onClick={() => navigate(`/lab/accept/${row.labOrderId}`)}>
-      Accept sample
+      Assess sample
     </button>
   );
 }

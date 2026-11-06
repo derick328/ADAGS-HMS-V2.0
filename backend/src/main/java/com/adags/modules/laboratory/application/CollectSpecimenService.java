@@ -74,6 +74,17 @@ public class CollectSpecimenService {
         LabOrder order = labOrderRepository.findById(command.labOrderId())
                 .orElseThrow(() -> new NoSuchElementException("Lab order not found: " + command.labOrderId()));
 
+        LabTest labTest = labTestRepository.findById(order.labTestId())
+                .orElseThrow(() -> new NoSuchElementException("Lab test not found: " + order.labTestId()));
+
+        String expectedType = labTest.specimenType();
+        String requestedType = command.sampleType() == null ? expectedType : command.sampleType().trim();
+        if (requestedType == null || requestedType.isBlank() || requestedType.equals("—"))
+            throw new IllegalArgumentException("Enter the assessed sample type before acceptance.");
+        boolean differsFromCatalogue = !requestedType.equalsIgnoreCase(expectedType);
+        if (differsFromCatalogue &&
+                (command.sampleTypeOverrideReason() == null || command.sampleTypeOverrideReason().isBlank()))
+            throw new IllegalArgumentException("Explain why the assessed sample type differs from the test catalogue.");
         // §L1/§L2: evaluated live, at the point of consumption. Throws
         // BillingGateRejectedException (-> 402) if unsatisfied. Durable and
         // idempotent per §3.1 clause 4 — a second specimen against the same
@@ -82,15 +93,13 @@ public class CollectSpecimenService {
         // and never re-blocked (§4.3: "recollection is not re-charged").
         billingFacade.authorizeConsumption(order.invoiceLineId(), command.actorUserId());
 
-        LabTest labTest = labTestRepository.findById(order.labTestId())
-                .orElseThrow(() -> new NoSuchElementException("Lab test not found: " + order.labTestId()));
-
         String accessionNo = numberAllocator.allocate(
                 ACCESSION_SEQUENCE, order.facilityId(), LocalDate.now(clock).getYear(), ACCESSION_PAD_WIDTH);
 
         Instant now = Instant.now(clock);
-        Specimen specimen = Specimen.accept(order.id(), accessionNo, labTest.specimenType(), labTest.containerType(),
-                command.actorUserId(), now, command.quality(), command.qualityNote());
+        Specimen specimen = Specimen.accept(order.id(), accessionNo, requestedType, labTest.containerType(),
+                command.actorUserId(), now, command.quality(), command.qualityNote(),
+                differsFromCatalogue ? command.sampleTypeOverrideReason().trim() : null);
         Specimen saved = specimenRepository.insert(specimen);
 
         publishOutcomeEvent(saved, order);
@@ -115,10 +124,14 @@ public class CollectSpecimenService {
                     "rejectionReason", specimen.rejectionReason(),
                     "patientSafetyIncident", specimen.quality().isPatientSafetyIncident()));
         } else {
-            eventPublisher.publish(SPECIMEN_ACCEPTED_EVENT, Map.of(
-                    "specimenId", specimen.id().toString(),
-                    "labOrderId", order.id().toString(),
-                    "accessionNo", specimen.accessionNo()));
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("specimenId", specimen.id().toString());
+            payload.put("labOrderId", order.id().toString());
+            payload.put("accessionNo", specimen.accessionNo());
+            payload.put("sampleType", specimen.sampleType());
+            if (specimen.sampleTypeOverrideReason() != null)
+                payload.put("sampleTypeOverrideReason", specimen.sampleTypeOverrideReason());
+            eventPublisher.publish(SPECIMEN_ACCEPTED_EVENT, payload);
         }
     }
 }

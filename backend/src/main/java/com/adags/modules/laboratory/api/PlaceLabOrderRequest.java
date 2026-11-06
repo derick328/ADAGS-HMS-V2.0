@@ -10,6 +10,7 @@ public record PlaceLabOrderRequest(
         @NotNull UUID encounterId,
         @NotBlank String labTestCode,
         String clinicalIndication,
+        String specialInstructions,
         @NotNull Urgency urgency
 ) {
 }

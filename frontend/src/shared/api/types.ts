@@ -3620,6 +3620,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/tat/departments/{workflowType}/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["departmentUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/tat/departments/{workflowType}/users/{userId}/patients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["userPatients"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/tat/currently-waiting": {
         parameters: {
             query?: never;
@@ -6899,6 +6931,43 @@ export interface components {
             p90WaitingSeconds?: number;
             /** Format: double */
             longestWaitingSeconds?: number;
+            /** Format: double */
+            averageServiceSeconds?: number;
+            /** Format: double */
+            averageTatSeconds?: number;
+        };
+        TatUserSummary: {
+            /** Format: uuid */
+            userId?: string;
+            userName?: string;
+            /** Format: int64 */
+            services?: number;
+            /** Format: int64 */
+            completedServices?: number;
+            /** Format: int64 */
+            patients?: number;
+            /** Format: double */
+            averageWaitingSeconds?: number;
+            /** Format: double */
+            averageServiceSeconds?: number;
+            /** Format: double */
+            averageTatSeconds?: number;
+        };
+        TatUserPatient: {
+            /** Format: uuid */
+            patientId?: string;
+            /** Format: uuid */
+            encounterId?: string;
+            hospitalNo?: string;
+            patientName?: string;
+            /** Format: int64 */
+            services?: number;
+            /** Format: int64 */
+            completedServices?: number;
+            /** Format: date-time */
+            firstServiceAt?: string;
+            /** Format: double */
+            averageWaitingSeconds?: number;
             /** Format: double */
             averageServiceSeconds?: number;
             /** Format: double */
@@ -12731,6 +12800,60 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TatDepartment"][];
+                };
+            };
+        };
+    };
+    departmentUsers: {
+        parameters: {
+            query: {
+                facilityId: string;
+                from: string;
+                to: string;
+            };
+            header?: never;
+            path: {
+                workflowType: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TatUserSummary"][];
+                };
+            };
+        };
+    };
+    userPatients: {
+        parameters: {
+            query: {
+                facilityId: string;
+                from: string;
+                to: string;
+                page?: number;
+            };
+            header?: never;
+            path: {
+                workflowType: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TatUserPatient"][];
                 };
             };
         };

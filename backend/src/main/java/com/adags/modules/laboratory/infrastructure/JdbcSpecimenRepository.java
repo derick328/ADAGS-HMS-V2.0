@@ -20,7 +20,7 @@ public class JdbcSpecimenRepository implements SpecimenRepository {
 
     private static final String SELECT_COLUMNS = """
             SELECT id, lab_order_id, accession_no, sample_type, container_type, collected_by, collected_at,
-                   received_by, received_at, quality, quality_note, status, rejection_reason, created_at
+                   received_by, received_at, quality, quality_note, status, rejection_reason, created_at, sample_type_override_reason
             FROM specimen
             """;
 
@@ -35,10 +35,10 @@ public class JdbcSpecimenRepository implements SpecimenRepository {
         String sql = """
                 INSERT INTO specimen (lab_order_id, accession_no, sample_type, container_type, collected_by,
                                        collected_at, received_by, received_at, quality, quality_note, status,
-                                       rejection_reason)
+                                       rejection_reason, sample_type_override_reason)
                 VALUES (:labOrderId, :accessionNo, :sampleType, :containerType, :collectedBy,
                         :collectedAt, :receivedBy, :receivedAt, :quality, :qualityNote, :status,
-                        :rejectionReason)
+                        :rejectionReason, :sampleTypeOverrideReason)
                 RETURNING id, created_at
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -53,13 +53,15 @@ public class JdbcSpecimenRepository implements SpecimenRepository {
                 .addValue("quality", specimen.quality() == null ? null : specimen.quality().name())
                 .addValue("qualityNote", specimen.qualityNote())
                 .addValue("status", specimen.status().name())
-                .addValue("rejectionReason", specimen.rejectionReason());
+                .addValue("rejectionReason", specimen.rejectionReason())
+                .addValue("sampleTypeOverrideReason", specimen.sampleTypeOverrideReason());
 
         return jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> new Specimen(
                 (UUID) rs.getObject("id"), specimen.labOrderId(), specimen.accessionNo(), specimen.sampleType(),
                 specimen.containerType(), specimen.collectedBy(), specimen.collectedAt(), specimen.receivedBy(),
                 specimen.receivedAt(), specimen.quality(), specimen.qualityNote(), specimen.status(),
-                specimen.rejectionReason(), rs.getTimestamp("created_at").toInstant()));
+                specimen.rejectionReason(), rs.getTimestamp("created_at").toInstant(),
+                specimen.sampleTypeOverrideReason()));
     }
 
     @Override
@@ -92,6 +94,6 @@ public class JdbcSpecimenRepository implements SpecimenRepository {
                 rs.getString("quality_note"),
                 SpecimenStatus.valueOf(rs.getString("status")),
                 rs.getString("rejection_reason"),
-                rs.getTimestamp("created_at").toInstant());
+                rs.getTimestamp("created_at").toInstant(), rs.getString("sample_type_override_reason"));
     }
 }

@@ -59,4 +59,8 @@ public class PatientFacadeImpl implements PatientFacade {
                 .map(patient -> new PatientIdentity(
                         patient.hospitalNo(), patient.givenName(), patient.middleName(), patient.familyName()));
     }
+    @Override
+    public Optional<String> findNationalId(UUID patientId) {
+        return patientRepository.findById(patientId).map(patient -> patient.nationalId());
+    }
 }

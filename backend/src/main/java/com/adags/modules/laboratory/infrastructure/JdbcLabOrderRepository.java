@@ -19,7 +19,7 @@ public class JdbcLabOrderRepository implements LabOrderRepository {
 
     private static final String SELECT_COLUMNS = """
             SELECT id, encounter_id, patient_id, facility_id, lab_test_id, ordered_by, ordered_at,
-                   clinical_indication, urgency, invoice_line_id, created_at
+                   clinical_indication, special_instructions, urgency, invoice_line_id, created_at
             FROM lab_order
             """;
 
@@ -33,9 +33,9 @@ public class JdbcLabOrderRepository implements LabOrderRepository {
     public LabOrder insert(LabOrder order) {
         String sql = """
                 INSERT INTO lab_order (id, encounter_id, patient_id, facility_id, lab_test_id, ordered_by,
-                                        clinical_indication, urgency, invoice_line_id)
+                                        clinical_indication, special_instructions, urgency, invoice_line_id)
                 VALUES (COALESCE(:id, gen_random_uuid()), :encounterId, :patientId, :facilityId, :labTestId,
-                        :orderedBy, :clinicalIndication, :urgency, :invoiceLineId)
+                        :orderedBy, :clinicalIndication, :specialInstructions, :urgency, :invoiceLineId)
                 RETURNING id, ordered_at, created_at
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -46,13 +46,14 @@ public class JdbcLabOrderRepository implements LabOrderRepository {
                 .addValue("labTestId", order.labTestId())
                 .addValue("orderedBy", order.orderedBy())
                 .addValue("clinicalIndication", order.clinicalIndication())
+                .addValue("specialInstructions", order.specialInstructions())
                 .addValue("urgency", order.urgency().name())
                 .addValue("invoiceLineId", order.invoiceLineId());
 
         return jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> new LabOrder(
                 (UUID) rs.getObject("id"), order.encounterId(), order.patientId(), order.facilityId(),
                 order.labTestId(), order.orderedBy(), rs.getTimestamp("ordered_at").toInstant(),
-                order.clinicalIndication(), order.urgency(), order.invoiceLineId(),
+                order.clinicalIndication(), order.specialInstructions(), order.urgency(), order.invoiceLineId(),
                 rs.getTimestamp("created_at").toInstant()));
     }
 
@@ -102,6 +103,7 @@ public class JdbcLabOrderRepository implements LabOrderRepository {
                 (UUID) rs.getObject("ordered_by"),
                 rs.getTimestamp("ordered_at").toInstant(),
                 rs.getString("clinical_indication"),
+                rs.getString("special_instructions"),
                 Urgency.valueOf(rs.getString("urgency")),
                 (UUID) rs.getObject("invoice_line_id"),
                 rs.getTimestamp("created_at").toInstant());
