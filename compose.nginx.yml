@@ -1,0 +1,8 @@
+# Use with compose.production.yml when the VPS already runs Nginx on 80/443.
+# Nginx terminates HTTPS and proxies the HMS hostnames to this loopback port.
+services:
+  caddy:
+    ports: !override
+      - "127.0.0.1:18080:80"
+    volumes:
+      - ./deploy/Caddyfile.nginx:/etc/caddy/Caddyfile:ro

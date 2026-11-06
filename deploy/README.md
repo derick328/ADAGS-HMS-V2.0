@@ -59,6 +59,19 @@ sudo docker compose --env-file .env.production -f compose.production.yml ps
 sudo docker compose --env-file .env.production -f compose.production.yml logs --tail=100 backend caddy
 ```
 
+If this VPS already runs Nginx on ports 80 and 443, add
+`-f compose.nginx.yml` after `-f compose.production.yml` in each command.
+That overlay binds Caddy only to `127.0.0.1:18080`; configure the existing
+Nginx server blocks for the app and file hostnames to proxy to that port,
+preserving the `Host` header. Nginx remains responsible for HTTPS.
+
+For the `derutech.com` VPS, `deploy/nginx-adagshms.conf` is an HTTP site
+template. Copy it into `/etc/nginx/sites-available/`, enable it in
+`/etc/nginx/sites-enabled/`, and run `nginx -t` before reloading Nginx.
+After both DNS records resolve to this VPS, run Certbot's Nginx integration
+for `adagshms.derutech.com` and `files.adagshms.derutech.com` to add HTTPS.
+The existing `adags.derutech.com` Nginx site is separate.
+
 Wait for Caddy to obtain HTTPS certificates. Check the public health endpoint:
 
 ```bash

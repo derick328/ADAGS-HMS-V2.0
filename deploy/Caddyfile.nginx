@@ -1,0 +1,16 @@
+http://{$APP_DOMAIN} {
+    encode zstd gzip
+
+    @backend path /api/* /auth/* /me /me/* /actuator/health
+    handle @backend {
+        reverse_proxy backend:8080
+    }
+    handle {
+        reverse_proxy frontend:80
+    }
+}
+
+http://{$FILES_DOMAIN} {
+    # Preserve the browser-facing Host for S3 signed requests.
+    reverse_proxy storage:9000
+}
