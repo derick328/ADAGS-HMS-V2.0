@@ -40,10 +40,10 @@ export function LabStockRequestsPage() {
   }
 
   return (
-    <div>
+    <div className="staff-page-stack lab-stock-page">
       <PageHeader title={<>Lab stock requests</>} description={<>Reagent requests from lab technicians, oldest first.</>} />
 
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+      <div className="staff-table-card">
         {isLoading ? (
           <FeedbackState loading>Loading…</FeedbackState>
         ) : rows.length === 0 ? (
@@ -134,8 +134,8 @@ function RespondPanel({ row, onDone }: { row: LabStockRequestQueueRowResponse; o
   });
 
   return (
-    <div style={{ padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', maxWidth: 480 }}>
-      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+    <div className="lab-stock-response">
+      <div className="lab-stock-response-modes">
         <button type="button" className={mode === 'release' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setMode('release')}>
           Release
         </button>
@@ -145,10 +145,10 @@ function RespondPanel({ row, onDone }: { row: LabStockRequestQueueRowResponse; o
       </div>
 
       {mode === 'release' && (
-        <form onSubmit={releaseForm.handleSubmit((v) => releaseSubmit.mutate(v))} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        <form className="lab-stock-response-form" onSubmit={releaseForm.handleSubmit((v) => releaseSubmit.mutate(v))} noValidate>
           <div>
-            <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>Batch</label>
-            <select className="clinical-control" {...releaseForm.register('batchId')} style={inputStyle}>
+            <label htmlFor={`lab-stock-batch-${row.id}`} style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>Batch</label>
+            <select id={`lab-stock-batch-${row.id}`} className="clinical-control" {...releaseForm.register('batchId')} style={inputStyle}>
               <option value="">Select a batch</option>
               {batchesForItem.map((b) => (
                 <option key={b.batchId} value={b.batchId}>
@@ -159,8 +159,8 @@ function RespondPanel({ row, onDone }: { row: LabStockRequestQueueRowResponse; o
             {releaseForm.formState.errors.batchId && <span className="field-error">{releaseForm.formState.errors.batchId.message}</span>}
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>Quantity (≤ {row.remaining} remaining)</label>
-            <input className="clinical-control" type="text" inputMode="numeric" {...releaseForm.register('quantity')} style={inputStyle} />
+            <label htmlFor={`lab-stock-quantity-${row.id}`} style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>Quantity (≤ {row.remaining} remaining)</label>
+            <input id={`lab-stock-quantity-${row.id}`} className="clinical-control" type="text" inputMode="numeric" {...releaseForm.register('quantity')} style={inputStyle} />
             {releaseForm.formState.errors.quantity && <span className="field-error">{releaseForm.formState.errors.quantity.message}</span>}
           </div>
           {releaseSubmit.error && <div className="form-error">Something went wrong. Try again.</div>}
@@ -171,10 +171,10 @@ function RespondPanel({ row, onDone }: { row: LabStockRequestQueueRowResponse; o
       )}
 
       {mode === 'reject' && (
-        <form onSubmit={rejectForm.handleSubmit((v) => rejectSubmit.mutate(v))} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        <form className="lab-stock-response-form" onSubmit={rejectForm.handleSubmit((v) => rejectSubmit.mutate(v))} noValidate>
           <div>
-            <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>Reason</label>
-            <textarea className="clinical-control" rows={2} {...rejectForm.register('responseNotes')} style={inputStyle} />
+            <label htmlFor={`lab-stock-reason-${row.id}`} style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>Reason</label>
+            <textarea id={`lab-stock-reason-${row.id}`} className="clinical-control" rows={2} {...rejectForm.register('responseNotes')} style={inputStyle} />
             {rejectForm.formState.errors.responseNotes && <span className="field-error">{rejectForm.formState.errors.responseNotes.message}</span>}
           </div>
           {rejectSubmit.error && <div className="form-error">Something went wrong. Try again.</div>}

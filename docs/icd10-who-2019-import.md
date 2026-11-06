@@ -1,21 +1,28 @@
 # WHO ICD-10 2019 import
 
-Place the official CSV at `backend/src/main/resources/data/icd10/WHO_ICD10_2019_Codes.csv` before building the backend. With the backend running locally, run this from `backend/` and enter credentials for a user with `REFERENCE_IMPORT` (the bootstrap admin has this permission):
+The repository already includes `backend/src/main/resources/data/icd10/WHO_ICD10_2019_Codes.csv`.
+The backend image bundles this file into its JAR. Import it explicitly after
+the app starts; no CSV upload or container file copy is needed. From the repo
+root on the VPS, run this and enter credentials for a user with
+`REFERENCE_IMPORT` (the bootstrap admin has this permission):
 
 ```sh
-python3 scripts/import_who_icd10_2019.py
+ADAGS_BASE_URL=https://adagshms.derutech.com python3 backend/scripts/import_who_icd10_2019.py
 ```
 
 The command prompts for a password, logs in, sends the import request with the returned token, and prints either the import counts or the HTTP error. It does not print or save the password or token.
 
+For local development, omit `ADAGS_BASE_URL` and run the script from `backend/`.
+
 Alternatively, log in and import manually:
 
 ```sh
+export ADAGS_BASE_URL=https://adagshms.derutech.com
 read -r -p 'Username: ' LOGIN_USER
 read -r -s -p 'Password: ' LOGIN_PASSWORD; echo
 LOGIN_PAYLOAD=$(printf '%s\n%s\n' "$LOGIN_USER" "$LOGIN_PASSWORD" | python3 -c 'import json,sys; print(json.dumps({"username":sys.stdin.readline().rstrip("\n"),"password":sys.stdin.readline().rstrip("\n")}))')
 unset LOGIN_PASSWORD
-LOGIN_RESPONSE=$(curl -fsS -H 'Content-Type: application/json' -d "$LOGIN_PAYLOAD" http://localhost:8080/auth/login)
+LOGIN_RESPONSE=$(curl -fsS -H 'Content-Type: application/json' -d "$LOGIN_PAYLOAD" "$ADAGS_BASE_URL/auth/login")
 unset LOGIN_PAYLOAD
 export ACCESS_TOKEN=$(printf '%s' "$LOGIN_RESPONSE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])')
 unset LOGIN_RESPONSE
@@ -28,7 +35,7 @@ if [ -z "${ACCESS_TOKEN:-}" ]; then
   echo "ACCESS_TOKEN is empty; log in as a user with REFERENCE_IMPORT first"
 else
   curl -sS -i -X POST -H "Authorization: Bearer $ACCESS_TOKEN" \
-    http://localhost:8080/api/reference/icd10/import/who-2019
+    "$ADAGS_BASE_URL/api/reference/icd10/import/who-2019"
 fi
 ```
 

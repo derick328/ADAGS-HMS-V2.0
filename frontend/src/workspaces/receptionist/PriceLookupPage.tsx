@@ -1,8 +1,9 @@
 import { FeedbackState } from '../../shared/components/FeedbackState';
+import { QueryState } from '../../shared/components/WorkspacePage';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import { searchPriceCatalog } from '../../shared/api/priceCatalog';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
@@ -19,7 +20,7 @@ export function PriceLookupPage() {
   const [query, setQuery] = useState('');
   const [submitted, setSubmitted] = useState('');
 
-  const { data: results, isLoading } = useQuery({
+  const { data: results, isLoading, isError, refetch } = useQuery({
     queryKey: ['price-catalog', 'lookup', submitted],
     queryFn: () => searchPriceCatalog(submitted, undefined, accessToken as string),
     enabled: accessToken != null && submitted.trim() !== '',
@@ -30,15 +31,14 @@ export function PriceLookupPage() {
   }
 
   return (
-    <div>
+    <div className="staff-page-stack">
       <PageHeader title={<>Price check</>} description={<>Look up the cash price of any catalogue item — consultation, lab, procedure, pharmacy, or ward.</>} />
 
-      <form className="clinical-filter-bar"
+      <form className="clinical-filter-bar staff-search-bar"
         onSubmit={(e) => {
           e.preventDefault();
           setSubmitted(query.trim());
         }}
-        style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}
       >
         <input className="clinical-control"
           type="text"
@@ -46,7 +46,6 @@ export function PriceLookupPage() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by item name or code"
           aria-label="Search catalogue items"
-          style={{ ...fieldStyle, maxWidth: 420 }}
         />
         <button type="submit" className="btn btn-primary" disabled={query.trim() === ''}>
           Search
@@ -57,10 +56,12 @@ export function PriceLookupPage() {
         <EmptyState message="Type an item name or code, then press Search." />
       ) : isLoading ? (
         <EmptyState message="Searching…" />
+      ) : isError ? (
+        <QueryState title="Unable to load prices" onRetry={() => void refetch()} />
       ) : !results || results.length === 0 ? (
         <EmptyState message={`No priced items match "${submitted}"`} />
       ) : (
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+        <div className="staff-table-card">
           <TableRegion label="Priced catalogue items"><table className="table">
             <caption className="sr-only">Priced catalogue items</caption>
             <thead>
@@ -91,11 +92,3 @@ export function PriceLookupPage() {
 function EmptyState({ message }: { message: string }) {
   return <FeedbackState loading={message.startsWith('Loading') || message.startsWith('Searching')}>{message}</FeedbackState>;
 }
-
-const fieldStyle: CSSProperties = {
-  width: '100%',
-  padding: 'var(--space-2)',
-  border: '1px solid var(--border-strong)',
-  borderRadius: 'var(--radius)',
-  font: 'inherit',
-};

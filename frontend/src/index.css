@@ -3,6 +3,8 @@
 @import "./shared/styles/dashboard.css";
 @import "./shared/styles/analytics.css";
 @import "./shared/styles/forms.css";
+@import "./shared/styles/workspace-polish.css";
+@import "./shared/styles/application-redesign.css";
 
 #root {
   min-height: 100vh;

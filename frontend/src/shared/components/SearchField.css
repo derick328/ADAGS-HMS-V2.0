@@ -1,0 +1,7 @@
+.search-field { position: relative; display: flex; align-items: center; min-width: 0; width: 100%; }
+.search-field-icon { position: absolute; left: 14px; color: var(--green-600); pointer-events: none; z-index: 1; }
+.search-field .search-field-input { width: 100%; padding-left: 42px !important; padding-right: 42px !important; }
+.search-field-input::-webkit-search-cancel-button { display: none; }
+.search-field-clear { position: absolute; right: 7px; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--radius); background: transparent; color: var(--text-secondary); cursor: pointer; }
+.search-field-clear:hover { color: var(--green-900); background: var(--green-100); }
+.search-field-clear:focus-visible { outline: 2px solid var(--green-600); outline-offset: 1px; }

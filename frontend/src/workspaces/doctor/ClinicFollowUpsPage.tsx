@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { FeedbackState } from '../../shared/components/FeedbackState';
+import { QueryState } from '../../shared/components/WorkspacePage';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { fetchActiveClinicAppointments, fetchMyClinicPlans, fetchPatientAppointments, clinicArrivalLabel, type ClinicPlan } from '../../shared/api/appointments';
 import { fetchPatientById } from '../../shared/api/patients';
@@ -17,9 +18,9 @@ export function ClinicFollowUpsPage() {
   const appointments = useQuery({ queryKey: ['appointments', 'clinic-active'],
     queryFn: () => fetchActiveClinicAppointments(accessToken!), enabled: !!accessToken });
   const mine = plans.data?.filter(p => p.active && p.providerId === me?.userId) ?? [];
-  return <div>
+  return <div className="staff-page-stack clinic-followup-page">
     <PageHeader title="Clinic follow-up" description="Active clinic patients, scheduled returns, and attended visits." />
-    {plans.isLoading ? <FeedbackState loading>Loading clinic patients…</FeedbackState> : mine.length === 0 ? <FeedbackState>No active clinic patients assigned to you.</FeedbackState> :
+    {plans.isLoading || appointments.isLoading ? <FeedbackState loading>Loading clinic patients…</FeedbackState> : plans.isError || appointments.isError ? <QueryState title="Unable to load clinic follow-ups" onRetry={() => { void plans.refetch(); void appointments.refetch(); }} /> : mine.length === 0 ? <FeedbackState>No active clinic patients assigned to you.</FeedbackState> :
       <TableRegion label="Active clinic patients"><table className="table">
         <thead><tr><th>Patient</th><th>Clinic</th><th>Next return</th><th>Visit history</th></tr></thead>
         <tbody>{mine.map(plan => <ClinicRow key={plan.id} plan={plan} scheduled={appointments.data?.find(a => a.clinicFollowUpId === plan.id)} />)}</tbody>

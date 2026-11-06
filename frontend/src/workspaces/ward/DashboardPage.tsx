@@ -77,6 +77,7 @@ export function DashboardPage() {
       {awaitingCount > 0 && (
         <button
           type="button"
+          className="ward-placement-callout"
           onClick={() => navigate('/ward-nurse/awaiting-placement')}
           style={{
             display: 'flex',
@@ -123,15 +124,13 @@ export function DashboardPage() {
               {rows
                 .filter((row) => (overdueByAdmission.get(row.admissionId as string) ?? []).length > 0)
                 .map((row) => (
-                  <li
-                    key={row.admissionId}
-                    style={rowLinkStyle}
-                    onClick={() => navigate(`/ward-nurse/patients/${row.admissionId}?tab=mar`)}
-                  >
+                  <li key={row.admissionId}>
+                    <button type="button" className="ward-alert-link" onClick={() => navigate(`/ward-nurse/patients/${row.admissionId}?tab=mar`)}>
                     <span style={{ fontWeight: 'var(--weight-medium)' }}>{row.patientName ?? 'Unknown patient'}</span>
                     <span className="badge badge-critical">
                       {(overdueByAdmission.get(row.admissionId as string) ?? []).length} overdue
                     </span>
+                    </button>
                   </li>
                 ))}
             </ul>
@@ -149,15 +148,13 @@ export function DashboardPage() {
               {rows
                 .filter((row) => (alertingVitalsByAdmission.get(row.admissionId as string) ?? []).length > 0)
                 .map((row) => (
-                  <li
-                    key={row.admissionId}
-                    style={rowLinkStyle}
-                    onClick={() => navigate(`/ward-nurse/patients/${row.admissionId}?tab=vitals`)}
-                  >
+                  <li key={row.admissionId}>
+                    <button type="button" className="ward-alert-link" onClick={() => navigate(`/ward-nurse/patients/${row.admissionId}?tab=vitals`)}>
                     <span style={{ fontWeight: 'var(--weight-medium)' }}>{row.patientName ?? 'Unknown patient'}</span>
                     <span style={{ color: 'var(--critical)', fontSize: 'var(--text-sm)' }}>
                       {(alertingVitalsByAdmission.get(row.admissionId as string) ?? [])[0]?.detail ?? 'Vital breach'}
                     </span>
+                    </button>
                   </li>
                 ))}
             </ul>
@@ -249,13 +246,4 @@ const panelTitleStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 'var(--space-2)',
-};
-
-const rowLinkStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: 'var(--space-2) 0',
-  borderBottom: '1px solid var(--border)',
-  cursor: 'pointer',
 };

@@ -30,8 +30,7 @@ import { QueueShell, type QueueRow } from '../../shared/components/QueueShell';
 
 // 18-admin.md §2/§7, 12-pharmacist.md §9.2: the pharmacy item and
 // price-change approval queue is the only pricing backend that exists
-// today (PharmacyItemProposalController) — the fuller catalogue (payer-aware
-// PriceListEntry versioning, bulk Excel import, §7.5) has no backend yet.
+// today (PharmacyItemProposalController).
 // Approving here creates the item / re-prices it through BillingFacade's
 // versioned pricing path (close the old entry, open a new one) — nobody
 // types a price directly on this screen either.
@@ -240,6 +239,8 @@ function CatalogueImportSection() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [rowErrors, setRowErrors] = useState<{ excelRow: number; reason: string }[]>([]);
+  const [showClearPanel, setShowClearPanel] = useState(false);
+  const [clearResult, setClearResult] = useState<string | null>(null);
 
   const { data: batches } = useQuery({
     queryKey: ['catalog-imports', 'recent'],
@@ -278,6 +279,7 @@ function CatalogueImportSection() {
       setFileName(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       queryClient.invalidateQueries({ queryKey: ['catalog-imports', 'recent'] });
+      queryClient.invalidateQueries({ queryKey: ['catalog-items'] });
     },
     onError: (err) => {
       setUploadError(err instanceof ApiError ? err.message : 'Apply failed — the batch may already be in a terminal state.');
@@ -311,10 +313,31 @@ function CatalogueImportSection() {
       </h2>
       <p style={{ margin: '0 0 var(--space-3)', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
         Upload the hospital's price list (.xlsx). The server validates every row, shows what will change, and
-        applies the diff only when you confirm — new items, price changes, and metadata updates all go through
-        the versioned pricing path (root CLAUDE.md "Billing"). Existing items missing from the new file are
-        left alone.
+        applies the changes only when you confirm. Existing items missing from the new file stay active
+        unless you clear the catalogue first.
       </p>
+
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        {!showClearPanel ? (
+          <button type="button" className="btn btn-danger"
+            disabled={preview != null || uploadMutation.isPending || applyMutation.isPending}
+            onClick={() => setShowClearPanel(true)}>
+            Clear catalogue before new upload…
+          </button>
+        ) : (
+          <DeactivateAllPanel
+            onClose={() => setShowClearPanel(false)}
+            onCleared={(count) => {
+              setClearResult(`Catalogue cleared: ${count} active item${count === 1 ? '' : 's'} deactivated. Upload the new Excel file now.`);
+              setShowClearPanel(false);
+            }}
+          />
+        )}
+        {clearResult && <p role="status" style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>{clearResult}</p>}
+        {preview && <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+          Apply or cancel the current preview before clearing the catalogue.
+        </p>}
+      </div>
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
         <input
@@ -326,7 +349,7 @@ function CatalogueImportSection() {
             setFileName(f ? f.name : null);
             if (f) uploadMutation.mutate(f);
           }}
-          disabled={uploadMutation.isPending || applyMutation.isPending}
+          disabled={showClearPanel || uploadMutation.isPending || applyMutation.isPending}
         />
         {uploadMutation.isPending && <span style={{ color: 'var(--text-muted)' }}>Parsing…</span>}
       </div>
@@ -498,7 +521,6 @@ function CatalogueItemsBrowser() {
   const [activeOnly, setActiveOnly] = useState(true);
   const [page, setPage] = useState(0);
   const pageSize = 50;
-  const [showDeactivatePanel, setShowDeactivatePanel] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['catalog-items', { q: submittedQ, type, billingCategory, activeOnly, page }],
@@ -666,15 +688,6 @@ function CatalogueItemsBrowser() {
         </div>
       )}
 
-      <div style={{ marginTop: 'var(--space-4)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-3)' }}>
-        {!showDeactivatePanel ? (
-          <button type="button" className="btn btn-danger" onClick={() => setShowDeactivatePanel(true)}>
-            Deactivate all items…
-          </button>
-        ) : (
-          <DeactivateAllPanel onClose={() => setShowDeactivatePanel(false)} />
-        )}
-      </div>
     </section>
   );
 }
@@ -682,7 +695,7 @@ function CatalogueItemsBrowser() {
 // Bordered, typed-confirmation gate. Explains what will and won't happen
 // (soft-delete, historical invoices unaffected, prices closed) before
 // the button unlocks.
-function DeactivateAllPanel({ onClose }: { onClose: () => void }) {
+function DeactivateAllPanel({ onClose, onCleared }: { onClose: () => void; onCleared: (count: number) => void }) {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
   const [typed, setTyped] = useState('');
@@ -691,9 +704,10 @@ function DeactivateAllPanel({ onClose }: { onClose: () => void }) {
   const deactivate = useMutation({
     mutationFn: () => deactivateAllCatalogItems(typed, accessToken as string),
     onSuccess: (result) => {
-      setMessage(`Deactivated ${result.deactivatedCount} item${result.deactivatedCount === 1 ? '' : 's'}.`);
       setTyped('');
       queryClient.invalidateQueries({ queryKey: ['catalog-items'] });
+      queryClient.invalidateQueries({ queryKey: ['price-catalog'] });
+      onCleared(result.deactivatedCount);
     },
     onError: (err) => {
       setMessage(err instanceof ApiError ? err.message : 'Could not deactivate — please try again.');
@@ -711,11 +725,11 @@ function DeactivateAllPanel({ onClose }: { onClose: () => void }) {
       padding: 'var(--space-3)',
     }}>
       <div style={{ fontWeight: 'var(--weight-medium)', marginBottom: 'var(--space-2)' }}>
-        Deactivate every catalogue item?
+        Clear all catalogue items and current prices?
       </div>
       <ul style={{ margin: '0 0 var(--space-2)', paddingLeft: 'var(--space-4)', fontSize: 'var(--text-sm)' }}>
         <li>Every currently active service item will be soft-deactivated (is_active = false).</li>
-        <li>Their current CASH price entries are closed (valid_to = today). Historical invoices keep their line snapshots.</li>
+        <li>All current price entries are closed. Historical invoices and price records remain available.</li>
         <li>A later re-upload of the same PRODUCT CODE brings it back on.</li>
         <li>Nothing is hard-deleted from the database.</li>
       </ul>

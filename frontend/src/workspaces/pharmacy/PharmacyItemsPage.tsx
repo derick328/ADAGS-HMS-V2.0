@@ -1,5 +1,6 @@
 import { Tabs } from '../../shared/components/Tabs';
 import { PageHeader } from '../../shared/components/PageHeader';
+import { FormField as Field } from '../../shared/components/FormField';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -23,10 +24,10 @@ export function PharmacyItemsPage() {
   const [tab, setTab] = useState<Tab>('newItem');
 
   return (
-    <div>
+    <div className="staff-page-stack pharmacy-items-page">
       <PageHeader title={<>Pharmacy items</>} description={<>Propose a new item or a price change. Both go to admin for approval.</>} />
 
-      <Tabs aria-label="Proposal type" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} unmountInactivePanels items={[
+      <Tabs aria-label="Proposal type" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} items={[
         { id: 'newItem', label: 'New item', content: <NewItemForm /> },
         { id: 'priceChange', label: 'Price change', content: <PriceChangeForm /> },
         { id: 'packaging', label: 'Packaging', content: <PackagingProposalForm /> },
@@ -55,7 +56,7 @@ function PackagingProposalForm() {
     onSuccess: () => { setUnit(''); setFactor(''); setReason('');
       queryClient.invalidateQueries({ queryKey: ['medicine-packaging', item?.id] }); } });
   if (!canPropose) return <p>Packaging proposals require PACKAGING_PROPOSE permission.</p>;
-  return <div className="stock-in-card" style={{ maxWidth: 680, display: 'grid', gap: 'var(--space-3)' }}>
+  return <div className="stock-in-card pharmacy-proposal-form">
     <p>Conversions are specific to each catalogue product. An authorized second person approves a proposal before it can be used.</p>
     <Combobox<ItemSearchResultResponse> label="Medicine" placeholder="Search catalogue"
       search={(query) => searchItems(query, accessToken as string)} getKey={(option) => option.id as string}
@@ -106,10 +107,9 @@ function NewItemForm() {
   });
 
   return (
-    <form
+    <form className="pharmacy-proposal-form"
       onSubmit={handleSubmit((v) => submit.mutate(v))}
       noValidate
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', maxWidth: 560, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)' }}
     >
       {submit.isSuccess && (
         <div style={{ background: 'var(--green-100)', color: 'var(--green-800)', padding: 'var(--space-3)', borderRadius: 'var(--radius)' }}>
@@ -174,10 +174,9 @@ function PriceChangeForm() {
   });
 
   return (
-    <form
+    <form className="pharmacy-proposal-form"
       onSubmit={handleSubmit((v) => submit.mutate(v))}
       noValidate
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', maxWidth: 560, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)' }}
     >
       {submit.isSuccess && (
         <div style={{ background: 'var(--green-100)', color: 'var(--green-800)', padding: 'var(--space-3)', borderRadius: 'var(--radius)' }}>
@@ -219,16 +218,6 @@ function PriceChangeForm() {
         {submit.isPending ? 'Submitting…' : 'Submit proposal'}
       </button>
     </form>
-  );
-}
-
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>{label}</label>
-      {children}
-      {error && <span className="field-error">{error}</span>}
-    </div>
   );
 }
 

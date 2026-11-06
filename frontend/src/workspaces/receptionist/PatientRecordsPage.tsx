@@ -1,4 +1,5 @@
 import { FeedbackState } from '../../shared/components/FeedbackState';
+import { QueryState } from '../../shared/components/WorkspacePage';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
@@ -30,36 +31,27 @@ export function PatientRecordsPage() {
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(searchParams.get('patientId'));
   const { accessToken } = useAuth();
 
-  const { data: results, isLoading } = useQuery({
+  const { data: results, isLoading, isError, refetch } = useQuery({
     queryKey: ['patients', 'search', submittedQuery],
     queryFn: () => searchPatients(submittedQuery, accessToken as string),
     enabled: accessToken != null && submittedQuery.trim() !== '',
   });
 
   return (
-    <div>
+    <div className="staff-page-stack">
       <PageHeader title={<>Patient records</>} description={<>Financial and visit history only — no clinical content is shown to this role.</>} />
 
-      <form className="clinical-filter-bar"
+      <form className="clinical-filter-bar staff-search-bar"
         onSubmit={(e) => {
           e.preventDefault();
           setSubmittedQuery(query.trim());
           setSelectedPatientId(null);
         }}
-        style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}
       >
         <input aria-label="Search by name, hospital number, phone, or national ID" className="clinical-control"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name, hospital number, phone, or national ID"
-          style={{
-            flex: 1,
-            maxWidth: 420,
-            padding: 'var(--space-2) var(--space-3)',
-            border: '1px solid var(--border-strong)',
-            borderRadius: 'var(--radius)',
-            font: 'inherit',
-          }}
         />
         <button type="submit" className="btn btn-primary" disabled={!canSearch || query.trim() === ''}>
           Search
@@ -72,10 +64,12 @@ export function PatientRecordsPage() {
         selectedPatientId ? null : <EmptyState message="Search for a patient to see their record." />
       ) : isLoading ? (
         <EmptyState message="Searching…" />
+      ) : isError ? (
+        <QueryState title="Unable to search patient records" onRetry={() => void refetch()} />
       ) : !results || results.length === 0 ? (
         <EmptyState message={`No patients match "${submittedQuery}"`} />
       ) : (
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: 'var(--space-4)' }}>
+        <div className="staff-table-card">
           <TableRegion label="Patient search results"><table className="table">
             <caption className="sr-only">Patient search results</caption>
             <thead>
@@ -83,7 +77,7 @@ export function PatientRecordsPage() {
             </thead>
             <tbody>
               {results.map((p) => (
-                <tr key={p.id} onClick={() => setSelectedPatientId(p.id ?? null)} style={{ cursor: 'pointer' }} className={p.id === selectedPatientId ? 'row-selected' : ''}>
+                <tr key={p.id} className={p.id === selectedPatientId ? 'row-selected' : ''}>
                   <td>{p.hospitalNo}</td>
                   <td><button type="button" className="workspace-name" onClick={() => setSelectedPatientId(p.id ?? null)}>{p.fullName}</button></td>
                   <td>{formatPhone(p.phone)}</td>
@@ -131,8 +125,8 @@ function PatientRecordDetail({ patientId }: { patientId: string }) {
       <PatientHeaderCard patient={patient} />
 
       {canReadFinancial && (
-        <section style={sectionStyle}>
-          <h2 style={sectionTitleStyle}>Financial summary</h2>
+        <section className="staff-data-section">
+          <h2>Financial summary</h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)', padding: 'var(--space-4)' }}>
             <SummaryStat label="Total billed" value={formatMoney(totalBilledMinor, invoices?.[0]?.currencyCode)} />
             <SummaryStat label="Total paid" value={formatMoney(totalPaidMinor, invoices?.[0]?.currencyCode)} />
@@ -142,8 +136,8 @@ function PatientRecordDetail({ patientId }: { patientId: string }) {
       )}
 
       {canReadVisitHistory && (
-        <section style={sectionStyle}>
-          <h2 style={sectionTitleStyle}>Visit history</h2>
+        <section className="staff-data-section">
+          <h2>Visit history</h2>
           {!history || history.length === 0 ? (
             <FeedbackState>No visits recorded.</FeedbackState>
           ) : (
@@ -181,8 +175,8 @@ function PatientRecordDetail({ patientId }: { patientId: string }) {
       )}
 
       {canReadFinancial && (
-        <section style={sectionStyle}>
-          <h2 style={sectionTitleStyle}>Invoices</h2>
+        <section className="staff-data-section">
+          <h2>Invoices</h2>
           {!invoices || invoices.length === 0 ? (
             <FeedbackState>No invoices.</FeedbackState>
           ) : (
@@ -212,7 +206,7 @@ function PatientRecordDetail({ patientId }: { patientId: string }) {
 function PatientHeaderCard({ patient }: { patient: PatientResponse | undefined }) {
   if (!patient) return null;
   return (
-    <div style={{ ...sectionStyle, padding: 'var(--space-4)' }}>
+    <div className="staff-record-identity">
       <h2 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)' }}>{patient.fullName}</h2>
       <p style={{ margin: 'var(--space-1) 0 0', color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
         {patient.hospitalNo} · {formatDate(patient.dateOfBirth)}
@@ -236,17 +230,3 @@ function SummaryStat({ label, value, warn }: { label: string; value: string; war
 function EmptyState({ message }: { message: string }) {
   return <FeedbackState loading={message.startsWith('Loading') || message.startsWith('Searching')}>{message}</FeedbackState>;
 }
-
-const sectionStyle = {
-  background: 'var(--bg-surface)',
-  border: '1px solid var(--border)',
-  borderRadius: 'var(--radius-lg)',
-  overflow: 'hidden',
-} as const;
-
-const sectionTitleStyle = {
-  fontSize: 'var(--text-lg)',
-  fontWeight: 'var(--weight-medium)',
-  margin: 0,
-  padding: 'var(--space-4) var(--space-4) 0',
-} as const;

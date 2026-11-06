@@ -147,5 +147,8 @@
 }
 
 .tablist { flex-wrap: wrap; }
-.tab { min-height: var(--row-height); }
+.tab { min-height: var(--control-height); }
 .panel { min-width: 0; }
+.tab:focus-visible { outline: 2px solid var(--green-600); outline-offset: -2px; box-shadow: var(--focus-ring); }
+.tablist { max-width: 100%; overflow-x: auto; scrollbar-width: thin; }
+.tablist .tab { flex: none; }

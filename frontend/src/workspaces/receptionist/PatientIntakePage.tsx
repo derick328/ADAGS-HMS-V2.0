@@ -6,7 +6,9 @@ import { Checkbox } from '../../shared/components/Checkbox';
 import { Radio } from '../../shared/components/Radio';
 import { FormField as FormRow } from '../../shared/components/FormField';
 import { FeedbackState } from '../../shared/components/FeedbackState';
+import { QueryState } from '../../shared/components/WorkspacePage';
 import { PageHeader } from '../../shared/components/PageHeader';
+import { SearchField } from '../../shared/components/SearchField';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -51,35 +53,33 @@ export function PatientIntakePage() {
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [showRegisterForm, setShowRegisterForm] = useState(false);
 
-  const { data: results, isLoading: searching } = useQuery({
+  const { data: results, isLoading: searching, isError: searchError, refetch: retrySearch } = useQuery({
     queryKey: ['patients', 'search', submittedQuery],
     queryFn: () => searchPatients(submittedQuery, accessToken as string),
     enabled: accessToken != null && submittedQuery.trim() !== '',
   });
 
   return (
-    <div>
+    <div className="intake-workspace">
       <PageHeader title={<>Patient intake</>} description={<>Find or register a patient, then prepare their visit.</>} />
 
       <PatientPresencePanel />
 
-      <section style={{ marginTop: 'var(--space-6)' }}>
-        <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)' }}>Find a patient</h2>
+      <section className="intake-search-section" aria-labelledby="intake-search-title">
+        <div className="intake-search-heading"><h2 id="intake-search-title">Find a patient</h2><p>Search existing records before starting a visit or registering someone new.</p></div>
         <form className="clinical-filter-bar"
           onSubmit={(e) => {
             e.preventDefault();
             setSubmittedQuery(query.trim());
             setShowRegisterForm(false);
           }}
-          style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}
         >
-          <input className="clinical-control"
-            type="text"
+          <SearchField
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onClear={() => { setQuery(''); setSubmittedQuery(''); }}
             placeholder="Search by name, hospital number, phone, or national ID"
             aria-label="Search patients"
-            style={{ ...fieldStyle, maxWidth: 420, marginTop: 0 }}
           />
           <button type="submit" className="btn btn-primary" disabled={!canSearch || query.trim() === ''}>
             Search
@@ -92,6 +92,8 @@ export function PatientIntakePage() {
           <EmptyState message="Search for a patient to get started." />
         ) : searching ? (
           <EmptyState message="Searching…" />
+        ) : searchError ? (
+          <QueryState title="Unable to search patients" onRetry={() => void retrySearch()} />
         ) : !results || results.length === 0 ? (
           <EmptyState message={`No patients match "${submittedQuery}"`} />
         ) : (

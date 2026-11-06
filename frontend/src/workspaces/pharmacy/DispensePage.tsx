@@ -156,7 +156,7 @@ export function DispensePage() {
   }
 
   return (
-    <div>
+    <div className="dispense-workspace">
       <PageHeader title={<>Dispense</>}>{queueRow && (
           <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>
             {queueRow.patientName ?? 'Unknown patient'}
@@ -175,19 +175,11 @@ export function DispensePage() {
       {isLoading || !context ? (
         <FeedbackState loading>Loading…</FeedbackState>
       ) : (
-        <div style={{ maxWidth: 760 }}>
+        <div className="dispense-body">
           <AllergyInlineWarning allergies={context.allergies ?? []} />
 
-          <section
-            style={{
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              padding: 'var(--space-4)',
-              marginBottom: 'var(--space-4)',
-            }}
-          >
-            <dl className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', margin: 0 }}>
+          <section className="dispense-summary">
+            <dl className="clinical-grid">
               <div>
                 <dt style={{ color: 'var(--text-muted)' }}>Prescribed</dt>
                 <dd style={{ margin: 0 }}>
@@ -217,7 +209,7 @@ export function DispensePage() {
             </dl>
           </section>
 
-          <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+          <div className="dispense-mode-tabs">
             <button type="button" className={mode === 'dispense' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setMode('dispense')}>
               Dispense
             </button>
@@ -232,8 +224,8 @@ export function DispensePage() {
           </div>
 
           {mode === 'dispense' && (
-            <form onSubmit={handleSubmit(onSubmitDispense)} onChangeCapture={beginProcessing} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+            <form className="dispense-form" onSubmit={handleSubmit(onSubmitDispense)} onChangeCapture={beginProcessing} noValidate>
+              <div className="dispense-batches">
                 <TableRegion label="Batch lines"><table className="table">
                   <caption className="sr-only">Batch lines</caption>
                   <thead>
@@ -299,13 +291,13 @@ export function DispensePage() {
                 Add batch line
               </button>
 
-              <div>
+              <div className="dispense-note">
                 <label htmlFor="counsellingNotes" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
                   Counselling notes (optional)
                 </label>
                 <textarea className="clinical-control" id="counsellingNotes" rows={2} {...register('counsellingNotes')} style={inputStyle} />
               </div>
-              <div>
+              <div className="dispense-note">
                 <label htmlFor="dispensingNotes" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
                   Dispensing notes (optional)
                 </label>

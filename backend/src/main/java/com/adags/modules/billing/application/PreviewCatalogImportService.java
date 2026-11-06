@@ -139,6 +139,7 @@ public class PreviewCatalogImportService {
 
     private static List<String> diffMetadata(CatalogRow row, CatalogItemView current) {
         List<String> changed = new ArrayList<>();
+        if (!current.isActive()) changed.add("reactivate");
         if (!row.name().equals(current.name())) changed.add("name");
         if (row.type() != current.type()) changed.add("type");
         if (row.billingCategory() != current.billingCategory()) changed.add("billing_category");

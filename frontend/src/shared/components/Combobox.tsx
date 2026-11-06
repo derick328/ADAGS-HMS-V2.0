@@ -1,4 +1,6 @@
+import { Search, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
+import './Combobox.css';
 
 /**
  * 07-doctor.md §3: "One component, four configurations. Build it once."
@@ -50,16 +52,23 @@ export function Combobox<T>({
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [error, setError] = useState(false);
+  const [openAbove, setOpenAbove] = useState(false);
   const listboxId = useId();
+  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (query.trim().length < minChars) {
+      requestIdRef.current += 1;
       setOptions([]);
       setIsOpen(false);
+      setIsLoading(false);
       return;
     }
     const requestId = ++requestIdRef.current;
+    setError(false);
     setIsLoading(true);
     const timer = setTimeout(() => {
       search(query.trim())
@@ -69,6 +78,12 @@ export function Combobox<T>({
           setIsOpen(true);
           setHighlightedIndex(0);
         })
+        .catch(() => {
+          if (requestIdRef.current !== requestId) return;
+          setOptions([]);
+          setError(true);
+          setIsOpen(true);
+        })
         .finally(() => {
           if (requestIdRef.current === requestId) setIsLoading(false);
         });
@@ -76,6 +91,12 @@ export function Combobox<T>({
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, minChars, debounceMs]);
+
+  useEffect(() => {
+    if (!isOpen || !inputRef.current) return;
+    const bounds = inputRef.current.getBoundingClientRect();
+    setOpenAbove(window.innerHeight - bounds.bottom < 300 && bounds.top > 300);
+  }, [isOpen]);
 
   function select(option: T) {
     // Disabled rows (controlled-drug, un-classified importer placeholders)
@@ -90,6 +111,7 @@ export function Combobox<T>({
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Escape' && isOpen) { setIsOpen(false); return; }
     if (!isOpen || options.length === 0) return;
     if (event.key === 'ArrowDown') {
       event.preventDefault();
@@ -100,22 +122,26 @@ export function Combobox<T>({
     } else if (event.key === 'Enter') {
       event.preventDefault();
       select(options[highlightedIndex]);
-    } else if (event.key === 'Escape') {
-      setIsOpen(false);
     }
   }
 
   return (
-    <div style={{ position: 'relative' }}>
-      <label style={{ display: 'block', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 4 }}>
+    <div className="clinical-combobox">
+      <label htmlFor={inputId} className="clinical-combobox-label">
         {label}
       </label>
+      <div className="clinical-combobox-control">
+      <Search size={17} aria-hidden="true" className="clinical-combobox-icon" />
       <input
+        ref={inputRef}
+        id={inputId}
+        className="clinical-control clinical-combobox-input"
         type="text"
         role="combobox"
         aria-expanded={isOpen}
         aria-controls={listboxId}
         aria-autocomplete="list"
+        aria-activedescendant={isOpen && options.length ? `${listboxId}-option-${highlightedIndex}` : undefined}
         value={query}
         placeholder={placeholder}
         disabled={disabled}
@@ -123,42 +149,23 @@ export function Combobox<T>({
         onKeyDown={onKeyDown}
         onFocus={() => options.length > 0 && setIsOpen(true)}
         onBlur={() => setTimeout(() => setIsOpen(false), 150)}
-        style={{
-          width: '100%',
-          padding: 'var(--space-2)',
-          border: '1px solid var(--border-strong)',
-          borderRadius: 'var(--radius)',
-          font: 'inherit',
-        }}
       />
+      {query && <button type="button" className="clinical-combobox-clear" aria-label={`Clear ${label}`} onMouseDown={(event) => event.preventDefault()} onClick={() => { setQuery(''); setOptions([]); setIsOpen(false); inputRef.current?.focus(); }}><X size={16} aria-hidden="true" /></button>}
+      </div>
       {isLoading && query.trim().length >= minChars && (
-        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 2 }}>Searching…</div>
+        <div className="clinical-combobox-message" role="status">Searching…</div>
       )}
       {isOpen && options.length > 0 && (
         <ul
           id={listboxId}
           role="listbox"
-          style={{
-            position: 'absolute',
-            zIndex: 20,
-            top: '100%',
-            left: 0,
-            right: 0,
-            marginTop: 4,
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            maxHeight: 280,
-            overflowY: 'auto',
-            listStyle: 'none',
-            padding: 4,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-          }}
+          className={`clinical-combobox-list ${openAbove ? 'clinical-combobox-list-above' : ''}`}
         >
           {options.map((option, index) => {
             const optDisabled = isOptionDisabled?.(option) ?? false;
             return (
               <li
+                id={`${listboxId}-option-${index}`}
                 key={getKey(option)}
                 role="option"
                 aria-selected={index === highlightedIndex}
@@ -169,12 +176,7 @@ export function Combobox<T>({
                 }}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 title={optDisabled ? 'Not selectable — see reason' : undefined}
-                style={{
-                  padding: '6px 8px',
-                  borderRadius: 'var(--radius-sm)',
-                  cursor: optDisabled ? 'not-allowed' : 'pointer',
-                  background: index === highlightedIndex ? 'var(--green-100)' : 'transparent',
-                }}
+                className="clinical-combobox-option"
               >
                 {renderOption(option)}
               </li>
@@ -183,23 +185,8 @@ export function Combobox<T>({
         </ul>
       )}
       {isOpen && !isLoading && options.length === 0 && query.trim().length >= minChars && (
-        <div
-          style={{
-            position: 'absolute',
-            zIndex: 20,
-            top: '100%',
-            left: 0,
-            right: 0,
-            marginTop: 4,
-            padding: '8px',
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            color: 'var(--text-muted)',
-            fontSize: 'var(--text-sm)',
-          }}
-        >
-          No matches.
+        <div className={`clinical-combobox-empty ${openAbove ? 'clinical-combobox-list-above' : ''}`} role="status">
+          {error ? 'Search failed. Try again.' : 'No matches.'}
         </div>
       )}
     </div>

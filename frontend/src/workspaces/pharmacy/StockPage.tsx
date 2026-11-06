@@ -1,6 +1,11 @@
 import { Tabs } from '../../shared/components/Tabs';
 import { FeedbackState } from '../../shared/components/FeedbackState';
+import { EmptyState } from '../../shared/components/EmptyState';
+import { PackageOpen } from 'lucide-react';
 import { PageHeader } from '../../shared/components/PageHeader';
+import { SearchField } from '../../shared/components/SearchField';
+import { DropdownSelect } from '../../shared/components/DropdownSelect';
+import { QueryState } from '../../shared/components/WorkspacePage';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -9,6 +14,7 @@ import { fetchStockReceipts } from '../../shared/api/stockReceipts';
 import { fetchStockMovements } from '../../shared/api/stockMovements';
 import { fetchAuthorizedStockStores } from '../../shared/api/stores';
 import { useAuth } from '../../shared/auth/AuthProvider';
+import { usePermission } from '../../shared/auth/usePermission';
 import { formatDate } from '../../shared/format/date';
 import { formatMoney } from '../../shared/format/money';
 import { formatDateTime } from '../../shared/format/date';
@@ -32,18 +38,24 @@ const TABS: { key: Tab; label: string }[] = [
 // within 90 days / stock valuation, plus the restock form (§7.2).
 export function StockPage() {
   const [tab, setTab] = useState<Tab>('current');
+  const [visited, setVisited] = useState<Partial<Record<Tab, boolean>>>({ current: true });
+  const canRestock = usePermission('STOCK_RESTOCK');
+  const selectTab = (next: Tab) => {
+    setVisited((current) => current[next] ? current : { ...current, [next]: true });
+    setTab(next);
+  };
 
   return (
-    <div>
+    <div className="stock-workspace">
       <PageHeader title={<>Stock</>} description={<>Review available batches, expiry dates, and incoming stock.</>} />
 
-      <Tabs aria-label="Stock views" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} unmountInactivePanels
-        items={TABS.map(({ key, label }) => ({ id: key, label, content: {
-          current: <CurrentStockView />, stockIn: <StockInPage />, movements: <MovementsView />,
+      <Tabs aria-label="Stock views" variant="underline" value={tab} onChange={(value) => selectTab(value as Tab)}
+        items={TABS.map(({ key, label }) => ({ id: key, label, disabled: key === 'stockIn' && !canRestock, content: visited[key] ? {
+          current: <CurrentStockView onStockIn={() => selectTab('stockIn')} canRestock={canRestock} />, stockIn: canRestock ? <StockInPage /> : <FeedbackState>Stock receiving is unavailable for this account.</FeedbackState>, movements: <MovementsView />,
           low: <LowStockView />, expiring: <ExpiringView />, history: <ReceivingHistoryView />,
           adjustments: <StockAdjustmentsPage />,
           valuation: <ValuationView />,
-        }[key] }))} />
+        }[key] : null }))} />
 
     </div>
   );
@@ -55,12 +67,12 @@ function MovementsView() {
   const { data: stores } = useQuery({ queryKey: ['stores', 'authorized-stock'],
     queryFn: () => fetchAuthorizedStockStores(accessToken as string), enabled: accessToken != null });
   const storeId = selectedStoreId || stores?.[0]?.id || '';
-  const { data, isLoading } = useQuery({ queryKey: ['stock-movements', storeId],
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['stock-movements', storeId],
     queryFn: () => fetchStockMovements(storeId, accessToken as string),
     enabled: accessToken != null && !!storeId });
   const rows = data ?? [];
   return <><StorePicker stores={stores ?? []} value={storeId} onChange={setSelectedStoreId} />
-  <TableShell isLoading={isLoading} isEmpty={rows.length === 0} emptyMessage="No movements recorded.">
+  <TableShell isLoading={isLoading} isError={isError} onRetry={() => void refetch()} isEmpty={rows.length === 0} emptyMessage="No movements recorded.">
     <thead><tr><th>Date</th><th>Medicine</th><th>Batch</th><th>Movement</th><th>Base units</th></tr></thead>
     <tbody>{rows.map((row) => <tr key={row.id}><td>{formatDateTime(row.occurredAt)}</td>
       <td>{row.itemName} · {row.itemCode}</td><td>{row.batchNumber}</td><td>{row.movementType}</td>
@@ -75,21 +87,21 @@ function ReceivingHistoryView() {
   const { data: stores } = useQuery({ queryKey: ['stores', 'authorized-stock'],
     queryFn: () => fetchAuthorizedStockStores(accessToken as string), enabled: accessToken != null });
   const storeId = selectedStoreId || stores?.[0]?.id || '';
-  const { data, isLoading } = useQuery({ queryKey: ['stock-receipts', storeId],
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['stock-receipts', storeId],
     queryFn: () => fetchStockReceipts(storeId, accessToken as string),
     enabled: accessToken != null && !!storeId });
   const rows = data ?? [];
   const selected = rows.find((row) => row.id === selectedId);
   return <>
     <StorePicker stores={stores ?? []} value={storeId} onChange={(id) => { setSelectedStoreId(id); setSelectedId(null); }} />
-    <TableShell isLoading={isLoading} isEmpty={rows.length === 0} emptyMessage="No confirmed deliveries.">
+    <TableShell isLoading={isLoading} isError={isError} onRetry={() => void refetch()} isEmpty={rows.length === 0} emptyMessage="No confirmed deliveries.">
       <thead><tr><th>Receipt</th><th>Supplier</th><th>Invoice</th><th>Delivery note</th><th>Delivery date</th><th>Confirmed</th><th>Received by</th><th>Lines</th><th>Value</th><th>Status</th></tr></thead>
       <tbody>{rows.map((row) => <tr key={row.id}>
         <td><button type="button" className="btn btn-ghost" onClick={() => setSelectedId(row.id)}>{row.receiptNumber}</button></td>
         <td>{row.supplierName}</td><td>{row.invoiceNumber}</td><td>{row.deliveryNoteNumber}</td>
         <td>{formatDate(row.deliveryDate)}</td><td>{formatDateTime(row.confirmedAt)}</td><td>{row.receivedByName ?? row.receivedBy}</td>
         <td className="tabular">{row.lines.length}</td><td className="money">{formatMoney(row.totalReceivedCostMinor, row.currencyCode)}</td>
-        <td>Confirmed</td></tr>)}</tbody>
+        <td><span className="badge badge-success">Confirmed</span></td></tr>)}</tbody>
     </TableShell>
     {selected && <section className="stock-in-card" aria-label="Receipt detail">
       <div className="stock-in-section-heading"><h3>{selected.receiptNumber}</h3>
@@ -113,19 +125,19 @@ function ReceivingHistoryView() {
 
 function StorePicker({ stores, value, onChange }: { stores: { id?: string; name?: string }[];
   value: string; onChange: (id: string) => void }) {
-  return <label style={{ display: 'inline-grid', gap: 'var(--space-1)', marginBottom: 'var(--space-3)' }}>
+  return <label className="stock-store-picker">
     Store <select className="clinical-control" value={value} onChange={(e) => onChange(e.target.value)}>
       {stores.map((store) => <option key={store.id} value={store.id}>{store.name}</option>)}
     </select>
   </label>;
 }
 
-function CurrentStockView() {
+function CurrentStockView({ onStockIn, canRestock }: { onStockIn: () => void; canRestock: boolean }) {
   const { accessToken } = useAuth();
   const [search, setSearch] = useState('');
   const [storeFilter, setStoreFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['stock-reports', 'current-stock'],
     queryFn: () => fetchCurrentStock(accessToken as string),
     enabled: accessToken != null,
@@ -137,20 +149,12 @@ function CurrentStockView() {
 
   return (
     <>
-    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-3)' }}>
-      <label>Search medicine <input className="clinical-control" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or code" /></label>
-      <label>Store <select className="clinical-control" value={storeFilter} onChange={(e) => setStoreFilter(e.target.value)}>
-        <option value="">All authorized stores</option>
-        {[...new Map((data ?? []).map((row) => [row.storeId, row.storeName])).entries()].map(([id, name]) =>
-          <option key={id} value={id}>{name}</option>)}
-      </select></label>
-      <label>Status <select className="clinical-control" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-        <option value="">All statuses</option>
-        {[...new Set((data ?? []).map((row) => row.stockStatus).filter(Boolean))].map((status) =>
-          <option key={status} value={status}>{status}</option>)}
-      </select></label>
+    <div className="stock-toolbar">
+      <label>Search medicine <SearchField value={search} onChange={(e) => setSearch(e.target.value)} onClear={() => setSearch('')} placeholder="Name or code" /></label>
+      <DropdownSelect label="Store" value={storeFilter} onChange={setStoreFilter} options={[{ value: '', label: 'All authorized stores' }, ...[...new Map((data ?? []).filter((row) => row.storeId).map((row) => [row.storeId, row.storeName])).entries()].map(([id, name]) => ({ value: id ?? '', label: name ?? id ?? 'Store' }))]} />
+      <DropdownSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: '', label: 'All statuses' }, ...[...new Set((data ?? []).map((row) => row.stockStatus).filter((status): status is string => Boolean(status)))].map((status) => ({ value: status, label: status }))]} />
     </div>
-    <TableShell isLoading={isLoading} isEmpty={rows.length === 0} emptyMessage="No stock on hand.">
+    <TableShell isLoading={isLoading} isError={isError} onRetry={() => void refetch()} isEmpty={rows.length === 0} emptyMessage={search || storeFilter || statusFilter ? 'No stock matches these filters.' : 'No stock on hand.'} action={canRestock && !search && !storeFilter && !statusFilter ? <button type="button" className="btn btn-primary" onClick={onStockIn}>Stock in</button> : undefined}>
       <thead>
         <tr>
           <th>Item</th>
@@ -185,7 +189,7 @@ function CurrentStockView() {
 
 function LowStockView() {
   const { accessToken } = useAuth();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['stock-reports', 'low-stock'],
     queryFn: () => fetchLowStock(accessToken as string),
     enabled: accessToken != null,
@@ -193,7 +197,7 @@ function LowStockView() {
   const rows = data ?? [];
 
   return (
-    <TableShell isLoading={isLoading} isEmpty={rows.length === 0} emptyMessage="Nothing is below its reorder level.">
+    <TableShell isLoading={isLoading} isError={isError} onRetry={() => void refetch()} isEmpty={rows.length === 0} emptyMessage="Nothing is below its reorder level.">
       <thead>
         <tr>
           <th>Item</th>
@@ -216,7 +220,7 @@ function LowStockView() {
 
 function ExpiringView() {
   const { accessToken } = useAuth();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['stock-reports', 'expiring-batches'],
     queryFn: () => fetchExpiringBatches(accessToken as string),
     enabled: accessToken != null,
@@ -224,7 +228,7 @@ function ExpiringView() {
   const rows = data ?? [];
 
   return (
-    <TableShell isLoading={isLoading} isEmpty={rows.length === 0} emptyMessage="Nothing expiring within 90 days.">
+    <TableShell isLoading={isLoading} isError={isError} onRetry={() => void refetch()} isEmpty={rows.length === 0} emptyMessage="Nothing expiring within 90 days.">
       <thead>
         <tr>
           <th>Item</th>
@@ -249,7 +253,7 @@ function ExpiringView() {
 
 function ValuationView() {
   const { accessToken } = useAuth();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['stock-reports', 'valuation'],
     queryFn: () => fetchStockValuation(accessToken as string),
     enabled: accessToken != null,
@@ -257,7 +261,7 @@ function ValuationView() {
   const rows = data ?? [];
 
   return (
-    <TableShell isLoading={isLoading} isEmpty={rows.length === 0} emptyMessage="No valuation to show.">
+    <TableShell isLoading={isLoading} isError={isError} onRetry={() => void refetch()} isEmpty={rows.length === 0} emptyMessage="No valuation to show.">
       <thead>
         <tr>
           <th>Store</th>
@@ -276,13 +280,15 @@ function ValuationView() {
   );
 }
 
-function TableShell({ isLoading, isEmpty, emptyMessage, children }: { isLoading: boolean; isEmpty: boolean; emptyMessage: string; children: React.ReactNode }) {
+function TableShell({ isLoading, isError, onRetry, isEmpty, emptyMessage, action, children }: { isLoading: boolean; isError: boolean; onRetry: () => void; isEmpty: boolean; emptyMessage: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: 'var(--space-6)' }}>
+    <div className="stock-table-shell">
       {isLoading ? (
-        <FeedbackState loading>Loading…</FeedbackState>
+        <FeedbackState loading>Loading stock data…</FeedbackState>
+      ) : isError ? (
+        <QueryState title="Unable to load stock data" description="Check the connection and try again." onRetry={onRetry} />
       ) : isEmpty ? (
-        <FeedbackState>{emptyMessage}</FeedbackState>
+        <div className="stock-empty"><EmptyState icon={PackageOpen} title={emptyMessage} description={emptyMessage === 'No stock on hand.' ? 'Received and accepted medicine batches will appear here.' : undefined} />{action}</div>
       ) : (
         <TableRegion label="Stock report"><table className="table">
           <caption className="sr-only">Stock report</caption>

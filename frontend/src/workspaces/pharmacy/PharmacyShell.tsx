@@ -1,3 +1,5 @@
+import { WorkspaceUser } from '../../shared/components/WorkspaceUser';
+import { WorkspaceNavIcon } from '../../shared/components/WorkspaceNavIcon';
 import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
 import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
@@ -24,7 +26,7 @@ export function PharmacyShell() {
     <div className="pharmacy-shell-outer">
       <div className="pharmacy-shell app-shell">
         <a className="skip-link" href="#workspace-main">Skip to content</a>
-        <aside className="pharmacy-sidebar app-sidebar">
+        <aside className="pharmacy-sidebar app-sidebar staff-sidebar">
           <WorkspaceBrand workspace="Pharmacy" />
           <nav className="pharmacy-nav app-nav" aria-label="Pharmacy navigation">
             <DashboardLink />
@@ -37,17 +39,17 @@ export function PharmacyShell() {
             <div className="nav-divider" role="separator" />
 
             <NavLink to="/pharmacy/profile" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
-              Profile
+              <WorkspaceNavIcon path="/pharmacy/profile" />Profile
             </NavLink>
           </nav>
           <div className="pharmacy-sidebar-footer app-sidebar-footer">
-            <div className="pharmacy-user">{me?.username}</div>
+            <WorkspaceUser name={me?.username} role="Pharmacy" />
             <button type="button" className="pharmacy-logout app-logout" onClick={() => logout()}>
               Sign out
             </button>
           </div>
         </aside>
-        <main id="workspace-main" tabIndex={-1} className="pharmacy-content app-content">
+        <main id="workspace-main" tabIndex={-1} className="pharmacy-content app-content staff-workspace">
           <div className="workspace-body"><Outlet /></div>
         </main>
       </div>
@@ -76,7 +78,7 @@ function DashboardLink() {
     <NavLink to="/pharmacy" end className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
       <span className="nav-item-label">
         <span className="nav-item-label-text">
-          Dashboard
+          <WorkspaceNavIcon path="/pharmacy" />Dashboard
           {hasEmergency && (
             <span className="nav-emergency-dot" aria-label="Emergency bypass waiting" title="Emergency bypass waiting" />
           )}
@@ -95,7 +97,7 @@ function DispensingQueueLink() {
       to="/pharmacy/dispensing"
       className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}
     >
-      Dispensing queue
+      <WorkspaceNavIcon path="/pharmacy/dispensing" />Dispensing queue
     </NavLink>
   );
 }
@@ -105,7 +107,7 @@ function HistoryLink() {
   if (!canSee) return null;
   return (
     <NavLink to="/pharmacy/history" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
-      History
+      <WorkspaceNavIcon path="/pharmacy/history" />History
     </NavLink>
   );
 }
@@ -134,7 +136,7 @@ function StockLink() {
   return (
     <NavLink to="/pharmacy/stock" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
       <span className="nav-item-label">
-        <span>Stock</span>
+        <span className="nav-item-label-text"><WorkspaceNavIcon path="/pharmacy/stock" />Stock</span>
         {alertCount > 0 && <span className="badge badge-warning">{alertCount}</span>}
       </span>
     </NavLink>
@@ -146,7 +148,7 @@ function PharmacyItemsLink() {
   if (!canSee) return null;
   return (
     <NavLink to="/pharmacy/items" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
-      Pharmacy Items
+      <WorkspaceNavIcon path="/pharmacy/items" />Pharmacy Items
     </NavLink>
   );
 }
@@ -169,7 +171,7 @@ function LabStockRequestsLink() {
   return (
     <NavLink to="/pharmacy/lab-stock-requests" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
       <span className="nav-item-label">
-        <span>Lab Stock Requests</span>
+        <span className="nav-item-label-text"><WorkspaceNavIcon path="/pharmacy/lab-stock-requests" />Lab Stock Requests</span>
         {pendingCount > 0 && <span className="badge badge-neutral">{pendingCount}</span>}
       </span>
     </NavLink>

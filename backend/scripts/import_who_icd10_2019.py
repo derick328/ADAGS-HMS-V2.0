@@ -2,11 +2,12 @@
 
 import getpass
 import json
+import os
 import sys
 from urllib import error, request
 
 
-BASE_URL = "http://localhost:8080"
+BASE_URL = os.environ.get("ADAGS_BASE_URL", "http://localhost:8080").rstrip("/")
 
 
 def post(path: str, payload: dict | None = None, token: str | None = None) -> dict:

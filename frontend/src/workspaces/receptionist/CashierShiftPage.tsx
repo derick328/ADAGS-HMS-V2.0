@@ -94,8 +94,8 @@ export function CashierShiftPage() {
             <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>Running total, this shift</p>
           </div>
 
-          <section style={sectionStyle}>
-            <h2 style={sectionTitleStyle}>By method</h2>
+          <section className="staff-data-section">
+            <h2>By method</h2>
             {totalsByMethod.size === 0 ? (
               <FeedbackState>No payments recorded yet.</FeedbackState>
             ) : (
@@ -115,7 +115,7 @@ export function CashierShiftPage() {
           </section>
 
           {canClose && (
-            <section style={{ ...cardStyle, maxWidth: 400 }}>
+            <section className="staff-form-card cashier-close-card" style={cardStyle}>
               <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)', marginTop: 0 }}>Close shift</h2>
               <label htmlFor="counted-cash" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>
                 Counted cash (TZS)
@@ -126,7 +126,6 @@ export function CashierShiftPage() {
                 min={0}
                 value={countedCash}
                 onChange={(e) => setCountedCash(e.target.value)}
-                style={{ width: '100%', marginTop: 'var(--space-1)', padding: 'var(--space-2)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius)', font: 'inherit' }}
               />
               {close.error && <div className="form-error">Something went wrong closing the shift.</div>}
               <button
@@ -171,18 +170,4 @@ const cardStyle = {
   border: '1px solid var(--border)',
   borderRadius: 'var(--radius-lg)',
   padding: 'var(--space-4)',
-} as const;
-
-const sectionStyle = {
-  background: 'var(--bg-surface)',
-  border: '1px solid var(--border)',
-  borderRadius: 'var(--radius-lg)',
-  overflow: 'hidden',
-} as const;
-
-const sectionTitleStyle = {
-  fontSize: 'var(--text-lg)',
-  fontWeight: 'var(--weight-medium)',
-  margin: 0,
-  padding: 'var(--space-4) var(--space-4) 0',
 } as const;

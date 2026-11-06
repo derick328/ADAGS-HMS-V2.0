@@ -127,4 +127,7 @@
   }
 }
 
-.md, .lg { min-height: var(--row-height); }
+.sm { min-height: 36px; }
+.md, .lg { min-height: var(--control-height); }
+.root:focus-visible { outline: 2px solid var(--green-600); outline-offset: 2px; box-shadow: var(--focus-ring); }
+.root[aria-busy="true"] { cursor: progress; }

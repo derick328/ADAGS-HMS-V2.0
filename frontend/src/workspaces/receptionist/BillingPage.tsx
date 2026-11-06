@@ -1,6 +1,7 @@
 import { Checkbox } from '../../shared/components/Checkbox';
 import { FeedbackState } from '../../shared/components/FeedbackState';
 import { PageHeader } from '../../shared/components/PageHeader';
+import { QueryState } from '../../shared/components/WorkspacePage';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type CSSProperties } from 'react';
@@ -40,48 +41,46 @@ export function BillingPage() {
   // straight to the payment panel so the cashier doesn't search again.
   const [paymentPatientId, setPaymentPatientId] = useState<string | null>(null);
 
-  const { data: patientMatches } = useQuery({
+  const { data: patientMatches, isLoading: searchingPatients, isError: patientSearchError, refetch: retryPatientSearch } = useQuery({
     queryKey: ['patients', 'search', submittedPatientQuery],
     queryFn: () => searchPatients(submittedPatientQuery, accessToken as string),
     enabled: accessToken != null && submittedPatientQuery.trim() !== '',
   });
   const filterPatientId = patientMatches?.[0]?.id;
 
-  const { data: invoices, isLoading } = useQuery({
+  const { data: invoices, isLoading, isError: invoicesError, refetch: retryInvoices } = useQuery({
     queryKey: ['invoices', filterPatientId, outstandingOnly],
     queryFn: () => searchInvoices({ patientId: filterPatientId, outstandingOnly }, accessToken as string),
-    enabled: accessToken != null && canRead,
+    enabled: accessToken != null && canRead && (!submittedPatientQuery || !!filterPatientId),
     refetchInterval: 15_000,
   });
 
   return (
-    <div>
-      <PageHeader title={<>Billing</>} description={<>Find invoices, review balances, and record patient payments.</>}><div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-          <button type="button" className={tab === 'invoices' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('invoices')}>
+    <div className="staff-page-stack">
+      <PageHeader title={<>Billing</>} description={<>Find invoices, review balances, and record patient payments.</>}><div className="staff-page-actions" role="group" aria-label="Billing views">
+          <button type="button" aria-pressed={tab === 'invoices'} className={tab === 'invoices' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('invoices')}>
             {outstandingOnly ? 'Pending bills' : 'Invoices'}
           </button>
-          <button type="button" className={tab === 'create' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('create')}>
+          <button type="button" aria-pressed={tab === 'create'} className={tab === 'create' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('create')}>
             Create invoice
           </button>
-          <button type="button" className={tab === 'payment' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('payment')}>
+          <button type="button" aria-pressed={tab === 'payment'} className={tab === 'payment' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setTab('payment')}>
             Record payment
           </button>
         </div></PageHeader>
 
       {tab === 'invoices' && (
         <>
-          <form className="clinical-filter-bar"
+          <form className="clinical-filter-bar staff-search-bar"
             onSubmit={(e) => {
               e.preventDefault();
               setSubmittedPatientQuery(patientQuery.trim());
             }}
-            style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}
           >
             <input aria-label="Filter by patient name, hospital number, or phone" className="clinical-control"
               value={patientQuery}
               onChange={(e) => setPatientQuery(e.target.value)}
               placeholder="Filter by patient name, hospital number, or phone"
-              style={{ ...fieldStyle, maxWidth: 380, marginTop: 0 }}
             />
             <button type="submit" className="btn btn-secondary">
               Filter
@@ -94,9 +93,15 @@ export function BillingPage() {
             <Checkbox  className="clinical-choice" checked={outstandingOnly} onChange={(e) => setOutstandingOnly(e.target.checked)} label={<>Outstanding only</>} />
           </form>
 
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-            {isLoading ? (
+          <div className="staff-table-card">
+            {searchingPatients ? (
+              <EmptyState message="Searching patients…" />
+            ) : patientSearchError ? (
+              <QueryState title="Unable to search patients" onRetry={() => void retryPatientSearch()} />
+            ) : isLoading ? (
               <EmptyState message="Loading…" />
+            ) : invoicesError ? (
+              <QueryState title="Unable to load invoices" onRetry={() => void retryInvoices()} />
             ) : !invoices || invoices.length === 0 ? (
               <EmptyState
                 message={
@@ -122,13 +127,13 @@ export function BillingPage() {
                 </thead>
                 <tbody>
                   {invoices.map((inv) => (
-                    <tr key={inv.id} onClick={() => setSelectedInvoiceId(inv.id ?? null)} style={{ cursor: 'pointer' }} className={inv.id === selectedInvoiceId ? 'row-selected' : ''}>
+                    <tr key={inv.id} className={inv.id === selectedInvoiceId ? 'row-selected' : ''}>
                       <td style={{ fontWeight: 'var(--weight-medium)' }}>{inv.invoiceNumber ?? <span className="badge badge-neutral">draft</span>}</td>
                       <td><InvoicePatientName patientId={inv.patientId} /></td>
                       <td><InvoiceStateBadge state={inv.state} /></td>
                       <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{formatDateTime(inv.createdAt)}</td>
                       <td className="money">{formatMoney(inv.outstandingTotalMinor, inv.currencyCode)}</td>
-                      <td />
+                      <td><button type="button" className="btn btn-ghost" aria-label={`View invoice ${inv.invoiceNumber ?? 'draft'}`} onClick={() => setSelectedInvoiceId(inv.id ?? null)}>View</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -218,7 +223,7 @@ function InvoiceDetailPanel({
   });
 
   return (
-    <div style={{ ...cardStyle, marginTop: 'var(--space-4)' }}>
+    <div className="staff-form-card invoice-detail-card" style={{ ...cardStyle, marginTop: 'var(--space-4)' }}>
       <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)', marginTop: 0 }}>
         {invoice?.invoiceNumber ?? 'Draft invoice'}
       </h2>
@@ -326,14 +331,14 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <div style={{ ...cardStyle, maxWidth: 640 }}>
+    <div className="staff-form-card invoice-form-card" style={cardStyle}>
       <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)', marginTop: 0 }}>Create invoice</h2>
 
       {!selectedPatient ? (
         <div>
-          <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Patient</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-            <input className="clinical-control" value={patientQuery} onChange={(e) => setPatientQuery(e.target.value)} style={{ ...fieldStyle, marginTop: 0 }} />
+          <label htmlFor="invoice-patient-search" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Patient</label>
+          <div className="staff-search-row">
+            <input id="invoice-patient-search" className="clinical-control" value={patientQuery} onChange={(e) => setPatientQuery(e.target.value)} style={{ ...fieldStyle, marginTop: 0 }} />
             <button type="button" className="btn btn-secondary" onClick={runPatientSearch}>Search</button>
           </div>
           {patientResults.length > 0 && (
@@ -359,20 +364,20 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
             <Checkbox  className="clinical-choice" checked={useEncounter} onChange={(e) => setUseEncounter(e.target.checked)} label={<>Attach to open encounter ({openEncounter.state?.toLowerCase()})</>} />
           )}
 
-          <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+          <div className="staff-form-grid">
             <div>
-              <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Due date</label>
-              <input className="clinical-control" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={fieldStyle} />
+              <label htmlFor="invoice-due-date" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Due date</label>
+              <input id="invoice-due-date" className="clinical-control" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} style={fieldStyle} />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Notes (optional)</label>
-              <input className="clinical-control" value={notes} onChange={(e) => setNotes(e.target.value)} style={fieldStyle} />
+              <label htmlFor="invoice-notes" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Notes (optional)</label>
+              <input id="invoice-notes" className="clinical-control" value={notes} onChange={(e) => setNotes(e.target.value)} style={fieldStyle} />
             </div>
           </div>
 
-          <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Add line item</label>
-          <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-            <input aria-label="Search the catalogue…" className="clinical-control" value={catalogQuery} onChange={(e) => setCatalogQuery(e.target.value)} placeholder="Search the catalogue…" style={{ ...fieldStyle, marginTop: 0 }} />
+          <label htmlFor="invoice-catalog-search" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Add line item</label>
+          <div className="staff-search-row">
+            <input id="invoice-catalog-search" className="clinical-control" value={catalogQuery} onChange={(e) => setCatalogQuery(e.target.value)} placeholder="Search the catalogue…" style={{ ...fieldStyle, marginTop: 0 }} />
             <button type="button" className="btn btn-secondary" onClick={runCatalogSearch}>Search</button>
           </div>
           {catalogResults.length > 0 && (
@@ -531,15 +536,15 @@ function RecordPaymentPanel({ initialPatientId }: { initialPatientId?: string | 
   }
 
   return (
-    <div style={{ ...cardStyle, maxWidth: 640 }}>
+    <div className="staff-form-card invoice-form-card" style={cardStyle}>
       <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)', marginTop: 0 }}>Record payment</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-        03-billing-addendum.md §1: tick the lines the money is for — the total fills in.
+        Select the invoice lines this payment covers. The amount updates automatically.
       </p>
 
       {!selectedPatient ? (
         <div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+          <div className="staff-search-row">
             <input aria-label="Search patients…" className="clinical-control" value={patientQuery} onChange={(e) => setPatientQuery(e.target.value)} placeholder="Search patients…" style={{ ...fieldStyle, marginTop: 0 }} />
             <button type="button" className="btn btn-secondary" onClick={runPatientSearch}>Search</button>
           </div>
@@ -592,10 +597,10 @@ function RecordPaymentPanel({ initialPatientId }: { initialPatientId?: string | 
             </table></TableRegion>
           )}
 
-          <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-end', marginBottom: 'var(--space-3)' }}>
+          <div className="staff-payment-grid">
             <div>
-              <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Method</label>
-              <select className="clinical-control" value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} style={fieldStyle}>
+              <label htmlFor="payment-method" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Method</label>
+              <select id="payment-method" className="clinical-control" value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} style={fieldStyle}>
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m} value={m}>{m.replaceAll('_', ' ').toLowerCase()}</option>
                 ))}
@@ -603,8 +608,8 @@ function RecordPaymentPanel({ initialPatientId }: { initialPatientId?: string | 
             </div>
             {method !== 'CASH' && (
               <div>
-                <label style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Reference</label>
-                <input className="clinical-control" value={reference} onChange={(e) => setReference(e.target.value)} style={fieldStyle} />
+                <label htmlFor="payment-reference" style={{ display: 'block', fontSize: 'var(--text-sm)' }}>Reference</label>
+                <input id="payment-reference" className="clinical-control" value={reference} onChange={(e) => setReference(e.target.value)} style={fieldStyle} />
               </div>
             )}
             <div style={{ marginLeft: 'auto', textAlign: 'right' }}>

@@ -1,3 +1,5 @@
+import { WorkspaceUser } from '../../shared/components/WorkspaceUser';
+import { WorkspaceNavIcon } from '../../shared/components/WorkspaceNavIcon';
 import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
 import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
@@ -50,7 +52,7 @@ function NavItemLink({ item, showDot }: { item: NavLeaf; showDot?: boolean }) {
   }
   return (
     <NavLink to={item.to} className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
-      {item.label}
+      <WorkspaceNavIcon path={item.to} />{item.label}
       {showDot && <span className="nav-dot" role="status" aria-label="Pending bills waiting" title="Pending bills waiting" />}
     </NavLink>
   );
@@ -75,11 +77,11 @@ export function ReceptionistShell() {
       <EmergencyBillingBar />
       <div className="receptionist-shell app-shell">
         <a className="skip-link" href="#workspace-main">Skip to content</a>
-        <aside className="receptionist-sidebar app-sidebar">
+        <aside className="receptionist-sidebar app-sidebar staff-sidebar">
           <WorkspaceBrand workspace="Reception & billing" />
           <nav className="receptionist-nav app-nav" aria-label="Reception & billing navigation">
             <NavLink to="/receptionist" end className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
-              Dashboard
+              <WorkspaceNavIcon path="/receptionist" />Dashboard
             </NavLink>
 
             {MAIN_NAV.map((item) => (
@@ -97,13 +99,13 @@ export function ReceptionistShell() {
             ))}
           </nav>
           <div className="receptionist-sidebar-footer app-sidebar-footer">
-            <div className="receptionist-user">{me?.username}</div>
+            <WorkspaceUser name={me?.username} role="Reception & billing" />
             <button type="button" className="receptionist-logout app-logout" onClick={() => logout()}>
               Sign out
             </button>
           </div>
         </aside>
-        <main id="workspace-main" tabIndex={-1} className="receptionist-content app-content">
+        <main id="workspace-main" tabIndex={-1} className="receptionist-content app-content staff-workspace">
           <div className="workspace-body"><Outlet /></div>
         </main>
       </div>

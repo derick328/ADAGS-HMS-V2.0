@@ -163,4 +163,7 @@
   color: var(--success);
 }
 
-.wrap { min-height: var(--row-height); }
+.wrap { min-height: var(--control-height); border-color: var(--control-border); box-shadow: var(--control-shadow); }
+.wrap:focus-within { box-shadow: var(--focus-ring); }
+.select { min-height: 28px; }
+.select option { background: var(--white); color: var(--text-primary); }

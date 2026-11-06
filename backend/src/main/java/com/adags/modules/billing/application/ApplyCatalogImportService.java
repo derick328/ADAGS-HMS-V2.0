@@ -195,6 +195,7 @@ public class ApplyCatalogImportService {
     }
 
     private static boolean metadataMatches(CatalogRow row, CatalogItemView current) {
+        if (!current.isActive()) return false;
         if (!row.name().equals(current.name())) return false;
         if (row.type() != current.type()) return false;
         if (row.billingCategory() != current.billingCategory()) return false;

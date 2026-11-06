@@ -238,6 +238,18 @@
 .header:not(.withIcon) { grid-template-columns: minmax(0, 1fr) auto; }
 .close { min-width: var(--row-height); min-height: var(--row-height); }
 .body { min-height: 0; }
+.panel { overflow: hidden; }
+.body :is(form, fieldset) { min-width: 0; }
+.body form:not([class]) { display: grid; gap: var(--space-4); }
+.body form > :is(label, .form-field, div) { min-width: 0; }
+.body :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea).clinical-control { width: 100%; min-height: var(--control-height); }
+.body textarea.clinical-control { min-height: 104px; }
+.body label:has(> .clinical-control) { display: grid; gap: var(--space-2); font-weight: var(--weight-medium); color: var(--text-secondary); }
+.body .clinical-grid { min-width: 0; }
+.body .form-error { padding: var(--space-3); background: var(--critical-bg); border-left: 3px solid var(--critical); border-radius: var(--radius-sm); }
+.footer { background: var(--bg-raised); align-items: center; }
+.footer .btn { min-height: var(--control-height); }
 @media (max-width: 640px) {
   .panel .header, .panel .body, .panel .footer { padding-inline: var(--space-4); }
+  .footer > .btn { flex: 1 1 120px; }
 }

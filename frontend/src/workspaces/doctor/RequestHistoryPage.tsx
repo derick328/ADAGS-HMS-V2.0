@@ -86,22 +86,22 @@ export function RequestHistoryPage() {
   return (
     <WorkspacePage title="Request history" description="Select a patient to review the lab requests and prescriptions you ordered for them.">
 
-      {selectedPatientId && <div className="workspace-toolbar">
-        <button type="button" className="btn" onClick={() => { setSelectedPatientId(null); setExpanded(null); }}>← Patients</button>
+      {selectedPatientId && <div className="workspace-toolbar request-history-toolbar">
+        <button type="button" className="btn btn-secondary" onClick={() => { setSelectedPatientId(null); setExpanded(null); }}>← Patients</button>
         <strong><PatientName patientId={selectedPatientId} /></strong>
-        <select className="clinical-control" aria-label="Request type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)} style={selectStyle}>
+        <label>Request type<select className="clinical-control" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}>
           <option value="ALL">All types</option>
           <option value="LAB">Lab</option>
           <option value="RX">Prescription</option>
-        </select>
-        <select className="clinical-control" aria-label="Request status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={selectStyle}>
+        </select></label>
+        <label>Request status<select className="clinical-control" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="ALL">All statuses</option>
           <option value="PENDING_PAYMENT">Pending payment</option>
           <option value="AWAITING_COLLECTION">Awaiting collection</option>
           <option value="IN_PROGRESS">In progress</option>
           <option value="COMPLETED">Completed</option>
           <option value="CANCELLED">Cancelled</option>
-        </select>
+        </select></label>
       </div>}
 
       {labsError || rxError ? (
@@ -425,5 +425,3 @@ function statusBadgeClass(status: string): string {
       return 'badge-info';
   }
 }
-
-const selectStyle = { padding: 'var(--space-2)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius)' };

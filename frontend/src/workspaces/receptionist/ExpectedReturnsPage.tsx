@@ -19,8 +19,8 @@ export function ExpectedReturnsPage() {
   const canReadEncounters = usePermission('PATIENT_READ_VISIT_HISTORY');
 
   return (
-    <div>
-      <PageHeader title={<>Expected returns</>} />
+    <div className="staff-page-stack expected-returns-page">
+      <PageHeader title={<>Expected returns</>} description="Review patients awaiting results and scheduled clinic follow-ups." />
 
       {!canReadEncounters ? (
         <p style={{ color: 'var(--text-muted)' }}>You don't hold PATIENT_READ_VISIT_HISTORY.</p>
@@ -55,8 +55,8 @@ function AwaitingResultsSection() {
   });
 
   return (
-    <section style={sectionStyle}>
-      <h2 style={sectionTitleStyle}>Awaiting results</h2>
+    <section className="staff-data-section">
+      <h2>Awaiting results</h2>
       <p style={{ padding: '0 var(--space-4)', margin: 0, color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
         Consultation unfinished, labs outstanding — no charge, no re-triage on return.
       </p>
@@ -139,8 +139,8 @@ function FollowUpAppointmentsSection() {
   });
 
   return (
-    <section style={sectionStyle}>
-      <h2 style={sectionTitleStyle}>Follow-up appointments</h2>
+    <section className="staff-data-section">
+      <h2>Follow-up appointments</h2>
       <p style={{ padding: '0 var(--space-4)', margin: 0, color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
         Doctor-booked reviews — checking in opens a new encounter and routes through triage. Check in through Patient Intake.
       </p>
@@ -199,17 +199,3 @@ function FollowUpRow({ appointment }: { appointment: ClinicAppointment }) {
     </tr>
   );
 }
-
-const sectionStyle = {
-  background: 'var(--bg-surface)',
-  border: '1px solid var(--border)',
-  borderRadius: 'var(--radius-lg)',
-  overflow: 'hidden',
-} as const;
-
-const sectionTitleStyle = {
-  fontSize: 'var(--text-lg)',
-  fontWeight: 'var(--weight-medium)',
-  margin: 0,
-  padding: 'var(--space-4) var(--space-4) 0',
-} as const;

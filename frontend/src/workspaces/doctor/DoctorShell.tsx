@@ -1,3 +1,5 @@
+import { WorkspaceUser } from '../../shared/components/WorkspaceUser';
+import { WorkspaceNavIcon } from '../../shared/components/WorkspaceNavIcon';
 import { WorkspaceBrand } from '../../shared/components/WorkspaceBrand';
 import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
@@ -24,13 +26,13 @@ export function DoctorShell() {
     <div className="doctor-shell-outer">
       <div className="doctor-shell app-shell">
         <a className="skip-link" href="#workspace-main">Skip to content</a>
-        <aside className="doctor-sidebar app-sidebar">
+        <aside className="doctor-sidebar app-sidebar staff-sidebar">
           <WorkspaceBrand workspace="Doctor workspace" />
           <nav className="doctor-nav app-nav" aria-label="Doctor workspace navigation">
             <MyQueueLink />
             <MyPatientsLink />
             <NavLink to="/doctor/clinic-follow-ups" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
-              Clinic Follow-Up
+              <WorkspaceNavIcon path="/doctor/clinic-follow-ups" />Clinic Follow-Up
             </NavLink>
             <AdmittedPatientsLink />
             <MyScheduledSurgeriesLink />
@@ -40,17 +42,17 @@ export function DoctorShell() {
             <div className="nav-divider" role="separator" />
 
             <NavLink to="/doctor/profile" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
-              Profile
+              <WorkspaceNavIcon path="/doctor/profile" />Profile
             </NavLink>
           </nav>
           <div className="doctor-sidebar-footer app-sidebar-footer">
-            <div className="doctor-user">{me?.username}</div>
+            <WorkspaceUser name={me?.username} role="Doctor" />
             <button type="button" className="doctor-logout app-logout" onClick={() => logout()}>
               Sign out
             </button>
           </div>
         </aside>
-        <main id="workspace-main" tabIndex={-1} className="doctor-content app-content">
+        <main id="workspace-main" tabIndex={-1} className="doctor-content app-content staff-workspace">
           <div className="workspace-body"><Outlet /></div>
         </main>
       </div>
@@ -88,7 +90,7 @@ function MyQueueLink() {
     <NavLink to="/doctor" end className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
       <span className="nav-item-label">
         <span className="nav-item-label-text">
-          My Queue
+          <WorkspaceNavIcon path="/doctor" />My Queue
           {hasImmediate && <span className="nav-emergency-dot" aria-label="Emergency patient waiting" title="Emergency patient waiting" />}
         </span>
         <span className="badge badge-neutral">{mine.length}</span>
@@ -102,7 +104,7 @@ function MyPatientsLink() {
   if (!canSee) return null;
   return (
     <NavLink to="/doctor/patients" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
-      My Patients
+      <WorkspaceNavIcon path="/doctor/patients" />My Patients
     </NavLink>
   );
 }
@@ -128,7 +130,7 @@ function AdmittedPatientsLink() {
   return (
     <NavLink to="/doctor/admitted" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
       <span className="nav-item-label">
-        <span>Admitted</span>
+        <span className="nav-item-label-text"><WorkspaceNavIcon path="/doctor/admitted" />Admitted</span>
         {count > 0 && <span className="badge badge-neutral">{count}</span>}
       </span>
     </NavLink>
@@ -168,7 +170,7 @@ function MyScheduledSurgeriesLink() {
       className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}
     >
       <span className="nav-item-label">
-        <span>My Surgeries</span>
+        <span className="nav-item-label-text"><WorkspaceNavIcon path="/doctor/scheduled-surgeries" />My Surgeries</span>
         {openMine.length > 0 && <span className="badge badge-neutral">{openMine.length}</span>}
       </span>
     </NavLink>
@@ -180,7 +182,7 @@ function HospitalCatalogueLink() {
   if (!canSee) return null;
   return (
     <NavLink to="/doctor/catalogue" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
-      Hospital Catalogue
+      <WorkspaceNavIcon path="/doctor/catalogue" />Hospital Catalogue
     </NavLink>
   );
 }
@@ -221,7 +223,7 @@ function RequestHistoryLink() {
   return (
     <NavLink to="/doctor/request-history" className={({ isActive }) => (isActive ? 'nav-item nav-item-active' : 'nav-item')}>
       <span className="nav-item-label">
-        <span>Request History</span>
+        <span className="nav-item-label-text"><WorkspaceNavIcon path="/doctor/request-history" />Request History</span>
         {actionable > 0 && <span className="badge badge-neutral">{actionable}</span>}
       </span>
     </NavLink>

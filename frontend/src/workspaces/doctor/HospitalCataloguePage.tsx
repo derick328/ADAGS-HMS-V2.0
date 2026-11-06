@@ -50,19 +50,17 @@ export function HospitalCataloguePage() {
   return (
     <WorkspacePage title="Hospital catalogue" description="Search hospital services, medicines, and cash prices.">
 
-      <div className="workspace-toolbar">
+      <div className="workspace-toolbar catalogue-toolbar">
         <input className="clinical-control"
           aria-label="Search hospital catalogue"
           placeholder="Search procedures, medicines, lab tests…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          style={{ flex: 1, padding: 'var(--space-2)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius)' }}
         />
         <select className="clinical-control"
           aria-label="Service category"
           value={category}
           onChange={(e) => setCategory(e.target.value as typeof category)}
-          style={{ padding: 'var(--space-2)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius)' }}
         >
           <option value="ALL">All categories</option>
           <option value="CONSULTATION">Consultation</option>

@@ -51,6 +51,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Combobox } from '../../shared/components/Combobox';
+import { DropdownSelect } from '../../shared/components/DropdownSelect';
 import { formatDateTime, formatWeekdayDate } from '../../shared/format/date';
 import { formatMoney } from '../../shared/format/money';
 
@@ -160,6 +161,11 @@ function ConsultationWorkspace({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>('consultation');
+  const [visitedTabs, setVisitedTabs] = useState<Record<Tab, boolean>>({ consultation: true, prescription: false, lab: false });
+  const selectTab = (next: Tab) => {
+    setVisitedTabs((current) => current[next] ? current : { ...current, [next]: true });
+    setTab(next);
+  };
   const isEmergency = initialEncounter.type === 'EMERGENCY';
 
   const { data: encounter } = useQuery({
@@ -261,7 +267,7 @@ function ConsultationWorkspace({
         <span>Total visits: {history.isLoading ? '…' : validVisits.length}</span>
         <span>Previous visits: {history.isLoading ? '…' : previousVisits.length}</span>
         <span>Last visit: {lastVisit ? formatWeekdayDate(lastVisit.createdAt) : 'None'}</span>
-        <span>Allergies: {allergiesError ? 'Unavailable' : allergies == null ? 'Loading…' : allergies.length ? allergies.map(a => a.description).join(', ') : 'None recorded'}</span>
+        <span className={allergiesError || (allergies?.length ?? 0) > 0 ? 'consultation-allergy-alert' : 'consultation-allergy-clear'}>Allergies: {allergiesError ? 'Unavailable' : allergies == null ? 'Loading…' : allergies.length ? allergies.map(a => a.description).join(', ') : 'None recorded'}</span>
       </section>
       <PreviousMedicalHistory patientId={encounter?.patientId} currentEncounterId={encounterId} />
 
@@ -274,15 +280,16 @@ function ConsultationWorkspace({
         <div style={{ flex: 1, minWidth: 0 }}>
           <TabBar
             tab={tab}
-            onChange={setTab}
+            onChange={selectTab}
             rxTotalMinor={rxLines.reduce((sum, l) => sum + (l.priceMinor ?? 0) * l.quantity, 0)}
             labTotalMinor={labLines.reduce((sum, l) => sum + (l.priceMinor ?? 0), 0)}
             grandTotalMinor={runningTotalMinor}
             suppressTotal={isEmergency}
           />
 
-          {tab === 'consultation' && (
+          <div className="consultation-tab-panel" hidden={tab !== 'consultation'}>
             <ConsultationTab
+              key={consultationRecordId}
               encounterId={encounterId}
               consultationRecordId={consultationRecordId}
               ownRecord={ownRecord}
@@ -291,9 +298,10 @@ function ConsultationWorkspace({
               patientId={encounter?.patientId as string}
               onFinalized={() => navigate('/doctor')}
             />
-          )}
-          {tab === 'prescription' && (
+          </div>
+          {visitedTabs.prescription && <div className="consultation-tab-panel" hidden={tab !== 'prescription'}>
             <PrescriptionTab
+              key={encounterId}
               encounterId={encounterId}
               encounter={encounter}
               allergies={allergies ?? []}
@@ -303,8 +311,8 @@ function ConsultationWorkspace({
               setLines={setRxLines}
               queryClient={queryClient}
             />
-          )}
-          {tab === 'lab' && <LabTab encounterId={encounterId} encounter={encounter} lines={labLines} setLines={setLabLines} />}
+          </div>}
+          {visitedTabs.lab && <div className="consultation-tab-panel" hidden={tab !== 'lab'}><LabTab key={encounterId} encounterId={encounterId} encounter={encounter} lines={labLines} setLines={setLabLines} /></div>}
         </div>
       </div>
     </div>
@@ -324,14 +332,10 @@ function ConsultationHeader({
 }) {
   const age = ageFromDob(patient?.dateOfBirth);
   return (
-    <PageHeader title={<>{patient?.fullName ?? 'Loading…'}</>}><div style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginTop: 4 }}>
-        {patient?.hospitalNo} · {age != null ? `${age}${patient?.gender?.[0] ?? ''}` : '—'} · {encounter?.payerType}
-        {encounter?.type === 'EMERGENCY' && (
-          <span className="badge badge-critical" style={{ marginLeft: 8 }}>
-            EMERGENCY
-          </span>
-        )}
-      </div></PageHeader>
+    <PageHeader title={<>{patient?.fullName ?? 'Loading patient…'}</>} description={<span className="consultation-patient-meta"><span>Hospital no. <strong>{patient?.hospitalNo ?? '—'}</strong></span><span>{age != null ? `${age} years` : 'Age unavailable'} · {patient?.gender ?? 'Gender unavailable'}</span><span>{encounter?.payerType ?? 'Payer pending'}</span></span>}>
+      {encounter?.type === 'EMERGENCY' && <span className="badge badge-critical">Emergency</span>}
+      {encounter?.state && <span className="badge badge-info">{encounter.state.replaceAll('_', ' ')}</span>}
+    </PageHeader>
   );
 }
 
@@ -803,6 +807,7 @@ function ConsultationTab({
   // overwriting text already typed with the (still-empty, for a new
   // record) server response.
   const touchedRef = useRef(false);
+  const dirtyRef = useRef(false);
 
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
@@ -823,18 +828,21 @@ function ConsultationTab({
   }, [ownRecord, hydrated]);
 
   const autosave = useMutation({
+    scope: { id: `consultation-draft-${consultationRecordId}` },
     mutationFn: (v: ConsultationFormValues) => autosaveConsultationRecord(consultationRecordId, v, accessToken as string),
   });
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [autosaveFailed, setAutosaveFailed] = useState(false);
 
   const triggerAutosave = useCallback(() => {
+    if (!dirtyRef.current) return;
+    dirtyRef.current = false;
     autosave.mutate(valuesRef.current, {
       onSuccess: () => {
         setLastSavedAt(new Date());
         setAutosaveFailed(false);
       },
-      onError: () => setAutosaveFailed(true),
+      onError: () => { dirtyRef.current = true; setAutosaveFailed(true); },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -853,8 +861,10 @@ function ConsultationTab({
       value: values[key],
       onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         touchedRef.current = true;
+        dirtyRef.current = true;
         setValues((v) => ({ ...v, [key]: e.target.value }));
       },
+      onBlur: triggerAutosave,
     };
   }
 
@@ -1218,16 +1228,7 @@ function ConsultationTab({
         <FormRow label="Treatment plan *">
           <textarea className="clinical-control" rows={4} {...field('treatmentPlan')} />
         </FormRow>
-        <FormRow label="Disposition">
-          <select className="clinical-control" value={disposition} onChange={(e) => setDisposition(e.target.value as DispositionChoice)}>
-            <option value="">Select disposition…</option>
-            {DISPOSITION_OPTIONS.map((o, i) => (
-              <option key={i} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </FormRow>
+        <DropdownSelect label="Disposition" value={disposition} onChange={(value) => setDisposition(value as DispositionChoice)} placeholder="Select disposition…" options={DISPOSITION_OPTIONS.map((option) => ({ value: option.value, label: option.label }))} />
         {disposition === 'ADMIT_TO_WARD' && (
           <div style={{ marginTop: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             <div>
@@ -1287,25 +1288,26 @@ function ConsultationTab({
             )}
           </div>
         )}
-        <FormRow label="Start Clinic / Schedule Clinic Visit (optional)">
-          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-            <select aria-label="Clinic or department" className="clinical-control" value={followUpDepartment} onChange={e => setFollowUpDepartment(e.target.value)}>
+        <section className="clinic-schedule" aria-labelledby="clinic-schedule-title">
+          <div className="clinic-schedule-heading"><h3 id="clinic-schedule-title">Start clinic / schedule clinic visit</h3><span className="badge badge-neutral">Optional</span></div>
+          <div className="clinic-schedule-grid">
+            <label>Clinic or department<select className="clinical-control" value={followUpDepartment} onChange={e => setFollowUpDepartment(e.target.value)}>
               <option value="">Choose clinic…</option>
               {departments.data?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-            <input aria-label="Clinic program" className="clinical-control" list="clinic-programs" placeholder="Clinic program" value={followUpClinic} onChange={e => setFollowUpClinic(e.target.value)} />
+            </select></label>
+            <label>Clinic program<input className="clinical-control" list="clinic-programs" placeholder="e.g. Diabetes clinic" value={followUpClinic} onChange={e => setFollowUpClinic(e.target.value)} /></label>
             <datalist id="clinic-programs"><option value="Diabetes clinic" /><option value="Hypertension clinic" /><option value="General review clinic" /></datalist>
-            <input aria-label="Clinic return date" className="clinical-control" type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)} />
-            <input aria-label="Clinic return time" className="clinical-control" type="time" value={followUpTime} onChange={e => setFollowUpTime(e.target.value)} />
-            <input aria-label="Follow-up instructions" className="clinical-control" placeholder="Follow-up instructions" value={followUpInstructions} onChange={e => setFollowUpInstructions(e.target.value)} />
+            <label>Appointment date<input className="clinical-control" type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)} /></label>
+            <label>Appointment time<input className="clinical-control" type="time" value={followUpTime} onChange={e => setFollowUpTime(e.target.value)} /></label>
+            <label className="clinic-schedule-wide">Follow-up instructions<input className="clinical-control" placeholder="Instructions for the patient or receiving clinic" value={followUpInstructions} onChange={e => setFollowUpInstructions(e.target.value)} /></label>
           </div>
-          <button type="button" className="btn btn-secondary" disabled={!followUpDate || saveClinic.isPending} onClick={() => saveClinic.mutate()}>
+          <div className="clinic-schedule-actions"><button type="button" className="btn btn-secondary" disabled={!followUpDate || saveClinic.isPending} onClick={() => saveClinic.mutate()}>
             {saveClinic.isPending ? 'Scheduling…' : 'Start Clinic / Schedule Clinic Visit'}
           </button>
-          <small>Existing active clinic enrollment is reused. You can also save the visit when finalizing this consultation.</small>
+          <small>Existing active clinic enrollment is reused. You can also save the visit when finalizing this consultation.</small></div>
           {saveClinic.isSuccess && <span role="status" className="badge badge-success">Clinic visit scheduled</span>}
           {saveClinic.error && <p className="form-error">{errorMessage(saveClinic.error)}</p>}
-        </FormRow>
+        </section>
         {activePlans.length > 0 && <section style={{ padding: 'var(--space-3)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
           <strong>Active clinic follow-up</strong>
           {activePlans.map(plan => {

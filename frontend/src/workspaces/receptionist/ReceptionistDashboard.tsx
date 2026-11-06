@@ -96,17 +96,10 @@ export function ReceptionistDashboard() {
   const unpaidTotalMinor = (unpaidAtDesk.data ?? []).reduce((sum, inv) => sum + (inv.outstandingTotalMinor ?? 0), 0);
 
   return (
-    <div>
-      <PageHeader title={<>Welcome{me?.username ? `, ${me.username}` : ''}</>} />
+    <div className="reception-dashboard staff-page-stack">
+      <PageHeader title={<>Welcome{me?.username ? `, ${me.username}` : ''}</>} description="Today's arrivals, scheduled returns, and cashier activity at a glance." />
 
-      <div className="clinical-grid"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-          gap: 'var(--space-3)',
-          marginBottom: 'var(--space-6)',
-        }}
-      >
+      <div className="reception-metrics">
         <Tile
           to="/receptionist/patient-intake"
           label="Waiting for triage"
@@ -147,15 +140,15 @@ export function ReceptionistDashboard() {
         />
       </div>
 
-      <div style={{ marginBottom: 'var(--space-4)' }}>
+      <div className="reception-clinic-strip">
         <Link to="/receptionist/expected-returns" className="btn btn-secondary">
           Clinic patients: {activeClinics.data?.length ?? '…'} · Review scheduled returns
         </Link>
-        {activeClinics.data?.slice(0, 3).map((a: ClinicAppointment) => <span key={a.id} className="badge badge-info" style={{ marginLeft: 'var(--space-2)' }}>
+        {activeClinics.data?.slice(0, 3).map((a: ClinicAppointment) => <span key={a.id} className="badge badge-info">
           {a.clinic} · {formatDateTime(a.scheduledAt)} · {clinicArrivalLabel(a.scheduledAt)}
         </span>)}
       </div>
-      <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 'var(--space-4)' }}>
+      <div className="reception-appointments">
         <AppointmentPanel title="Recent appointments" rows={recentAppointments.data} isLoading={recentAppointments.isLoading} emptyMessage="No recent appointments" />
         <AppointmentPanel title="Next up today" rows={upcomingAppointments.data} isLoading={upcomingAppointments.isLoading} emptyMessage="No appointments left today" />
       </div>
@@ -179,15 +172,7 @@ function Tile({
   return (
     <Link
       to={to}
-      style={{
-        display: 'block',
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)',
-        padding: 'var(--space-4)',
-        textDecoration: 'none',
-        color: 'inherit',
-      }}
+      className="reception-metric"
     >
       <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{label}</div>
       <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 'var(--weight-bold)', marginTop: 'var(--space-1)' }} className="tabular">
@@ -212,22 +197,8 @@ function AppointmentPanel({
   emptyMessage: string;
 }) {
   return (
-    <section
-      style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
-      }}
-    >
-      <h2
-        style={{
-          fontSize: 'var(--text-lg)',
-          fontWeight: 'var(--weight-medium)',
-          margin: 0,
-          padding: 'var(--space-4) var(--space-4) 0',
-        }}
-      >
+    <section className="reception-appointment-panel">
+      <h2>
         {title}
       </h2>
       {isLoading ? (

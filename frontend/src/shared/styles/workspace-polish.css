@@ -1,0 +1,177 @@
+/* Shared finishing layer for the patient-facing staff workspaces. */
+.staff-workspace { overflow-x: clip; }
+.staff-workspace :is(section, article, fieldset, form) { min-width: 0; }
+.staff-workspace :is(input, select, textarea) { font-family: inherit; }
+.staff-workspace :is(label):has(> .clinical-control) { display: grid; gap: var(--space-2); min-width: 0; color: var(--text-secondary); font-size: var(--text-sm); font-weight: var(--weight-medium); }
+.staff-workspace :is(label):has(> .clinical-control) > .clinical-control { width: 100%; margin: 0; }
+.staff-workspace .clinical-control { min-height: var(--control-height); box-shadow: var(--control-shadow); }
+.staff-workspace .clinical-control:hover:not(:disabled) { border-color: var(--text-muted); }
+.staff-workspace .clinical-control:focus-visible { border-color: var(--green-600); }
+.staff-workspace .clinical-control[aria-invalid="true"] { background: var(--critical-bg); }
+.staff-workspace .btn { justify-content: center; transition: background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard); }
+.staff-workspace .btn:focus-visible, .staff-sidebar .nav-item:focus-visible { outline: 2px solid var(--green-600); outline-offset: 2px; }
+.staff-sidebar .nav-item:focus-visible { outline-color: var(--green-signal); }
+.staff-sidebar .nav-item { gap: var(--space-3); border-radius: var(--radius); }
+.staff-sidebar .workspace-nav-icon { flex: none; color: var(--green-200); }
+.staff-sidebar .nav-item-active .workspace-nav-icon { color: var(--green-signal); }
+.staff-sidebar .nav-item-label-text { min-width: 0; gap: var(--space-3); }
+.staff-sidebar .nav-item:hover { background: color-mix(in srgb, var(--white) 9%, transparent); color: var(--white); }
+.staff-sidebar .nav-item-active:hover { background: var(--sidebar-active); }
+.staff-sidebar .app-sidebar-footer { margin-top: var(--space-5); }
+.workspace-user { display: flex; align-items: center; gap: var(--space-3); min-width: 0; padding: var(--space-2); }
+.workspace-user-avatar { display: grid; place-items: center; flex: none; width: 36px; height: 36px; color: var(--green-signal); background: var(--sidebar-active); border: 1px solid color-mix(in srgb, var(--green-signal) 25%, transparent); border-radius: var(--radius-full); }
+.workspace-user-copy { display: grid; min-width: 0; line-height: 1.35; }
+.workspace-user-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--white); font-size: var(--text-sm); font-weight: var(--weight-bold); }
+.workspace-user-copy small { color: var(--text-on-dark-muted); font-size: var(--text-xs); }
+.staff-sidebar .app-logout { width: 100%; text-align: center; }
+.staff-workspace .page-header { align-items: center; }
+.staff-workspace .table-region { border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.staff-workspace .table th { white-space: nowrap; font-size: var(--text-xs); letter-spacing: .025em; text-transform: uppercase; font-weight: var(--weight-bold); }
+.staff-workspace .table td { line-height: 1.5; }
+.staff-workspace .table td .badge { vertical-align: middle; }
+.staff-workspace .table td .btn { white-space: normal; }
+.staff-workspace .table tbody tr:focus-within { background: var(--green-100); }
+.staff-workspace .feedback-state { min-height: 150px; display: grid; place-items: center; padding: var(--space-6); }
+.staff-workspace .queue-filters { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: thin; padding-bottom: var(--space-2); }
+.staff-workspace .queue-filter { flex: none; }
+.staff-workspace .form-actions { justify-content: flex-end; }
+.staff-workspace .form-actions > p { margin-right: auto; }
+.staff-workspace .field-error { line-height: 1.45; }
+.staff-workspace .form-section-body { gap: var(--space-5); }
+.staff-workspace .clinical-filter-bar { gap: var(--space-4); }
+.staff-workspace .clinical-filter-bar > .clinical-control { flex: 1 1 260px; width: 100%; }
+.staff-page-stack { display: grid; gap: var(--space-5); min-width: 0; }
+.staff-page-stack > .page-header { margin-bottom: 0; }
+.staff-page-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.staff-page-actions .btn { min-width: 112px; }
+.staff-search-bar { margin-bottom: 0 !important; }
+.staff-search-bar > .clinical-control { flex: 1 1 300px; max-width: none; }
+.staff-table-card { min-width: 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.staff-table-card > .table-region { border: 0; }
+.staff-data-section { min-width: 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.staff-data-section > h2 { margin: 0; padding: var(--space-4) var(--space-5); font-size: var(--text-lg); font-weight: var(--weight-bold); border-bottom: 1px solid var(--border); }
+.staff-data-section > .table-region { border: 0; border-radius: 0; }
+.staff-data-section > p { padding-inline: var(--space-5) !important; }
+.staff-record-identity { padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.staff-form-card { display: grid; gap: var(--space-4); min-width: 0; padding: var(--space-6) !important; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.staff-form-card h2 { margin: 0; font-size: var(--text-xl); font-weight: var(--weight-bold); }
+.staff-form-card p { margin-block: var(--space-1); }
+.staff-form-card :is(label, .form-field > label) { font-size: var(--text-sm); color: var(--text-secondary); font-weight: var(--weight-medium); }
+.staff-form-card .clinical-control { width: 100%; }
+.staff-form-card .table-region { margin-block: var(--space-2); }
+.staff-search-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-block: var(--space-2); }
+.staff-search-row > .clinical-control { flex: 1 1 240px; width: auto; min-width: 0; }
+.staff-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin-block: var(--space-4); }
+.staff-form-grid > div { min-width: 0; }
+.staff-form-grid label { display: block; margin-bottom: var(--space-1); }
+.staff-payment-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; align-items: end; gap: var(--space-4); margin-block: var(--space-4); }
+.staff-payment-grid > div { min-width: 0; }
+.staff-payment-grid .clinical-control { width: 100%; }
+.reception-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: var(--space-4); }
+.reception-metric { display: block; min-width: 0; padding: var(--space-5); color: var(--text-primary); text-decoration: none; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.reception-metric:hover, .reception-metric:focus-visible { border-color: var(--green-600); background: var(--bg-raised); }
+.reception-clinic-strip { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: var(--space-4); background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.reception-clinic-strip .btn { white-space: normal; }
+.reception-appointments { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.reception-appointment-panel { min-width: 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.reception-appointment-panel h2 { margin: 0; padding: var(--space-4) var(--space-5); font-size: var(--text-lg); border-bottom: 1px solid var(--border); }
+.reception-appointment-panel .table-region { border: 0; }
+.reception-appointment-panel td small { color: var(--text-muted); }
+.invoice-form-card { max-width: 820px; }
+.invoice-detail-card { max-width: 100%; }
+.cashier-close-card { width: min(100%, 480px); }
+.cashier-close-card .clinical-control { margin-top: var(--space-2); }
+.catalogue-toolbar { display: grid; grid-template-columns: minmax(250px, 1fr) minmax(180px, 220px) auto; align-items: center; }
+.catalogue-toolbar > .clinical-control { width: 100%; }
+.catalogue-toolbar > .badge { justify-self: end; }
+.request-history-toolbar { display: grid; grid-template-columns: auto minmax(160px, 1fr) minmax(150px, 190px) minmax(180px, 220px); align-items: end; }
+.request-history-toolbar > strong { align-self: center; }
+.request-history-toolbar > label { display: grid; gap: var(--space-1); }
+.clinic-followup-page .table td:first-child a { color: var(--text-link); font-weight: var(--weight-bold); text-decoration: none; }
+.clinic-followup-page .table td:first-child a:hover { text-decoration: underline; }
+.clinic-followup-page .table td small { color: var(--text-muted); }
+.clinic-followup-page details { min-width: 170px; }
+.clinic-followup-page summary { cursor: pointer; color: var(--text-link); font-weight: var(--weight-medium); }
+.clinic-followup-page details[open] { padding: var(--space-3); background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius); }
+.clinic-followup-page details ul { margin: var(--space-3) 0 0; padding-left: var(--space-5); color: var(--text-secondary); }
+.clinic-followup-page details li + li { margin-top: var(--space-2); }
+.pharmacy-history-page [role="tablist"], .pharmacy-items-page [role="tablist"] { overflow-x: auto; max-width: 100%; scrollbar-width: thin; }
+.pharmacy-history-search { width: min(100%, 520px); margin-bottom: var(--space-5); padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.pharmacy-history-search > div { min-width: 0; }
+.pharmacy-proposal-form { display: grid; gap: var(--space-4); width: min(100%, 760px); padding: var(--space-6); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.pharmacy-proposal-form :is(input, textarea, select).clinical-control { width: 100%; }
+.pharmacy-proposal-form > .btn { justify-self: start; }
+.pharmacy-proposal-form > .clinical-grid { gap: var(--space-4) !important; }
+.lab-stock-response { display: grid; gap: var(--space-4); padding: var(--space-5); width: min(100%, 560px); }
+.lab-stock-response-modes { display: flex; gap: var(--space-2); }
+.lab-stock-response-form { display: grid; gap: var(--space-4); }
+.lab-stock-response-form > div { display: grid; gap: var(--space-1); min-width: 0; }
+.lab-stock-response-form .clinical-control { width: 100%; }
+.lab-stock-response-form > .btn { justify-self: start; }
+.consultation-layout { grid-template-columns: minmax(290px, 340px) minmax(0, 1fr); gap: var(--space-6); }
+.consultation-patient-meta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); }
+.consultation-patient-meta strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.consultation-visit-summary { align-items: center; padding: var(--space-4); }
+.consultation-visit-summary > span:last-child { flex: 1 1 260px; padding: var(--space-2) var(--space-3); border-radius: var(--radius); font-weight: var(--weight-medium); }
+.consultation-allergy-alert { background: var(--warning-bg); color: var(--warning); }
+.consultation-allergy-clear { background: var(--bg-raised); color: var(--text-secondary); }
+.consultation-summary > * { min-width: 0; }
+.consultation-layout > div { min-width: 0; max-width: 950px; width: 100%; }
+.consultation-tab-panel[hidden] { display: none; }
+.consultation-form .form-section { overflow: hidden; }
+.consultation-form .form-section-body { gap: var(--space-5); }
+.clinic-schedule { display: grid; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-raised); }
+.clinic-schedule-heading { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+.clinic-schedule-heading h3 { margin: 0; font-size: var(--text-lg); }
+.clinic-schedule-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.clinic-schedule-grid label { display: grid; gap: var(--space-2); color: var(--text-secondary); font-size: var(--text-sm); font-weight: var(--weight-medium); }
+.clinic-schedule-grid .clinical-control { width: 100%; }
+.clinic-schedule-wide { grid-column: 1 / -1; }
+.clinic-schedule-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.clinic-schedule-actions small { color: var(--text-secondary); max-width: 48ch; }
+.stock-workspace { display: grid; gap: var(--space-5); min-width: 0; }
+.stock-workspace > .page-header { margin-bottom: 0; }
+.stock-workspace [role="tablist"] { overflow-x: auto; max-width: 100%; scrollbar-width: thin; scroll-snap-type: x proximity; padding-bottom: var(--space-1); }
+.stock-workspace [role="tab"] { flex: none; scroll-snap-align: start; }
+.stock-workspace [role="tabpanel"] { min-width: 0; }
+.stock-toolbar { display: grid; grid-template-columns: minmax(230px, 2fr) repeat(2, minmax(165px, 1fr)); gap: var(--space-4); align-items: end; padding: var(--space-5); margin-bottom: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.stock-store-picker { display: grid; gap: var(--space-2); max-width: 300px; margin-bottom: var(--space-4); color: var(--text-secondary); font-size: var(--text-sm); font-weight: var(--weight-medium); }
+.stock-store-picker .clinical-control { width: 100%; }
+.stock-table-shell { min-width: 0; margin-bottom: var(--space-5); overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.stock-table-shell > :is(.table-region, .workspace-panel) { border: 0; }
+.stock-empty { display: grid; justify-items: center; gap: var(--space-3); padding: var(--space-6); text-align: center; }
+.stock-empty .feedback-state { border: 0; min-height: 100px; margin: 0; padding: var(--space-3); }
+.dispense-workspace { display: grid; gap: var(--space-4); }
+.dispense-workspace > .page-header { margin-bottom: 0; }
+.dispense-body { width: 100%; max-width: 920px; }
+.dispense-summary { padding: var(--space-5); margin-bottom: var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.dispense-summary .clinical-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin: 0; font-size: var(--text-sm); }
+.dispense-summary .clinical-grid > div { min-width: 0; padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-raised); }
+.dispense-summary dt { font-weight: var(--weight-medium); margin-bottom: var(--space-1); }
+.dispense-summary dd { overflow-wrap: anywhere; }
+.dispense-mode-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); padding: var(--space-2); background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.dispense-mode-tabs .btn { flex: 1 1 145px; }
+.dispense-form { display: flex; flex-direction: column; gap: var(--space-4); }
+.dispense-batches { overflow: hidden; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.dispense-batches .table-region { border: 0; }
+.dispense-batches .table { min-width: 720px; }
+.dispense-batches .table td { vertical-align: top; }
+.dispense-batches .table .clinical-control { width: 100%; }
+.dispense-batches .table td small { display: block; margin-top: var(--space-1); color: var(--text-secondary); }
+.dispense-note { padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.dispense-note .clinical-control { width: 100%; }
+.intake-workspace { display: grid; gap: var(--space-6); }
+.intake-workspace > .page-header { margin-bottom: 0; }
+.intake-search-section { min-width: 0; padding: var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.intake-search-heading { margin-bottom: var(--space-4); }
+.intake-search-heading h2 { margin: 0; font-size: var(--text-xl); }
+.intake-search-heading p { margin: var(--space-1) 0 0; color: var(--text-secondary); }
+.intake-search-section .clinical-filter-bar { border: 0; padding: 0; border-radius: 0; }
+.intake-search-section .clinical-filter-bar > input { flex: 1 1 350px; max-width: none; }
+.intake-search-section .table-region { margin-block: var(--space-4); }
+.intake-search-section .intake-form { margin-top: var(--space-6); }
+@media (max-width: 1100px) { .consultation-layout { grid-template-columns: minmax(0, 1fr); } .consultation-summary { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .consultation-layout > div { max-width: none; } }
+@media (max-width: 900px) { .request-history-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); } .catalogue-toolbar { grid-template-columns: minmax(0, 1fr) minmax(170px, 220px); } .catalogue-toolbar > .badge { justify-self: start; } }
+@media (max-width: 760px) { .stock-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stock-toolbar > label:first-child { grid-column: 1 / -1; } .consultation-summary, .reception-appointments { grid-template-columns: minmax(0, 1fr); } .dispense-summary .clinical-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .staff-workspace .page-header { align-items: stretch; } .staff-workspace .table-region { margin-inline: 0; } .staff-workspace .clinical-filter-bar > .clinical-control { max-width: none !important; } .stock-toolbar, .clinic-schedule-grid, .dispense-summary .clinical-grid, .staff-form-grid, .staff-payment-grid, .catalogue-toolbar, .request-history-toolbar { grid-template-columns: minmax(0, 1fr); } .clinic-schedule-wide, .stock-toolbar > label:first-child { grid-column: auto; } .clinic-schedule, .intake-search-section, .staff-form-card, .pharmacy-proposal-form { padding: var(--space-4) !important; } .clinic-schedule-actions .btn, .intake-search-section .clinical-filter-bar .btn { width: 100%; } .staff-search-row .btn { flex: 1 1 120px; } .staff-sidebar .app-logout { width: auto; } }
+@media (prefers-reduced-motion: reduce) { .staff-workspace .btn { transition: none; } }

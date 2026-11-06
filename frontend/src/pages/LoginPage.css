@@ -287,6 +287,13 @@
 .login-card h1 { font-size: 30px; letter-spacing: -.025em; }
 .login-subtitle { line-height: 1.6; margin-top: var(--space-2); margin-bottom: var(--space-8); }
 .login-card .input-wrap input { height: 48px; }
+.login-card .input-wrap { border-color: var(--control-border); min-height: var(--control-height); box-shadow: var(--control-shadow); }
+.login-card .input-wrap:hover { border-color: var(--green-600); }
+.login-card .input-wrap:focus-within { box-shadow: var(--focus-ring); }
+.login-card .input-wrap input::placeholder { color: var(--text-muted); opacity: 1; }
+.login-card .input-toggle:focus-visible, .login-submit:focus-visible { outline: 2px solid var(--green-600); outline-offset: 2px; }
+.login-submit { background: var(--green-800); }
+.login-submit:hover:not(:disabled) { background: var(--green-900); }
 .login-card .field { margin-bottom: var(--space-5); }
 .login-card .field label { font-size: var(--text-base); margin-bottom: var(--space-2); }
 .login-submit { min-height: 48px; }

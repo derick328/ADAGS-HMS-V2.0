@@ -1,4 +1,5 @@
 import { FeedbackState } from '../../shared/components/FeedbackState';
+import { QueryState } from '../../shared/components/WorkspacePage';
 import { Tabs } from '../../shared/components/Tabs';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { TableRegion } from '../../shared/components/TableRegion';
@@ -19,10 +20,10 @@ export function HistoryPage() {
   const [tab, setTab] = useState<Tab>('mine');
 
   return (
-    <div>
+    <div className="staff-page-stack pharmacy-history-page">
       <PageHeader title={<>History</>} description={<>Review your dispensing activity or look up a patient’s medication history.</>} />
 
-      <Tabs aria-label="History" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} unmountInactivePanels items={[
+      <Tabs aria-label="History" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} items={[
         { id: 'mine', label: 'My dispenses', content: <MyDispensesTab /> },
         { id: 'lookup', label: 'Patient lookup', content: <PatientLookupTab /> },
       ]} />
@@ -33,14 +34,14 @@ export function HistoryPage() {
 
 function MyDispensesTab() {
   const { accessToken } = useAuth();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['dispenses', 'mine'],
     queryFn: () => fetchMyDispenses(accessToken as string),
     enabled: accessToken != null,
     refetchInterval: 30_000,
   });
 
-  return <DispensesTable rows={data ?? []} isLoading={isLoading} emptyMessage="No dispenses recorded yet." />;
+  return <DispensesTable rows={data ?? []} isLoading={isLoading} isError={isError} onRetry={() => void refetch()} emptyMessage="No dispenses recorded yet." />;
 }
 
 function PatientLookupTab() {
@@ -49,7 +50,7 @@ function PatientLookupTab() {
   const [patientLabel, setPatientLabel] = useState<string | null>(null);
   const [query, setQuery] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['dispenses', 'patient-search', query],
     queryFn: () => searchDispensesByPatient(query as string, accessToken as string),
     enabled: accessToken != null && !!query,
@@ -57,7 +58,7 @@ function PatientLookupTab() {
 
   return (
     <div>
-      <div style={{ width: '100%', maxWidth: 320, marginBottom: 'var(--space-4)' }}>
+      <div className="pharmacy-history-search">
         <Combobox<PatientSearchResult>
           label="Search by patient"
           placeholder="Name or hospital number"
@@ -99,7 +100,7 @@ function PatientLookupTab() {
       </div>
 
       {patientId ? (
-        <DispensesTable rows={data ?? []} isLoading={isLoading} emptyMessage="No dispenses found for this patient." />
+        <DispensesTable rows={data ?? []} isLoading={isLoading} isError={isError} onRetry={() => void refetch()} emptyMessage="No dispenses found for this patient." />
       ) : (
         <p style={{ color: 'var(--text-muted)' }}>Search by patient to look up their dispense history.</p>
       )}
@@ -107,11 +108,13 @@ function PatientLookupTab() {
   );
 }
 
-function DispensesTable({ rows, isLoading, emptyMessage }: { rows: DispenseHistoryResponse[]; isLoading: boolean; emptyMessage: string }) {
+function DispensesTable({ rows, isLoading, isError, onRetry, emptyMessage }: { rows: DispenseHistoryResponse[]; isLoading: boolean; isError: boolean; onRetry: () => void; emptyMessage: string }) {
   return (
-    <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+    <div className="staff-table-card">
       {isLoading ? (
         <FeedbackState loading>Loading…</FeedbackState>
+      ) : isError ? (
+        <QueryState title="Unable to load dispensing history" onRetry={onRetry} />
       ) : rows.length === 0 ? (
         <FeedbackState>{emptyMessage}</FeedbackState>
       ) : (
