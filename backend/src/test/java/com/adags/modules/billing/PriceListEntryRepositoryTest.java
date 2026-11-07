@@ -44,15 +44,16 @@ class PriceListEntryRepositoryTest extends IntegrationTestSupport {
 
         PriceListEntry current = repository.findCurrent(serviceItemId, PayerCategory.CASH).orElseThrow();
 
-        assertThat(current.amount()).isEqualTo(new Money(10_000, "TZS"));
+        assertThat(current.amount()).isEqualTo(new Money(8_000, "TZS"));
         assertThat(current.validTo()).isNull();
     }
 
     @Test
-    void findCurrentIsEmptyForAnUnconfiguredPayerCategory() {
+    void findCurrentResolvesTheNhifConsultGeneralPrice() {
         UUID serviceItemId = seededServiceItemId("CONSULT_GENERAL");
 
-        assertThat(repository.findCurrent(serviceItemId, PayerCategory.NHIF)).isEmpty();
+        assertThat(repository.findCurrent(serviceItemId, PayerCategory.NHIF).orElseThrow().amount())
+                .isEqualTo(new Money(8_000, "TZS"));
     }
 
     // "A change closes the current entry and opens a new one" — proven by

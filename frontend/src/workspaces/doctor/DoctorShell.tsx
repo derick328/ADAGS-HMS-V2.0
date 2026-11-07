@@ -21,13 +21,15 @@ import './DoctorShell.css';
 export function DoctorShell() {
   const { logout } = useAuth();
   const { data: me } = useMe();
+  const isClinicalOfficer = me?.scopes?.some((scope) => scope.roleCode === 'CLINICAL_OFFICER');
+  const workspaceLabel = isClinicalOfficer ? 'Clinical Officer' : 'Doctor';
 
   return (
     <div className="doctor-shell-outer">
       <div className="doctor-shell app-shell">
         <a className="skip-link" href="#workspace-main">Skip to content</a>
         <aside className="doctor-sidebar app-sidebar staff-sidebar">
-          <WorkspaceBrand workspace="Doctor workspace" />
+          <WorkspaceBrand workspace={`${workspaceLabel} workspace`} />
           <nav className="doctor-nav app-nav" aria-label="Doctor workspace navigation">
             <MyQueueLink />
             <MyPatientsLink />
@@ -46,7 +48,7 @@ export function DoctorShell() {
             </NavLink>
           </nav>
           <div className="doctor-sidebar-footer app-sidebar-footer">
-            <WorkspaceUser name={me?.username} role="Doctor" />
+            <WorkspaceUser name={me?.username} role={workspaceLabel} />
             <button type="button" className="doctor-logout app-logout" onClick={() => logout()}>
               Sign out
             </button>

@@ -1,6 +1,7 @@
 package com.adags.modules.encounters.api;
 
 import com.adags.modules.billing.BillingFacade;
+import com.adags.modules.billing.domain.PriceNotConfiguredException;
 import com.adags.modules.encounters.domain.Encounter;
 import com.adags.modules.encounters.domain.EncounterRepository;
 import com.adags.modules.encounters.domain.EncounterState;
@@ -26,7 +27,7 @@ import java.util.UUID;
 // 06-triage.md §5.1: "the fee is visible BEFORE selection... every triage
 // assessment now produces a priced charge." Scoped deliberately for this
 // pass (user's own call, given no backend existed for any of this):
-//   - Provider list + role label: real, from active DOCTOR/SPECIALIST_DOCTOR
+//   - Provider list + role label: real, from active clinical officer, doctor, and specialist
 //     role assignments (IdentityFacade), not filtered by department — no
 //     provider-department affiliation is modelled anywhere accessible today.
 //   - Fee: real, resolved through BillingFacade.previewConsultationFee —
@@ -42,7 +43,7 @@ import java.util.UUID;
 @RestController
 public class ReferralCandidateController {
 
-    private static final List<String> CONSULTATION_ROLE_CODES = List.of("DOCTOR", "SPECIALIST_DOCTOR");
+    private static final List<String> CONSULTATION_ROLE_CODES = List.of("CLINICAL_OFFICER", "DOCTOR", "SPECIALIST_DOCTOR");
 
     private final EncounterRepository encounterRepository;
     private final IdentityFacade identityFacade;
@@ -69,13 +70,17 @@ public class ReferralCandidateController {
             throw new AccessDeniedException("Missing permission: ENCOUNTER_ROUTE");
         }
 
-        // A provider can hold SPECIALIST_DOCTOR without DOCTOR (or both) —
+        // A provider can hold more than one clinical role —
         // dedupe by userId, SPECIALIST_DOCTOR's label wins when both are held,
         // same "highest priority role wins" idea BillingFacadeImpl's fee
         // resolution already applies internally.
         Map<UUID, ReferralCandidateResponse> byProvider = new LinkedHashMap<>();
         for (String roleCode : CONSULTATION_ROLE_CODES) {
-            String roleLabel = roleCode.equals("SPECIALIST_DOCTOR") ? "Specialist" : "General";
+            String roleLabel = switch (roleCode) {
+                case "SPECIALIST_DOCTOR" -> "Specialist";
+                case "CLINICAL_OFFICER" -> "Clinical Officer";
+                default -> "Doctor";
+            };
             for (UserRef provider : identityFacade.findActiveUsersWithRole(roleCode)) {
                 byProvider.put(provider.userId(), buildCandidate(provider, roleLabel, encounter));
             }
@@ -90,7 +95,7 @@ public class ReferralCandidateController {
             Money fee = billingFacade.previewConsultationFee(provider.userId(), encounter.payerType());
             feeAmountMinor = fee.amountMinor();
             currencyCode = fee.currencyCode();
-        } catch (RuntimeException priceUnavailable) {
+        } catch (PriceNotConfiguredException priceUnavailable) {
             // No current price for this provider's role under this
             // encounter's payer category (e.g. INSURANCE — no insurance
             // price list exists yet) — show "fee unavailable," never a

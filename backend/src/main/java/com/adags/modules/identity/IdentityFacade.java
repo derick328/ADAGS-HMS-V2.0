@@ -19,7 +19,7 @@ public interface IdentityFacade {
 
     /**
      * Active holders of this role code, right now — 06-triage.md §5.1's
-     * referral picker needs "who holds DOCTOR/SPECIALIST_DOCTOR" and no
+     * referral picker needs active consultation providers and no
      * other module may query role_assignment directly.
      */
     List<UserRef> findActiveUsersWithRole(String roleCode);

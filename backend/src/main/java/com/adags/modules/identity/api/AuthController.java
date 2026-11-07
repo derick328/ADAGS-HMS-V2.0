@@ -5,6 +5,7 @@ import com.adags.modules.identity.application.LoginResult;
 import com.adags.shared.security.InvalidTokenException;
 import com.adags.shared.security.IssuedSession;
 import com.adags.shared.security.RefreshCookieFactory;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -26,10 +27,10 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         LoginResult result = authenticationService.login(request.username(), request.password());
         IssuedSession session = result.session();
-        ResponseCookie cookie = refreshCookieFactory.build(session.refreshToken(), session.refreshTokenExpiresAt());
+        ResponseCookie cookie = refreshCookieFactory.build(session.refreshToken(), session.refreshTokenExpiresAt(), httpRequest.isSecure());
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(new LoginResponse(session.userId(), session.accessToken(), session.accessTokenExpiresAt(), result.mustChangePassword()));
@@ -37,12 +38,13 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<TokenResponse> refresh(
-            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken) {
+            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
+            HttpServletRequest httpRequest) {
         if (refreshToken == null) {
             throw new InvalidTokenException();
         }
         IssuedSession session = authenticationService.refresh(refreshToken);
-        ResponseCookie cookie = refreshCookieFactory.build(session.refreshToken(), session.refreshTokenExpiresAt());
+        ResponseCookie cookie = refreshCookieFactory.build(session.refreshToken(), session.refreshTokenExpiresAt(), httpRequest.isSecure());
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(new TokenResponse(session.userId(), session.accessToken(), session.accessTokenExpiresAt()));
@@ -51,11 +53,12 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader,
-            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken) {
+            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
+            HttpServletRequest httpRequest) {
         String accessToken = extractBearerToken(authorizationHeader);
         authenticationService.logout(accessToken, refreshToken);
         return ResponseEntity.noContent()
-                .header(HttpHeaders.SET_COOKIE, refreshCookieFactory.expired().toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookieFactory.expired(httpRequest.isSecure()).toString())
                 .build();
     }
 

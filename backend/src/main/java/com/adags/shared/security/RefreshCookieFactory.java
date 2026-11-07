@@ -11,21 +11,23 @@ public class RefreshCookieFactory {
 
     static final String COOKIE_NAME = "adags_refresh";
 
-    public ResponseCookie build(String refreshToken, Instant expiresAt) {
+    // Browsers reject Secure cookies on ordinary HTTP hosts. Keep it on for
+    // HTTPS (including requests forwarded through an HTTPS reverse proxy).
+    public ResponseCookie build(String refreshToken, Instant expiresAt, boolean secure) {
         Duration maxAge = Duration.between(Instant.now(), expiresAt);
         return ResponseCookie.from(COOKIE_NAME, refreshToken)
                 .httpOnly(true)
-                .secure(true)
+                .secure(secure)
                 .sameSite("Strict")
                 .path("/auth")
                 .maxAge(maxAge.isNegative() ? Duration.ZERO : maxAge)
                 .build();
     }
 
-    public ResponseCookie expired() {
+    public ResponseCookie expired(boolean secure) {
         return ResponseCookie.from(COOKIE_NAME, "")
                 .httpOnly(true)
-                .secure(true)
+                .secure(secure)
                 .sameSite("Strict")
                 .path("/auth")
                 .maxAge(0)

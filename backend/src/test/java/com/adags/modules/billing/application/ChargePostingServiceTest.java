@@ -60,8 +60,8 @@ class ChargePostingServiceTest extends IntegrationTestSupport {
                 encounterId, patientId, BOOTSTRAP_FACILITY_ID, PayerCategory.CASH, null,
                 "CONSULT_GENERAL", 1, "TriageCompleted", triageAssessmentId, bootstrapAdminId()));
 
-        assertThat(result.grossAmount()).isEqualTo(new Money(10_000, "TZS"));
-        assertThat(result.patientPortion()).isEqualTo(new Money(10_000, "TZS"));
+        assertThat(result.grossAmount()).isEqualTo(new Money(8_000, "TZS"));
+        assertThat(result.patientPortion()).isEqualTo(new Money(8_000, "TZS"));
         assertThat(result.invoiceNumber()).isNotBlank();
 
         String state = jdbcTemplate.queryForObject(
@@ -89,7 +89,7 @@ class ChargePostingServiceTest extends IntegrationTestSupport {
                 encounterId, patientId, BOOTSTRAP_FACILITY_ID, PayerCategory.CASH, null,
                 "CONSULT_SPECIALIST", 2, "TriageCompleted", UUID.randomUUID(), bootstrapAdminId()));
 
-        assertThat(result.grossAmount()).isEqualTo(new Money(80_000, "TZS"));
+        assertThat(result.grossAmount()).isEqualTo(new Money(60_000, "TZS"));
     }
 
     // root CLAUDE.md "Billing": "A missing price... blocks with an
@@ -98,13 +98,16 @@ class ChargePostingServiceTest extends IntegrationTestSupport {
     // fails, the whole assessment rolls back" — proven here by asserting
     // no invoice row survives the failed post.
     @Test
-    void anUnconfiguredPayerCategoryBlocksAndPostsNoInvoice() {
+    void anUnpricedServiceItemBlocksAndPostsNoInvoice() {
         UUID patientId = insertFixturePatient();
         UUID encounterId = insertFixtureEncounter(patientId);
+        String code = "UNPRICED-" + UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO service_item (code, name, category) VALUES (:code, 'Unpriced', 'CONSULTATION')",
+                new MapSqlParameterSource("code", code));
 
         assertThatThrownBy(() -> service.postCharge(new ChargePostingCommand(
                 encounterId, patientId, BOOTSTRAP_FACILITY_ID, PayerCategory.NHIF, null,
-                "CONSULT_GENERAL", 1, "TriageCompleted", UUID.randomUUID(), bootstrapAdminId())))
+                code, 1, "TriageCompleted", UUID.randomUUID(), bootstrapAdminId())))
                 .isInstanceOf(PriceNotConfiguredException.class);
 
         Integer invoiceCount = jdbcTemplate.queryForObject(
@@ -127,8 +130,8 @@ class ChargePostingServiceTest extends IntegrationTestSupport {
                 encounterId, patientId, BOOTSTRAP_FACILITY_ID, PayerCategory.CASH, null,
                 "CONSULT_GENERAL", 1, "TriageCompleted", UUID.randomUUID(), bootstrapAdminId()));
 
-        assertThat(result.grossAmount()).isEqualTo(new Money(10_000, "TZS"));
-        assertThat(result.patientPortion()).isEqualTo(new Money(10_000, "TZS"));
+        assertThat(result.grossAmount()).isEqualTo(new Money(8_000, "TZS"));
+        assertThat(result.patientPortion()).isEqualTo(new Money(8_000, "TZS"));
 
         Long insurancePortionMinor = jdbcTemplate.queryForObject(
                 "SELECT insurance_portion_minor FROM invoice_line WHERE invoice_id = :id",

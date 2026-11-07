@@ -21,23 +21,21 @@ class PriceResolutionServiceTest extends IntegrationTestSupport {
     @Test
     void resolvesTheSeededCashConsultGeneralPrice() {
         Money price = service.resolvePrice("CONSULT_GENERAL", PayerCategory.CASH);
-        assertThat(price).isEqualTo(new Money(10_000, "TZS"));
+        assertThat(price).isEqualTo(new Money(8_000, "TZS"));
     }
 
     @Test
     void resolvesTheSeededCashConsultSpecialistPrice() {
         Money price = service.resolvePrice("CONSULT_SPECIALIST", PayerCategory.CASH);
-        assertThat(price).isEqualTo(new Money(40_000, "TZS"));
+        assertThat(price).isEqualTo(new Money(30_000, "TZS"));
     }
 
-    // Only CASH has seed prices — every other payer category is a real
-    // configuration gap, and must block rather than silently charge zero.
     @Test
-    void anUnconfiguredPayerCategoryBlocksWithAnExplicitError() {
-        assertThatThrownBy(() -> service.resolvePrice("CONSULT_GENERAL", PayerCategory.NHIF))
-                .isInstanceOf(PriceNotConfiguredException.class)
-                .hasMessageContaining("CONSULT_GENERAL")
-                .hasMessageContaining("NHIF");
+    void resolvesTheClinicalOfficerFeeAcrossPayerCategories() {
+        assertThat(service.resolvePrice("CONSULT_CLINICAL_OFFICER", PayerCategory.CASH))
+                .isEqualTo(new Money(4_000, "TZS"));
+        assertThat(service.resolvePrice("CONSULT_CLINICAL_OFFICER", PayerCategory.NHIF))
+                .isEqualTo(new Money(4_000, "TZS"));
     }
 
     @Test

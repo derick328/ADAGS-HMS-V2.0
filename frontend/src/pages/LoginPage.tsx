@@ -29,7 +29,7 @@ function landingRouteFor(roleCodes: string[], permissions: string[]): string {
   if (roles.has('LAB_TECHNICIAN')) return '/lab';
   if (roles.has('PHARMACIST')) return '/pharmacy';
   if (roles.has('WARD_NURSE') || roles.has('NURSE')) return '/ward-nurse';
-  if (roles.has('DOCTOR') || roles.has('SPECIALIST_DOCTOR')) return '/doctor';
+  if (roles.has('CLINICAL_OFFICER') || roles.has('DOCTOR') || roles.has('SPECIALIST_DOCTOR')) return '/doctor';
   if (roles.has('TRIAGE_NURSE')) return '/triage';
   if (roles.has('RECEPTIONIST')) return '/receptionist';
   // Capability fallback — a seeded account may carry only the

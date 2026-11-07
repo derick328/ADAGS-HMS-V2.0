@@ -134,7 +134,7 @@ public class SubmitTriageAssessmentService {
 
         // Step 6: Post the consultation charge. Inside this transaction —
         // if pricing fails (unconfigured payer category, or a provider
-        // holding neither DOCTOR nor SPECIALIST_DOCTOR), everything above
+        // holding no mapped consultation role), everything above
         // rolls back with it. 02-billing-architecture.md §4.1: "a triaged
         // patient with no charge walks straight past the cashier" — never
         // possible, not because every caller remembers, but because there

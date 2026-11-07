@@ -563,6 +563,9 @@ function ImmediateConfirmationModal({
 
 function submitErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.status === 401) {
+      return 'Your session expired. Sign in again, then reopen this assessment. Your saved draft will be restored.';
+    }
     if (error.status === 409) {
       return `${error.message} Reload the queue and try again.`;
     }

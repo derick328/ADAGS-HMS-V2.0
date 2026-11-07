@@ -145,7 +145,7 @@ class EndToEndBillingTest extends IntegrationTestSupport {
         openCashierShiftService.open(BOOTSTRAP_FACILITY_ID, admin);
         postPaymentService.recordPayment(new PostPaymentCommand(
                 patient.id(), PaymentMethod.CASH, null, "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(invoiceLineId, 10_000)), admin));
+                List.of(new PostPaymentCommand.LineAllocationRequest(invoiceLineId, 8_000)), admin));
 
         assertThat(billingGate.isSatisfied(invoiceLineId)).as("paid in full — now satisfied").isTrue();
 
@@ -187,8 +187,8 @@ class EndToEndBillingTest extends IntegrationTestSupport {
                         """,
                 new MapSqlParameterSource("lineId", invoiceLineId),
                 (rs, rowNum) -> new Object[]{rs.getLong("gross_total_minor"), rs.getLong("outstanding_total_minor")});
-        assertThat(amounts[0]).as("charge posted, never skipped").isEqualTo(10_000L);
-        assertThat(amounts[1]).as("charge sits unpaid on the encounter").isEqualTo(10_000L);
+        assertThat(amounts[0]).as("charge posted, never skipped").isEqualTo(8_000L);
+        assertThat(amounts[1]).as("charge sits unpaid on the encounter").isEqualTo(8_000L);
 
         Integer paymentCount = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM payment WHERE patient_id = :patientId",

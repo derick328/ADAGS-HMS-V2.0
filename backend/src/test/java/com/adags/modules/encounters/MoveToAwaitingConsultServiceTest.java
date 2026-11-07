@@ -97,7 +97,7 @@ class MoveToAwaitingConsultServiceTest extends IntegrationTestSupport {
                 new MapSqlParameterSource("encounterId", encounter.id()), UUID.class);
         postPaymentService.recordPayment(new PostPaymentCommand(
                 patientId, PaymentMethod.CASH, null, "idem-" + UUID.randomUUID(),
-                List.of(new PostPaymentCommand.LineAllocationRequest(invoiceLineId, 10_000)), admin));
+                List.of(new PostPaymentCommand.LineAllocationRequest(invoiceLineId, 8_000)), admin));
 
         String state = jdbcTemplate.queryForObject("SELECT state FROM encounter WHERE id = :id",
                 new MapSqlParameterSource("id", encounter.id()), String.class);

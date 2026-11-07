@@ -30,6 +30,12 @@ class ProviderBillingCategoryRepositoryTest extends IntegrationTestSupport {
     }
 
     @Test
+    void aClinicalOfficerRoleResolvesToItsConsultationPrice() {
+        ProviderBillingCategory category = repository.findHighestPriorityCurrent(Set.of("CLINICAL_OFFICER")).orElseThrow();
+        assertThat(category.serviceItemCode()).isEqualTo("CONSULT_CLINICAL_OFFICER");
+    }
+
+    @Test
     void aSpecialistDoctorRoleResolvesToTheSpecialistConsultationPrice() {
         ProviderBillingCategory category =
                 repository.findHighestPriorityCurrent(Set.of("SPECIALIST_DOCTOR")).orElseThrow();
