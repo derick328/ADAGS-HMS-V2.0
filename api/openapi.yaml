@@ -311,6 +311,27 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/UserResponse"
+  /api/users/{id}/password:
+    post:
+      tags:
+      - user-controller
+      operationId: setUserPassword
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetUserPasswordRequest"
+        required: true
+      responses:
+        "204":
+          description: No Content
   /api/users/{id}/role-assignments:
     get:
       tags:
@@ -6598,13 +6619,20 @@ components:
           format: date-time
     CreateUserRequest:
       required:
-      - temporaryPassword
+      - password
       - username
       type: object
       properties:
         username:
           type: string
-        temporaryPassword:
+        password:
+          type: string
+    SetUserPasswordRequest:
+      required:
+      - password
+      type: object
+      properties:
+        password:
           type: string
     UserResponse:
       type: object

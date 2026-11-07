@@ -71,7 +71,7 @@ public class JdbcUserRepository implements UserRepository {
     public User insert(String username, String passwordHash, UUID createdBy) {
         String sql = """
                 INSERT INTO app_user (username, password_hash, status, must_change_password, created_by)
-                VALUES (:username, :passwordHash, 'ACTIVE', TRUE, :createdBy)
+                VALUES (:username, :passwordHash, 'ACTIVE', FALSE, :createdBy)
                 RETURNING id
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -79,7 +79,7 @@ public class JdbcUserRepository implements UserRepository {
                 .addValue("passwordHash", passwordHash)
                 .addValue("createdBy", createdBy, Types.OTHER);
         UUID id = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> (UUID) rs.getObject("id"));
-        return new User(id, username, passwordHash, "ACTIVE", true, 0, null);
+        return new User(id, username, passwordHash, "ACTIVE", false, 0, null);
     }
 
     @Override

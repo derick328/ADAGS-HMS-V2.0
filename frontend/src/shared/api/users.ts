@@ -3,6 +3,7 @@ import type { components } from './types';
 
 export type UserResponse = components['schemas']['UserResponse'];
 export type CreateUserRequest = components['schemas']['CreateUserRequest'];
+export type SetUserPasswordRequest = components['schemas']['SetUserPasswordRequest'];
 export type RoleResponse = components['schemas']['RoleResponse'];
 export type RoleAssignmentResponse = components['schemas']['RoleAssignmentResponse'];
 export type GrantRoleAssignmentRequest = components['schemas']['GrantRoleAssignmentRequest'];
@@ -13,6 +14,10 @@ export function fetchUsers(accessToken: string): Promise<UserResponse[]> {
 
 export function createUser(body: CreateUserRequest, accessToken: string): Promise<UserResponse> {
   return authFetch('/api/users', accessToken, { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function setUserPassword(userId: string, body: SetUserPasswordRequest, accessToken: string): Promise<void> {
+  return authFetchVoid(`/api/users/${userId}/password`, accessToken, { method: 'POST', body: JSON.stringify(body) });
 }
 
 export function fetchRoles(accessToken: string): Promise<RoleResponse[]> {

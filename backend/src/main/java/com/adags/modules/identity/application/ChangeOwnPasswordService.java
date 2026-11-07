@@ -9,11 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.NoSuchElementException;
 
-// 18-admin.md §12 "Bootstrap": the install-time password is meant to be
-// changed, not lived with — this is that path, self-service, requiring the
-// current password (not just USER_MANAGE on someone else's account) so an
-// admin can never silently take over another user's login by resetting it
-// from this endpoint. Clears must_change_password on success.
+// Admin-only self-service path for changing the bootstrap or current password.
 @Service
 public class ChangeOwnPasswordService {
 

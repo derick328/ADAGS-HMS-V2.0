@@ -9,6 +9,7 @@ import com.adags.shared.authz.AuthorizationService;
 import com.adags.shared.authz.RoleAssignmentView;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -62,6 +63,9 @@ public class MeController {
     @PostMapping("/me/change-password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePassword(@Valid @RequestBody ChangePasswordRequest request, @AuthenticationPrincipal Actor actor) {
+        if (!authorizationService.hasPermission(actor, "USER_MANAGE")) {
+            throw new AccessDeniedException("Only admins can change passwords.");
+        }
         changeOwnPasswordService.changePassword(
                 new ChangeOwnPasswordCommand(actor.userId(), request.currentPassword(), request.newPassword()));
     }

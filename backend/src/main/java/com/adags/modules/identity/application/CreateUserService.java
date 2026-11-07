@@ -7,10 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// 18-admin.md §4.2: onboarding creates the login account. must_change_password
-// is always TRUE regardless of what the admin types as the temporary password
-// — same "no default password" discipline as V3__BootstrapAdmin, just with an
-// admin as the install-time secret's replacement.
+// Admin-provided passwords are permanent until an admin changes them.
 @Service
 public class CreateUserService {
 
@@ -30,13 +27,13 @@ public class CreateUserService {
         if (username.isBlank()) {
             throw new IllegalArgumentException("Enter a username.");
         }
-        if (command.temporaryPassword() == null || command.temporaryPassword().length() < MIN_PASSWORD_LENGTH) {
-            throw new IllegalArgumentException("Temporary password must be at least " + MIN_PASSWORD_LENGTH + " characters.");
+        if (command.password() == null || command.password().length() < MIN_PASSWORD_LENGTH) {
+            throw new IllegalArgumentException("Password must be at least " + MIN_PASSWORD_LENGTH + " characters.");
         }
         if (userRepository.findByUsername(username).isPresent()) {
             throw new DuplicateUsernameException(username);
         }
-        String passwordHash = passwordEncoder.encode(command.temporaryPassword());
+        String passwordHash = passwordEncoder.encode(command.password());
         return userRepository.insert(username, passwordHash, command.createdBy());
     }
 }

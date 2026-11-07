@@ -542,7 +542,7 @@ class TriageAssessmentApiTest extends IntegrationTestSupport {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"username": "%s", "temporaryPassword": "%s"}
+                                {"username": "%s", "password": "%s"}
                                 """.formatted(username, FIXTURE_PASSWORD)))
                 .andExpect(status().isCreated())
                 .andReturn();

@@ -5,6 +5,7 @@ import com.adags.modules.identity.application.CreateUserService;
 import com.adags.modules.identity.application.EndRoleAssignmentService;
 import com.adags.modules.identity.application.GrantRoleAssignmentCommand;
 import com.adags.modules.identity.application.GrantRoleAssignmentService;
+import com.adags.modules.identity.application.SetUserPasswordService;
 import com.adags.modules.identity.domain.RoleAssignmentRepository;
 import com.adags.modules.identity.domain.User;
 import com.adags.modules.identity.domain.UserRepository;
@@ -29,6 +30,7 @@ import java.util.UUID;
 public class UserController {
 
     private final CreateUserService createUserService;
+    private final SetUserPasswordService setUserPasswordService;
     private final GrantRoleAssignmentService grantRoleAssignmentService;
     private final EndRoleAssignmentService endRoleAssignmentService;
     private final UserRepository userRepository;
@@ -37,6 +39,7 @@ public class UserController {
 
     public UserController(
             CreateUserService createUserService,
+            SetUserPasswordService setUserPasswordService,
             GrantRoleAssignmentService grantRoleAssignmentService,
             EndRoleAssignmentService endRoleAssignmentService,
             UserRepository userRepository,
@@ -44,6 +47,7 @@ public class UserController {
             AuthorizationService authorizationService
     ) {
         this.createUserService = createUserService;
+        this.setUserPasswordService = setUserPasswordService;
         this.grantRoleAssignmentService = grantRoleAssignmentService;
         this.endRoleAssignmentService = endRoleAssignmentService;
         this.userRepository = userRepository;
@@ -61,8 +65,16 @@ public class UserController {
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse create(@Valid @RequestBody CreateUserRequest request, @AuthenticationPrincipal Actor actor) {
         requirePermission(actor, "USER_MANAGE");
-        User user = createUserService.create(new CreateUserCommand(request.username(), request.temporaryPassword(), actor.userId()));
+        User user = createUserService.create(new CreateUserCommand(request.username(), request.password(), actor.userId()));
         return UserResponse.from(user);
+    }
+
+    @PostMapping("/{id}/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void setPassword(@PathVariable UUID id, @Valid @RequestBody SetUserPasswordRequest request,
+                            @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "USER_MANAGE");
+        setUserPasswordService.setPassword(id, request.password());
     }
 
     @GetMapping("/{id}/role-assignments")

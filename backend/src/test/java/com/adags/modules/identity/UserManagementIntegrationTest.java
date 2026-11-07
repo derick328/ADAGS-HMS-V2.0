@@ -44,17 +44,23 @@ class UserManagementIntegrationTest extends IntegrationTestSupport {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "username", username, "temporaryPassword", "Temp-Password-1"))))
+                                "username", username, "password", "Temp-Password-1"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").value(username))
-                .andExpect(jsonPath("$.mustChangePassword").value(true));
+                .andExpect(jsonPath("$.mustChangePassword").value(false));
 
         mockMvc.perform(post("/api/users")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "username", username, "temporaryPassword", "Another-Password-1"))))
+                                "username", username, "password", "Another-Password-1"))))
                 .andExpect(status().isConflict());
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("username", username, "password", "Temp-Password-1"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mustChangePassword").value(false));
     }
 
     @Test
@@ -152,7 +158,7 @@ class UserManagementIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    void changingOwnPasswordClearsMustChangePasswordAndTakesEffect() throws Exception {
+    void regularUserCannotChangeOwnPasswordButAdminCanChangeIt() throws Exception {
         String username = "pwchange_" + UUID.randomUUID().toString().substring(0, 8);
         String adminToken = loginAsBootstrapAdmin();
         createUser(adminToken, username, "Original-Password-1");
@@ -163,6 +169,19 @@ class UserManagementIntegrationTest extends IntegrationTestSupport {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "currentPassword", "Original-Password-1", "newPassword", "Brand-New-Password-1"))))
+                .andExpect(status().isForbidden());
+
+        UUID userId = currentUserId(userToken);
+        mockMvc.perform(post("/api/users/" + userId + "/password")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("password", "Brand-New-Password-1"))))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/users/" + userId + "/password")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("password", "Brand-New-Password-1"))))
                 .andExpect(status().isNoContent());
 
         // The old password no longer works...
@@ -172,7 +191,7 @@ class UserManagementIntegrationTest extends IntegrationTestSupport {
                                 "username", username, "password", "Original-Password-1"))))
                 .andExpect(status().isUnauthorized());
 
-        // ...and the new one does, with mustChangePassword now cleared.
+        // ...and the admin-set password works without a forced change.
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -181,12 +200,12 @@ class UserManagementIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.mustChangePassword").value(false));
     }
 
-    private UUID createUser(String adminToken, String username, String temporaryPassword) throws Exception {
+    private UUID createUser(String adminToken, String username, String password) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/users")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
-                                "username", username, "temporaryPassword", temporaryPassword))))
+                                "username", username, "password", password))))
                 .andExpect(status().isCreated())
                 .andReturn();
         return UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText());

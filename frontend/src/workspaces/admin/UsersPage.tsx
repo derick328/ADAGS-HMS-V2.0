@@ -14,6 +14,7 @@ import {
   fetchRoles,
   fetchUsers,
   grantRoleAssignment,
+  setUserPassword,
   type RoleAssignmentResponse,
   type UserResponse,
 } from '../../shared/api/users';
@@ -30,7 +31,7 @@ const SCOPE_TYPES = ['GLOBAL', 'FACILITY', 'DEPARTMENT', 'WARD', 'CLINIC', 'STOR
 
 const createUserSchema = z.object({
   username: z.string().min(1, 'Enter a username'),
-  temporaryPassword: z.string().min(8, 'Enter a temporary password of at least 8 characters'),
+  password: z.string().min(8, 'Enter a password of at least 8 characters'),
 });
 type CreateUserValues = z.infer<typeof createUserSchema>;
 
@@ -128,7 +129,7 @@ export function UsersPage() {
                     </span>
                   </td>
                   <td>
-                    {user.mustChangePassword && <span className="badge badge-warning">must change</span>}
+                    {user.mustChangePassword && <span className="badge badge-warning">admin reset needed</span>}
                   </td>
                   <td>{formatDate(user.createdAt)}</td>
                 </tr>
@@ -139,7 +140,7 @@ export function UsersPage() {
       </div>
 
       {selectedUser && (
-        <RoleAssignmentsPanel user={selectedUser} canAssignRoles={canAssignRoles} accessToken={accessToken as string} />
+        <RoleAssignmentsPanel user={selectedUser} canAssignRoles={canAssignRoles} canManageUsers={canManageUsers} accessToken={accessToken as string} />
       )}
     </div>
   );
@@ -148,14 +149,18 @@ export function UsersPage() {
 function RoleAssignmentsPanel({
   user,
   canAssignRoles,
+  canManageUsers,
   accessToken,
 }: {
   user: UserResponse;
   canAssignRoles: boolean;
+  canManageUsers: boolean;
   accessToken: string;
 }) {
   const queryClient = useQueryClient();
   const [showGrantForm, setShowGrantForm] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwordChangedFor, setPasswordChangedFor] = useState<string | null>(null);
 
   const { data: assignments, isLoading } = useQuery({
     queryKey: ['users', user.id, 'role-assignments'],
@@ -234,6 +239,18 @@ function RoleAssignmentsPanel({
       )}
 
       <div style={{ padding: 'var(--space-4)' }}>
+        {canManageUsers && (
+          <div style={{ marginBottom: 'var(--space-4)' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowPasswordForm((value) => !value)}>
+              {showPasswordForm ? 'Cancel' : 'Change password'}
+            </button>
+            {passwordChangedFor === user.id && <p role="status">Password changed for {user.username}.</p>}
+            {showPasswordForm && <SetPasswordForm key={user.id} user={user} accessToken={accessToken} onSuccess={() => {
+              setPasswordChangedFor(user.id ?? null);
+              setShowPasswordForm(false);
+            }} />}
+          </div>
+        )}
         {!canAssignRoles ? (
           <p style={{ color: 'var(--text-muted)' }}>You don't hold ROLE_ASSIGN — assignments are hidden.</p>
         ) : isLoading ? (
@@ -331,17 +348,58 @@ function CreateUserForm({
       </div>
       <div>
         <label htmlFor="new-user-password" style={labelStyle}>
-          Temporary password
+          Password
         </label>
-        <input className="clinical-control" id="new-user-password" type="text" {...register('temporaryPassword')} style={fieldStyle} />
-        {errors.temporaryPassword && <span className="field-error">{errors.temporaryPassword.message}</span>}
+        <input className="clinical-control" id="new-user-password" type="password" autoComplete="new-password" {...register('password')} style={fieldStyle} />
+        {errors.password && <span className="field-error">{errors.password.message}</span>}
         <p style={{ margin: '4px 0 0', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-          The user must change this on first login.
+          This password remains valid until an admin changes it.
         </p>
       </div>
       {error && <div className="form-error">{error}</div>}
       <button type="submit" className="btn btn-primary" disabled={isSubmitting} style={{ alignSelf: 'flex-start' }}>
         {isSubmitting ? 'Creating…' : 'Create user'}
+      </button>
+    </form>
+  );
+}
+
+const setPasswordSchema = z.object({
+  password: z.string().min(8, 'Enter a password of at least 8 characters'),
+  confirmPassword: z.string().min(1, 'Confirm the password'),
+}).refine((values) => values.password === values.confirmPassword, {
+  message: 'Passwords do not match', path: ['confirmPassword'],
+});
+
+function SetPasswordForm({ user, accessToken, onSuccess }: {
+  user: UserResponse;
+  accessToken: string;
+  onSuccess: () => void;
+}) {
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<z.infer<typeof setPasswordSchema>>({
+    resolver: zodResolver(setPasswordSchema),
+  });
+  const change = useMutation({
+    mutationFn: (values: z.infer<typeof setPasswordSchema>) =>
+      setUserPassword(user.id as string, { password: values.password }, accessToken),
+    onSuccess: () => { reset(); onSuccess(); },
+  });
+  return (
+    <form onSubmit={handleSubmit((values) => change.mutate(values))} noValidate style={{ ...formStyle, marginTop: 'var(--space-3)' }}>
+      <h3 style={{ margin: 0 }}>Change password for {user.username}</h3>
+      <div>
+        <label htmlFor="set-user-password" style={labelStyle}>New password</label>
+        <input className="clinical-control" id="set-user-password" type="password" autoComplete="new-password" {...register('password')} style={fieldStyle} />
+        {errors.password && <span className="field-error">{errors.password.message}</span>}
+      </div>
+      <div>
+        <label htmlFor="confirm-user-password" style={labelStyle}>Confirm password</label>
+        <input className="clinical-control" id="confirm-user-password" type="password" autoComplete="new-password" {...register('confirmPassword')} style={fieldStyle} />
+        {errors.confirmPassword && <span className="field-error">{errors.confirmPassword.message}</span>}
+      </div>
+      {change.error && <div className="form-error">{errorMessage(change.error)}</div>}
+      <button type="submit" className="btn btn-primary" disabled={change.isPending} style={{ alignSelf: 'flex-start' }}>
+        {change.isPending ? 'Changing…' : 'Save password'}
       </button>
     </form>
   );

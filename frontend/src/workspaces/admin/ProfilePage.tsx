@@ -11,9 +11,8 @@ import { useAuth } from '../../shared/auth/AuthProvider';
 import { useMe } from '../../shared/auth/useMe';
 
 // Backed by GET /me (identity, roles/scopes, permissions) and
-// POST /me/change-password (self-service only — it requires the current
-// password, so USER_MANAGE alone can never silently take over another
-// user's login; see ChangeOwnPasswordService). No MFA-enrolment endpoint
+// POST /me/change-password (admin-only and requires the current password).
+// Passwords for other users are managed on the Users page. No MFA-enrolment endpoint
 // exists yet (18-admin.md §12 flags MFA as mandatory for ADMIN).
 export function ProfilePage() {
   const { data: me, isLoading } = useMe();
