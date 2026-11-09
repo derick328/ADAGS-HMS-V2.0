@@ -725,11 +725,11 @@ function DeactivateAllPanel({ onClose, onCleared }: { onClose: () => void; onCle
       padding: 'var(--space-3)',
     }}>
       <div style={{ fontWeight: 'var(--weight-medium)', marginBottom: 'var(--space-2)' }}>
-        Clear all catalogue items and current prices?
+        Deactivate catalogue items and their current prices?
       </div>
       <ul style={{ margin: '0 0 var(--space-2)', paddingLeft: 'var(--space-4)', fontSize: 'var(--text-sm)' }}>
-        <li>Every currently active service item will be soft-deactivated (is_active = false).</li>
-        <li>All current price entries are closed. Historical invoices and price records remain available.</li>
+        <li>Active service items will be soft-deactivated and their current prices closed, except the three consultation items below.</li>
+        <li>Clinical officer, doctor, and specialist consultation fees stay available for triage.</li>
         <li>A later re-upload of the same PRODUCT CODE brings it back on.</li>
         <li>Nothing is hard-deleted from the database.</li>
       </ul>

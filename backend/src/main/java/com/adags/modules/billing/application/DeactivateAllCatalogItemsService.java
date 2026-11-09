@@ -7,8 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 import java.util.UUID;
 
-// Admin action: soft-deactivate every currently-active service_item and
-// close its current price entry. Root CLAUDE.md "Data": financial
+// Admin action: soft-deactivate service items and close their current price
+// entries, except the core consultation items required for triage.
+// Root CLAUDE.md "Data": financial
 // records are never hard-deleted; this is soft-delete via is_active.
 // Historical invoices keep working — they snapshot serviceItemName at
 // posting time (not the current row).

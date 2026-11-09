@@ -155,17 +155,18 @@ public class JdbcCatalogItemLookup implements CatalogItemLookupPort {
 
     @Override
     public int deactivateAllActive() {
-        // Root CLAUDE.md "Billing": prices are versioned, not edited. Any
-        // currently-open price entry is closed with valid_to = today so a
-        // subsequent look-up returns "no current price" for the deactivated
-        // item — same close semantics as a normal price change.
+        // Core consultation items are managed by migrations, not Excel imports.
+        // Triage must keep their prices available after a catalogue reset.
+        // Other items keep the normal versioned price-close behaviour.
         jdbcTemplate.update(
                 "UPDATE price_list_entry SET valid_to = CURRENT_DATE " +
                 "  WHERE valid_to IS NULL " +
-                "    AND service_item_id IN (SELECT id FROM service_item WHERE is_active = TRUE)",
+                "    AND service_item_id IN (SELECT id FROM service_item WHERE is_active = TRUE " +
+                "      AND code NOT IN ('CONSULT_CLINICAL_OFFICER', 'CONSULT_GENERAL', 'CONSULT_SPECIALIST'))",
                 new MapSqlParameterSource());
         return jdbcTemplate.update(
-                "UPDATE service_item SET is_active = FALSE WHERE is_active = TRUE",
+                "UPDATE service_item SET is_active = FALSE WHERE is_active = TRUE " +
+                "  AND code NOT IN ('CONSULT_CLINICAL_OFFICER', 'CONSULT_GENERAL', 'CONSULT_SPECIALIST')",
                 new MapSqlParameterSource());
     }
 

@@ -241,6 +241,11 @@ export function TriageAssessmentFormPage() {
         setFormError('This encounter is still loading. Wait a moment and submit again.');
         return;
       }
+      const selectedProvider = referralCandidates?.find((candidate) => candidate.providerId === values.assignedProviderId);
+      if (selectedProvider && selectedProvider.feeAmountMinor == null) {
+        setFormError('This provider has no consultation price for this patient’s payer category. Ask billing to configure the price before submitting.');
+        return;
+      }
       const payload: SubmitTriageAssessmentRequest = {
       expectedEncounterVersion: encounter.version,
       assignedProviderId: values.assignedProviderId,
@@ -567,7 +572,9 @@ function submitErrorMessage(error: unknown): string {
       return 'Your session expired. Sign in again, then reopen this assessment. Your saved draft will be restored.';
     }
     if (error.status === 409) {
-      return `${error.message} Reload the queue and try again.`;
+      return error.body?.expectedVersion != null
+        ? `${error.message} Reload the queue and try again.`
+        : error.message;
     }
     return error.message;
   }

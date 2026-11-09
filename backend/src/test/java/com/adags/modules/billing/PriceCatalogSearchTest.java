@@ -5,12 +5,14 @@ import com.adags.modules.billing.domain.PayerCategory;
 import com.adags.modules.billing.domain.ServiceItem;
 import com.adags.modules.billing.domain.ServiceItemCategory;
 import com.adags.modules.billing.domain.ServiceItemRepository;
+import com.adags.modules.billing.infrastructure.JdbcCatalogItemLookup;
 import com.adags.support.IntegrationTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,6 +32,8 @@ class PriceCatalogSearchTest extends IntegrationTestSupport {
     private PriceResolutionService priceResolutionService;
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
+    @Autowired
+    private JdbcCatalogItemLookup catalogItemLookup;
 
     @AfterEach
     void cleanUp() {
@@ -75,5 +79,20 @@ class PriceCatalogSearchTest extends IntegrationTestSupport {
         org.assertj.core.api.Assertions.assertThatThrownBy(
                         () -> priceResolutionService.resolvePrice(unpriced, PayerCategory.CASH))
                 .isInstanceOf(com.adags.modules.billing.domain.PriceNotConfiguredException.class);
+    }
+
+    @Test
+    @Transactional
+    void catalogueResetKeepsTriageConsultationItemsAndPricesActive() {
+        catalogItemLookup.deactivateAllActive();
+
+        assertThat(serviceItemRepository.findByCode("CONSULT_CLINICAL_OFFICER").orElseThrow().isActive()).isTrue();
+        assertThat(serviceItemRepository.findByCode("CONSULT_GENERAL").orElseThrow().isActive()).isTrue();
+        assertThat(serviceItemRepository.findByCode("CONSULT_SPECIALIST").orElseThrow().isActive()).isTrue();
+        assertThat(priceResolutionService.resolvePrice("CONSULT_CLINICAL_OFFICER", PayerCategory.CASH).amountMinor()).isEqualTo(5000);
+        assertThat(priceResolutionService.resolvePrice("CONSULT_GENERAL", PayerCategory.CASH).amountMinor()).isEqualTo(8000);
+        assertThat(priceResolutionService.resolvePrice("CONSULT_SPECIALIST", PayerCategory.CASH).amountMinor()).isEqualTo(30000);
+        assertThat(priceResolutionService.resolvePrice("CONSULT_GENERAL", PayerCategory.NHIF).amountMinor()).isEqualTo(8000);
+        assertThat(priceResolutionService.resolvePrice("CONSULT_SPECIALIST", PayerCategory.NHIF).amountMinor()).isEqualTo(30000);
     }
 }

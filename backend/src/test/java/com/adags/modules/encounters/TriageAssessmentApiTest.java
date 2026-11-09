@@ -50,10 +50,10 @@ class TriageAssessmentApiTest extends IntegrationTestSupport {
     void cleanUp() {
         jdbcTemplate.update("TRUNCATE encounter, patient CASCADE", new MapSqlParameterSource());
         jdbcTemplate.update(
-                "DELETE FROM role_assignment WHERE role_id IN (SELECT id FROM role WHERE code IN ('TRIAGE_NURSE', 'DOCTOR', 'RECEPTIONIST'))",
+                "DELETE FROM role_assignment WHERE role_id IN (SELECT id FROM role WHERE code IN ('TRIAGE_NURSE', 'CLINICAL_OFFICER', 'DOCTOR', 'SPECIALIST_DOCTOR', 'RECEPTIONIST'))",
                 new MapSqlParameterSource());
         jdbcTemplate.update(
-                "DELETE FROM app_user WHERE username IN ('fixture-doctor', 'fixture-second-nurse')",
+                "DELETE FROM app_user WHERE username IN ('fixture-doctor', 'fixture-specialist', 'fixture-clinical-officer', 'fixture-second-nurse')",
                 new MapSqlParameterSource());
     }
 
@@ -191,6 +191,8 @@ class TriageAssessmentApiTest extends IntegrationTestSupport {
 
         UUID doctorId = insertFixtureUser("fixture-doctor");
         grantRole(doctorId, "DOCTOR");
+        UUID specialistId = insertFixtureUser("fixture-specialist");
+        grantRole(specialistId, "SPECIALIST_DOCTOR");
 
         mockMvc.perform(get("/api/encounters/" + encounterId + "/referral-candidates")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -198,7 +200,9 @@ class TriageAssessmentApiTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$[?(@.providerId == '" + doctorId + "')].roleLabel").value(org.hamcrest.Matchers.hasItem("Doctor")))
                 .andExpect(jsonPath("$[?(@.providerId == '" + doctorId + "')].feeAmountMinor").value(org.hamcrest.Matchers.hasItem(8000)))
                 .andExpect(jsonPath("$[?(@.providerId == '" + doctorId + "')].currencyCode").value(org.hamcrest.Matchers.hasItem("TZS")))
-                .andExpect(jsonPath("$[?(@.providerId == '" + doctorId + "')].queueDepth").value(org.hamcrest.Matchers.hasItem(0)));
+                .andExpect(jsonPath("$[?(@.providerId == '" + doctorId + "')].queueDepth").value(org.hamcrest.Matchers.hasItem(0)))
+                .andExpect(jsonPath("$[?(@.providerId == '" + specialistId + "')].roleLabel").value(org.hamcrest.Matchers.hasItem("Specialist")))
+                .andExpect(jsonPath("$[?(@.providerId == '" + specialistId + "')].feeAmountMinor").value(org.hamcrest.Matchers.hasItem(30000)));
     }
 
     @Test
@@ -216,7 +220,7 @@ class TriageAssessmentApiTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$[?(@.providerId == '" + officerId + "')].roleLabel")
                         .value(org.hamcrest.Matchers.hasItem("Clinical Officer")))
                 .andExpect(jsonPath("$[?(@.providerId == '" + officerId + "')].feeAmountMinor")
-                        .value(org.hamcrest.Matchers.hasItem(4000)));
+                        .value(org.hamcrest.Matchers.hasItem(5000)));
 
         mockMvc.perform(post("/api/encounters/" + encounterId + "/triage-assessments")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -229,7 +233,31 @@ class TriageAssessmentApiTest extends IntegrationTestSupport {
                         WHERE i.encounter_id = :id AND il.source_event_type = 'TriageCompleted'
                         """,
                 new MapSqlParameterSource("id", UUID.fromString(encounterId)), Long.class);
-        org.assertj.core.api.Assertions.assertThat(grossMinor).isEqualTo(4_000L);
+        org.assertj.core.api.Assertions.assertThat(grossMinor).isEqualTo(5_000L);
+    }
+
+    @Test
+    void missingConsultationPriceIsReportedAsPricingConflictNotExpiredSession() throws Exception {
+        grantRole(bootstrapAdminId(), "TRIAGE_NURSE");
+        String token = login();
+        String encounterId = openEncounterForFreshPatient(token, "MALE");
+        UUID doctorId = insertFixtureUser("fixture-doctor");
+        grantRole(doctorId, "DOCTOR");
+
+        jdbcTemplate.update("UPDATE service_item SET is_active = false WHERE code = 'CONSULT_GENERAL'", new MapSqlParameterSource());
+        try {
+            mockMvc.perform(post("/api/encounters/" + encounterId + "/triage-assessments")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(validSubmitBody(doctorId, "URGENT", null, null)))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("CONSULT_GENERAL")));
+            mockMvc.perform(get("/api/encounters/" + encounterId)
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                    .andExpect(jsonPath("$.state").value("AWAITING_TRIAGE"));
+        } finally {
+            jdbcTemplate.update("UPDATE service_item SET is_active = true WHERE code = 'CONSULT_GENERAL'", new MapSqlParameterSource());
+        }
     }
 
     @Test

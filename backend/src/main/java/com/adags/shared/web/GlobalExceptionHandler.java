@@ -17,6 +17,7 @@ import com.adags.modules.billing.domain.InvoiceWriteOffAlreadyDecidedException;
 import com.adags.modules.billing.domain.InvoiceWriteOffExceedsOutstandingException;
 import com.adags.modules.billing.domain.InvoiceWriteOffSelfApprovalNotAllowedException;
 import com.adags.modules.billing.domain.PaymentAllocationNotSettledException;
+import com.adags.modules.billing.domain.PriceNotConfiguredException;
 import com.adags.modules.billing.domain.RefundAlreadyDecidedException;
 import com.adags.modules.billing.domain.RefundExceedsAllocationException;
 import com.adags.modules.billing.domain.RefundSelfApprovalNotAllowedException;
@@ -96,6 +97,11 @@ import java.util.NoSuchElementException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(PriceNotConfiguredException.class)
+    public ProblemDetail handlePriceNotConfigured(PriceNotConfiguredException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
