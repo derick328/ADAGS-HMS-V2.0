@@ -1,9 +1,10 @@
-FROM eclipse-temurin:21-jdk-jammy AS build
+FROM gradle:8.10.2-jdk21-jammy AS build
+USER root
 WORKDIR /app
-COPY gradlew build.gradle.kts settings.gradle.kts ./
-COPY gradle ./gradle
+ENV GRADLE_USER_HOME=/app/.gradle
+COPY build.gradle.kts settings.gradle.kts ./
 COPY src ./src
-RUN ./gradlew --no-daemon bootJar
+RUN --mount=type=cache,target=/app/.gradle gradle --no-daemon bootJar
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
