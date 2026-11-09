@@ -6,6 +6,45 @@ servers:
 - url: http://localhost
   description: Generated server url
 paths:
+  /api/encounters/{encounterId}/pregnancy-assessment:
+    get:
+      operationId: getPregnancyAssessment
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Current pregnancy assessment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PregnancyAssessmentResponse"
+    post:
+      operationId: recordPregnancyAssessment
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PregnancyAssessmentRequest"
+      responses:
+        "200":
+          description: Recorded pregnancy assessment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PregnancyAssessmentResponse"
   /api/lab-orders/{labOrderId}/result-draft:
     get:
       tags:
@@ -6256,6 +6295,24 @@ paths:
           description: No Content
 components:
   schemas:
+    PregnancyAssessmentRequest:
+      type: object
+      required:
+      - status
+      properties:
+        status:
+          type: string
+          enum: [YES, NO, UNKNOWN]
+    PregnancyAssessmentResponse:
+      type: object
+      required:
+      - applicable
+      properties:
+        applicable:
+          type: boolean
+        status:
+          type: string
+          enum: [YES, NO, UNKNOWN]
     JsonNode:
       type: object
     SaveDraftRequest:

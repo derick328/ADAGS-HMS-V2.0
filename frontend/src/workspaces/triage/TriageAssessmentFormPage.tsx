@@ -99,13 +99,7 @@ export function TriageAssessmentFormPage() {
 
   const patientAge = ageFromDob(patient?.dateOfBirth);
   const suppressBmi = patientAge != null && patientAge < 18;
-  // Age bounds are configuration in the real system (protocol_setting,
-  // V11's seeded triage.pregnancy_prompt.min_age_years/max_age_years) —
-  // no endpoint exposes that setting today, so this mirrors the seeded
-  // defaults (12/50) rather than the live value an admin may have retuned.
-  const pregnancyApplicable = patient?.gender === 'FEMALE' && patientAge != null && patientAge >= 12 && patientAge <= 50;
-
-  const schema = useMemo(() => buildSchema(pregnancyApplicable ?? false), [pregnancyApplicable]);
+  const schema = useMemo(() => buildSchema(), []);
   type Values = z.infer<typeof schema>;
 
   const {
@@ -255,7 +249,6 @@ export function TriageAssessmentFormPage() {
       fallRisk: values.fallRisk,
       fallScore: values.fallRisk ? values.fallScore : undefined,
       infectionRisk: values.infectionRisk,
-      pregnancyStatus: pregnancyApplicable ? values.pregnancyStatus : undefined,
       // Priority is optional in the UI — the backend column is NOT NULL and
       // downstream queue ordering assumes a value, so we default a blank
       // selection to NON_URGENT rather than reject on submit.
@@ -386,23 +379,6 @@ export function TriageAssessmentFormPage() {
           <Checkbox  className="clinical-choice" {...register('infectionRisk')} label={<>Infection risk</>} />
         </FormSection>
 
-        {pregnancyApplicable && (
-          <FormSection title="Pregnancy status" columns={1}>
-
-            <FormRow label="Pregnancy status" error={errors.pregnancyStatus?.message}>
-              <select className="clinical-control" {...register('pregnancyStatus')} style={fieldStyle} defaultValue="">
-                <option value="" disabled>
-                  Choose…
-                </option>
-                {(['YES', 'NO', 'UNKNOWN'] as const).map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
-                ))}
-              </select>
-            </FormRow>
-          </FormSection>
-        )}
 
         <FormSection title="Triage priority (optional)" columns={1}>
 
@@ -599,7 +575,6 @@ const FIELD_LABELS: Record<string, string> = {
   painScore: 'Pain score',
   painLocation: 'Pain location',
   fallScore: 'Fall risk score',
-  pregnancyStatus: 'Pregnancy status',
   priority: 'Triage priority',
   immediateReason: 'IMMEDIATE reason',
   immediateReasonOtherText: 'IMMEDIATE reason description',
@@ -626,7 +601,7 @@ const VITAL_FIELDS = [
   { key: 'spo2Pct' as const, label: 'SpO₂', unit: '%', vitalType: 'SPO2' as const },
 ];
 
-function buildSchema(pregnancyApplicable: boolean) {
+function buildSchema() {
   return z
     .object({
       temperatureC: z.number({ invalid_type_error: 'Enter the temperature' }),
@@ -643,7 +618,6 @@ function buildSchema(pregnancyApplicable: boolean) {
       fallRisk: z.boolean(),
       fallScore: z.number().optional(),
       infectionRisk: z.boolean(),
-      pregnancyStatus: z.enum(['YES', 'NO', 'UNKNOWN']).optional(),
       // Optional. An untouched radio group hands react-hook-form `null`, and
       // cancelling the IMMEDIATE modal sets it to '' — neither of which a bare
       // `.optional()` enum accepts ("Expected '…', received null"). Coerce both
@@ -683,9 +657,6 @@ function buildSchema(pregnancyApplicable: boolean) {
         } else if (v.immediateReason === 'OTHER' && (!v.immediateReasonOtherText || v.immediateReasonOtherText.trim() === '')) {
           ctx.addIssue({ path: ['immediateReasonOtherText'], code: z.ZodIssueCode.custom, message: 'Describe the reason' });
         }
-      }
-      if (pregnancyApplicable && !v.pregnancyStatus) {
-        ctx.addIssue({ path: ['pregnancyStatus'], code: z.ZodIssueCode.custom, message: 'Choose a pregnancy status' });
       }
     });
 }

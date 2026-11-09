@@ -152,15 +152,12 @@ class TriageAssessmentTest {
         assertThat(assessment.immediateReasonOtherText()).isNull();
     }
 
-    // §2.7: auto-appears / required only within the configured age bounds.
+    // Pregnancy status is now collected during consultation, not required in triage.
     @Test
-    void pregnancyStatusIsRequiredWhenPromptIsApplicable() {
+    void pregnancyStatusCanBeLeftUnansweredAtTriage() {
         Builder b = builder();
         b.pregnancyPromptApplicable = true;
-
-        assertThatThrownBy(() -> create(b))
-                .isInstanceOf(InvalidTriageAssessmentException.class)
-                .hasMessageContaining("pregnancy_status");
+        assertThat(create(b).pregnancyStatus()).isNull();
     }
 
     @Test

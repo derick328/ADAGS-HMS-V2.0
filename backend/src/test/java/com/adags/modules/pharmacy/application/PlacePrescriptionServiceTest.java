@@ -1,6 +1,7 @@
 package com.adags.modules.pharmacy.application;
 
 import com.adags.modules.encounters.application.OpenEncounterCommand;
+import com.adags.modules.inventory.InventoryFacade;
 import com.adags.modules.encounters.application.OpenEncounterService;
 import com.adags.modules.encounters.domain.Encounter;
 import com.adags.modules.inventory.application.ClassifyItemCommand;
@@ -44,6 +45,8 @@ class PlacePrescriptionServiceTest extends IntegrationTestSupport {
     @Autowired
     private PlacePrescriptionService placePrescriptionService;
     @Autowired
+    private InventoryFacade inventoryFacade;
+    @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
 
     @AfterEach
@@ -71,6 +74,22 @@ class PlacePrescriptionServiceTest extends IntegrationTestSupport {
                 encounter.id(), item.id(), 10, "AS DIRECTED", false, admin,
                 null, null, null, null, null)))
                 .isInstanceOf(ItemNotDispensableException.class);
+    }
+
+    @Test
+    void requiresPregnancyStatusBeforePrescribingForApplicablePatient() {
+        UUID admin = bootstrapAdminId();
+        UUID itemId = inventoryFacade.ensureCatalogueItem(
+                "RX-PREG-" + UUID.randomUUID().toString().substring(0, 8), "Test medicine", "PHARMACY", admin);
+        Patient patient = registerPatientService.register(patientCommand("Amina", "Hassan", admin));
+        Encounter encounter = openEncounterService.checkIn(
+                new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
+
+        assertThatThrownBy(() -> placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
+                encounter.id(), itemId, 1, "As directed", false, admin,
+                null, null, null, null, null)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Choose pregnancy status");
     }
 
     private UUID insertFixtureDepartment() {

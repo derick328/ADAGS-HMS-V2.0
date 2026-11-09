@@ -14,12 +14,17 @@ import com.adags.modules.clinical.domain.VitalSigns;
 import com.adags.modules.clinical.domain.VitalSignsContext;
 import com.adags.modules.clinical.domain.VitalSignsRepository;
 import com.adags.modules.clinical.domain.RecordedVital;
+import com.adags.modules.patients.PatientFacade;
+import com.adags.shared.settings.ProtocolSettingReader;
 import com.adags.shared.kernel.AbnormalVitalReading;
 import com.adags.shared.kernel.AllergySummary;
 import com.adags.shared.kernel.WardVitalsResult;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.Clock;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -33,19 +38,31 @@ public class ClinicalFacadeImpl implements ClinicalFacade {
     private final OpenConsultationRecordService openConsultationRecordService;
     private final FinalizeConsultationRecordService finalizeConsultationRecordService;
     private final VitalSignsRepository vitalSignsRepository;
+    private final JdbcPregnancyAssessmentRepository pregnancyAssessmentRepository;
+    private final PatientFacade patientFacade;
+    private final ProtocolSettingReader protocolSettingReader;
+    private final Clock clock;
 
     public ClinicalFacadeImpl(
             RecordVitalSignsService recordVitalSignsService,
             AllergyRecordRepository allergyRecordRepository,
             OpenConsultationRecordService openConsultationRecordService,
             FinalizeConsultationRecordService finalizeConsultationRecordService,
-            VitalSignsRepository vitalSignsRepository
+            VitalSignsRepository vitalSignsRepository,
+            JdbcPregnancyAssessmentRepository pregnancyAssessmentRepository,
+            PatientFacade patientFacade,
+            ProtocolSettingReader protocolSettingReader,
+            Clock clock
     ) {
         this.recordVitalSignsService = recordVitalSignsService;
         this.allergyRecordRepository = allergyRecordRepository;
         this.openConsultationRecordService = openConsultationRecordService;
         this.finalizeConsultationRecordService = finalizeConsultationRecordService;
         this.vitalSignsRepository = vitalSignsRepository;
+        this.pregnancyAssessmentRepository = pregnancyAssessmentRepository;
+        this.patientFacade = patientFacade;
+        this.protocolSettingReader = protocolSettingReader;
+        this.clock = clock;
     }
 
     @Override
@@ -142,5 +159,20 @@ public class ClinicalFacadeImpl implements ClinicalFacade {
                 .filter(v -> v.weightKg() != null)
                 .max(Comparator.comparing(VitalSigns::recordedAt))
                 .map(VitalSigns::weightKg);
+    }
+
+    @Override
+    public Optional<String> findPregnancyStatus(UUID encounterId) {
+        return pregnancyAssessmentRepository.latestStatus(encounterId);
+    }
+
+    @Override
+    public boolean isPregnancyAssessmentApplicable(UUID patientId) {
+        var patient = patientFacade.findDemographics(patientId).orElseThrow();
+        if (!"FEMALE".equals(patient.gender())) return false;
+        int age = Period.between(patient.dateOfBirth(), LocalDate.now(clock)).getYears();
+        int minAge = (int) protocolSettingReader.getDouble("triage.pregnancy_prompt.min_age_years");
+        int maxAge = (int) protocolSettingReader.getDouble("triage.pregnancy_prompt.max_age_years");
+        return age >= minAge && age <= maxAge;
     }
 }

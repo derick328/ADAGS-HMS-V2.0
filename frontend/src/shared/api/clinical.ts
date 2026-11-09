@@ -14,6 +14,18 @@ export type AutosaveConsultationRecordRequest = components['schemas']['AutosaveC
 export type AddDiagnosisRequest = components['schemas']['AddDiagnosisRequest'];
 export type CreateAllergyRequest = components['schemas']['CreateAllergyRequest'];
 export type ReconcileAllergyRequest = components['schemas']['ReconcileAllergyRequest'];
+export type PregnancyAssessmentResponse = components['schemas']['PregnancyAssessmentResponse'];
+export type PregnancyAssessmentRequest = components['schemas']['PregnancyAssessmentRequest'];
+
+export function fetchPregnancyAssessment(encounterId: string, accessToken: string): Promise<PregnancyAssessmentResponse> {
+  return authFetch(`/api/encounters/${encounterId}/pregnancy-assessment`, accessToken);
+}
+
+export function recordPregnancyAssessment(encounterId: string, body: PregnancyAssessmentRequest, accessToken: string): Promise<PregnancyAssessmentResponse> {
+  return authFetch(`/api/encounters/${encounterId}/pregnancy-assessment`, accessToken, {
+    method: 'POST', body: JSON.stringify(body),
+  });
+}
 
 // 07-doctor.md §2's entry guard: opens (AWAITING_CONSULT -> IN_CONSULT) or
 // resumes (already IN_CONSULT) this doctor's consultation record. Throws

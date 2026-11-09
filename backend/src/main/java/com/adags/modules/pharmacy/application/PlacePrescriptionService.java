@@ -1,6 +1,7 @@
 package com.adags.modules.pharmacy.application;
 
 import com.adags.modules.billing.BillingFacade;
+import com.adags.modules.clinical.ClinicalFacade;
 import com.adags.modules.encounters.EncounterFacade;
 import com.adags.modules.inpatient.InpatientFacade;
 import com.adags.modules.inventory.InventoryFacade;
@@ -44,6 +45,7 @@ public class PlacePrescriptionService {
     private final InventoryFacade inventoryFacade;
     private final BillingFacade billingFacade;
     private final InpatientFacade inpatientFacade;
+    private final ClinicalFacade clinicalFacade;
     private final DomainEventPublisher eventPublisher;
 
     public PlacePrescriptionService(
@@ -53,6 +55,7 @@ public class PlacePrescriptionService {
             InventoryFacade inventoryFacade,
             BillingFacade billingFacade,
             InpatientFacade inpatientFacade,
+            ClinicalFacade clinicalFacade,
             DomainEventPublisher eventPublisher
     ) {
         this.prescriptionOrderRepository = prescriptionOrderRepository;
@@ -61,6 +64,7 @@ public class PlacePrescriptionService {
         this.inventoryFacade = inventoryFacade;
         this.billingFacade = billingFacade;
         this.inpatientFacade = inpatientFacade;
+        this.clinicalFacade = clinicalFacade;
         this.eventPublisher = eventPublisher;
     }
 
@@ -87,6 +91,11 @@ public class PlacePrescriptionService {
 
         EncounterContext encounterContext = encounterFacade.findContext(command.encounterId())
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + command.encounterId()));
+
+        if (clinicalFacade.isPregnancyAssessmentApplicable(encounterContext.patientId())
+                && clinicalFacade.findPregnancyStatus(command.encounterId()).isEmpty()) {
+            throw new IllegalArgumentException("Choose pregnancy status (Yes, No, or Unknown) before prescribing.");
+        }
 
         UUID prescriptionOrderId = UUID.randomUUID();
 

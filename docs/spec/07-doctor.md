@@ -148,7 +148,7 @@ Triage chief complaint     Arrival time and mode
 Pain: has_pain / score / location
 Fall risk / fall score
 Infectious disease risk
-Pregnancy status  (females 12–50; new record on update, never overwrite)
+Pregnancy status  (females within configured age bounds; optional in consultation, required before prescribing; YES/NO/UNKNOWN; new record on update, never overwrite)
 ```
 
 `UNKNOWN` pregnancy status prompts for a test before imaging or teratogenic prescribing.

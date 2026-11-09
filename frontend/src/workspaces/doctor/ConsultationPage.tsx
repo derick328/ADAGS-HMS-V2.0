@@ -21,17 +21,20 @@ import {
   fetchAllergiesByPatient,
   fetchConsultationRecordsByEncounter,
   fetchDiagnosesByEncounter,
+  fetchPregnancyAssessment,
   finalizeConsultation,
   markAwaitingResults,
   openConsultation,
   removeDiagnosis,
   reconcileAllergyRecord,
+  recordPregnancyAssessment,
   type AllergyRecordResponse,
   type ConsultationRecordResponse,
   type DiagnosisCertainty,
   type DiagnosisResponse,
   type DispositionOutcome,
   type EncounterResponse,
+  type PregnancyAssessmentResponse,
 } from '../../shared/api/clinical';
 import { fetchEncounterById, fetchEncountersByPatient } from '../../shared/api/encounters';
 import { recordIcd10Selection, searchIcd10, type Icd10SearchResult } from '../../shared/api/icd10';
@@ -229,6 +232,11 @@ function ConsultationWorkspace({
     staleTime: 10_000,
   });
   const ownRecord = records?.find((r) => r.id === consultationRecordId);
+  const pregnancyAssessment = useQuery({
+    queryKey: ['pregnancy-assessment', encounterId],
+    queryFn: () => fetchPregnancyAssessment(encounterId, accessToken as string),
+    enabled: !!accessToken && !!encounter?.patientId,
+  });
 
   const { data: diagnoses } = useQuery({
     queryKey: ['diagnoses', encounterId],
@@ -297,6 +305,7 @@ function ConsultationWorkspace({
               allergies={allergies ?? []}
               diagnoses={diagnoses ?? []}
               patientId={encounter?.patientId as string}
+              pregnancyAssessment={pregnancyAssessment.data}
               onFinalized={() => navigate('/doctor')}
             />
           </div>
@@ -311,6 +320,9 @@ function ConsultationWorkspace({
               lines={rxLines}
               setLines={setRxLines}
               queryClient={queryClient}
+              pregnancyAssessment={pregnancyAssessment.data}
+              pregnancyAssessmentLoading={pregnancyAssessment.isLoading}
+              pregnancyAssessmentError={pregnancyAssessment.isError}
             />
           </div>}
           {visitedTabs.lab && <div className="consultation-tab-panel" hidden={tab !== 'lab'}><LabTab key={encounterId} encounterId={encounterId} encounter={encounter} lines={labLines} setLines={setLabLines} /></div>}
@@ -370,7 +382,7 @@ function TriagePanel({
 
       <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 'var(--space-3) 0' }} />
 
-      {/* 07-doctor.md §5.2 — pain/fall/infection/pregnancy as recorded at
+      {/* 07-doctor.md §5.2 — pain/fall/infection and any historical pregnancy status as recorded at
           triage. Shown read-only here ("triage's original stands"); a formal
           doctor re-assessment is a new record, out of this view's scope. */}
       <div style={{ fontSize: 'var(--text-sm)' }}>
@@ -770,6 +782,7 @@ function ConsultationTab({
   allergies,
   diagnoses,
   patientId,
+  pregnancyAssessment,
   onFinalized,
 }: {
   encounterId: string;
@@ -778,6 +791,7 @@ function ConsultationTab({
   allergies: AllergyRecordResponse[];
   diagnoses: DiagnosisResponse[];
   patientId: string;
+  pregnancyAssessment?: PregnancyAssessmentResponse;
   onFinalized: () => void;
 }) {
   const { accessToken } = useAuth();
@@ -1103,6 +1117,7 @@ function ConsultationTab({
       <AllergyReconciliation patientId={patientId} encounterId={encounterId} allergies={allergies} />
 
       <FormSection title="Consultation note">
+        <PregnancyAssessmentField encounterId={encounterId} assessment={pregnancyAssessment} optional />
         <FormRow label="History of presenting illness *">
           <textarea className="clinical-control" rows={4} {...field('historyOfPresentingIllness')} />
         </FormRow>
@@ -1560,6 +1575,32 @@ function AllergyReconciliation({
 // Prescription tab
 // ---------------------------------------------------------------------------
 
+function PregnancyAssessmentField({ encounterId, assessment, optional = false }: {
+  encounterId: string;
+  assessment?: PregnancyAssessmentResponse;
+  optional?: boolean;
+}) {
+  const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
+  const record = useMutation({
+    mutationFn: (status: 'YES' | 'NO' | 'UNKNOWN') => recordPregnancyAssessment(encounterId, { status }, accessToken as string),
+    onSuccess: (updated) => queryClient.setQueryData(['pregnancy-assessment', encounterId], updated),
+  });
+  if (!assessment?.applicable) return null;
+  return <FormRow label={`Pregnancy status${optional ? ' (optional)' : ' *'}`} error={record.error ? 'Could not save pregnancy status. Try again.' : undefined}>
+    <select className="clinical-control" aria-label="Pregnancy status" value={assessment.status ?? ''}
+      disabled={record.isPending} onChange={(event) => {
+        if (event.target.value) record.mutate(event.target.value as 'YES' | 'NO' | 'UNKNOWN');
+      }} style={fieldStyle}>
+      <option value="">Choose…</option>
+      <option value="YES">Yes</option>
+      <option value="NO">No</option>
+      <option value="UNKNOWN">Unknown</option>
+    </select>
+    {!optional && !assessment.status && <small>Choose Yes, No, or Unknown before sending a prescription.</small>}
+  </FormRow>;
+}
+
 interface DraftRxLine {
   key: string;
   item: ItemSearchResultResponse;
@@ -1585,6 +1626,9 @@ function PrescriptionTab({
   lines,
   setLines,
   queryClient,
+  pregnancyAssessment,
+  pregnancyAssessmentLoading,
+  pregnancyAssessmentError,
 }: {
   encounterId: string;
   encounter?: { type?: string };
@@ -1594,6 +1638,9 @@ function PrescriptionTab({
   lines: DraftRxLine[];
   setLines: React.Dispatch<React.SetStateAction<DraftRxLine[]>>;
   queryClient: ReturnType<typeof useQueryClient>;
+  pregnancyAssessment?: PregnancyAssessmentResponse;
+  pregnancyAssessmentLoading: boolean;
+  pregnancyAssessmentError: boolean;
 }) {
   const { accessToken } = useAuth();
   // Populated by each Combobox search, read by onSelect — the item and
@@ -1682,6 +1729,9 @@ function PrescriptionTab({
     // block on one drug) must not leave already-placed lines in the retry
     // queue, or clicking "Send" again duplicates them.
     mutationFn: async () => {
+      if (pregnancyAssessment?.applicable && !pregnancyAssessment.status) {
+        throw new Error('Choose pregnancy status before prescribing.');
+      }
       for (const line of [...lines]) {
         await placePrescription(
           {
@@ -1714,6 +1764,10 @@ function PrescriptionTab({
 
   return (
     <div>
+      {pregnancyAssessment?.applicable && <PregnancyAssessmentField encounterId={encounterId} assessment={pregnancyAssessment} />}
+      {pregnancyAssessmentLoading && <p>Checking pregnancy assessment…</p>}
+      {pregnancyAssessmentError && <p role="alert" className="field-error">Could not check pregnancy status. Reload this page before prescribing.</p>}
+      {pregnancyAssessment?.status === 'UNKNOWN' && <p className="field-error">Pregnancy status is unknown. Consider a pregnancy test before prescribing medicine that may harm pregnancy.</p>}
       <div style={{ marginBottom: 'var(--space-3)' }}>
         <Combobox<ItemSearchResultResponse>
           label="Drug"
@@ -1854,7 +1908,7 @@ function PrescriptionTab({
         </tbody>
       </table></TableRegion>
 
-      <button type="button" className="btn btn-primary" disabled={lines.length === 0 || send.isPending} onClick={() => send.mutate()} style={{ marginTop: 'var(--space-3)' }}>
+      <button type="button" className="btn btn-primary" disabled={lines.length === 0 || send.isPending || pregnancyAssessment == null || (pregnancyAssessment.applicable && !pregnancyAssessment.status)} onClick={() => send.mutate()} style={{ marginTop: 'var(--space-3)' }}>
         {send.isPending ? 'Sending…' : 'Send Prescription'}
       </button>
       {lines.length === 0 && (

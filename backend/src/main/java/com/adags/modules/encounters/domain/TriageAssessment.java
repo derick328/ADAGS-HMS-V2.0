@@ -110,12 +110,8 @@ public record TriageAssessment(
         PregnancyStatus effectivePregnancyStatus = null;
         Integer effectiveGestationalWeeks = null;
         if (pregnancyPromptApplicable) {
-            if (pregnancyStatus == null) {
-                throw new InvalidTriageAssessmentException(
-                        "pregnancy_status is required for a patient within the pregnancy-prompt age bounds.");
-            }
             effectivePregnancyStatus = pregnancyStatus;
-            effectiveGestationalWeeks = gestationalWeeks;
+            effectiveGestationalWeeks = pregnancyStatus == null ? null : gestationalWeeks;
         }
 
         ImmediateReason effectiveImmediateReason = null;

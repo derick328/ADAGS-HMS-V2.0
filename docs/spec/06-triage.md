@@ -99,15 +99,7 @@ Confirmed both directions: the UI hides the fields, the server discards any subm
 
 ### 2.7 Pregnancy status
 
-Auto-appears when `gender = FEMALE` and age is 12–50. Hidden otherwise.
-
-| Field | Values |
-|---|---|
-| `pregnancy_status` * | `YES` `NO` `UNKNOWN` |
-
-Age bounds are configuration, not constants.
-
-**Also surfaced in the doctor module** (confirmed), where the doctor can view and update it. The doctor's update creates a **new record**, never an overwrite — who recorded what and when is clinically and legally relevant.
+Triage does not ask pregnancy status. The clinician may record `YES`, `NO`, or `UNKNOWN` during consultation for applicable patients. The answer becomes required before a prescription is sent. Each clinician answer creates a new record, preserving who recorded what and when. The age bounds remain configurable.
 
 `UNKNOWN` should prompt for a pregnancy test before any imaging or teratogenic prescribing. That prompt belongs in the doctor module.
 

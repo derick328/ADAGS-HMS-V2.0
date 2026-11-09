@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/api/encounters/{encounterId}/pregnancy-assessment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPregnancyAssessment"];
+        put?: never;
+        post: operations["recordPregnancyAssessment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lab-orders/{labOrderId}/result-draft": {
         parameters: {
             query?: never;
@@ -4168,6 +4184,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PregnancyAssessmentRequest: {
+            /** @enum {string} */
+            status: "YES" | "NO" | "UNKNOWN";
+        };
+        PregnancyAssessmentResponse: {
+            applicable: boolean;
+            /** @enum {string} */
+            status?: "YES" | "NO" | "UNKNOWN";
+        };
         JsonNode: Record<string, never>;
         SaveDraftRequest: {
             /** Format: int64 */
@@ -7812,6 +7837,54 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getPregnancyAssessment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current pregnancy assessment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PregnancyAssessmentResponse"];
+                };
+            };
+        };
+    };
+    recordPregnancyAssessment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PregnancyAssessmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Recorded pregnancy assessment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PregnancyAssessmentResponse"];
+                };
+            };
+        };
+    };
     get_3: {
         parameters: {
             query?: never;

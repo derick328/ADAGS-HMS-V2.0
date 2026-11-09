@@ -147,4 +147,10 @@ public interface ClinicalFacade {
      * shows nothing rather than a stale figure from a different visit.
      */
     Optional<Double> findLatestWeightKg(UUID encounterId);
+
+    /** Latest explicit clinician answer for this encounter; empty means unanswered. */
+    Optional<String> findPregnancyStatus(UUID encounterId);
+
+    /** Whether the clinician should ask pregnancy status before prescribing. */
+    boolean isPregnancyAssessmentApplicable(UUID patientId);
 }
