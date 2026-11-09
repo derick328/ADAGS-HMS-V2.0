@@ -1,10 +1,3 @@
--- Catalogue-wide deactivation also disabled the core consultation items.
--- They are needed by triage billing and are not imported from Excel.
-UPDATE service_item
-SET is_active = TRUE
-WHERE code IN ('CONSULT_CLINICAL_OFFICER', 'CONSULT_GENERAL', 'CONSULT_SPECIALIST')
-  AND is_active = FALSE;
-
 -- Keep existing invoice snapshots; change only the current clinical officer rate.
 UPDATE price_list_entry ple
 SET valid_to = CURRENT_DATE

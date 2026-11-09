@@ -33,9 +33,9 @@ class PriceResolutionServiceTest extends IntegrationTestSupport {
     @Test
     void resolvesTheClinicalOfficerFeeAcrossPayerCategories() {
         assertThat(service.resolvePrice("CONSULT_CLINICAL_OFFICER", PayerCategory.CASH))
-                .isEqualTo(new Money(4_000, "TZS"));
+                .isEqualTo(new Money(5_000, "TZS"));
         assertThat(service.resolvePrice("CONSULT_CLINICAL_OFFICER", PayerCategory.NHIF))
-                .isEqualTo(new Money(4_000, "TZS"));
+                .isEqualTo(new Money(5_000, "TZS"));
     }
 
     @Test
