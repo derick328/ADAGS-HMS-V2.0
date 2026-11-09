@@ -34,6 +34,7 @@ const NAV: NavGroup[] = [
   ], collapsible: true },
   { title: 'Hospital management', items: [
     { to: '/admin/users', label: 'Users & staff', icon: UserRoundCog, permission: 'USER_MANAGE' },
+    { to: '/admin/departments', label: 'Clinical departments', icon: Hospital, permission: 'USER_MANAGE' },
     { to: '/admin/theatres', label: 'Theatres', icon: Hospital, permission: 'THEATRE_MANAGE' },
   ], collapsible: true },
   { title: 'Administration', items: [

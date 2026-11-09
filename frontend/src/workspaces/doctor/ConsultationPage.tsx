@@ -11,7 +11,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSPr
 import { useNavigate, useParams } from 'react-router-dom';
 import { admitPatient, assignNurse, type Shift, type WardClass } from '../../shared/api/admissions';
 import { fetchPatientAppointments, fetchPatientClinicPlans, scheduleClinicVisit, rescheduleClinicVisit, closeClinicPlan, clinicArrivalLabel } from '../../shared/api/appointments';
-import { fetchDepartments } from '../../shared/api/departments';
+import { fetchClinicCategories, fetchClinicCatalogue } from '../../shared/api/departments';
 import { ApiError } from '../../shared/api/client';
 import { fetchNurseWorkload } from '../../shared/api/nurses';
 import {
@@ -53,6 +53,7 @@ import { z } from 'zod';
 import { Combobox } from '../../shared/components/Combobox';
 import { DropdownSelect } from '../../shared/components/DropdownSelect';
 import { formatDateTime, formatWeekdayDate } from '../../shared/format/date';
+import { clinicDateTimeLimits, scheduledClinicInstant } from '../../shared/format/clinicSchedule';
 import { formatMoney } from '../../shared/format/money';
 
 const fieldStyle: CSSProperties = {
@@ -935,7 +936,16 @@ function ConsultationTab({
   const [shift, setShift] = useState<Shift>(currentShift());
   const [followUpDate, setFollowUpDate] = useState('');
   const [followUpTime, setFollowUpTime] = useState('09:00');
+  const [clinicClock, setClinicClock] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setClinicClock(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const clinicLimits = clinicDateTimeLimits(clinicClock);
+  const clinicTimeInvalid = !!followUpDate && !!followUpTime &&
+    new Date(`${followUpDate}T${followUpTime}:00+03:00`).getTime() <= clinicClock.getTime();
   const [followUpDepartment, setFollowUpDepartment] = useState('');
+  const [followUpCategory, setFollowUpCategory] = useState('');
   const [followUpClinic, setFollowUpClinic] = useState('');
   const [followUpInstructions, setFollowUpInstructions] = useState('');
   const [retrospective, setRetrospective] = useState(false);
@@ -950,7 +960,12 @@ function ConsultationTab({
   });
   const facilityId = encounterForFacility?.facilityId;
 
-  const departments = useQuery({ queryKey: ['departments'], queryFn: () => fetchDepartments(accessToken as string), enabled: !!accessToken });
+  const categories = useQuery({ queryKey: ['clinic-categories'], queryFn: () => fetchClinicCategories(accessToken as string), enabled: !!accessToken });
+  const clinicUnits = useQuery({ queryKey: ['clinic-catalogue'], queryFn: () => fetchClinicCatalogue(accessToken as string), enabled: !!accessToken });
+  const selectableClinics = (clinicUnits.data ?? []).filter(u =>
+    u.active && u.consultationEnabled && u.facilityId === facilityId);
+  const selectableCategories = (categories.data ?? []).filter(c =>
+    c.active && selectableClinics.some(u => u.categoryId === c.id));
   const clinicPlans = useQuery({ queryKey: ['appointments', 'plans', patientId], queryFn: () => fetchPatientClinicPlans(patientId, accessToken as string), enabled: !!accessToken && !!patientId });
   const clinicHistory = useQuery({ queryKey: ['appointments', 'patient', patientId], queryFn: () => fetchPatientAppointments(patientId, accessToken as string), enabled: !!accessToken && !!patientId });
   const activePlans = clinicPlans.data?.filter(p => p.active) ?? [];
@@ -961,7 +976,7 @@ function ConsultationTab({
       }
       return scheduleClinicVisit({ patientId, sourceEncounterId: encounterId,
         departmentId: followUpDepartment, clinicName: followUpClinic.trim(),
-        scheduledAt: new Date(`${followUpDate}T${followUpTime}:00+03:00`).toISOString(),
+        scheduledAt: scheduledClinicInstant(followUpDate, followUpTime),
         instructions: followUpInstructions || undefined }, accessToken as string);
     },
     onSuccess: () => { setFollowUpDate(''); queryClient.invalidateQueries({ queryKey: ['appointments'] }); },
@@ -1004,6 +1019,7 @@ function ConsultationTab({
     // after admit: it's not part of admitPatient's own request shape.
     mutationFn: async () => {
       if (followUpDate && (!followUpDepartment || !followUpClinic.trim())) throw new Error('Choose a clinic program and department.');
+      const clinicScheduledAt = followUpDate ? scheduledClinicInstant(followUpDate, followUpTime) : undefined;
       if (followUpDate && clinicHistory.data?.some(a => a.status === 'SCHEDULED' && a.departmentId === followUpDepartment && a.clinic?.toLowerCase() === followUpClinic.trim().toLowerCase())) {
         throw new Error('This clinic already has a scheduled visit. Reschedule it below.');
       }
@@ -1035,12 +1051,12 @@ function ConsultationTab({
           accessToken as string,
         );
       }
-      if (followUpDate) {
+      if (clinicScheduledAt) {
         await scheduleClinicVisit({
           patientId, sourceEncounterId: encounterId,
           departmentId: followUpDepartment,
           clinicName: followUpClinic.trim(),
-          scheduledAt: new Date(`${followUpDate}T${followUpTime}:00+03:00`).toISOString(),
+          scheduledAt: clinicScheduledAt,
           instructions: followUpInstructions || undefined,
         }, accessToken as string);
       }
@@ -1291,14 +1307,17 @@ function ConsultationTab({
         <section className="clinic-schedule" aria-labelledby="clinic-schedule-title">
           <div className="clinic-schedule-heading"><h3 id="clinic-schedule-title">Start clinic / schedule clinic visit</h3><span className="badge badge-neutral">Optional</span></div>
           <div className="clinic-schedule-grid">
-            <label>Clinic or department<select className="clinical-control" value={followUpDepartment} onChange={e => setFollowUpDepartment(e.target.value)}>
-              <option value="">Choose clinic…</option>
-              {departments.data?.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            <label>Department category<select className="clinical-control" value={followUpCategory} onChange={e => { setFollowUpCategory(e.target.value); setFollowUpDepartment(''); setFollowUpClinic(''); }}>
+              <option value="">Choose category…</option>{selectableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select></label>
-            <label>Clinic program<input className="clinical-control" list="clinic-programs" placeholder="e.g. Diabetes clinic" value={followUpClinic} onChange={e => setFollowUpClinic(e.target.value)} /></label>
-            <datalist id="clinic-programs"><option value="Diabetes clinic" /><option value="Hypertension clinic" /><option value="General review clinic" /></datalist>
-            <label>Appointment date<input className="clinical-control" type="date" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)} /></label>
-            <label>Appointment time<input className="clinical-control" type="time" value={followUpTime} onChange={e => setFollowUpTime(e.target.value)} /></label>
+            <label>Specific clinic<select className="clinical-control" value={followUpDepartment} onChange={e => { const unit = selectableClinics.find(u => u.id === e.target.value); setFollowUpDepartment(unit?.id ?? ''); setFollowUpClinic(unit?.name ?? ''); }} disabled={!followUpCategory}>
+              <option value="">Choose clinic…</option>{selectableClinics.filter(u => u.categoryId === followUpCategory).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select></label>
+            {(categories.isError || clinicUnits.isError) &&
+              <p className="clinic-schedule-wide form-error">Could not load clinic choices. Please refresh the page.</p>}
+            <label>Appointment date<input className="clinical-control" type="date" min={clinicLimits.date} value={followUpDate} onChange={e => setFollowUpDate(e.target.value)} aria-invalid={clinicTimeInvalid} /></label>
+            <label>Appointment time<input className="clinical-control" type="time" min={followUpDate === clinicLimits.date ? clinicLimits.time : undefined} value={followUpTime} onChange={e => setFollowUpTime(e.target.value)} aria-invalid={clinicTimeInvalid} /></label>
+            {clinicTimeInvalid && <p className="clinic-schedule-wide form-error">Choose a future clinic visit date and time.</p>}
             <label className="clinic-schedule-wide">Follow-up instructions<input className="clinical-control" placeholder="Instructions for the patient or receiving clinic" value={followUpInstructions} onChange={e => setFollowUpInstructions(e.target.value)} /></label>
           </div>
           <div className="clinic-schedule-actions"><button type="button" className="btn btn-secondary" disabled={!followUpDate || saveClinic.isPending} onClick={() => saveClinic.mutate()}>

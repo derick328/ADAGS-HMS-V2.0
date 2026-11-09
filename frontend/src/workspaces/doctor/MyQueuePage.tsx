@@ -1,5 +1,7 @@
 import { PageHeader } from '../../shared/components/PageHeader';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { fetchClinicCategories, fetchClinicCatalogue, fetchMyClinics } from '../../shared/api/departments';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchEncounterById, fetchEncountersByPatient, searchEncounters, type EncounterResponse } from '../../shared/api/encounters';
 import { fetchPatientById } from '../../shared/api/patients';
@@ -24,6 +26,13 @@ export function MyQueuePage() {
   const { accessToken } = useAuth();
   const { data: me } = useMe();
   const navigate = useNavigate();
+  const [categoryId, setCategoryId] = useState('');
+  const [workingClinicId, setWorkingClinicId] = useState('');
+  const categories = useQuery({ queryKey: ['clinic-categories'], queryFn: () => fetchClinicCategories(accessToken as string), enabled: !!accessToken });
+  const catalogue = useQuery({ queryKey: ['clinic-catalogue'], queryFn: () => fetchClinicCatalogue(accessToken as string), enabled: !!accessToken });
+  const assigned = useQuery({ queryKey: ['my-clinics'], queryFn: () => fetchMyClinics(accessToken as string), enabled: !!accessToken });
+  const authorized = (catalogue.data ?? []).filter(u => u.consultationEnabled && assigned.data?.some(a => a.departmentId === u.id));
+  const selectedClinicId = workingClinicId || (authorized.length === 1 ? authorized[0].id : '');
   const location = useLocation() as { state?: { consultationError?: string } };
 
   // Also fetches IN_CONSULT so a consultation the doctor already opened
@@ -51,7 +60,7 @@ export function MyQueuePage() {
   });
   const triageByEncounter = new Map((triageWindow ?? []).map((t) => [t.encounterId, t]));
 
-  const mine = (encounters ?? []).filter((e) => e.assignedProviderId === me?.userId);
+  const mine = (encounters ?? []).filter((e) => e.assignedProviderId === me?.userId && (!selectedClinicId || e.departmentId === selectedClinicId) && (!categoryId || authorized.some(u => u.id === e.departmentId && u.categoryId === categoryId)));
   const inProgress = mine.filter((e) => e.state === 'IN_CONSULT');
   const waiting = mine.filter((e) => e.state === 'AWAITING_CONSULT');
 
@@ -70,6 +79,7 @@ export function MyQueuePage() {
   return (
     <div>
       <PageHeader title="My queue" description="Continue consultations in progress or open the next waiting patient." />
+      <div className="clinical-filter-bar"><label>Department category<select className="clinical-control" value={categoryId} onChange={e => { setCategoryId(e.target.value); setWorkingClinicId(''); }}><option value="">All assigned categories</option>{categories.data?.filter(c => authorized.some(u => u.categoryId === c.id)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label>Working clinic<select className="clinical-control" value={selectedClinicId} onChange={e => setWorkingClinicId(e.target.value)}><option value="">All assigned clinics</option>{authorized.filter(u => !categoryId || u.categoryId === categoryId).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label></div>
       {location.state?.consultationError && (
         <div className="form-error" style={{ marginBottom: 'var(--space-3)' }}>
           {location.state.consultationError}

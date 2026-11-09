@@ -89,7 +89,8 @@ public class ClinicFollowUpService {
                 .addValue("doctorId", doctorId);
         Integer valid = jdbc.queryForObject("""
                 SELECT count(*) FROM encounter e JOIN department d ON d.id = :departmentId
-                WHERE e.id = :encounterId AND e.patient_id = :patientId AND e.facility_id = d.facility_id AND e.assigned_provider_id = :doctorId
+                WHERE e.id = :encounterId AND e.patient_id = :patientId AND e.facility_id = d.facility_id AND e.assigned_provider_id = :doctorId AND d.active AND d.consultation_enabled
+                AND (d.code = 'GENERAL' OR lower(d.name)=lower(:clinicName))
                 """, params, Integer.class);
         if (valid == null || valid != 1) throw new IllegalArgumentException("Encounter and clinic must belong to the same patient and facility.");
         UUID planId = jdbc.query("""

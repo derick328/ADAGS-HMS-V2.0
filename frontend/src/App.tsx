@@ -33,6 +33,7 @@ import { SalariesPage } from './workspaces/admin/SalariesPage';
 import { TheatresPage } from './workspaces/admin/TheatresPage';
 import { TatPage } from './workspaces/admin/TatPage';
 import { UsersPage } from './workspaces/admin/UsersPage';
+import { DepartmentsPage } from './workspaces/admin/DepartmentsPage';
 import { BillingPage as ReceptionistBillingPage } from './workspaces/receptionist/BillingPage';
 import { CashierShiftPage } from './workspaces/receptionist/CashierShiftPage';
 import { ExpectedReturnsPage } from './workspaces/receptionist/ExpectedReturnsPage';
@@ -128,6 +129,7 @@ export function App() {
         <Route path="patients" element={<PatientsPage />} />
         <Route path="tat" element={<TatPage />} />
         <Route path="users" element={<UsersPage />} />
+        <Route path="departments" element={<DepartmentsPage />} />
         <Route path="theatres" element={<TheatresPage />} />
         <Route path="expenses/medication-pharmacy" element={<MedicationPharmacyPage />} />
         <Route path="expenses/medications" element={<ExpensesCategoryPage category="Medications" />} />

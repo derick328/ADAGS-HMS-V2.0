@@ -18,7 +18,7 @@ public record RegisterPatientRequest(
         Integer ageMonths,
         @NotBlank String gender,
         String maritalStatus,
-        String nationalId,
+        @NotBlank String nationalId,
         @NotBlank String phone,
         String email,
         String occupation,

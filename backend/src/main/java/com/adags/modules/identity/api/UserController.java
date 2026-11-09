@@ -1,5 +1,6 @@
 package com.adags.modules.identity.api;
 
+import com.adags.modules.encounters.DepartmentFacade;
 import com.adags.modules.identity.application.CreateUserCommand;
 import com.adags.modules.identity.application.CreateUserService;
 import com.adags.modules.identity.application.EndRoleAssignmentService;
@@ -10,6 +11,8 @@ import com.adags.modules.identity.domain.RoleAssignmentRepository;
 import com.adags.modules.identity.domain.User;
 import com.adags.modules.identity.domain.UserRepository;
 import com.adags.shared.authz.Actor;
+import com.adags.shared.authz.ScopeRef;
+import com.adags.shared.authz.ScopeType;
 import com.adags.shared.authz.AuthorizationService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -36,6 +39,7 @@ public class UserController {
     private final UserRepository userRepository;
     private final RoleAssignmentRepository roleAssignmentRepository;
     private final AuthorizationService authorizationService;
+    private final DepartmentFacade departments;
 
     public UserController(
             CreateUserService createUserService,
@@ -44,7 +48,8 @@ public class UserController {
             EndRoleAssignmentService endRoleAssignmentService,
             UserRepository userRepository,
             RoleAssignmentRepository roleAssignmentRepository,
-            AuthorizationService authorizationService
+            AuthorizationService authorizationService,
+            DepartmentFacade departments
     ) {
         this.createUserService = createUserService;
         this.setUserPasswordService = setUserPasswordService;
@@ -53,6 +58,7 @@ public class UserController {
         this.userRepository = userRepository;
         this.roleAssignmentRepository = roleAssignmentRepository;
         this.authorizationService = authorizationService;
+        this.departments = departments;
     }
 
     @GetMapping
@@ -62,11 +68,51 @@ public class UserController {
     }
 
     @PostMapping
+    @org.springframework.transaction.annotation.Transactional
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse create(@Valid @RequestBody CreateUserRequest request, @AuthenticationPrincipal Actor actor) {
         requirePermission(actor, "USER_MANAGE");
         User user = createUserService.create(new CreateUserCommand(request.username(), request.password(), actor.userId()));
+        if (request.unitIds() != null) {
+            requireClinicScope(actor,request.unitIds());
+            departments.assign(user.id(), request.unitIds(), request.primaryUnitId(), actor.userId());
+            if (request.hodUnitId() != null) {
+                if (!request.unitIds().contains(request.hodUnitId())) throw new IllegalArgumentException("HOD clinic must be assigned.");
+                departments.appoint(request.hodUnitId(), user.id(), actor.userId());
+            }
+        }
         return UserResponse.from(user);
+    }
+
+    public record ClinicAssignmentsRequest(List<UUID> unitIds, UUID primaryUnitId, UUID hodUnitId, List<UUID> vacateHodUnitIds) {}
+
+    @GetMapping("/{id}/clinic-assignments")
+    public List<DepartmentFacade.Assignment> clinicAssignments(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "USER_MANAGE");
+        return departments.assignments(id);
+    }
+
+    @PutMapping("/{id}/clinic-assignments")
+    @org.springframework.transaction.annotation.Transactional
+    public void updateClinicAssignments(@PathVariable UUID id, @RequestBody ClinicAssignmentsRequest request,
+                                        @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "USER_MANAGE");
+        requireClinicScope(actor,request.unitIds());
+        var existing = departments.assignments(id);
+        requireClinicScope(actor,existing.stream().map(DepartmentFacade.Assignment::departmentId).toList());
+        if (request.vacateHodUnitIds() != null) {
+            for (UUID unitId : request.vacateHodUnitIds()) {
+                if (existing.stream().noneMatch(a -> a.departmentId().equals(unitId) && a.hod()))
+                    throw new IllegalArgumentException("Only this user's active HOD appointment can be vacated here.");
+                departments.vacateForUser(unitId,id,actor.userId());
+            }
+        }
+        departments.assign(id, request.unitIds(), request.primaryUnitId(), actor.userId());
+        if (request.hodUnitId() != null) {
+            if (request.unitIds() == null || !request.unitIds().contains(request.hodUnitId()))
+                throw new IllegalArgumentException("HOD clinic must be assigned to the user.");
+            departments.appoint(request.hodUnitId(), id, actor.userId());
+        }
     }
 
     @PostMapping("/{id}/password")
@@ -100,6 +146,15 @@ public class UserController {
     ) {
         requirePermission(actor, "ROLE_ASSIGN");
         endRoleAssignmentService.end(assignmentId);
+    }
+
+    private void requireClinicScope(Actor actor, List<UUID> unitIds) {
+        if (unitIds == null) return;
+        for (UUID unitId : unitIds) {
+            if (!authorizationService.hasPermission(actor,"USER_MANAGE",
+                    ScopeRef.of(ScopeType.FACILITY,departments.facilityId(unitId))))
+                throw new AccessDeniedException("Missing facility department management permission.");
+        }
     }
 
     private void requirePermission(Actor actor, String permissionCode) {

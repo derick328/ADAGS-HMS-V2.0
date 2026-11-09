@@ -3,13 +3,14 @@ import { FeedbackState } from '../../shared/components/FeedbackState';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { QueryState } from '../../shared/components/WorkspacePage';
 import { TableRegion } from '../../shared/components/TableRegion';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { ApiError } from '../../shared/api/client';
 import { requestInvoiceCancellation } from '../../shared/api/billing';
 import { fetchOpenEncounterForPatient } from '../../shared/api/encounters';
 import {
   createInvoice,
+  fetchInvoiceById,
   fetchInvoiceLines,
   issueInvoice,
   searchInvoices,
@@ -34,6 +35,7 @@ export function BillingPage() {
   const [patientQuery, setPatientQuery] = useState('');
   const [submittedPatientQuery, setSubmittedPatientQuery] = useState('');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   // Pending bills first: the list shows outstanding invoices with no search
   // needed; untick to see settled/void too.
   const [outstandingOnly, setOutstandingOnly] = useState(true);
@@ -46,14 +48,24 @@ export function BillingPage() {
     queryFn: () => searchPatients(submittedPatientQuery, accessToken as string),
     enabled: accessToken != null && submittedPatientQuery.trim() !== '',
   });
-  const filterPatientId = patientMatches?.[0]?.id;
-
   const { data: invoices, isLoading, isError: invoicesError, refetch: retryInvoices } = useQuery({
-    queryKey: ['invoices', filterPatientId, outstandingOnly],
-    queryFn: () => searchInvoices({ patientId: filterPatientId, outstandingOnly }, accessToken as string),
-    enabled: accessToken != null && canRead && (!submittedPatientQuery || !!filterPatientId),
+    queryKey: ['invoices', outstandingOnly],
+    queryFn: () => searchInvoices({ outstandingOnly }, accessToken as string),
+    enabled: accessToken != null && canRead,
     refetchInterval: 15_000,
   });
+  const matchingPatientIds = new Set(patientMatches?.map((patient) => patient.id) ?? []);
+  const visibleInvoices = submittedPatientQuery
+    ? invoices?.filter((invoice) => invoice.patientId && matchingPatientIds.has(invoice.patientId))
+    : invoices;
+  const patientGroups = new Map<string, InvoiceResponse[]>();
+  for (const invoice of visibleInvoices ?? []) {
+    if (!invoice.patientId) continue;
+    const group = patientGroups.get(invoice.patientId) ?? [];
+    group.push(invoice);
+    patientGroups.set(invoice.patientId, group);
+  }
+  const selectedPatientInvoices = selectedPatientId ? patientGroups.get(selectedPatientId) : undefined;
 
   return (
     <div className="staff-page-stack">
@@ -102,7 +114,7 @@ export function BillingPage() {
               <EmptyState message="Loading…" />
             ) : invoicesError ? (
               <QueryState title="Unable to load invoices" onRetry={() => void retryInvoices()} />
-            ) : !invoices || invoices.length === 0 ? (
+            ) : patientGroups.size === 0 ? (
               <EmptyState
                 message={
                   submittedPatientQuery
@@ -113,27 +125,19 @@ export function BillingPage() {
                 }
               />
             ) : (
-              <TableRegion label="Invoices"><table className="table">
-                <caption className="sr-only">Invoices</caption>
+              <TableRegion label="Patients with billing"><table className="table">
+                <caption className="sr-only">Patients with billing</caption>
                 <thead>
                   <tr>
-                    <th>Number</th>
                     <th>Patient</th>
-                    <th>State</th>
-                    <th>Created</th>
-                    <th>Outstanding</th>
-                    <th />
                   </tr>
                 </thead>
                 <tbody>
-                  {invoices.map((inv) => (
-                    <tr key={inv.id} className={inv.id === selectedInvoiceId ? 'row-selected' : ''}>
-                      <td style={{ fontWeight: 'var(--weight-medium)' }}>{inv.invoiceNumber ?? <span className="badge badge-neutral">draft</span>}</td>
-                      <td><InvoicePatientName patientId={inv.patientId} /></td>
-                      <td><InvoiceStateBadge state={inv.state} /></td>
-                      <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{formatDateTime(inv.createdAt)}</td>
-                      <td className="money">{formatMoney(inv.outstandingTotalMinor, inv.currencyCode)}</td>
-                      <td><button type="button" className="btn btn-ghost" aria-label={`View invoice ${inv.invoiceNumber ?? 'draft'}`} onClick={() => setSelectedInvoiceId(inv.id ?? null)}>View</button></td>
+                  {[...patientGroups.keys()].map((patientId) => (
+                    <tr key={patientId} className={patientId === selectedPatientId ? 'row-selected' : ''}>
+                      <td><button type="button" className="btn btn-ghost" aria-expanded={patientId === selectedPatientId} onClick={() => { setSelectedPatientId(patientId); setSelectedInvoiceId(null); }}>
+                        <InvoicePatientName patientId={patientId} />
+                      </button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -141,7 +145,10 @@ export function BillingPage() {
             )}
           </div>
 
-          {selectedInvoiceId && (
+          {selectedPatientInvoices && (
+            <PatientBillingPanel patientId={selectedPatientId as string} invoices={selectedPatientInvoices} onSelectInvoice={setSelectedInvoiceId} selectedInvoiceId={selectedInvoiceId} />
+          )}
+          {selectedInvoiceId && selectedPatientInvoices?.some((invoice) => invoice.id === selectedInvoiceId) && (
             <InvoiceDetailPanel
               invoiceId={selectedInvoiceId}
               onRecordPayment={(patientId) => {
@@ -157,6 +164,37 @@ export function BillingPage() {
       {tab === 'payment' && <RecordPaymentPanel initialPatientId={paymentPatientId} />}
     </div>
   );
+}
+
+function PatientBillingPanel({ patientId, invoices, selectedInvoiceId, onSelectInvoice }: {
+  patientId: string;
+  invoices: InvoiceResponse[];
+  selectedInvoiceId: string | null;
+  onSelectInvoice: (id: string | null) => void;
+}) {
+  const { accessToken } = useAuth();
+  const lineQueries = useQueries({ queries: invoices.map((invoice) => ({
+    queryKey: ['invoices', invoice.id, 'lines'],
+    queryFn: () => fetchInvoiceLines(invoice.id as string, accessToken as string),
+    enabled: !!invoice.id && !!accessToken,
+  })) });
+
+  return <section className="staff-table-card" aria-label="Patient billing items">
+    <h2 style={{ margin: 'var(--space-3)' }}>Billing for <InvoicePatientName patientId={patientId} /></h2>
+    <TableRegion label="Patient invoices"><table className="table">
+      <caption className="sr-only">Patient invoices and charges</caption>
+      <thead><tr><th>Charges</th><th>Invoice</th><th>State</th><th>Created</th><th>Outstanding</th><th /></tr></thead>
+      <tbody>{invoices.map((invoice, index) => <tr key={invoice.id} className={invoice.id === selectedInvoiceId ? 'row-selected' : ''}>
+        <td>{lineQueries[index].isLoading ? 'Loading charges…' : lineQueries[index].isError ? 'Charges unavailable' :
+          lineQueries[index].data?.map((line) => line.serviceItemName).filter(Boolean).join(', ') || 'No charges yet'}</td>
+        <td>{invoice.invoiceNumber ?? 'Draft'}</td>
+        <td><InvoiceStateBadge state={invoice.state} /></td>
+        <td>{formatDateTime(invoice.createdAt)}</td>
+        <td className="money">{formatMoney(invoice.outstandingTotalMinor, invoice.currencyCode)}</td>
+        <td><button type="button" className="btn btn-ghost" onClick={() => onSelectInvoice(invoice.id ?? null)}>View</button></td>
+      </tr>)}</tbody>
+    </table></TableRegion>
+  </section>;
 }
 
 function InvoicePatientName({ patientId }: { patientId: string | undefined }) {
@@ -200,7 +238,7 @@ function InvoiceDetailPanel({
 
   const { data: invoice } = useQuery({
     queryKey: ['invoices', invoiceId],
-    queryFn: () => searchInvoices({}, accessToken as string).then((all) => all.find((i) => i.id === invoiceId)),
+    queryFn: () => fetchInvoiceById(invoiceId, accessToken as string),
     enabled: accessToken != null,
   });
   const { data: lines } = useQuery({

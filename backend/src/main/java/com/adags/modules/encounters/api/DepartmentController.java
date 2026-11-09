@@ -1,6 +1,10 @@
 package com.adags.modules.encounters.api;
 
+import com.adags.modules.encounters.application.DepartmentManagementService;
+import com.adags.modules.encounters.DepartmentFacade;
 import com.adags.shared.authz.Actor;
+import com.adags.shared.authz.ScopeRef;
+import com.adags.shared.authz.ScopeType;
 import com.adags.shared.authz.AuthorizationService;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
@@ -25,10 +29,40 @@ public class DepartmentController {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final AuthorizationService authorizationService;
+    private final DepartmentManagementService management;
 
-    public DepartmentController(NamedParameterJdbcTemplate jdbcTemplate, AuthorizationService authorizationService) {
+    public DepartmentController(NamedParameterJdbcTemplate jdbcTemplate, AuthorizationService authorizationService, DepartmentManagementService management) {
         this.jdbcTemplate = jdbcTemplate;
         this.authorizationService = authorizationService;
+        this.management = management;
+    }
+
+
+    @GetMapping("/categories")
+    public List<DepartmentManagementService.Category> categories(@AuthenticationPrincipal Actor actor) {
+        requireCatalogue(actor);
+        return management.categories();
+    }
+
+    @GetMapping("/catalogue")
+    public List<DepartmentManagementService.Unit> catalogue(@AuthenticationPrincipal Actor actor) {
+        requireCatalogue(actor);
+        var assignedIds = management.assignments(actor.userId()).stream()
+            .map(DepartmentFacade.Assignment::departmentId).collect(java.util.stream.Collectors.toSet());
+        return management.units(false).stream().filter(u -> authorizationService.hasAnyPermission(actor,
+            ScopeRef.of(ScopeType.DEPARTMENT,u.id()), "USER_MANAGE", "ENCOUNTER_OPEN", "APPOINTMENT_CREATE_FOLLOWUP")
+            || assignedIds.contains(u.id())).toList();
+    }
+
+    @GetMapping("/mine")
+    public List<DepartmentFacade.Assignment> mine(@AuthenticationPrincipal Actor actor) {
+        requireCatalogue(actor);
+        return management.assignments(actor.userId());
+    }
+
+    private void requireCatalogue(Actor actor) {
+        if (!authorizationService.hasAnyPermission(actor, "USER_MANAGE", "ENCOUNTER_OPEN", "APPOINTMENT_CREATE_FOLLOWUP"))
+            throw new AccessDeniedException("Missing department catalogue permission.");
     }
 
     @GetMapping
@@ -37,8 +71,10 @@ public class DepartmentController {
             throw new AccessDeniedException("Missing permission: ENCOUNTER_OPEN");
         }
         return jdbcTemplate.query(
-                "SELECT id, code, name FROM department WHERE active = true ORDER BY name",
+                "SELECT id, code, name FROM department WHERE active = true AND consultation_enabled = true ORDER BY name",
                 (rs, rowNum) -> new DepartmentResponse(
-                        (UUID) rs.getObject("id"), rs.getString("code"), rs.getString("name")));
+                        (UUID) rs.getObject("id"), rs.getString("code"), rs.getString("name"))).stream()
+                .filter(d -> authorizationService.hasPermission(actor,"ENCOUNTER_OPEN",
+                    ScopeRef.of(ScopeType.DEPARTMENT,d.id()))).toList();
     }
 }

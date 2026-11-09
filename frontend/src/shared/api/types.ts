@@ -5130,7 +5130,7 @@ export interface components {
             ageMonths?: number;
             gender: string;
             maritalStatus?: string;
-            nationalId?: string;
+            nationalId: string;
             phone: string;
             email?: string;
             occupation?: string;

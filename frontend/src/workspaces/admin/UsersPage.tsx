@@ -3,7 +3,7 @@ import { PageHeader } from '../../shared/components/PageHeader';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type CSSProperties } from 'react';
+import { useCallback, useState, type CSSProperties } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ApiError } from '../../shared/api/client';
@@ -20,6 +20,8 @@ import {
 } from '../../shared/api/users';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
+import { fetchClinicCategories, fetchClinicCatalogue, fetchUserClinics, updateUserClinics, type ClinicAssignmentUpdate } from '../../shared/api/departments';
+import { ClinicAssignmentFields } from './ClinicAssignmentFields';
 
 // 18-admin.md §4: user accounts and their scoped, time-bounded role
 // assignments — "shown as a list with add and end-date actions, not a
@@ -30,6 +32,7 @@ import { usePermission } from '../../shared/auth/usePermission';
 const SCOPE_TYPES = ['GLOBAL', 'FACILITY', 'DEPARTMENT', 'WARD', 'CLINIC', 'STORE'] as const;
 
 const createUserSchema = z.object({
+  unitIds: z.array(z.string()).optional(), primaryUnitId: z.string().nullable().optional(), hodUnitId: z.string().nullable().optional(),
   username: z.string().min(1, 'Enter a username'),
   password: z.string().min(8, 'Enter a password of at least 8 characters'),
 });
@@ -56,6 +59,8 @@ export function UsersPage() {
   const canAssignRoles = usePermission('ROLE_ASSIGN');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const categories = useQuery({ queryKey: ['clinic-categories'], queryFn: () => fetchClinicCategories(accessToken as string), enabled: !!accessToken && canManageUsers });
+  const clinics = useQuery({ queryKey: ['clinic-catalogue'], queryFn: () => fetchClinicCatalogue(accessToken as string), enabled: !!accessToken && canManageUsers });
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['users'],
@@ -86,7 +91,11 @@ export function UsersPage() {
         <CreateUserForm
           isSubmitting={create.isPending}
           error={create.error ? errorMessage(create.error) : null}
-          onSubmit={(values) => create.mutate(values)}
+          categories={categories.data ?? []} units={clinics.data ?? []}
+          onSubmit={(values) => {
+            const currentHod = clinics.data?.find(u => u.id === values.hodUnitId)?.hodUsername;
+            if (!currentHod || window.confirm(`Replace ${currentHod} as Head of Department? The previous appointment remains in history.`)) create.mutate(values);
+          }}
         />
       )}
 
@@ -140,10 +149,35 @@ export function UsersPage() {
       </div>
 
       {selectedUser && (
-        <RoleAssignmentsPanel user={selectedUser} canAssignRoles={canAssignRoles} canManageUsers={canManageUsers} accessToken={accessToken as string} />
+        <><UserClinicPanel user={selectedUser} categories={categories.data ?? []} units={clinics.data ?? []} accessToken={accessToken as string} /><RoleAssignmentsPanel user={selectedUser} canAssignRoles={canAssignRoles} canManageUsers={canManageUsers} accessToken={accessToken as string} /></>
       )}
     </div>
   );
+}
+
+
+function UserClinicPanel({ user, categories, units, accessToken }: {
+  user: UserResponse; categories: import('../../shared/api/departments').DepartmentCategory[];
+  units: import('../../shared/api/departments').ClinicUnit[]; accessToken: string;
+}) {
+  const queryClient = useQueryClient();
+  const current = useQuery({ queryKey: ['user-clinics', user.id], queryFn: () => fetchUserClinics(user.id as string, accessToken) });
+  const [value, setValue] = useState<ClinicAssignmentUpdate>({ unitIds: [], primaryUnitId: null, hodUnitId: null });
+  const onChange = useCallback((next: ClinicAssignmentUpdate) => setValue(next), []);
+  const save = useMutation({ mutationFn: (next: ClinicAssignmentUpdate) => updateUserClinics(user.id as string, next, accessToken), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['user-clinics', user.id] }); queryClient.invalidateQueries({ queryKey: ['clinic-catalogue'] }); } });
+  return <section style={formStyle}>
+    <h2>Clinic assignments — {user.username}</h2>
+    {current.isLoading ? <p role="status">Loading clinic assignments…</p> : current.isError ? <p role="alert">Clinic assignments could not be loaded.</p> :
+      <ClinicAssignmentFields key={user.id + JSON.stringify(current.data) + units.length} categories={categories} units={units} initial={current.data} onChange={onChange} />}
+    {save.error && <div className="form-error">{errorMessage(save.error)}</div>}
+    <button type="button" className="btn btn-primary" disabled={save.isPending || !current.data} onClick={() => {
+      const previousHod = current.data?.find(a => a.hod)?.departmentId;
+      const vacateHodUnitIds = previousHod && previousHod !== value.hodUnitId ? [previousHod] : [];
+      const changing = value.hodUnitId && units.find(u => u.id === value.hodUnitId)?.hodUserId !== user.id && units.find(u => u.id === value.hodUnitId)?.hodUserId;
+      if (vacateHodUnitIds.length && !window.confirm('Record a vacancy for the previous HOD clinic? This action is retained in history.')) return;
+      if (!changing || window.confirm('Replace the current Head of Department? The previous appointment will be retained in history.')) save.mutate({ ...value, vacateHodUnitIds });
+    }}>{save.isPending ? 'Saving…' : 'Save clinic assignments'}</button>
+  </section>;
 }
 
 function RoleAssignmentsPanel({
@@ -323,10 +357,11 @@ function AssignmentRow({
 }
 
 function CreateUserForm({
-  isSubmitting,
+  categories, units, isSubmitting,
   error,
   onSubmit,
 }: {
+  categories: import('../../shared/api/departments').DepartmentCategory[]; units: import('../../shared/api/departments').ClinicUnit[];
   isSubmitting: boolean;
   error: string | null;
   onSubmit: (values: CreateUserValues) => void;
@@ -337,8 +372,10 @@ function CreateUserForm({
     formState: { errors },
   } = useForm<CreateUserValues>({ resolver: zodResolver(createUserSchema) });
 
+  const [clinicValue, setClinicValue] = useState<ClinicAssignmentUpdate>({ unitIds: [], primaryUnitId: null, hodUnitId: null });
+  const onClinicChange = useCallback((value: ClinicAssignmentUpdate) => setClinicValue(value), []);
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate style={formStyle}>
+    <form onSubmit={handleSubmit(values => onSubmit({ ...values, ...clinicValue }))} noValidate style={formStyle}>
       <div>
         <label htmlFor="new-user-username" style={labelStyle}>
           Username
@@ -356,6 +393,7 @@ function CreateUserForm({
           This password remains valid until an admin changes it.
         </p>
       </div>
+      <ClinicAssignmentFields categories={categories} units={units} onChange={onClinicChange} />
       {error && <div className="form-error">{error}</div>}
       <button type="submit" className="btn btn-primary" disabled={isSubmitting} style={{ alignSelf: 'flex-start' }}>
         {isSubmitting ? 'Creating…' : 'Create user'}

@@ -392,7 +392,7 @@ const registrationSchema = z
     ageMonths: z.coerce.number().int().min(0).max(11).optional(),
     gender: z.enum(genderOptions),
     maritalStatus: z.enum(maritalStatusOptions).optional(),
-    nationalId: z.string().optional(),
+    nationalId: z.string().trim().min(1, 'Enter a national ID'),
     phone: z.string().min(1, 'Enter a phone number'),
     email: z.string().optional(),
     occupation: z.string().optional(),
@@ -541,7 +541,7 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
       ageMonths: values.dobKnown === 'estimated' ? values.ageMonths : undefined,
       gender: values.gender,
       maritalStatus: isMinor ? undefined : values.maritalStatus,
-      nationalId: values.nationalId || undefined,
+      nationalId: values.nationalId,
       phone: values.phone,
       email: values.email || undefined,
       occupation: values.occupation || undefined,
@@ -668,8 +668,8 @@ function RegistrationForm({ onRegistered }: { onRegistered: () => void }) {
             </select>
           </FormRow>
         )}
-        <FormRow label="National ID (optional)">
-          <input className="clinical-control" {...register('nationalId')} style={fieldStyle} />
+        <FormRow label="National ID" error={errors.nationalId?.message}>
+          <input className="clinical-control" {...register('nationalId')} style={fieldStyle} required />
         </FormRow>
       </FormSection>
 
