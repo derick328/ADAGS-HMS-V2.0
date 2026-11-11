@@ -59,34 +59,14 @@ const schema = z.object({
   interpretation: z.string().optional(),
   referenceRangeNote: z.string().optional(),
   conclusion: z.string().optional(),
-  resultType: z.enum(['NUMERIC', 'QUALITATIVE', 'FREE_TEXT', 'NARRATIVE']),
-  singleValue: z.string().optional(),
-  singleValueUnit: z.string().optional(),
-  overallInterpretation: z.enum(['NORMAL', 'ABNORMAL', 'CRITICAL']).or(z.literal('')).optional(),
   remarks: z.string().optional(),
 }).superRefine((value, context) => {
   if (value.specimenQuality !== 'ADEQUATE' && !value.specimenQualityNote?.trim()) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['specimenQualityNote'], message: 'Explain the quality issue' });
   }
   const hasParameterValue = value.parameters.some(row => row.resultValue.trim() !== '');
-  const singleValue = value.singleValue?.trim() ?? '';
-  if ((value.resultType === 'QUALITATIVE' || value.resultType === 'FREE_TEXT') && !singleValue) {
-    context.addIssue({ code: z.ZodIssueCode.custom, path: ['singleValue'], message: 'Enter the recorded result' });
-  }
-  if (value.resultType === 'NARRATIVE' && !value.findings?.trim()) {
-    context.addIssue({ code: z.ZodIssueCode.custom, path: ['findings'], message: 'Enter narrative findings' });
-  }
-  if (value.resultType === 'NUMERIC' && !hasParameterValue && singleValue) {
-    if (!Number.isFinite(Number(singleValue))) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ['singleValue'], message: 'Enter a numeric single-value result' });
-    }
-    if (!value.singleValueUnit?.trim()) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ['singleValueUnit'], message: 'Enter the unit for this result' });
-    }
-  }
-  if (value.resultType === 'NUMERIC' && !hasParameterValue && !singleValue &&
-      !value.findings?.trim() && !value.interpretation?.trim() && !value.conclusion?.trim()) {
-    context.addIssue({ code: z.ZodIssueCode.custom, path: ['singleValue'], message: 'Enter a parameter, single value, or clinical narrative' });
+  if (!hasParameterValue && !value.findings?.trim()) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['findings'], message: 'Enter a parameter or narrative findings' });
   }
 });
 type Values = z.infer<typeof schema>;
@@ -159,10 +139,6 @@ export function ResultEntryPage() {
       interpretation: '',
       referenceRangeNote: '',
       conclusion: '',
-      resultType: form.parameters?.length ? 'NUMERIC' : 'NARRATIVE',
-      singleValue: '',
-      singleValueUnit: '',
-      overallInterpretation: '',
       remarks: '',
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -171,8 +147,10 @@ export function ResultEntryPage() {
   useEffect(() => {
     if (!draft || !form) return;
     if (draft.status === 'DRAFT') {
-      const savedValues = draft.payload as Partial<Values>;
-      reset({ ...savedValues, sampleType: savedValues.sampleType ?? form.sampleType ?? '',
+      const savedValues = draft.payload as Partial<Values> & { singleValue?: string; singleValueUnit?: string };
+      const legacyFinding = [savedValues.singleValue, savedValues.singleValueUnit].filter(Boolean).join(' ');
+      reset({ ...savedValues, findings: savedValues.findings || legacyFinding,
+        sampleType: savedValues.sampleType ?? form.sampleType ?? '',
         specimenQuality: savedValues.specimenQuality ?? form.specimenQuality ?? 'ADEQUATE',
         specimenQualityNote: savedValues.specimenQualityNote ?? form.specimenQualityNote ?? '',
         sampleTypeCorrectionReason: savedValues.sampleTypeCorrectionReason ?? '' } as Values);
@@ -207,10 +185,7 @@ export function ResultEntryPage() {
         interpretation: values.interpretation || undefined,
         referenceRangeNote: values.referenceRangeNote || undefined,
         conclusion: values.conclusion || undefined,
-        resultType: values.resultType,
-        singleValue: values.singleValue || undefined,
-        singleValueUnit: values.singleValueUnit || undefined,
-        overallInterpretation: values.overallInterpretation || undefined,
+        resultType: values.parameters.some(parameter => parameter.resultValue.trim() !== '') ? 'NUMERIC' : 'NARRATIVE',
         remarks: values.remarks || undefined,
         machineOutputObjectKey: machineOutput?.objectKey,
         labReportObjectKey: labReport?.objectKey,
@@ -310,70 +285,42 @@ export function ResultEntryPage() {
           noValidate
           style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', maxWidth: 900 }}
         >
-          <section className="clinical-card" style={{ padding: 'var(--space-4)' }}>
-            <h2>Request Information</h2>
-            <dl className="result-info-grid">
-              <dt>Patient</dt><dd>{form.patientName || 'Not recorded'}</dd>
-              <dt>Hospital number</dt><dd>{form.hospitalNumber || 'Not recorded'}</dd>
-              {form.nationalId && <><dt>National ID</dt><dd>{form.nationalId}</dd></>}
-              <dt>Test</dt><dd>{form.labTestName || 'Not recorded'}</dd>
-              <dt>Test code</dt><dd>{form.labTestCode || 'Not recorded'}</dd>
-              <dt>Urgency</dt><dd>{form.urgency || 'Not recorded'}</dd>
-              <dt>Order status</dt><dd>{form.orderStatus || 'Not recorded'}</dd>
-              <dt>Accession</dt><dd>{form.accessionNo || 'Not recorded'}</dd>
-              <dt>Sample type</dt><dd>{watch('sampleType') || 'Not recorded'}</dd>
-              <dt>Collected</dt><dd>{form.collectedAt ? new Date(form.collectedAt).toLocaleString() : 'Not recorded'}</dd>
-              <dt>Quality</dt><dd>{watch('specimenQuality') || 'Not recorded'}</dd>
-              <dt>Quality note</dt><dd>{watch('specimenQualityNote') || 'None'}</dd>
-              <dt>Clinical indication</dt><dd>{form.clinicalIndication || 'None'}</dd>
-              <dt>Special instructions</dt><dd>{form.specialInstructions || 'None'}</dd>
-            </dl>
-          </section>
           {savedAt && <p role="status">Draft saved — Not yet released to doctor. Last saved {new Date(savedAt).toLocaleString()}.</p>}
-          <h2>Result Details</h2>
-          <div className="result-parameter-actions">
-            <label htmlFor="resultType">Result type</label>
-            <select id="resultType" className="clinical-control" {...register('resultType')}>
-              <option value="NUMERIC">Numeric parameters</option>
-              <option value="QUALITATIVE">Qualitative</option>
-              <option value="FREE_TEXT">Free-text observation</option>
-              <option value="NARRATIVE">Narrative only</option>
-            </select>
-          </div>
+          <h2>Specimen and Method Information</h2>
           <div className="result-entry-fields">
             <div>
-              <label htmlFor="singleValue">Summary / Single-value Result</label>
-              <input id="singleValue" className="clinical-control" list="qualitative-result-options"
-                placeholder={watch('resultType') === 'QUALITATIVE' ? 'Positive, Negative, Reactive…' : 'Optional summary or measured value'}
-                {...register('singleValue')} />
-              {errors.singleValue && <div className="field-error">{errors.singleValue.message}</div>}
-              <datalist id="qualitative-result-options">
-                {['Positive', 'Negative', 'Reactive', 'Non-reactive', 'Not detected'].map(value => <option key={value} value={value} />)}
-              </datalist>
+              <label htmlFor="sampleType">Sample type</label>
+              <input id="sampleType" className="clinical-control" {...register('sampleType')} />
+              {errors.sampleType && <div className="field-error">{errors.sampleType.message}</div>}
             </div>
             <div>
-              <label htmlFor="singleValueUnit">Single-value unit, if applicable</label>
-              <input id="singleValueUnit" className="clinical-control" {...register('singleValueUnit')} />
-              {errors.singleValueUnit && <div className="field-error">{errors.singleValueUnit.message}</div>}
+              <label htmlFor="specimenQuality">Sample quality</label>
+              <select id="specimenQuality" className="clinical-control" {...register('specimenQuality')}>
+                {QUALITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+              {errors.specimenQuality && <div className="field-error">{errors.specimenQuality.message}</div>}
             </div>
+            <div>
+              <label htmlFor="specimenQualityNote">Sample quality note</label>
+              <textarea id="specimenQualityNote" className="clinical-control" rows={2} {...register('specimenQualityNote')} />
+              {errors.specimenQualityNote && <div className="field-error">{errors.specimenQualityNote.message}</div>}
+            </div>
+            {sampleTypeChanged && <div>
+              <label htmlFor="sampleTypeCorrectionReason">Reason for sample type correction</label>
+              <textarea id="sampleTypeCorrectionReason" className="clinical-control" rows={2} {...register('sampleTypeCorrectionReason')} />
+              {errors.sampleTypeCorrectionReason && <div className="field-error">{errors.sampleTypeCorrectionReason.message}</div>}
+            </div>}
           </div>
-          <div className="result-parameter-actions">
-            <label htmlFor="overallInterpretation">Overall interpretation</label>
-            <select id="overallInterpretation" className="clinical-control" {...register('overallInterpretation')}>
-              <option value="">Not recorded</option>
-              <option value="NORMAL">Normal</option><option value="ABNORMAL">Abnormal</option><option value="CRITICAL">Critical</option>
-            </select>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>Specimen corrections are saved with the result. A sample with a quality issue cannot be released.</p>
+          <div className="result-entry-fields">
+            <TextField label="Methodology" name="methodology" register={register} />
+            <TextField label="Reagents used" name="reagentsUsedNote" register={register} />
+            <div><TextField label="Findings" name="findings" register={register} />
+              {errors.findings && <div className="field-error">{errors.findings.message}</div>}</div>
+            <TextField label="Interpretation" name="interpretation" register={register} />
+            <TextField label="Reference range note" name="referenceRangeNote" register={register} />
+            <TextField label="Conclusion" name="conclusion" register={register} />
           </div>
-          {form.clinicalIndication && (
-            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
-              Clinical indication: {form.clinicalIndication}
-            </p>
-          )}
-          {watch('specimenQuality') && watch('specimenQuality') !== 'ADEQUATE' && (
-            <p style={{ color: 'var(--warning)', fontSize: 'var(--text-sm)' }}>
-              Specimen quality: {watch('specimenQuality')} — {watch('specimenQualityNote')}
-            </p>
-          )}
 
           <h2>Parameters</h2>
           <div
@@ -464,7 +411,7 @@ export function ResultEntryPage() {
                 {fields.length === 0 && (
                   <tr>
                     <td colSpan={8} style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 'var(--space-4)' }}>
-                      {form.parameters?.length ? 'No parameter rows selected. Add an approved parameter below.' : 'This test has no coded parameters. Record a summary or narrative result.'}
+                      {form.parameters?.length ? 'No parameter rows selected. Add an approved parameter below.' : 'This test has no coded parameters. Record narrative findings below.'}
                     </td>
                   </tr>
                 )}
@@ -519,42 +466,6 @@ export function ResultEntryPage() {
               {importPreview.unmatchedColumns.length > 0 && <p>Other columns: {importPreview.unmatchedColumns.join(', ')}</p>}
             </div>}
           </div>}
-          <h2>Specimen and Method Information</h2>
-          <div className="result-entry-fields">
-            <div>
-              <label htmlFor="sampleType">Sample type</label>
-              <input id="sampleType" className="clinical-control" {...register('sampleType')} />
-              {errors.sampleType && <div className="field-error">{errors.sampleType.message}</div>}
-            </div>
-            <div>
-              <label htmlFor="specimenQuality">Sample quality</label>
-              <select id="specimenQuality" className="clinical-control" {...register('specimenQuality')}>
-                {QUALITY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-              {errors.specimenQuality && <div className="field-error">{errors.specimenQuality.message}</div>}
-            </div>
-            <div>
-              <label htmlFor="specimenQualityNote">Sample quality note</label>
-              <textarea id="specimenQualityNote" className="clinical-control" rows={2} {...register('specimenQualityNote')} />
-              {errors.specimenQualityNote && <div className="field-error">{errors.specimenQualityNote.message}</div>}
-            </div>
-            {sampleTypeChanged && <div>
-              <label htmlFor="sampleTypeCorrectionReason">Reason for sample type correction</label>
-              <textarea id="sampleTypeCorrectionReason" className="clinical-control" rows={2} {...register('sampleTypeCorrectionReason')} />
-              {errors.sampleTypeCorrectionReason && <div className="field-error">{errors.sampleTypeCorrectionReason.message}</div>}
-            </div>}
-          </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>Specimen corrections are saved with the result. A sample with a quality issue cannot be released.</p>
-          <div className="result-entry-fields">
-            <TextField label="Methodology" name="methodology" register={register} />
-            <TextField label="Reagents used" name="reagentsUsedNote" register={register} />
-            <div><TextField label="Findings" name="findings" register={register} />
-              {errors.findings && <div className="field-error">{errors.findings.message}</div>}</div>
-            <TextField label="Interpretation" name="interpretation" register={register} />
-            <TextField label="Reference range note" name="referenceRangeNote" register={register} />
-            <TextField label="Conclusion" name="conclusion" register={register} />
-          </div>
-
           <h2>Additional Documentation</h2>
           <TextField label="Remarks" name="remarks" register={register} />
           <h2>Attachments</h2>
