@@ -1,6 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ComponentsIndexPage } from './dev/ComponentsIndexPage';
 import { LoginPage } from './pages/LoginPage';
+import { AccessPendingPage } from './pages/AccessPendingPage';
+import { HomeRedirect } from './shared/auth/HomeRedirect';
+import { RequireAdmin } from './shared/auth/RequireAdmin';
 import { RequireAuth } from './shared/auth/RequireAuth';
 import { ButtonStories } from './shared/components/Button/Button.stories';
 import { InputStories } from './shared/components/Input/Input.stories';
@@ -96,6 +99,8 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={<RequireAuth><HomeRedirect /></RequireAuth>} />
+      <Route path="/access-pending" element={<RequireAuth><AccessPendingPage /></RequireAuth>} />
       {/* Dev-only component gallery — not linked from any workspace nav. */}
       <Route path="/dev/components" element={<ComponentsIndexPage />} />
       <Route path="/dev/components/button" element={<ButtonStories />} />
@@ -118,7 +123,7 @@ export function App() {
         path="/admin"
         element={
           <RequireAuth>
-            <AdminShell />
+            <RequireAdmin><AdminShell /></RequireAdmin>
           </RequireAuth>
         }
       >
@@ -248,7 +253,7 @@ export function App() {
         <Route path="surgery-bills" element={<SurgeryBillsPage />} />
         <Route path="profile" element={<WardProfilePage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/admin" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

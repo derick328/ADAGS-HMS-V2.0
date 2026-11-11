@@ -6,46 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { ApiError, fetchMe } from '../shared/api/client';
 import { useAuth } from '../shared/auth/AuthProvider';
+import { landingRouteFor } from '../shared/auth/landingRoute';
 import './LoginPage.css';
-
-// A user's active role assignments decide which shell they land in;
-// pure-admin users fall through to /admin. Every role that has its own
-// shell wired in App.tsx must have a branch here — otherwise the user
-// lands on /admin and sees the Admin sidebar (Dashboard / Expenses /
-// Profile) rather than their own workspace, and it looks like their
-// workspace is broken.
-//
-// Operational roles are checked BEFORE the ADMIN fallback: a user who
-// holds both an operational role and ADMIN is here to work the
-// operational role — a lab tech doing admin tasks logs in with their
-// admin account, not the lab-tech one. This differs from the original
-// rule (which sent any ADMIN-holder straight to /admin regardless of
-// their other roles) and unblocks the common seed-data case where an
-// operator account was created with ADMIN also attached.
-function landingRouteFor(roleCodes: string[], permissions: string[]): string {
-  const roles = new Set(roleCodes);
-  const perms = new Set(permissions);
-  // Role-code branches first — the intended mapping.
-  if (roles.has('LAB_TECHNICIAN')) return '/lab';
-  if (roles.has('PHARMACIST')) return '/pharmacy';
-  if (roles.has('WARD_NURSE') || roles.has('NURSE')) return '/ward-nurse';
-  if (roles.has('CLINICAL_OFFICER') || roles.has('DOCTOR') || roles.has('SPECIALIST_DOCTOR')) return '/doctor';
-  if (roles.has('TRIAGE_NURSE')) return '/triage';
-  if (roles.has('RECEPTIONIST')) return '/receptionist';
-  // Capability fallback — a seeded account may carry only the
-  // workspace's permissions without the exact role code (a custom role,
-  // a per-user grant, or a role rename after seed). Route them by what
-  // they can DO rather than by what the role happens to be called.
-  // Order matches the role list above so the same person routes the
-  // same way regardless of which source (role vs. permission) matches.
-  if (perms.has('LAB_QUEUE_READ') || perms.has('SPECIMEN_ACCEPT') || perms.has('LAB_RESULT_ENTER')) return '/lab';
-  if (perms.has('DISPENSE_CREATE') || perms.has('PRESCRIPTION_QUEUE_READ')) return '/pharmacy';
-  if (perms.has('WARD_PATIENT_READ') || perms.has('MEDICATION_ADMINISTER')) return '/ward-nurse';
-  if (perms.has('CONSULTATION_CREATE') || perms.has('PRESCRIPTION_CREATE')) return '/doctor';
-  if (perms.has('VITALS_CREATE') && !perms.has('WARD_PATIENT_READ')) return '/triage';
-  if (perms.has('PAYMENT_CREATE') || perms.has('PATIENT_REGISTER')) return '/receptionist';
-  return '/admin';
-}
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Enter your username'),
