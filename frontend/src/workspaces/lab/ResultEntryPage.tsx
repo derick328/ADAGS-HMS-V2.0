@@ -35,6 +35,12 @@ const QUALITY_OPTIONS: { value: SpecimenQuality; label: string }[] = [
   { value: 'DELAYED_TRANSPORT', label: 'Delayed transport' },
 ];
 
+const FBP_PERIPHERAL_SMEAR_NAME = 'Full Blood Picture (FBP) / + Peripheral Smear';
+
+export function hasFbpPeripheralSmearParameters(testName?: string): boolean {
+  return testName?.trim().replace(/\s+/g, ' ').toLowerCase() === FBP_PERIPHERAL_SMEAR_NAME.toLowerCase();
+}
+
 const parameterRowSchema = z
   .object({
     parameterId: z.string().uuid(),
@@ -113,6 +119,7 @@ export function ResultEntryPage() {
   } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { parameters: [] } });
   const { fields, insert, remove, replace } = useFieldArray({ control, name: 'parameters' });
   const watchedParameters = watch('parameters');
+  const showParameters = hasFbpPeripheralSmearParameters(form?.labTestName);
   const availableParameters = (form?.parameters ?? [])
     .filter(definition => !watchedParameters?.some(row => row.parameterId === definition.parameterId))
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
@@ -128,7 +135,7 @@ export function ResultEntryPage() {
   useEffect(() => {
     if (!form || draft) return;
     reset({
-      parameters: [...(form.parameters ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)).map((p) => ({ parameterId: p.parameterId as string, resultValue: '', overrideFlag: '', overrideReason: '' })),
+      parameters: showParameters ? [...(form.parameters ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)).map((p) => ({ parameterId: p.parameterId as string, resultValue: '', overrideFlag: '', overrideReason: '' })) : [],
       sampleType: form.sampleType ?? '',
       specimenQuality: form.specimenQuality ?? 'ADEQUATE',
       specimenQualityNote: form.specimenQualityNote ?? '',
@@ -142,14 +149,14 @@ export function ResultEntryPage() {
       remarks: '',
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form]);
+  }, [form, showParameters]);
 
   useEffect(() => {
     if (!draft || !form) return;
     if (draft.status === 'DRAFT') {
       const savedValues = draft.payload as Partial<Values> & { singleValue?: string; singleValueUnit?: string };
       const legacyFinding = [savedValues.singleValue, savedValues.singleValueUnit].filter(Boolean).join(' ');
-      reset({ ...savedValues, findings: savedValues.findings || legacyFinding,
+      reset({ ...savedValues, parameters: showParameters ? savedValues.parameters ?? [] : [], findings: savedValues.findings || legacyFinding,
         sampleType: savedValues.sampleType ?? form.sampleType ?? '',
         specimenQuality: savedValues.specimenQuality ?? form.specimenQuality ?? 'ADEQUATE',
         specimenQualityNote: savedValues.specimenQualityNote ?? form.specimenQualityNote ?? '',
@@ -160,11 +167,11 @@ export function ResultEntryPage() {
       setSavedVersion(draft.version);
       setSavedAt(draft.updatedAt);
     }
-  }, [draft, form, reset]);
+  }, [draft, form, reset, showParameters]);
 
   const save = useMutation({
     mutationFn: (values: Values) => saveLabResultDraft(labOrderId as string, savedVersion,
-      { ...values, machineOutput, labReport }, accessToken as string),
+      { ...values, parameters: showParameters ? values.parameters : [], machineOutput, labReport }, accessToken as string),
     onSuccess: (saved) => {
       setSavedVersion(saved.version);
       setSavedAt(saved.updatedAt);
@@ -175,7 +182,7 @@ export function ResultEntryPage() {
   const submit = useMutation({
     mutationFn: async (values: Values) => {
       const saved = await saveLabResultDraft(labOrderId as string, savedVersion,
-        { ...values, machineOutput, labReport }, accessToken as string);
+        { ...values, parameters: showParameters ? values.parameters : [], machineOutput, labReport }, accessToken as string);
       setSavedVersion(saved.version);
       return submitLabResultDraft(labOrderId as string, saved.version, {
         specimenId: form?.specimenId as string,
@@ -185,11 +192,11 @@ export function ResultEntryPage() {
         interpretation: values.interpretation || undefined,
         referenceRangeNote: values.referenceRangeNote || undefined,
         conclusion: values.conclusion || undefined,
-        resultType: values.parameters.some(parameter => parameter.resultValue.trim() !== '') ? 'NUMERIC' : 'NARRATIVE',
+        resultType: showParameters && values.parameters.some(parameter => parameter.resultValue.trim() !== '') ? 'NUMERIC' : 'NARRATIVE',
         remarks: values.remarks || undefined,
         machineOutputObjectKey: machineOutput?.objectKey,
         labReportObjectKey: labReport?.objectKey,
-        parameterValues: values.parameters.filter((p) => p.resultValue.trim() !== '').map((p) => ({
+        parameterValues: (showParameters ? values.parameters : []).filter((p) => p.resultValue.trim() !== '').map((p) => ({
           parameterId: p.parameterId,
           resultValue: Number(p.resultValue),
           overrideFlag: p.overrideFlag || undefined,
@@ -322,6 +329,7 @@ export function ResultEntryPage() {
             <TextField label="Conclusion" name="conclusion" register={register} />
           </div>
 
+          {showParameters && <>
           <h2>Parameters</h2>
           <div
             style={{
@@ -466,6 +474,7 @@ export function ResultEntryPage() {
               {importPreview.unmatchedColumns.length > 0 && <p>Other columns: {importPreview.unmatchedColumns.join(', ')}</p>}
             </div>}
           </div>}
+          </>}
           <h2>Additional Documentation</h2>
           <TextField label="Remarks" name="remarks" register={register} />
           <h2>Attachments</h2>
