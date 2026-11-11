@@ -231,8 +231,7 @@ class RevenueReportServiceTest extends IntegrationTestSupport {
 
     private UUID insertFixtureEncounter(UUID patientId, UUID facilityId) {
         UUID departmentId = jdbcTemplate.queryForObject("""
-                        INSERT INTO department (facility_id, code, name)
-                        VALUES (:facilityId, :code, 'Test Department')
+                        INSERT INTO department (facility_id, category_id, code, name) VALUES (:facilityId, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code)
                         RETURNING id
                         """,
                 new MapSqlParameterSource()

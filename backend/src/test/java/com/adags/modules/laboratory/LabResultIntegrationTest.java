@@ -115,6 +115,8 @@ class LabResultIntegrationTest extends IntegrationTestSupport {
     @Autowired
     private LabResultRepository labResultRepository;
     @Autowired
+    private com.adags.modules.laboratory.application.LabResultViewStateService viewState;
+    @Autowired
     private CriticalResultNotificationRepository criticalResultNotificationRepository;
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
@@ -194,7 +196,7 @@ class LabResultIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    void assessedSampleTypeOverrideRequiresAReasonAndIsRecordedOnSpecimen() {
+    void assessedSampleTypeOverrideAcceptsOptionalReasonAndRecordsItWhenPresent() {
         UUID admin = bootstrapAdminId();
         UUID doctorId = insertFixtureDoctor();
         Patient patient = registerPatientService.register(patientCommand("Asha", "Specimen-" + UUID.randomUUID(), admin));
@@ -204,17 +206,35 @@ class LabResultIntegrationTest extends IntegrationTestSupport {
         LabOrder order = placeLabOrderService.placeOrder(new PlaceLabOrderCommand(
                 checkedIn.id(), code, null, Urgency.ROUTINE, doctorId));
 
-        assertThatThrownBy(() -> collectSpecimenService.collect(new CollectSpecimenCommand(
-                order.id(), SpecimenQuality.ADEQUATE, null, "Whole Blood (EDTA)", null, doctorId)))
-                .isInstanceOf(IllegalArgumentException.class);
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM specimen WHERE lab_order_id = :id",
-                new MapSqlParameterSource("id", order.id()), Integer.class)).isZero();
+        Specimen withoutReason = collectSpecimenService.collect(new CollectSpecimenCommand(
+                order.id(), SpecimenQuality.ADEQUATE, null, "Whole Blood (EDTA)", null, doctorId));
+        assertThat(withoutReason.sampleTypeOverrideReason()).isNull();
 
         Specimen accepted = collectSpecimenService.collect(new CollectSpecimenCommand(
                 order.id(), SpecimenQuality.ADEQUATE, null, "Whole Blood (EDTA)",
                 "Catalogue type is generic; verified EDTA tube at receipt", doctorId));
         assertThat(accepted.sampleType()).isEqualTo("Whole Blood (EDTA)");
         assertThat(accepted.sampleTypeOverrideReason()).contains("EDTA tube");
+    }
+
+    @Test
+    void releasedResultReadStateIsPerUserAndIdempotent() {
+        Fixture fixture = readySpecimen("LAB-READ-" + UUID.randomUUID());
+        LabResult result = recordLabResultService.record(new RecordLabResultCommand(
+                fixture.specimenId(), fixture.actorId(), null, null, null, null, null, null,
+                "s3://bucket/key", List.of(new ParameterEntry(fixture.parameterId(), 4.2, null, null)),
+                List.of())).result();
+        assertThat(viewState.unreadOrderIds(fixture.actorId())).contains(result.labOrderId());
+        viewState.markViewed(fixture.actorId(), List.of(result));
+        viewState.markViewed(fixture.actorId(), List.of(result));
+        assertThat(viewState.unreadOrderIds(fixture.actorId())).doesNotContain(result.labOrderId());
+        Integer views = jdbcTemplate.queryForObject("SELECT count(*) FROM lab_result_view_state WHERE result_id = :id",
+                new MapSqlParameterSource("id", result.id()), Integer.class);
+        assertThat(views).isEqualTo(1);
+        UUID anotherUser = insertFixtureDoctor();
+        viewState.markViewed(anotherUser, List.of(result));
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM lab_result_view_state WHERE result_id = :id",
+                new MapSqlParameterSource("id", result.id()), Integer.class)).isEqualTo(2);
     }
 
     @Test
@@ -637,8 +657,8 @@ class LabResultIntegrationTest extends IntegrationTestSupport {
 
     private UUID insertFixtureDepartment() {
         return jdbcTemplate.queryForObject("""
-                        INSERT INTO department (facility_id, code, name)
-                        VALUES (:facilityId, :code, 'Test Department')
+                        INSERT INTO department (facility_id, category_id, code, name)
+                        VALUES (:facilityId, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code)
                         RETURNING id
                         """,
                 new MapSqlParameterSource()

@@ -1,5 +1,7 @@
 package com.adags.shared.kernel;
 
+import com.adags.shared.authz.ScopeRef;
+import com.adags.shared.authz.ScopeType;
 import java.util.UUID;
 
 // Shared/kernel vocabulary (root CLAUDE.md "Modules") so EncounterFacade can
@@ -8,4 +10,9 @@ import java.util.UUID;
 // without exposing com.adags.modules.encounters.domain.Encounter across the
 // boundary. Same reasoning as PatientDemographics for PatientFacade.
 public record EncounterContext(UUID patientId, UUID facilityId, UUID departmentId, PayerType payerType) {
+    public ScopeRef scope() {
+        return departmentId == null
+                ? ScopeRef.of(ScopeType.FACILITY, facilityId)
+                : ScopeRef.of(ScopeType.DEPARTMENT, departmentId);
+    }
 }

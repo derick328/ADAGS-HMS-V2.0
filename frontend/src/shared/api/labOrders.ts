@@ -21,6 +21,22 @@ export function fetchMyLabOrders(accessToken: string): Promise<LabOrderHistoryRe
   return authFetch('/api/lab-orders/mine', accessToken);
 }
 
+export interface LabOrderDetail {
+  order: LabOrderHistoryResponse;
+  requestingDoctorName: string;
+  clinicalIndication?: string;
+  specialInstructions?: string;
+  samples: { accessionNo: string; sampleType: string; containerType: string; status: string; collectedAt: string; quality: string }[];
+}
+
+export function fetchMyLabOrderDetail(id: string, accessToken: string): Promise<LabOrderDetail> {
+  return authFetch(`/api/lab-orders/mine/${id}`, accessToken);
+}
+
+export function fetchUnreadLabResultOrderIds(accessToken: string): Promise<string[]> {
+  return authFetch('/api/lab-orders/mine/unread-result-orders', accessToken);
+}
+
 /** 08-doctor-navigation.md §3.3: every lab order on this encounter, across every ordering doctor. */
 export function fetchLabOrdersByEncounter(encounterId: string, accessToken: string): Promise<LabOrderHistoryResponse[]> {
   return authFetch(`/api/lab-orders/by-encounter/${encounterId}`, accessToken);

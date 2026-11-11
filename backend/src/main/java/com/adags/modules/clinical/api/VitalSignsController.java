@@ -61,7 +61,7 @@ public class VitalSignsController {
     public List<VitalSignsResponse> byEncounter(@PathVariable UUID encounterId, @AuthenticationPrincipal Actor actor) {
         EncounterContext context = encounterFacade.findContext(encounterId)
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + encounterId));
-        if (!authorizationService.hasPermission(actor, "CLINICAL_NOTE_READ", ScopeRef.of(ScopeType.DEPARTMENT, context.departmentId()))) {
+        if (!authorizationService.hasPermission(actor, "CLINICAL_NOTE_READ", context.scope())) {
             throw new AccessDeniedException("Missing permission: CLINICAL_NOTE_READ");
         }
         return vitalSignsRepository.findByEncounterId(encounterId).stream().map(this::toResponse).toList();
@@ -81,7 +81,7 @@ public class VitalSignsController {
     ) {
         EncounterContext context = encounterFacade.findContext(encounterId)
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + encounterId));
-        if (!authorizationService.hasPermission(actor, "VITALS_CREATE", ScopeRef.of(ScopeType.DEPARTMENT, context.departmentId()))) {
+        if (!authorizationService.hasPermission(actor, "VITALS_CREATE", context.scope())) {
             throw new AccessDeniedException("Missing permission: VITALS_CREATE");
         }
         VitalSigns saved = recordVitalSignsService.record(new RecordVitalSignsCommand(

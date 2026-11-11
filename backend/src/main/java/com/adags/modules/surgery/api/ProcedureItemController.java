@@ -140,7 +140,7 @@ public class ProcedureItemController {
         EncounterContext context = encounterFacade.findContext(order.encounterId())
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + order.encounterId()));
         if (!authorizationService.hasPermission(
-                actor, permissionCode, ScopeRef.of(ScopeType.DEPARTMENT, context.departmentId()))) {
+                actor, permissionCode, context.scope())) {
             throw new AccessDeniedException("Missing permission: " + permissionCode);
         }
     }

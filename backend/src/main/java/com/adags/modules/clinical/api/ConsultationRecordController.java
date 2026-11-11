@@ -170,7 +170,7 @@ public class ConsultationRecordController {
     private void requirePermissionForEncounter(Actor actor, String permissionCode, UUID encounterId) {
         EncounterContext context = encounterFacade.findContext(encounterId)
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + encounterId));
-        if (authorizationService.checkPatientAccess(actor, permissionCode, context.patientId(), ScopeRef.of(ScopeType.DEPARTMENT, context.departmentId())) != com.adags.shared.authz.PolicyResult.ALLOWED) {
+        if (authorizationService.checkPatientAccess(actor, permissionCode, context.patientId(), context.scope()) != com.adags.shared.authz.PolicyResult.ALLOWED) {
             throw new AccessDeniedException("Missing permission: " + permissionCode);
         }
         historyAudit.record(actor.userId(), "CLINICAL_HISTORY_READ", "encounter", encounterId, context.patientId());

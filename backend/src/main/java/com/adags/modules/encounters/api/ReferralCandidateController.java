@@ -66,7 +66,9 @@ public class ReferralCandidateController {
     public List<ReferralCandidateResponse> forEncounter(@PathVariable UUID encounterId, @AuthenticationPrincipal Actor actor) {
         Encounter encounter = encounterRepository.findById(encounterId)
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + encounterId));
-        if (!authorizationService.hasPermission(actor, "ENCOUNTER_ROUTE", ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId()))) {
+        if (!(encounter.departmentId() == null
+                ? authorizationService.hasPermissionForPendingEncounter(actor, "ENCOUNTER_ROUTE", encounter.facilityId())
+                : authorizationService.hasPermission(actor, "ENCOUNTER_ROUTE", encounter.scope()))) {
             throw new AccessDeniedException("Missing permission: ENCOUNTER_ROUTE");
         }
 

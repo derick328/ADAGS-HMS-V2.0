@@ -69,7 +69,11 @@ export function UsersPage() {
   });
 
   const create = useMutation({
-    mutationFn: (values: CreateUserValues) => createUser(values, accessToken as string),
+    mutationFn: (values: CreateUserValues) => createUser({
+      ...values,
+      primaryUnitId: values.primaryUnitId ?? undefined,
+      hodUnitId: values.hodUnitId ?? undefined,
+    }, accessToken as string),
     onSuccess: (user) => {
       setShowCreateForm(false);
       queryClient.invalidateQueries({ queryKey: ['users'] });

@@ -12,7 +12,8 @@ public class OutpatientDepartureService {
  private Map<String,Object> encounter(UUID id,UUID facility,Actor actor,boolean correction) {
   var rows=jdbc.queryForList("SELECT * FROM encounter WHERE id=:id AND facility_id=:facility FOR UPDATE",Map.of("id",id,"facility",facility));
   if(rows.isEmpty()) throw new NoSuchElementException("Encounter not found in facility");
-  var row=rows.getFirst(); var scope=ScopeRef.of(ScopeType.DEPARTMENT,(UUID)row.get("department_id"));
+  var row=rows.getFirst(); var departmentId=(UUID)row.get("department_id");
+  var scope=departmentId == null ? ScopeRef.of(ScopeType.FACILITY,facility) : ScopeRef.of(ScopeType.DEPARTMENT,departmentId);
   if(!(correction ? auth.hasPermission(actor,"ENCOUNTER_CLOSE_ADMIN",scope) : auth.hasAnyPermission(actor,scope,"ENCOUNTER_OPEN","ENCOUNTER_CLOSE_ADMIN"))) throw new AccessDeniedException("Missing departure management permission");
   return row;
  }

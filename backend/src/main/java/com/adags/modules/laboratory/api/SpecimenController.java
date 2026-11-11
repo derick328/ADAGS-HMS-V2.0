@@ -46,6 +46,11 @@ public class SpecimenController {
     }
 
     @PostMapping
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Accept or reject an assessed specimen", description = "Requires SPECIMEN_ACCEPT. sampleTypeOverrideReason is optional; specimen quality, sample identification and payment rules still apply.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Invalid sample assessment", content = @io.swagger.v3.oas.annotations.media.Content)
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "402", description = "Payment authorization required", content = @io.swagger.v3.oas.annotations.media.Content)
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Insufficient permission", content = @io.swagger.v3.oas.annotations.media.Content)
     @ResponseStatus(HttpStatus.CREATED)
     public SpecimenResponse collect(@Valid @RequestBody CollectSpecimenRequest request, @AuthenticationPrincipal Actor actor) {
         LabOrder order = labOrderRepository.findById(request.labOrderId())

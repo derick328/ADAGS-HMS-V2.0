@@ -1,6 +1,8 @@
 package com.adags.modules.encounters.domain;
 
 import com.adags.shared.kernel.PayerType;
+import com.adags.shared.authz.ScopeRef;
+import com.adags.shared.authz.ScopeType;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -25,4 +27,9 @@ public record Encounter(
         Instant createdAt,
         UUID createdBy
 ) {
+    public ScopeRef scope() {
+        return departmentId == null
+                ? ScopeRef.of(ScopeType.FACILITY, facilityId)
+                : ScopeRef.of(ScopeType.DEPARTMENT, departmentId);
+    }
 }

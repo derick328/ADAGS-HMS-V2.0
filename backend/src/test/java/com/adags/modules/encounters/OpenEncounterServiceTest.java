@@ -85,6 +85,18 @@ class OpenEncounterServiceTest extends IntegrationTestSupport {
     }
 
     @Test
+    void walkInOpensAtFacilityWithoutChoosingADepartment() {
+        UUID patientId = insertFixturePatient();
+        Encounter encounter = openEncounterService.checkIn(new OpenEncounterCommand(
+                patientId, null, null, bootstrapAdminId(), BOOTSTRAP_FACILITY_ID));
+
+        assertThat(encounter.facilityId()).isEqualTo(BOOTSTRAP_FACILITY_ID);
+        assertThat(encounter.departmentId()).isNull();
+        assertThat(encounter.state()).isEqualTo(EncounterState.AWAITING_TRIAGE);
+        assertThat(encounterRepository.findById(encounter.id()).orElseThrow().departmentId()).isNull();
+    }
+
+    @Test
     void checkInOpensAnAwaitingTriageEncounterAndWritesTheCreationEvent() {
         UUID patientId = insertFixturePatient();
         UUID departmentId = insertFixtureDepartment();
@@ -257,8 +269,7 @@ class OpenEncounterServiceTest extends IntegrationTestSupport {
 
     private UUID insertFixtureDepartment() {
         return jdbcTemplate.queryForObject("""
-                        INSERT INTO department (facility_id, code, name)
-                        VALUES (:facilityId, :code, 'Test Department')
+                        INSERT INTO department (facility_id, category_id, code, name) VALUES (:facilityId, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code)
                         RETURNING id
                         """,
                 new MapSqlParameterSource()

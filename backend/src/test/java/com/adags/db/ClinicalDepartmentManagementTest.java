@@ -33,11 +33,11 @@ class ClinicalDepartmentManagementTest extends IntegrationTestSupport {
         assertThat(unit.consultationEnabled()).isFalse();
         assertThat(unit.unitType()).isEqualTo("DIAGNOSTIC");
         int before=departments.units(false).size();
-        jdbc.update("""
+        assertThatThrownBy(() -> jdbc.update("""
             INSERT INTO department(facility_id,category_id,code,name)
             SELECT facility_id,category_id,code,name FROM department WHERE id=:id
             ON CONFLICT (facility_id,code) DO NOTHING
-            """,new MapSqlParameterSource("id",unit.id()));
+            """,new MapSqlParameterSource("id",unit.id()))).isInstanceOf(DataAccessException.class);
         assertThat(departments.units(false)).hasSize(before);
     }
 

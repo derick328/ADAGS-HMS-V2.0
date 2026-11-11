@@ -125,6 +125,14 @@ public class JdbcCatalogItemLookup implements CatalogItemLookupPort {
     }
 
     @Override
+    public List<CatalogItemView> listItemsForExport(int page, int pageSize) {
+        return jdbcTemplate.query(SELECT_COLS +
+                " ORDER BY si.billing_category NULLS LAST, si.name, si.code LIMIT :limit OFFSET :offset",
+                new MapSqlParameterSource().addValue("limit", pageSize).addValue("offset", page * pageSize),
+                JdbcCatalogItemLookup::mapRow);
+    }
+
+    @Override
     public int countItems(CatalogItemQuery query) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         String where = buildWhere(query, params);

@@ -92,7 +92,7 @@ public class SurgeryOrderController {
     ) {
         EncounterContext context = encounterFacade.findContext(request.encounterId())
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + request.encounterId()));
-        requirePermission(actor, "SURGERY_ORDER_CREATE", ScopeType.DEPARTMENT, context.departmentId());
+        requirePermission(actor, "SURGERY_ORDER_CREATE", context.scope());
 
         ScheduleSurgeryCommand command = new ScheduleSurgeryCommand(
                 request.encounterId(), request.procedureServiceItemCode(), request.surgeryType(), request.urgency(),
@@ -127,7 +127,7 @@ public class SurgeryOrderController {
                 .orElseThrow(() -> new NoSuchElementException("Surgery order not found: " + id));
         EncounterContext context = encounterFacade.findContext(order.encounterId())
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + order.encounterId()));
-        requirePermission(actor, "SURGERY_EPISODE_DOCUMENT", ScopeType.DEPARTMENT, context.departmentId());
+        requirePermission(actor, "SURGERY_EPISODE_DOCUMENT", context.scope());
         return SurgeryOrderResponse.from(order);
     }
 
@@ -193,7 +193,7 @@ public class SurgeryOrderController {
     ) {
         EncounterContext context = encounterFacade.findContext(request.encounterId())
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + request.encounterId()));
-        requirePermission(actor, "SURGERY_ORDER_CREATE", ScopeType.DEPARTMENT, context.departmentId());
+        requirePermission(actor, "SURGERY_ORDER_CREATE", context.scope());
 
         SurgeryOrder order = createEmergencyDraftSurgeryOrderService.create(new CreateEmergencyDraftSurgeryOrderCommand(
                 request.encounterId(), request.procedureName(), request.surgeryType(), request.anesthesiaType(),
@@ -220,11 +220,17 @@ public class SurgeryOrderController {
                 .orElseThrow(() -> new NoSuchElementException("Surgery order not found: " + surgeryOrderId));
         EncounterContext context = encounterFacade.findContext(existing.encounterId())
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + existing.encounterId()));
-        requirePermission(actor, permissionCode, ScopeType.DEPARTMENT, context.departmentId());
+        requirePermission(actor, permissionCode, context.scope());
     }
 
     private void requirePermission(Actor actor, String permissionCode, ScopeType scopeType, UUID scopeId) {
         if (!authorizationService.hasPermission(actor, permissionCode, ScopeRef.of(scopeType, scopeId))) {
+            throw new AccessDeniedException("Missing permission: " + permissionCode);
+        }
+    }
+
+    private void requirePermission(Actor actor, String permissionCode, ScopeRef scope) {
+        if (!authorizationService.hasPermission(actor, permissionCode, scope)) {
             throw new AccessDeniedException("Missing permission: " + permissionCode);
         }
     }

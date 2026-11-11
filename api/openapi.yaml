@@ -6,11 +6,13 @@ servers:
 - url: http://localhost
   description: Generated server url
 paths:
-  /api/encounters/{encounterId}/pregnancy-assessment:
+  /api/users/{id}/clinic-assignments:
     get:
-      operationId: getPregnancyAssessment
+      tags:
+      - user-controller
+      operationId: clinicAssignments
       parameters:
-      - name: encounterId
+      - name: id
         in: path
         required: true
         schema:
@@ -18,33 +20,33 @@ paths:
           format: uuid
       responses:
         "200":
-          description: Current pregnancy assessment
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
-                $ref: "#/components/schemas/PregnancyAssessmentResponse"
-    post:
-      operationId: recordPregnancyAssessment
+                type: array
+                items:
+                  $ref: "#/components/schemas/Assignment"
+    put:
+      tags:
+      - user-controller
+      operationId: updateClinicAssignments
       parameters:
-      - name: encounterId
+      - name: id
         in: path
         required: true
         schema:
           type: string
           format: uuid
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PregnancyAssessmentRequest"
+              $ref: "#/components/schemas/ClinicAssignmentsRequest"
+        required: true
       responses:
         "200":
-          description: Recorded pregnancy assessment
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PregnancyAssessmentResponse"
+          description: OK
   /api/lab-orders/{labOrderId}/result-draft:
     get:
       tags:
@@ -131,6 +133,62 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/TriageAssessmentDraftResponse"
+  /api/department-management/units/{id}:
+    put:
+      tags:
+      - department-management-controller
+      operationId: update
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnitUpdate"
+        required: true
+      responses:
+        "200":
+          description: OK
+  /api/department-management/units/{id}/hod:
+    put:
+      tags:
+      - department-management-controller
+      operationId: appoint
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HodRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+    delete:
+      tags:
+      - department-management-controller
+      operationId: vacate
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
   /api/consultation-records/{id}/autosave:
     put:
       tags:
@@ -156,6 +214,45 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ConsultationRecordResponse"
+  /api/admin/catalog/items/{itemId}/price:
+    put:
+      tags:
+      - catalog-import-controller
+      summary: Update an active catalogue item's CASH price
+      description: Requires CATALOG_IMPORT. expectedPriceMinor prevents a stale administrator
+        edit; amounts are whole TZS minor units. Existing invoice lines keep their
+        original amounts.
+      operationId: updatePrice
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCatalogPriceRequest"
+        required: true
+      responses:
+        "409":
+          description: "Inactive, unpriced, or concurrently changed item"
+        "200":
+          description: Versioned price change
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PriceChange"
+        "403":
+          description: Insufficient permission
+        "404":
+          description: Item not found
+        "400":
+          description: Invalid amount
+      security:
+      - bearerAuth: []
   /me/change-password:
     post:
       tags:
@@ -965,6 +1062,9 @@ paths:
     post:
       tags:
       - specimen-controller
+      summary: Accept or reject an assessed specimen
+      description: "Requires SPECIMEN_ACCEPT. sampleTypeOverrideReason is optional;\
+        \ specimen quality, sample identification and payment rules still apply."
       operationId: collect
       requestBody:
         content:
@@ -973,12 +1073,20 @@ paths:
               $ref: "#/components/schemas/CollectSpecimenRequest"
         required: true
       responses:
+        "400":
+          description: Invalid sample assessment
+        "403":
+          description: Insufficient permission
+        "402":
+          description: Payment authorization required
         "201":
           description: Created
           content:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SpecimenResponse"
+      security:
+      - bearerAuth: []
   /api/shift-assignments:
     get:
       tags:
@@ -2585,6 +2693,49 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/TriageAssessmentResponse"
+  /api/encounters/{encounterId}/pregnancy-assessment:
+    get:
+      tags:
+      - pregnancy-assessment-controller
+      operationId: get_6
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AssessmentResponse"
+    post:
+      tags:
+      - pregnancy-assessment-controller
+      operationId: record_4
+      parameters:
+      - name: encounterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssessmentRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AssessmentResponse"
   /api/dispenses:
     post:
       tags:
@@ -2603,6 +2754,38 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/DispenseResponse"
+  /api/department-management/units:
+    get:
+      tags:
+      - department-management-controller
+      operationId: units
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Unit"
+    post:
+      tags:
+      - department-management-controller
+      operationId: create_9
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnitCreate"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: uuid
   /api/critical-result-notifications/{id}/acknowledge:
     post:
       tags:
@@ -2916,7 +3099,7 @@ paths:
     post:
       tags:
       - appointment-controller
-      operationId: create_9
+      operationId: create_10
       requestBody:
         content:
           application/json:
@@ -3006,7 +3189,7 @@ paths:
     post:
       tags:
       - anaesthesia-paper-record-controller
-      operationId: record_4
+      operationId: record_5
       requestBody:
         content:
           application/json:
@@ -3251,7 +3434,7 @@ paths:
     post:
       tags:
       - wound-care-controller
-      operationId: record_5
+      operationId: record_6
       parameters:
       - name: admissionId
         in: path
@@ -3276,7 +3459,7 @@ paths:
     post:
       tags:
       - ward-vitals-controller
-      operationId: record_6
+      operationId: record_7
       parameters:
       - name: admissionId
         in: path
@@ -3322,7 +3505,7 @@ paths:
     post:
       tags:
       - shift-handover-controller
-      operationId: record_7
+      operationId: record_8
       parameters:
       - name: admissionId
         in: path
@@ -4814,6 +4997,9 @@ paths:
     get:
       tags:
       - lab-result-controller
+      summary: View released results for a laboratory request
+      description: "After authorized access, each released result version is marked\
+        \ read for this user only. New amendments remain unread."
       operationId: byLabOrder
       parameters:
       - name: labOrderId
@@ -4823,14 +5009,12 @@ paths:
           type: string
           format: uuid
       responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/LabResultDetailResponse"
+        "403":
+          description: Results not accessible
+        "404":
+          description: Request not found
+      security:
+      - bearerAuth: []
   /api/lab-orders/{id}/result-entry-form:
     get:
       tags:
@@ -4878,6 +5062,38 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/LabOrderHistoryResponse"
+  /api/lab-orders/mine/{id}:
+    get:
+      tags:
+      - lab-order-controller
+      summary: View one of the doctor's laboratory requests
+      description: Requires an ordering doctor with a current care relationship. Opening
+        request metadata does not change laboratory processing status.
+      operationId: ownOrder
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "403":
+          description: Request not accessible
+        "404":
+          description: Request not found
+      security:
+      - bearerAuth: []
+  /api/lab-orders/mine/unread-result-orders:
+    get:
+      tags:
+      - lab-order-controller
+      operationId: unreadResultOrders
+      responses:
+        "403":
+          description: Insufficient permission
+      security:
+      - bearerAuth: []
   /api/lab-orders/by-encounter/{encounterId}:
     get:
       tags:
@@ -5330,6 +5546,83 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/DepartmentResponse"
+  /api/departments/mine:
+    get:
+      tags:
+      - department-controller
+      operationId: mine_7
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Assignment"
+  /api/departments/categories:
+    get:
+      tags:
+      - department-controller
+      operationId: categories
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+  /api/departments/catalogue:
+    get:
+      tags:
+      - department-controller
+      operationId: catalogue
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Unit"
+  /api/department-management/units/{id}/staff:
+    get:
+      tags:
+      - department-management-controller
+      operationId: staff
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Staff"
+  /api/department-management/categories:
+    get:
+      tags:
+      - department-management-controller
+      operationId: categories_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
   /api/critical-result-notifications/by-result/{resultId}:
     get:
       tags:
@@ -5791,7 +6084,7 @@ paths:
     get:
       tags:
       - admission-controller
-      operationId: mine_7
+      operationId: mine_8
       responses:
         "200":
           description: OK
@@ -6239,6 +6532,47 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/CatalogItemPageResponse"
+  /api/admin/catalog/items/{itemId}/price-history:
+    get:
+      tags:
+      - catalog-import-controller
+      operationId: priceHistory
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PriceChange"
+  /api/admin/catalog/items/export:
+    get:
+      tags:
+      - catalog-import-controller
+      summary: Download the complete current price catalogue
+      description: Requires CATALOG_IMPORT; includes active and inactive items across
+        all catalogue pages.
+      operationId: exportItems
+      responses:
+        "200":
+          description: Excel workbook
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        "403":
+          description: Insufficient permission
+      security:
+      - bearerAuth: []
   /api/admin/catalog/import/batches:
     get:
       tags:
@@ -6257,7 +6591,7 @@ paths:
     get:
       tags:
       - catalog-import-controller
-      operationId: get_6
+      operationId: get_7
       parameters:
       - name: batchId
         in: path
@@ -6295,24 +6629,25 @@ paths:
           description: No Content
 components:
   schemas:
-    PregnancyAssessmentRequest:
+    ClinicAssignmentsRequest:
       type: object
-      required:
-      - status
       properties:
-        status:
+        unitIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        primaryUnitId:
           type: string
-          enum: [YES, NO, UNKNOWN]
-    PregnancyAssessmentResponse:
-      type: object
-      required:
-      - applicable
-      properties:
-        applicable:
-          type: boolean
-        status:
+          format: uuid
+        hodUnitId:
           type: string
-          enum: [YES, NO, UNKNOWN]
+          format: uuid
+        vacateHodUnitIds:
+          type: array
+          items:
+            type: string
+            format: uuid
     JsonNode:
       type: object
     SaveDraftRequest:
@@ -6402,6 +6737,25 @@ components:
         updatedAt:
           type: string
           format: date-time
+    UnitUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        unitType:
+          type: string
+        consultationEnabled:
+          type: boolean
+        active:
+          type: boolean
+    HodRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
     AutosaveConsultationRecordRequest:
       type: object
       properties:
@@ -6468,6 +6822,46 @@ components:
         updatedAt:
           type: string
           format: date-time
+    UpdateCatalogPriceRequest:
+      required:
+      - expectedPriceMinor
+      - newPriceMinor
+      type: object
+      properties:
+        expectedPriceMinor:
+          type: integer
+          format: int64
+        newPriceMinor:
+          type: integer
+          format: int64
+    PriceChange:
+      type: object
+      properties:
+        entryId:
+          type: string
+          format: uuid
+        itemId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        priceMinor:
+          type: integer
+          format: int64
+        previousPriceMinor:
+          type: integer
+          format: int64
+        changedBy:
+          type: string
+          format: uuid
+        changedAt:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date
     ChangePasswordRequest:
       required:
       - currentPassword
@@ -6684,6 +7078,17 @@ components:
           type: string
         password:
           type: string
+        unitIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        primaryUnitId:
+          type: string
+          format: uuid
+        hodUnitId:
+          type: string
+          format: uuid
     UserResponse:
       type: object
       properties:
@@ -9306,7 +9711,6 @@ components:
           format: date-time
     OpenEncounterRequest:
       required:
-      - departmentId
       - patientId
       type: object
       properties:
@@ -9317,6 +9721,9 @@ components:
           type: string
           format: uuid
         appointmentId:
+          type: string
+          format: uuid
+        facilityId:
           type: string
           format: uuid
     EncounterResponse:
@@ -9693,6 +10100,24 @@ components:
         assessedAt:
           type: string
           format: date-time
+    AssessmentRequest:
+      required:
+      - status
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - "YES"
+          - "NO"
+          - UNKNOWN
+    AssessmentResponse:
+      type: object
+      properties:
+        applicable:
+          type: boolean
+        status:
+          type: string
     DispenseLineRequest:
       required:
       - batchId
@@ -9779,6 +10204,25 @@ components:
             $ref: "#/components/schemas/DispenseLineResponse"
         prescriptionLine:
           $ref: "#/components/schemas/PrescriptionLineResponse"
+    UnitCreate:
+      type: object
+      properties:
+        facilityId:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        unitType:
+          type: string
+        consultationEnabled:
+          type: boolean
     AddDiagnosisRequest:
       required:
       - certainty
@@ -10919,6 +11363,16 @@ components:
         validTo:
           type: string
           format: date-time
+    Assignment:
+      type: object
+      properties:
+        departmentId:
+          type: string
+          format: uuid
+        primary:
+          type: boolean
+        hod:
+          type: boolean
     CompletedTriageAssessmentResponse:
       type: object
       properties:
@@ -12740,6 +13194,59 @@ components:
           type: string
         name:
           type: string
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        active:
+          type: boolean
+    Unit:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        facilityId:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        unitType:
+          type: string
+        consultationEnabled:
+          type: boolean
+        active:
+          type: boolean
+        hodUserId:
+          type: string
+          format: uuid
+        hodUsername:
+          type: string
+    Staff:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        primary:
+          type: boolean
+        active:
+          type: boolean
     CriticalResultNotificationResponse:
       type: object
       properties:
@@ -13268,3 +13775,8 @@ components:
           type: string
         isActive:
           type: boolean
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque

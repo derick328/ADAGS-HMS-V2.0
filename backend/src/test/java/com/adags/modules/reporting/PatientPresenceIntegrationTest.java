@@ -55,7 +55,7 @@ class PatientPresenceIntegrationTest extends IntegrationTestSupport {
       SELECT :actor,id,'GLOBAL',NULL FROM role WHERE code='RECEPTIONIST'
       """,Map.of("actor",receptionistId));
   UUID p=jdbc.queryForObject("INSERT INTO patient(hospital_no,given_name,family_name,date_of_birth,gender,phone) VALUES(:number,'Presence','Test',DATE '1990-01-01','MALE','+255700000000') RETURNING id",Map.of("number","P-"+UUID.randomUUID()),UUID.class);
-  UUID d=jdbc.queryForObject("INSERT INTO department(facility_id,code,name) VALUES(:facility,:code,'Presence') RETURNING id",Map.of("facility",FACILITY,"code","P-"+UUID.randomUUID()),UUID.class);
+  UUID d=jdbc.queryForObject("INSERT INTO department (facility_id, category_id, code, name) VALUES (:facility, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code) RETURNING id",Map.of("facility",FACILITY,"code","P-"+UUID.randomUUID()),UUID.class);
   return jdbc.queryForObject("INSERT INTO encounter(patient_id,facility_id,department_id,type,state,payer_type,created_by) VALUES(:patient,:facility,:department,'OUTPATIENT',:state,'CASH',:actor) RETURNING id",Map.of("patient",p,"facility",FACILITY,"department",d,"state",state,"actor",actor().userId()),UUID.class);
  }
 }

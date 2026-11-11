@@ -9,6 +9,10 @@ public record OpenEncounterCommand(
         UUID departmentId,
         /** Non-null only when the patient arrived against a booked appointment — ⚠7. */
         UUID appointmentId,
-        UUID actorUserId
+        UUID actorUserId,
+        UUID facilityId
 ) {
+    public OpenEncounterCommand(UUID patientId, UUID departmentId, UUID appointmentId, UUID actorUserId) {
+        this(patientId, departmentId, appointmentId, actorUserId, null);
+    }
 }

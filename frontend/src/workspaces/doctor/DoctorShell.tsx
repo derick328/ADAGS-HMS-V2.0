@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
 import { fetchMyAdmissions } from '../../shared/api/admissions';
 import { searchEncounters } from '../../shared/api/encounters';
-import { fetchMyLabOrders } from '../../shared/api/labOrders';
+import { fetchUnreadLabResultOrderIds } from '../../shared/api/labOrders';
 import { fetchMyPrescriptions } from '../../shared/api/prescriptions';
 import { fetchActiveSurgeryOrders } from '../../shared/api/surgeryOrders';
 import { useAuth } from '../../shared/auth/AuthProvider';
@@ -189,11 +189,8 @@ function HospitalCatalogueLink() {
   );
 }
 
-// 08-doctor-navigation.md §5.1 ⚠: "results available + overdue unpaid" —
-// COMPLETED (result/dispense ready) and PENDING_PAYMENT rows, both states
-// that need the doctor's attention. Not an "unread" count (no read/ack
-// state exists on this data yet) — a real, if coarser, signal rather than
-// a fabricated one.
+// Released lab results use their persisted per-user read state. Prescription
+// rows retain their existing completed/unpaid attention count.
 function RequestHistoryLink() {
   const { accessToken } = useAuth();
   // Both hooks must run unconditionally on every render — `||` would
@@ -203,22 +200,22 @@ function RequestHistoryLink() {
   const canSeePrescriptions = usePermission('PRESCRIPTION_CREATE');
   const canSee = canSeeLabs || canSeePrescriptions;
 
-  const { data: labs } = useQuery({
-    queryKey: ['lab-orders', 'mine'],
-    queryFn: () => fetchMyLabOrders(accessToken as string),
-    enabled: canSee && accessToken != null,
-    refetchInterval: 30_000,
-  });
   const { data: rx } = useQuery({
     queryKey: ['prescriptions', 'mine'],
     queryFn: () => fetchMyPrescriptions(accessToken as string),
     enabled: canSee && accessToken != null,
     refetchInterval: 30_000,
   });
+  const { data: unreadLabOrders } = useQuery({
+    queryKey: ['lab-result-unread', 'mine'],
+    queryFn: () => fetchUnreadLabResultOrderIds(accessToken as string),
+    enabled: canSeeLabs && accessToken != null,
+    refetchInterval: 30_000,
+  });
 
   if (!canSee) return null;
 
-  const actionable = [...(labs ?? []), ...(rx ?? [])].filter(
+  const actionable = (unreadLabOrders?.length ?? 0) + (rx ?? []).filter(
     (row) => row.status === 'COMPLETED' || row.status === 'PENDING_PAYMENT',
   ).length;
 

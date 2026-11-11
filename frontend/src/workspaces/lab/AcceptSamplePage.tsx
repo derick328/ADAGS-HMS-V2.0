@@ -70,7 +70,6 @@ export function AcceptSamplePage() {
     watch,
     getValues,
     setValue,
-    setError,
     formState: { errors },
   } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { quality: 'ADEQUATE' } });
   const quality = watch('quality');
@@ -147,13 +146,7 @@ export function AcceptSamplePage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit((values) => {
-            if (differsFromCatalogue && !values.sampleTypeOverrideReason?.trim()) {
-              setError('sampleTypeOverrideReason', { message: 'Explain why the sample type differs from the catalogue' });
-              return;
-            }
-            submit.mutate(values);
-          })} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <form onSubmit={handleSubmit((values) => submit.mutate(values))} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             <div>
               <label htmlFor="sampleType" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>Assessed sample type</label>
               <input id="sampleType" className="clinical-control" {...register('sampleType')}
@@ -167,7 +160,7 @@ export function AcceptSamplePage() {
             </div>
             {differsFromCatalogue && <div>
               <label htmlFor="sampleTypeOverrideReason" style={{ display: 'block', fontSize: 'var(--text-sm)', marginBottom: 4 }}>
-                Reason for using a different sample type
+                Reason for using a different sample type (Optional)
               </label>
               <textarea id="sampleTypeOverrideReason" className="clinical-control" rows={2}
                 {...register('sampleTypeOverrideReason')} style={{ width: '100%', padding: 'var(--space-2)' }} />

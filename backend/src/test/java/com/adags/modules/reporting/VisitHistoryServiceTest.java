@@ -92,8 +92,7 @@ class VisitHistoryServiceTest extends IntegrationTestSupport {
 
     private UUID insertFixtureDepartment() {
         return jdbcTemplate.queryForObject("""
-                        INSERT INTO department (facility_id, code, name)
-                        VALUES (:facilityId, :code, 'Test Department')
+                        INSERT INTO department (facility_id, category_id, code, name) VALUES (:facilityId, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code)
                         RETURNING id
                         """,
                 new MapSqlParameterSource()

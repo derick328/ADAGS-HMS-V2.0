@@ -120,8 +120,9 @@ public class SubmitTriageAssessmentService {
                     encounter.patientId(), command.encounterId(), command.allergies(), command.actorUserId(), "TRIAGE");
         }
 
-        // Step 4: Update Encounter — assigned_provider_id, type = EMERGENCY
-        // when IMMEDIATE, department_id untouched. Optimistically locked.
+        // Step 4: Assign the doctor and resolve a walk-in's department from
+        // the doctor's primary assignment. Booked clinic routing is retained.
+        // The version check prevents two triage submissions racing.
         EncounterType type = immediate ? EncounterType.EMERGENCY : encounter.type();
         encounterRepository.assignProviderAndType(
                 command.encounterId(), command.assignedProviderId(), type, command.expectedEncounterVersion());

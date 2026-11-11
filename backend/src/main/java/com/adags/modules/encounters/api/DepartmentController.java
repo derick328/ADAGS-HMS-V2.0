@@ -16,13 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
-// 05-receptionist.md §5.2: "Send to triage — one click, no form." POST
-// /api/encounters requires a departmentId, so the frontend needs to resolve
-// one without asking — this is that list, auto-selected when there's
-// exactly one active department (today: always, single-facility) and a
-// picker only if there's ever more than one. No dedicated department
-// module or permission exists yet; gated on ENCOUNTER_OPEN, the one action
-// this list actually serves.
+// Lists departments for the administrative catalogue. Walk-in check-in no
+// longer requires the receptionist to choose a department.
 @RestController
 @RequestMapping("/api/departments")
 public class DepartmentController {

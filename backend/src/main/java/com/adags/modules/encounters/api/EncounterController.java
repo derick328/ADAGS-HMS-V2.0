@@ -91,8 +91,8 @@ public class EncounterController {
     // every encounter for this patient, across every clinician (continuity
     // requires seeing colleagues' visits too, not just this doctor's own).
     // Unlike PatientController#getById (genuinely unscoped — Patient carries
-    // no facility_id at all), Encounter DOES carry department_id/facility_id
-    // on every row (root CLAUDE.md "Facility"), so this filters per-row to
+    // no facility_id at all), Encounter carries facility_id on every row and
+    // department_id once routed (root CLAUDE.md "Facility"), so this filters per-row to
     // encounters the actor's own scoped assignment actually covers, rather
     // than a single blanket permission check — a facility/global-scoped
     // doctor still sees the full continuity-of-care timeline, a department-
@@ -102,12 +102,12 @@ public class EncounterController {
     @GetMapping("/by-patient/{patientId}")
     public List<EncounterResponse> byPatient(@PathVariable UUID patientId, @AuthenticationPrincipal Actor actor) {
         return encounterRepository.findByPatientId(patientId).stream()
-                .filter(encounter -> authorizationService.hasAnyPermission(actor, ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId()),
+                .filter(encounter -> authorizationService.hasAnyPermission(actor, encounter.scope(),
                         "PATIENT_READ_VISIT_HISTORY", "ENCOUNTER_OPEN", "CONSULTATION_CREATE"))
                 .filter(encounter -> !authorizationService.hasPermission(actor, "CLINICAL_NOTE_READ",
-                        ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId()))
+                        encounter.scope())
                         || authorizationService.checkPatientAccess(actor, "CLINICAL_NOTE_READ", encounter.patientId(),
-                        ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId())) == com.adags.shared.authz.PolicyResult.ALLOWED)
+                        encounter.scope()) == com.adags.shared.authz.PolicyResult.ALLOWED)
                 .map(e -> EncounterResponse.from(e).withClinicianName(
                         e.assignedProviderId() == null ? null : identityFacade.findUsername(e.assignedProviderId()).orElse(null)))
                 .toList();
@@ -116,9 +116,21 @@ public class EncounterController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EncounterResponse open(@Valid @RequestBody OpenEncounterRequest request, @AuthenticationPrincipal Actor actor) {
-        requirePermission(actor, "ENCOUNTER_OPEN", ScopeType.DEPARTMENT, request.departmentId());
+        if (request.departmentId() == null && request.facilityId() == null) {
+            throw new IllegalArgumentException("Select a facility for this encounter.");
+        }
+        ScopeRef scope = request.departmentId() == null
+                ? ScopeRef.of(ScopeType.FACILITY, request.facilityId())
+                : ScopeRef.of(ScopeType.DEPARTMENT, request.departmentId());
+        if (request.departmentId() == null) {
+            if (!authorizationService.hasPermissionForPendingEncounter(actor, "ENCOUNTER_OPEN", request.facilityId())) {
+                throw new AccessDeniedException("Missing permission: ENCOUNTER_OPEN");
+            }
+        } else {
+            requirePermission(actor, "ENCOUNTER_OPEN", scope);
+        }
         OpenEncounterCommand command = new OpenEncounterCommand(
-                request.patientId(), request.departmentId(), request.appointmentId(), actor.userId());
+                request.patientId(), request.departmentId(), request.appointmentId(), actor.userId(), request.facilityId());
         var result = openEncounterService.checkInResult(command);
         return EncounterResponse.from(result.encounter(), result.existingEncounter());
     }
@@ -144,8 +156,14 @@ public class EncounterController {
         // queue LIST's permission, granted above in search()) could see an
         // encounter in the queue but not open it, same DEPARTMENT scope
         // TriageAssessmentDraftController#requireAssess already checks.
-        requireAny(actor, ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId()),
-                "ENCOUNTER_OPEN", "CONSULTATION_CREATE", "TRIAGE_ASSESS");
+        if (encounter.departmentId() == null) {
+            if (!authorizationService.hasPermissionForPendingEncounter(actor, "ENCOUNTER_OPEN", encounter.facilityId())
+                    && !authorizationService.hasPermissionForPendingEncounter(actor, "TRIAGE_ASSESS", encounter.facilityId())) {
+                throw new AccessDeniedException("Missing encounter permission");
+            }
+        } else {
+            requireAny(actor, encounter.scope(), "ENCOUNTER_OPEN", "CONSULTATION_CREATE", "TRIAGE_ASSESS");
+        }
         return EncounterResponse.from(encounter);
     }
 
@@ -157,7 +175,7 @@ public class EncounterController {
     ) {
         Encounter encounter = encounterRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + id));
-        requirePermission(actor, "ENCOUNTER_CLOSE_ADMIN", ScopeType.DEPARTMENT, encounter.departmentId());
+        requirePermission(actor, "ENCOUNTER_CLOSE_ADMIN", encounter.scope());
         CloseEncounterCommand command = new CloseEncounterCommand(id, request.outcome(), request.reason(), actor.userId());
         Encounter closed = closeEncounterService.close(command);
         return EncounterResponse.from(closed);
@@ -174,12 +192,18 @@ public class EncounterController {
     public EncounterResponse resume(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
         Encounter encounter = encounterRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + id));
-        requirePermission(actor, "ENCOUNTER_OPEN", ScopeType.DEPARTMENT, encounter.departmentId());
+        requirePermission(actor, "ENCOUNTER_OPEN", encounter.scope());
         return EncounterResponse.from(moveToAwaitingConsultService.moveToAwaitingConsult(id, actor.userId()));
     }
 
     private void requirePermission(Actor actor, String permissionCode, ScopeType scopeType, UUID scopeId) {
         if (!authorizationService.hasPermission(actor, permissionCode, ScopeRef.of(scopeType, scopeId))) {
+            throw new AccessDeniedException("Missing permission: " + permissionCode);
+        }
+    }
+
+    private void requirePermission(Actor actor, String permissionCode, ScopeRef scope) {
+        if (!authorizationService.hasPermission(actor, permissionCode, scope)) {
             throw new AccessDeniedException("Missing permission: " + permissionCode);
         }
     }

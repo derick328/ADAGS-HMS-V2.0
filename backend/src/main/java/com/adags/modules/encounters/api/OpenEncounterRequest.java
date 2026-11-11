@@ -6,8 +6,9 @@ import java.util.UUID;
 
 public record OpenEncounterRequest(
         @NotNull UUID patientId,
-        @NotNull UUID departmentId,
+        UUID departmentId,
         /** Non-null only when the patient arrived against a booked appointment — 05-receptionist.md ⚠7. */
-        UUID appointmentId
+        UUID appointmentId,
+        UUID facilityId
 ) {
 }

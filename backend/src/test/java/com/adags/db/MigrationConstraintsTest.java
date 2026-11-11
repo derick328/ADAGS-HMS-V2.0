@@ -228,8 +228,7 @@ class MigrationConstraintsTest extends IntegrationTestSupport {
 
     private UUID insertFixtureDepartment() {
         return jdbcTemplate.queryForObject("""
-                        INSERT INTO department (facility_id, code, name)
-                        VALUES ('00000000-0000-0000-0000-000000000001', :code, 'Test Department')
+                        INSERT INTO department (facility_id, category_id, code, name) VALUES ('00000000-0000-0000-0000-000000000001', (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code)
                         RETURNING id
                         """,
                 new MapSqlParameterSource("code", "TESTDEPT-" + UUID.randomUUID().toString().substring(0, 8)),

@@ -76,7 +76,7 @@ class TatJourneyTest extends IntegrationTestSupport {
                 VALUES (:number, 'Tat', 'Test', DATE '1990-01-01', 'MALE', '+255700000000') RETURNING id
                 """, new MapSqlParameterSource("number", "TAT-" + UUID.randomUUID()), UUID.class);
         UUID department = jdbc.queryForObject("""
-                INSERT INTO department (facility_id, code, name) VALUES (:facility, :code, 'TAT Test') RETURNING id
+                INSERT INTO department (facility_id, category_id, code, name) VALUES (:facility, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code) RETURNING id
                 """, new MapSqlParameterSource().addValue("facility", FACILITY)
                 .addValue("code", "TAT-" + UUID.randomUUID().toString().substring(0, 8)), UUID.class);
         return jdbc.queryForObject("""

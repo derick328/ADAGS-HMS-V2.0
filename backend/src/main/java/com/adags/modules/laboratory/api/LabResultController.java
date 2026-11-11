@@ -8,6 +8,7 @@ import com.adags.modules.laboratory.application.RecordLabResultCommand;
 import com.adags.modules.laboratory.application.RecordLabResultResult;
 import com.adags.modules.laboratory.application.RecordLabResultService;
 import com.adags.modules.laboratory.application.MachineOutputRegistry;
+import com.adags.modules.laboratory.application.LabResultViewStateService;
 import com.adags.modules.laboratory.application.VerifyLabResultCommand;
 import com.adags.modules.laboratory.application.VerifyLabResultService;
 import com.adags.modules.laboratory.domain.LabOrder;
@@ -70,6 +71,7 @@ public class LabResultController {
     private final IdentityFacade identityFacade;
     private final AuthorizationService authorizationService;
     private final com.adags.shared.authz.AuditRecorder historyAudit;
+    private final LabResultViewStateService viewState;
 
     public LabResultController(
             RecordLabResultService recordLabResultService,
@@ -86,7 +88,8 @@ public class LabResultController {
             PatientFacade patientFacade,
             IdentityFacade identityFacade,
             AuthorizationService authorizationService,
-            com.adags.shared.authz.AuditRecorder historyAudit
+            com.adags.shared.authz.AuditRecorder historyAudit,
+            LabResultViewStateService viewState
     ) {
         this.recordLabResultService = recordLabResultService;
         this.machineOutputRegistry = machineOutputRegistry;
@@ -103,6 +106,7 @@ public class LabResultController {
         this.identityFacade = identityFacade;
         this.authorizationService = authorizationService;
         this.historyAudit = historyAudit;
+        this.viewState = viewState;
     }
 
     @PostMapping
@@ -185,6 +189,10 @@ public class LabResultController {
     // LAB_RESULT_READ, which DOCTOR already holds; facility-scoped
     // through the order the same way get() above is.
     @GetMapping("/by-lab-order/{labOrderId}")
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth")
+    @io.swagger.v3.oas.annotations.Operation(summary = "View released results for a laboratory request", description = "After authorized access, each released result version is marked read for this user only. New amendments remain unread.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Results not accessible", content = @io.swagger.v3.oas.annotations.media.Content)
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Request not found", content = @io.swagger.v3.oas.annotations.media.Content)
     public List<LabResultDetailResponse> byLabOrder(@PathVariable UUID labOrderId, @AuthenticationPrincipal Actor actor) {
         LabOrder order = labOrderRepository.findById(labOrderId)
                 .orElseThrow(() -> new NoSuchElementException("Lab order not found: " + labOrderId));
@@ -194,10 +202,13 @@ public class LabResultController {
                 ScopeRef.of(ScopeType.FACILITY, order.facilityId())) != com.adags.shared.authz.PolicyResult.ALLOWED)
             throw new AccessDeniedException("An active care relationship is required for clinical results.");
         historyAudit.record(actor.userId(), "LAB_HISTORY_READ", "lab_order", labOrderId, order.patientId());
-        return labResultRepository.findByLabOrderId(labOrderId).stream()
-                .filter(r -> r.releasedAt() != null)
+        List<LabResult> released = labResultRepository.findByLabOrderId(labOrderId).stream()
+                .filter(r -> r.releasedAt() != null).toList();
+        List<LabResultDetailResponse> details = released.stream()
                 .map(r -> toDetailResponse(r, order))
                 .toList();
+        viewState.markViewed(actor.userId(), released);
+        return details;
     }
 
     // §9: "My results" — this technician's own completed work.

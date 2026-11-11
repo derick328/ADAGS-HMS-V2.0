@@ -80,7 +80,7 @@ public class AnaesthesiaPaperRecordController {
         EncounterContext context = encounterFacade.findContext(order.encounterId())
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + order.encounterId()));
         if (!authorizationService.hasPermission(
-                actor, "SURGERY_EPISODE_DOCUMENT", ScopeRef.of(ScopeType.DEPARTMENT, context.departmentId()))) {
+                actor, "SURGERY_EPISODE_DOCUMENT", context.scope())) {
             throw new AccessDeniedException("Missing permission: SURGERY_EPISODE_DOCUMENT");
         }
     }

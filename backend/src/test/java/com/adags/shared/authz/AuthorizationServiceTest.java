@@ -123,6 +123,16 @@ class AuthorizationServiceTest {
 
             assertThat(service.hasPermission(actor, PERMISSION, ScopeRef.of(ScopeType.WARD, wardBAtFacility2))).isTrue();
         }
+
+        @Test
+        void pendingEncounterAcceptsStaffInItsFacilityButNotAnotherFacility() {
+            roleAssignmentPort.add(actorUserId,
+                    activeAssignment(ScopeRef.of(ScopeType.DEPARTMENT, departmentAtFacility1), "TRIAGE_ASSESS"));
+
+            assertThat(service.hasPermissionForPendingEncounter(actor, "TRIAGE_ASSESS", facility1)).isTrue();
+            assertThat(service.hasPermissionForPendingEncounter(actor, "TRIAGE_ASSESS", facility2)).isFalse();
+            assertThat(service.hasPermissionForPendingEncounter(actor, "ENCOUNTER_OPEN", facility1)).isFalse();
+        }
     }
 
     @Nested

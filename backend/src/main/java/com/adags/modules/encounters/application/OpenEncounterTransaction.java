@@ -47,7 +47,8 @@ class OpenEncounterTransaction {
             Encounter previous = current.get();
             if ((previous.state() != EncounterState.CONSULT_COMPLETE
                     && previous.state() != EncounterState.PENDING_SETTLEMENT)
-                    || !previous.departmentId().equals(toInsert.departmentId())) {
+                    || !toInsert.facilityId().equals(previous.facilityId())
+                    || (toInsert.departmentId() != null && !toInsert.departmentId().equals(previous.departmentId()))) {
                 return new OpenEncounterService.CheckInResult(previous, true);
             }
             if (previous.state() == EncounterState.CONSULT_COMPLETE) {
@@ -87,11 +88,12 @@ class OpenEncounterTransaction {
             schedulingFacade.markAttended(saved.appointmentId(), saved.id());
         }
 
-        eventPublisher.publish("EncounterOpened", Map.of(
-                "encounterId", saved.id().toString(),
-                "patientId", saved.patientId().toString(),
-                "facilityId", saved.facilityId().toString(),
-                "departmentId", saved.departmentId().toString()));
+        var payload = new java.util.HashMap<String, String>();
+        payload.put("encounterId", saved.id().toString());
+        payload.put("patientId", saved.patientId().toString());
+        payload.put("facilityId", saved.facilityId().toString());
+        if (saved.departmentId() != null) payload.put("departmentId", saved.departmentId().toString());
+        eventPublisher.publish("EncounterOpened", payload);
 
         return saved;
     }

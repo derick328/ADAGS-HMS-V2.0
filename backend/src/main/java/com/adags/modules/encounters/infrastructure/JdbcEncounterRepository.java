@@ -162,7 +162,17 @@ public class JdbcEncounterRepository implements EncounterRepository {
     @Override
     public int assignProviderAndType(UUID encounterId, UUID assignedProviderId, EncounterType type, int expectedVersion) {
         String sql = """
-                UPDATE encounter SET assigned_provider_id = :assignedProviderId, type = :type, version = version + 1
+                UPDATE encounter SET assigned_provider_id = :assignedProviderId,
+                    department_id = COALESCE(department_id,
+                        (SELECT ds.department_id FROM department_staff ds
+                         JOIN department d ON d.id = ds.department_id
+                         WHERE ds.user_id = :assignedProviderId AND d.facility_id = encounter.facility_id
+                           AND d.active AND d.consultation_enabled
+                         ORDER BY ds.is_primary DESC, CASE WHEN d.code = 'GENERAL' THEN 1 ELSE 0 END, d.code
+                         LIMIT 1),
+                        (SELECT d.id FROM department d WHERE d.facility_id = encounter.facility_id
+                           AND d.code = 'GENERAL' AND d.active LIMIT 1)),
+                    type = :type, version = version + 1
                 WHERE id = :id AND version = :expectedVersion
                 """;
         int updated = jdbcTemplate.update(sql, new MapSqlParameterSource()

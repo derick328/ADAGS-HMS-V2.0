@@ -42,6 +42,16 @@ public class AuthorizationService {
                 .anyMatch(assignment -> withinScope(assignment.scope(), targetScope));
     }
 
+    /** A pending encounter has no department yet; staff assigned within its facility may act on it. */
+    public boolean hasPermissionForPendingEncounter(Actor actor, String permissionCode, UUID facilityId) {
+        ScopeRef facility = ScopeRef.of(ScopeType.FACILITY, facilityId);
+        return activeAssignments(actor).stream()
+                .filter(assignment -> assignment.permissionCodes().contains(permissionCode))
+                .anyMatch(assignment -> assignment.scope().type() == ScopeType.GLOBAL
+                        || withinScope(assignment.scope(), facility)
+                        || withinScope(facility, assignment.scope()));
+    }
+
     /**
      * True if the actor holds ANY of the given codes, unscoped — several
      * screens (a doctor's queue, request history) are shared by roles that

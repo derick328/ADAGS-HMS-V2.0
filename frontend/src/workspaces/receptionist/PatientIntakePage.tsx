@@ -16,8 +16,8 @@ import { useState, type CSSProperties } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
-import { fetchDepartments } from '../../shared/api/departments';
 import { ApiError } from '../../shared/api/client';
+import { fetchClinicCatalogue } from '../../shared/api/departments';
 import { openEncounter } from '../../shared/api/encounters';
 import { fetchClinicPlans, fetchActiveClinicAppointments, fetchPatientAppointments, clinicArrivalLabel, type ClinicAppointment } from '../../shared/api/appointments';
 import { fetchInsuranceSchemes } from '../../shared/api/insuranceSchemes';
@@ -42,9 +42,8 @@ import { BOOTSTRAP_FACILITY_ID } from '../../shared/facility';
 //   - "Resume" for an AWAITING_RESULTS encounter — that action lives on
 //     Expected Returns (05a §3.1's own data source for that state), not
 //     duplicated here against every search row.
-//   - Ask which department — POST /api/encounters requires one; this
-//     auto-picks the sole active department and only shows a picker if
-//     there's ever more than one, keeping "one click, no form" true today.
+//   - Ask which department — walk-ins enter triage without one. The
+//     clinical referral happens when triage chooses the responsible doctor.
 export function PatientIntakePage() {
   const { accessToken } = useAuth();
   const canSearch = usePermission('PATIENT_SEARCH');
@@ -124,24 +123,23 @@ export function PatientIntakePage() {
 
 // Shared between the search-results row action and the post-registration
 // success panel — same "open an encounter for this patient" action, same
-// auto-pick-the-sole-department / else-show-a-picker behaviour either way.
+// facility-level check-in behaviour either way.
 function SendToTriageControl({ patientId, onSent, appointment }: { patientId: string; onSent?: () => void; appointment?: ClinicAppointment }) {
   const { accessToken } = useAuth();
   const queryClient = useQueryClient();
   const canOpenEncounter = usePermission('ENCOUNTER_OPEN');
-
-  const { data: departments } = useQuery({
-    queryKey: ['departments'],
-    queryFn: () => fetchDepartments(accessToken as string),
-    enabled: accessToken != null && canOpenEncounter,
+  const scopedFacilityId = useAdminFacilityId();
+  const clinicCatalogue = useQuery({
+    queryKey: ['departments', 'catalogue'],
+    queryFn: () => fetchClinicCatalogue(accessToken as string),
+    enabled: accessToken != null && canOpenEncounter && !scopedFacilityId,
   });
-
-  const [picking, setPicking] = useState(false);
+  const departmentFacilities = [...new Set(clinicCatalogue.data?.map((unit) => unit.facilityId) ?? [])];
+  const facilityId = scopedFacilityId ?? (departmentFacilities.length === 1 ? departmentFacilities[0] : null);
 
   const sendToTriage = useMutation({
-    mutationFn: (departmentId: string) => openEncounter({ patientId, departmentId, appointmentId: appointment?.id }, accessToken as string),
+    mutationFn: () => openEncounter({ patientId, facilityId: facilityId ?? undefined, departmentId: appointment?.departmentId, appointmentId: appointment?.id }, accessToken as string),
     onSuccess: () => {
-      setPicking(false);
       queryClient.invalidateQueries({ queryKey: ['here-now'] });
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['visit-summary'] });
@@ -158,16 +156,7 @@ function SendToTriageControl({ patientId, onSent, appointment }: { patientId: st
   }
 
   function handleClick() {
-    if (!departments || departments.length === 0) {
-      return;
-    }
-    if (appointment?.departmentId) {
-      sendToTriage.mutate(appointment.departmentId);
-    } else if (departments.length === 1) {
-      sendToTriage.mutate(departments[0].id as string);
-    } else {
-      setPicking(true);
-    }
+    sendToTriage.mutate();
   }
 
   if (sendToTriage.isSuccess) {
@@ -183,35 +172,12 @@ function SendToTriageControl({ patientId, onSent, appointment }: { patientId: st
     </div>;
   }
 
-  if (picking) {
-    return (
-      <div>
-        <select className="clinical-control"
-          autoFocus
-          disabled={sendToTriage.isPending}
-          onChange={(e) => sendToTriage.mutate(e.target.value)}
-          style={{ font: 'inherit' }}
-          defaultValue=""
-        >
-          <option value="" disabled>
-            Choose department…
-          </option>
-          {departments?.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
-        {sendToTriage.error && <div className="form-error" role="alert">{sendToTriage.error instanceof ApiError ? sendToTriage.error.message : 'Could not send this patient to triage. Please try again.'}</div>}
-      </div>
-    );
-  }
-
   return (
     <div>
-      <button type="button" className="btn btn-primary" disabled={sendToTriage.isPending || !departments?.length} onClick={handleClick}>
+      <button type="button" className="btn btn-primary" disabled={sendToTriage.isPending || !facilityId} onClick={handleClick}>
         {appointment ? 'Check In for Clinic / Send to Triage' : 'Send to triage'}
       </button>
+      {!facilityId && <div className="form-error" role="alert">No facility is available for this check-in.</div>}
       {sendToTriage.error && <div className="form-error" role="alert">{sendToTriage.error instanceof ApiError ? sendToTriage.error.message : 'Could not send this patient to triage. Please try again.'}</div>}
     </div>
   );

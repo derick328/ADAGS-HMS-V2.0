@@ -2,8 +2,10 @@ package com.adags.modules.laboratory.api;
 
 import com.adags.modules.billing.BillingFacade;
 import com.adags.modules.encounters.EncounterFacade;
+import com.adags.modules.identity.IdentityFacade;
 import com.adags.modules.laboratory.application.PlaceLabOrderCommand;
 import com.adags.modules.laboratory.application.PlaceLabOrderService;
+import com.adags.modules.laboratory.application.LabResultViewStateService;
 import com.adags.modules.laboratory.domain.LabOrder;
 import com.adags.modules.laboratory.domain.LabOrderRepository;
 import com.adags.modules.laboratory.domain.LabResult;
@@ -57,6 +59,8 @@ public class LabOrderController {
     private final EncounterFacade encounterFacade;
     private final PatientFacade patientFacade;
     private final AuthorizationService authorizationService;
+    private final LabResultViewStateService viewState;
+    private final IdentityFacade identityFacade;
 
     public LabOrderController(
             PlaceLabOrderService placeLabOrderService,
@@ -67,7 +71,9 @@ public class LabOrderController {
             BillingFacade billingFacade,
             EncounterFacade encounterFacade,
             PatientFacade patientFacade,
-            AuthorizationService authorizationService
+            AuthorizationService authorizationService,
+            LabResultViewStateService viewState,
+            IdentityFacade identityFacade
     ) {
         this.placeLabOrderService = placeLabOrderService;
         this.labOrderRepository = labOrderRepository;
@@ -78,6 +84,8 @@ public class LabOrderController {
         this.encounterFacade = encounterFacade;
         this.patientFacade = patientFacade;
         this.authorizationService = authorizationService;
+        this.viewState = viewState;
+        this.identityFacade = identityFacade;
     }
 
     @PostMapping
@@ -167,6 +175,42 @@ public class LabOrderController {
         return labOrderRepository.findByOrderedBy(actor.userId()).stream()
                 .map(this::toHistoryResponse)
                 .toList();
+    }
+
+    @GetMapping("/mine/unread-result-orders")
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Insufficient permission", content = @io.swagger.v3.oas.annotations.media.Content)
+    public List<UUID> unreadResultOrders(@AuthenticationPrincipal Actor actor) {
+        if (!authorizationService.hasPermission(actor, "LAB_ORDER_CREATE"))
+            throw new AccessDeniedException("Missing permission: LAB_ORDER_CREATE");
+        return viewState.unreadOrderIds(actor.userId());
+    }
+
+    @GetMapping("/mine/{id}")
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth")
+    @io.swagger.v3.oas.annotations.Operation(summary = "View one of the doctor's laboratory requests", description = "Requires an ordering doctor with a current care relationship. Opening request metadata does not change laboratory processing status.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Request not accessible", content = @io.swagger.v3.oas.annotations.media.Content)
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Request not found", content = @io.swagger.v3.oas.annotations.media.Content)
+    public LabOrderDetailResponse ownOrder(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
+        LabOrder order = labOrderRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Lab order not found: " + id));
+        if (!actor.userId().equals(order.orderedBy()) ||
+            !authorizationService.hasPermission(actor, "LAB_ORDER_CREATE", ScopeRef.of(ScopeType.FACILITY, order.facilityId())) ||
+            authorizationService.checkPatientAccess(actor, "LAB_RESULT_READ", order.patientId(),
+                ScopeRef.of(ScopeType.FACILITY, order.facilityId())) != com.adags.shared.authz.PolicyResult.ALLOWED)
+            throw new AccessDeniedException("Cannot view this laboratory request");
+        var specimens = specimenRepository.findByLabOrderId(id).stream().map(s ->
+                new LabOrderDetailResponse.Sample(s.accessionNo(), s.sampleType(), s.containerType(),
+                        s.status().name(), s.collectedAt(), s.quality().name())).toList();
+        return new LabOrderDetailResponse(toHistoryResponse(order),
+                identityFacade.findUsername(order.orderedBy()).orElse("Unknown doctor"), order.clinicalIndication(),
+                order.specialInstructions(), specimens);
+    }
+
+    public record LabOrderDetailResponse(LabOrderHistoryResponse order, String requestingDoctorName, String clinicalIndication,
+            String specialInstructions, List<Sample> samples) {
+        public record Sample(String accessionNo, String sampleType, String containerType,
+                             String status, Instant collectedAt, String quality) {}
     }
 
     // 08-doctor-navigation.md §3.3: every lab order on this encounter,

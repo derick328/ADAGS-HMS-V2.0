@@ -80,7 +80,7 @@ public class TriageAssessmentController {
         var encounter = encounterRepository.findById(encounterId)
                 .orElseThrow(() -> new java.util.NoSuchElementException("Encounter not found: " + encounterId));
         if (authorizationService.checkPatientAccess(actor, "CLINICAL_NOTE_READ", encounter.patientId(),
-                ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId())) != PolicyResult.ALLOWED) {
+                encounter.scope()) != PolicyResult.ALLOWED) {
             throw new AccessDeniedException("Missing clinical history access");
         }
         historyAudit.record(actor.userId(), "CLINICAL_HISTORY_READ", "encounter", encounterId, encounter.patientId());

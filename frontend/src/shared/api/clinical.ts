@@ -14,8 +14,8 @@ export type AutosaveConsultationRecordRequest = components['schemas']['AutosaveC
 export type AddDiagnosisRequest = components['schemas']['AddDiagnosisRequest'];
 export type CreateAllergyRequest = components['schemas']['CreateAllergyRequest'];
 export type ReconcileAllergyRequest = components['schemas']['ReconcileAllergyRequest'];
-export type PregnancyAssessmentResponse = components['schemas']['PregnancyAssessmentResponse'];
-export type PregnancyAssessmentRequest = components['schemas']['PregnancyAssessmentRequest'];
+export type PregnancyAssessmentResponse = components['schemas']['AssessmentResponse'];
+export type PregnancyAssessmentRequest = components['schemas']['AssessmentRequest'];
 
 export function fetchPregnancyAssessment(encounterId: string, accessToken: string): Promise<PregnancyAssessmentResponse> {
   return authFetch(`/api/encounters/${encounterId}/pregnancy-assessment`, accessToken);

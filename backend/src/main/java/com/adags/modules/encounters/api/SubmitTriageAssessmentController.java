@@ -52,7 +52,9 @@ public class SubmitTriageAssessmentController {
     ) {
         Encounter encounter = encounterRepository.findById(encounterId)
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + encounterId));
-        if (!authorizationService.hasPermission(actor, "TRIAGE_ASSESS", ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId()))) {
+        if (!(encounter.departmentId() == null
+                ? authorizationService.hasPermissionForPendingEncounter(actor, "TRIAGE_ASSESS", encounter.facilityId())
+                : authorizationService.hasPermission(actor, "TRIAGE_ASSESS", encounter.scope()))) {
             throw new AccessDeniedException("Missing permission: TRIAGE_ASSESS");
         }
 

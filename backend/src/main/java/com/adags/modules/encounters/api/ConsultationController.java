@@ -70,7 +70,7 @@ public class ConsultationController {
     @PostMapping("/api/encounters/{id}/consultation/open")
     public OpenConsultationResponse open(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
         Encounter encounter = requireEncounter(id);
-        requirePermission(actor, "CONSULTATION_CREATE", encounter.departmentId());
+        requirePermission(actor, "CONSULTATION_CREATE", encounter.scope());
 
         UUID consultationRecordId;
         if (encounter.state() == EncounterState.AWAITING_CONSULT) {
@@ -94,7 +94,7 @@ public class ConsultationController {
             @PathVariable UUID id, @Valid @RequestBody FinalizeConsultationRequest request, @AuthenticationPrincipal Actor actor
     ) {
         Encounter encounter = requireEncounter(id);
-        requirePermission(actor, "CONSULTATION_FINALIZE", encounter.departmentId());
+        requirePermission(actor, "CONSULTATION_FINALIZE", encounter.scope());
 
         Encounter updated = finalizeConsultationService.finalize(new FinalizeConsultationCommand(
                 id, actor.userId(), request.disposition(), request.retrospectiveCompletion(), request.retrospectiveNote()));
@@ -110,7 +110,7 @@ public class ConsultationController {
     @PostMapping("/api/encounters/{id}/consultation/mark-awaiting-results")
     public EncounterResponse markAwaitingResults(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
         Encounter encounter = requireEncounter(id);
-        requirePermission(actor, "CONSULTATION_FINALIZE", encounter.departmentId());
+        requirePermission(actor, "CONSULTATION_FINALIZE", encounter.scope());
 
         markAwaitingResultsService.markAwaitingResults(id, actor.userId());
         return EncounterResponse.from(requireEncounter(id));
@@ -121,8 +121,8 @@ public class ConsultationController {
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + id));
     }
 
-    private void requirePermission(Actor actor, String permissionCode, UUID departmentId) {
-        if (!authorizationService.hasPermission(actor, permissionCode, ScopeRef.of(ScopeType.DEPARTMENT, departmentId))) {
+    private void requirePermission(Actor actor, String permissionCode, ScopeRef scope) {
+        if (!authorizationService.hasPermission(actor, permissionCode, scope)) {
             throw new AccessDeniedException("Missing permission: " + permissionCode);
         }
     }

@@ -166,7 +166,9 @@ public class AdmissionController {
     public AdmissionResponse admit(@Valid @RequestBody AdmitPatientRequest request, @AuthenticationPrincipal Actor actor) {
         EncounterContext context = encounterFacade.findContext(request.encounterId())
                 .orElseThrow(() -> new NoSuchElementException("Encounter not found: " + request.encounterId()));
-        requirePermission(actor, "ADMISSION_ORDER", ScopeType.DEPARTMENT, context.departmentId());
+        if (!authorizationService.hasPermission(actor, "ADMISSION_ORDER", context.scope())) {
+            throw new AccessDeniedException("Missing permission: ADMISSION_ORDER");
+        }
 
         AdmitPatientCommand command = new AdmitPatientCommand(request.encounterId(), actor.userId(),
                 request.orderedWardClass(), request.retrospectiveCompletion(), request.retrospectiveNote());

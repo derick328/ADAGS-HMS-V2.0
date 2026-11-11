@@ -35,8 +35,8 @@ public interface EncounterRepository {
     void updateState(UUID encounterId, EncounterState newState);
 
     /**
-     * 06-triage.md §6 step 4: sets the referral and, for an EMERGENCY
-     * escalation, the encounter type. Optimistically locked — throws
+     * 06-triage.md §6 step 4: sets the referral, resolves a pending department
+     * from the doctor's assignment, and sets EMERGENCY type when needed. Optimistically locked — throws
      * StaleEncounterException if the row's current version does not match
      * expectedVersion. Returns the row's new version on success.
      */

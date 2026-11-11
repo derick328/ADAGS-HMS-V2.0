@@ -12,6 +12,9 @@ import {
   listCatalogImports,
   previewCatalogImport,
   searchCatalogItems,
+  updateCatalogPrice,
+  fetchCatalogPriceHistory,
+  downloadCatalog,
   type CatalogImportBatch,
   type CatalogImportPreview,
   type CatalogItem,
@@ -513,6 +516,7 @@ function PreviewSummary({
 // from accidental clicks.
 function CatalogueItemsBrowser() {
   const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
   const canImport = usePermission('CATALOG_IMPORT');
   const [q, setQ] = useState('');
   const [submittedQ, setSubmittedQ] = useState('');
@@ -520,7 +524,28 @@ function CatalogueItemsBrowser() {
   const [billingCategory, setBillingCategory] = useState('');
   const [activeOnly, setActiveOnly] = useState(true);
   const [page, setPage] = useState(0);
+  const [editing, setEditing] = useState<CatalogItem | null>(null);
+  const [newPrice, setNewPrice] = useState('');
+  const [priceError, setPriceError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [historyId, setHistoryId] = useState<string | null>(null);
   const pageSize = 50;
+
+  const savePrice = useMutation({
+    mutationFn: ({ item, amount }: { item: CatalogItem; amount: number }) =>
+      updateCatalogPrice(item.id, item.currentCashPriceMinor as number, amount, accessToken as string),
+    onSuccess: () => {
+      setEditing(null); setPriceError(null); setSuccess('Catalogue price saved.');
+      void queryClient.invalidateQueries({ queryKey: ['catalog-items'] });
+      void queryClient.invalidateQueries({ queryKey: ['price-catalog'] });
+    },
+    onError: (error) => setPriceError(error instanceof ApiError ? error.message : 'Could not save price.'),
+  });
+  const { data: history } = useQuery({
+    queryKey: ['catalog-price-history', historyId],
+    queryFn: () => fetchCatalogPriceHistory(historyId as string, accessToken as string),
+    enabled: historyId != null && accessToken != null,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ['catalog-items', { q: submittedQ, type, billingCategory, activeOnly, page }],
@@ -555,10 +580,15 @@ function CatalogueItemsBrowser() {
     >
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)' }}>Catalogue items</h2>
+        <button type="button" className="btn btn-secondary" onClick={() => {
+          void downloadCatalog(accessToken as string).catch(() => setPriceError('Could not download the catalogue.'));
+        }}>Download Price Catalogue</button>
         <div style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
           {data ? `${data.totalCount.toLocaleString()} item${data.totalCount === 1 ? '' : 's'}` : 'Loading…'}
         </div>
       </div>
+      {success && <p role="status" className="badge badge-success">{success}</p>}
+      {priceError && !editing && <p role="alert" className="form-error">{priceError}</p>}
 
       <form className="clinical-filter-bar"
         onSubmit={(e) => {
@@ -636,6 +666,7 @@ function CatalogueItemsBrowser() {
                 <th>Category</th>
                 <th>Current CASH price</th>
                 <th>Active</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -656,6 +687,12 @@ function CatalogueItemsBrowser() {
                     <span className={`badge ${item.isActive ? 'badge-success' : 'badge-neutral'}`}>
                       {item.isActive ? 'active' : 'inactive'}
                     </span>
+                  </td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    {item.isActive && item.currentCashPriceMinor != null && <button type="button" className="btn btn-secondary" onClick={() => {
+                      setEditing(item); setNewPrice(String(item.currentCashPriceMinor)); setPriceError(null);
+                    }}>Edit Price</button>}{' '}
+                    <button type="button" className="btn btn-ghost" onClick={() => setHistoryId(item.id)}>History</button>
                   </td>
                 </tr>
               ))}
@@ -687,6 +724,35 @@ function CatalogueItemsBrowser() {
           </button>
         </div>
       )}
+
+      {editing && <div role="dialog" aria-modal="true" aria-label="Edit catalogue price" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'grid', placeItems: 'center', zIndex: 1000, padding: 'var(--space-3)' }}>
+        <form onSubmit={(event) => {
+          event.preventDefault();
+          if (!/^(0|[1-9]\d*)$/.test(newPrice) || !Number.isSafeInteger(Number(newPrice))) {
+            setPriceError('Enter a nonnegative whole TZS amount.'); return;
+          }
+          savePrice.mutate({ item: editing, amount: Number(newPrice) });
+        }} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', width: 'min(100%, 440px)' }}>
+          <h2>Edit Price</h2>
+          <p><strong>Code:</strong> {editing.code}<br /><strong>Service:</strong> {editing.name}<br /><strong>Current price:</strong> {formatMoney(editing.currentCashPriceMinor, 'TZS')}</p>
+          <label htmlFor="new-catalog-price">New price (TZS)</label>
+          <input id="new-catalog-price" className="clinical-control" inputMode="numeric" value={newPrice} onChange={(event) => setNewPrice(event.target.value)} style={{ display: 'block', width: '100%' }} />
+          {priceError && <p role="alert" className="form-error">{priceError}</p>}
+          <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+            <button className="btn btn-primary" disabled={savePrice.isPending}>Save</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setEditing(null)}>Cancel</button>
+          </div>
+        </form>
+      </div>}
+      {historyId && <div role="dialog" aria-modal="true" aria-label="Price history" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'grid', placeItems: 'center', zIndex: 1000, padding: 'var(--space-3)' }}>
+        <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', maxHeight: '80vh', overflow: 'auto', width: 'min(100%, 640px)' }}>
+          <h2>Price history</h2>
+          <TableRegion><table className="table"><thead><tr><th>Previous</th><th>New price</th><th>Changed at</th><th>Administrator ID</th></tr></thead><tbody>
+            {(history ?? []).map((change) => <tr key={change.entryId}><td>{change.previousPriceMinor == null ? '—' : formatMoney(change.previousPriceMinor, 'TZS')}</td><td>{formatMoney(change.priceMinor, 'TZS')}</td><td>{formatDateTime(change.changedAt)}</td><td>{change.changedBy}</td></tr>)}
+          </tbody></table></TableRegion>
+          <button type="button" className="btn btn-secondary" onClick={() => setHistoryId(null)}>Close</button>
+        </div>
+      </div>}
 
     </section>
   );

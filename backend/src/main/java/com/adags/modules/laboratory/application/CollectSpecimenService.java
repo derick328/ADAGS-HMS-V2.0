@@ -82,9 +82,6 @@ public class CollectSpecimenService {
         if (requestedType == null || requestedType.isBlank() || requestedType.equals("—"))
             throw new IllegalArgumentException("Enter the assessed sample type before acceptance.");
         boolean differsFromCatalogue = !requestedType.equalsIgnoreCase(expectedType);
-        if (differsFromCatalogue &&
-                (command.sampleTypeOverrideReason() == null || command.sampleTypeOverrideReason().isBlank()))
-            throw new IllegalArgumentException("Explain why the assessed sample type differs from the test catalogue.");
         // §L1/§L2: evaluated live, at the point of consumption. Throws
         // BillingGateRejectedException (-> 402) if unsatisfied. Durable and
         // idempotent per §3.1 clause 4 — a second specimen against the same
@@ -99,7 +96,9 @@ public class CollectSpecimenService {
         Instant now = Instant.now(clock);
         Specimen specimen = Specimen.accept(order.id(), accessionNo, requestedType, labTest.containerType(),
                 command.actorUserId(), now, command.quality(), command.qualityNote(),
-                differsFromCatalogue ? command.sampleTypeOverrideReason().trim() : null);
+                differsFromCatalogue && command.sampleTypeOverrideReason() != null
+                        && !command.sampleTypeOverrideReason().isBlank()
+                        ? command.sampleTypeOverrideReason().trim() : null);
         Specimen saved = specimenRepository.insert(specimen);
 
         publishOutcomeEvent(saved, order);

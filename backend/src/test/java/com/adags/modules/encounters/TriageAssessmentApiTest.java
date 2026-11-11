@@ -545,12 +545,13 @@ class TriageAssessmentApiTest extends IntegrationTestSupport {
                                   "familyName": "Patient-%s",
                                   "dateOfBirth": "1990-01-01",
                                   "gender": "%s",
+                                  "nationalId": "TEST-%s",
                                   "phone": "+2557%08d",
                                   "nextOfKin": {"fullName": "Next Kin", "relationship": "SIBLING", "phone": "+255711000000", "isGuardian": false},
                                   "facilityId": "%s"
                                 }
                                 """.formatted(UUID.randomUUID().toString().substring(0, 6),
-                                gender, Math.abs(UUID.randomUUID().hashCode() % 100_000_000), BOOTSTRAP_FACILITY_ID)))
+                                gender, UUID.randomUUID(), Math.abs(UUID.randomUUID().hashCode() % 100_000_000), BOOTSTRAP_FACILITY_ID)))
                 .andExpect(status().isCreated())
                 .andReturn();
         return objectMapper.readTree(registerResult.getResponse().getContentAsString()).get("id").asText();
@@ -582,8 +583,7 @@ class TriageAssessmentApiTest extends IntegrationTestSupport {
 
     private UUID insertFixtureDepartment() {
         return jdbcTemplate.queryForObject("""
-                        INSERT INTO department (facility_id, code, name)
-                        VALUES (:facilityId, :code, 'Test Department')
+                        INSERT INTO department (facility_id, category_id, code, name) VALUES (:facilityId, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code)
                         RETURNING id
                         """,
                 new MapSqlParameterSource()

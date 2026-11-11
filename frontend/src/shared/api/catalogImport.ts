@@ -65,6 +65,42 @@ export interface CatalogItem {
   isActive: boolean;
 }
 
+export interface CatalogPriceChange {
+  entryId: string;
+  itemId: string;
+  code: string;
+  name: string;
+  priceMinor: number;
+  previousPriceMinor: number | null;
+  changedBy: string;
+  changedAt: string;
+  validTo: string | null;
+}
+
+export function updateCatalogPrice(itemId: string, expectedPriceMinor: number, newPriceMinor: number, accessToken: string): Promise<CatalogPriceChange> {
+  return authFetch(`/api/admin/catalog/items/${itemId}/price`, accessToken, {
+    method: 'PUT', body: JSON.stringify({ expectedPriceMinor, newPriceMinor }),
+  });
+}
+
+export function fetchCatalogPriceHistory(itemId: string, accessToken: string): Promise<CatalogPriceChange[]> {
+  return authFetch(`/api/admin/catalog/items/${itemId}/price-history`, accessToken);
+}
+
+export async function downloadCatalog(accessToken: string): Promise<void> {
+  const response = await fetch('/api/admin/catalog/items/export', {
+    credentials: 'include', headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) throw new ApiError(response.status);
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `ADAGS_Price_Catalogue_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 export interface CatalogItemPage {
   page: number;
   pageSize: number;

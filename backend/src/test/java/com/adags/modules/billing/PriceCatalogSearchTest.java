@@ -1,6 +1,7 @@
 package com.adags.modules.billing;
 
 import com.adags.modules.billing.application.PriceResolutionService;
+import com.adags.modules.billing.application.CatalogPriceManagementService;
 import com.adags.modules.billing.domain.PayerCategory;
 import com.adags.modules.billing.domain.ServiceItem;
 import com.adags.modules.billing.domain.ServiceItemCategory;
@@ -34,6 +35,8 @@ class PriceCatalogSearchTest extends IntegrationTestSupport {
     private NamedParameterJdbcTemplate jdbcTemplate;
     @Autowired
     private JdbcCatalogItemLookup catalogItemLookup;
+    @Autowired
+    private CatalogPriceManagementService priceManagement;
 
     @AfterEach
     void cleanUp() {
@@ -94,5 +97,24 @@ class PriceCatalogSearchTest extends IntegrationTestSupport {
         assertThat(priceResolutionService.resolvePrice("CONSULT_SPECIALIST", PayerCategory.CASH).amountMinor()).isEqualTo(30000);
         assertThat(priceResolutionService.resolvePrice("CONSULT_GENERAL", PayerCategory.NHIF).amountMinor()).isEqualTo(8000);
         assertThat(priceResolutionService.resolvePrice("CONSULT_SPECIALIST", PayerCategory.NHIF).amountMinor()).isEqualTo(30000);
+    }
+
+    @Test
+    @Transactional
+    void administratorPriceChangeVersionsPriceAndRejectsStaleExpectedValue() {
+        String code = "TEST-CATALOG-" + UUID.randomUUID().toString().substring(0, 8);
+        ServiceItem item = serviceItemRepository.insert(new ServiceItem(null, code, "Test service", ServiceItemCategory.PROCEDURE, true));
+        UUID actor = jdbcTemplate.queryForObject("SELECT id FROM app_user WHERE username = 'admin'", new MapSqlParameterSource(), UUID.class);
+        UUID list = jdbcTemplate.queryForObject("SELECT id FROM price_list WHERE payer_category = 'CASH'", new MapSqlParameterSource(), UUID.class);
+        jdbcTemplate.update("INSERT INTO price_list_entry (price_list_id, service_item_id, amount_minor, created_by) VALUES (:list, :item, 1500, :actor)",
+                new MapSqlParameterSource().addValue("list", list).addValue("item", item.id()).addValue("actor", actor));
+
+        assertThat(priceManagement.updateCashPrice(item.id(), 1500, 1800, actor)).isEqualTo(1800);
+        assertThat(priceResolutionService.resolvePrice(code, PayerCategory.CASH).amountMinor()).isEqualTo(1800);
+        assertThat(priceManagement.history(item.id())).extracting(CatalogPriceManagementService.PriceChange::priceMinor)
+                .containsExactlyInAnyOrder(1500L, 1800L);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> priceManagement.updateCashPrice(item.id(), 1500, 2000, actor))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThat(priceResolutionService.resolvePrice(code, PayerCategory.CASH).amountMinor()).isEqualTo(1800);
     }
 }

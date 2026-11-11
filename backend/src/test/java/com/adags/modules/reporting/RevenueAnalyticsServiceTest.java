@@ -694,8 +694,7 @@ class RevenueAnalyticsServiceTest extends IntegrationTestSupport {
                         RETURNING id
                         """, new MapSqlParameterSource("hospitalNo", "TEST-" + UUID.randomUUID()), UUID.class);
         UUID departmentId = jdbcTemplate.queryForObject("""
-                        INSERT INTO department (facility_id, code, name)
-                        VALUES (:facilityId, :code, 'Test Department') RETURNING id
+                        INSERT INTO department (facility_id, category_id, code, name) VALUES (:facilityId, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code) RETURNING id
                         """,
                 new MapSqlParameterSource()
                         .addValue("facilityId", facilityId)

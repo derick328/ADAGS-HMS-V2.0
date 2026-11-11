@@ -4,16 +4,16 @@
  */
 
 export interface paths {
-    "/api/encounters/{encounterId}/pregnancy-assessment": {
+    "/api/users/{id}/clinic-assignments": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getPregnancyAssessment"];
-        put?: never;
-        post: operations["recordPregnancyAssessment"];
+        get: operations["clinicAssignments"];
+        put: operations["updateClinicAssignments"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -52,6 +52,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/department-management/units/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/department-management/units/{id}/hod": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["appoint"];
+        post?: never;
+        delete: operations["vacate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/consultation-records/{id}/autosave": {
         parameters: {
             query?: never;
@@ -61,6 +93,26 @@ export interface paths {
         };
         get?: never;
         put: operations["autosave"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/items/{itemId}/price": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update an active catalogue item's CASH price
+         * @description Requires CATALOG_IMPORT. expectedPriceMinor prevents a stale administrator edit; amounts are whole TZS minor units. Existing invoice lines keep their original amounts.
+         */
+        put: operations["updatePrice"];
         post?: never;
         delete?: never;
         options?: never;
@@ -557,6 +609,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Accept or reject an assessed specimen
+         * @description Requires SPECIMEN_ACCEPT. sampleTypeOverrideReason is optional; specimen quality, sample identification and payment rules still apply.
+         */
         post: operations["collect"];
         delete?: never;
         options?: never;
@@ -1556,6 +1612,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/encounters/{encounterId}/pregnancy-assessment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_6"];
+        put?: never;
+        post: operations["record_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dispenses": {
         parameters: {
             query?: never;
@@ -1566,6 +1638,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["dispense"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/department-management/units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["units"];
+        put?: never;
+        post: operations["create_9"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1773,7 +1861,7 @@ export interface paths {
         };
         get: operations["scheduledBetween"];
         put?: never;
-        post: operations["create_9"];
+        post: operations["create_10"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1837,7 +1925,7 @@ export interface paths {
         };
         get: operations["listBySurgeryOrder_2"];
         put?: never;
-        post: operations["record_4"];
+        post: operations["record_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1981,7 +2069,7 @@ export interface paths {
         };
         get: operations["list_12"];
         put?: never;
-        post: operations["record_5"];
+        post: operations["record_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1997,7 +2085,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["record_6"];
+        post: operations["record_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2013,7 +2101,7 @@ export interface paths {
         };
         get: operations["list_13"];
         put?: never;
-        post: operations["record_7"];
+        post: operations["record_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3115,6 +3203,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * View released results for a laboratory request
+         * @description After authorized access, each released result version is marked read for this user only. New amendments remain unread.
+         */
         get: operations["byLabOrder"];
         put?: never;
         post?: never;
@@ -3164,6 +3256,42 @@ export interface paths {
             cookie?: never;
         };
         get: operations["mine_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-orders/mine/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * View one of the doctor's laboratory requests
+         * @description Requires an ordering doctor with a current care relationship. Opening request metadata does not change laboratory processing status.
+         */
+        get: operations["ownOrder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lab-orders/mine/unread-result-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["unreadResultOrders"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3532,6 +3660,86 @@ export interface paths {
             cookie?: never;
         };
         get: operations["list_10"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/departments/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mine_7"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/departments/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["categories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/departments/catalogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["catalogue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/department-management/units/{id}/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["staff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/department-management/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["categories_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3931,7 +4139,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["mine_7"];
+        get: operations["mine_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4132,6 +4340,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/catalog/items/{itemId}/price-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["priceHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/catalog/items/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the complete current price catalogue
+         * @description Requires CATALOG_IMPORT; includes active and inactive items across all catalogue pages.
+         */
+        get: operations["exportItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/import/batches": {
         parameters: {
             query?: never;
@@ -4155,7 +4399,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_6"];
+        get: operations["get_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4184,14 +4428,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        PregnancyAssessmentRequest: {
-            /** @enum {string} */
-            status: "YES" | "NO" | "UNKNOWN";
-        };
-        PregnancyAssessmentResponse: {
-            applicable: boolean;
-            /** @enum {string} */
-            status?: "YES" | "NO" | "UNKNOWN";
+        ClinicAssignmentsRequest: {
+            unitIds?: string[];
+            /** Format: uuid */
+            primaryUnitId?: string;
+            /** Format: uuid */
+            hodUnitId?: string;
+            vacateHodUnitIds?: string[];
         };
         JsonNode: Record<string, never>;
         SaveDraftRequest: {
@@ -4241,6 +4484,17 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        UnitUpdate: {
+            name?: string;
+            description?: string;
+            unitType?: string;
+            consultationEnabled?: boolean;
+            active?: boolean;
+        };
+        HodRequest: {
+            /** Format: uuid */
+            userId?: string;
+        };
         AutosaveConsultationRecordRequest: {
             historyOfPresentingIllness?: string;
             pastMedicalHistory?: string;
@@ -4276,6 +4530,30 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        UpdateCatalogPriceRequest: {
+            /** Format: int64 */
+            expectedPriceMinor: number;
+            /** Format: int64 */
+            newPriceMinor: number;
+        };
+        PriceChange: {
+            /** Format: uuid */
+            entryId?: string;
+            /** Format: uuid */
+            itemId?: string;
+            code?: string;
+            name?: string;
+            /** Format: int64 */
+            priceMinor?: number;
+            /** Format: int64 */
+            previousPriceMinor?: number;
+            /** Format: uuid */
+            changedBy?: string;
+            /** Format: date-time */
+            changedAt?: string;
+            /** Format: date */
+            validTo?: string;
         };
         ChangePasswordRequest: {
             currentPassword: string;
@@ -4387,6 +4665,11 @@ export interface components {
         CreateUserRequest: {
             username: string;
             password: string;
+            unitIds?: string[];
+            /** Format: uuid */
+            primaryUnitId?: string;
+            /** Format: uuid */
+            hodUnitId?: string;
         };
         UserResponse: {
             /** Format: uuid */
@@ -5678,9 +5961,11 @@ export interface components {
             /** Format: uuid */
             patientId: string;
             /** Format: uuid */
-            departmentId: string;
+            departmentId?: string;
             /** Format: uuid */
             appointmentId?: string;
+            /** Format: uuid */
+            facilityId?: string;
         };
         EncounterResponse: {
             /** Format: uuid */
@@ -5854,6 +6139,14 @@ export interface components {
             /** Format: date-time */
             assessedAt?: string;
         };
+        AssessmentRequest: {
+            /** @enum {string} */
+            status: "YES" | "NO" | "UNKNOWN";
+        };
+        AssessmentResponse: {
+            applicable?: boolean;
+            status?: string;
+        };
         DispenseLineRequest: {
             /** Format: uuid */
             batchId: string;
@@ -5900,6 +6193,17 @@ export interface components {
             quantityDispensed?: number;
             lines?: components["schemas"]["DispenseLineResponse"][];
             prescriptionLine?: components["schemas"]["PrescriptionLineResponse"];
+        };
+        UnitCreate: {
+            /** Format: uuid */
+            facilityId?: string;
+            /** Format: uuid */
+            categoryId?: string;
+            code?: string;
+            name?: string;
+            description?: string;
+            unitType?: string;
+            consultationEnabled?: boolean;
         };
         AddDiagnosisRequest: {
             icd10Code: string;
@@ -6501,6 +6805,12 @@ export interface components {
             validFrom?: string;
             /** Format: date-time */
             validTo?: string;
+        };
+        Assignment: {
+            /** Format: uuid */
+            departmentId?: string;
+            primary?: boolean;
+            hod?: boolean;
         };
         CompletedTriageAssessmentResponse: {
             /** Format: uuid */
@@ -7524,6 +7834,37 @@ export interface components {
             code?: string;
             name?: string;
         };
+        Category: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            active?: boolean;
+        };
+        Unit: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            facilityId?: string;
+            /** Format: uuid */
+            categoryId?: string;
+            code?: string;
+            name?: string;
+            description?: string;
+            unitType?: string;
+            consultationEnabled?: boolean;
+            active?: boolean;
+            /** Format: uuid */
+            hodUserId?: string;
+            hodUsername?: string;
+        };
+        Staff: {
+            /** Format: uuid */
+            userId?: string;
+            username?: string;
+            primary?: boolean;
+            active?: boolean;
+        };
         CriticalResultNotificationResponse: {
             /** Format: uuid */
             id?: string;
@@ -7837,51 +8178,49 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    getPregnancyAssessment: {
+    clinicAssignments: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                encounterId: string;
+                id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Current pregnancy assessment */
+            /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PregnancyAssessmentResponse"];
+                    "*/*": components["schemas"]["Assignment"][];
                 };
             };
         };
     };
-    recordPregnancyAssessment: {
+    updateClinicAssignments: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                encounterId: string;
+                id: string;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PregnancyAssessmentRequest"];
+                "application/json": components["schemas"]["ClinicAssignmentsRequest"];
             };
         };
         responses: {
-            /** @description Recorded pregnancy assessment */
+            /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["PregnancyAssessmentResponse"];
-                };
+                content?: never;
             };
         };
     };
@@ -7981,6 +8320,74 @@ export interface operations {
             };
         };
     };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnitUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    appoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HodRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    vacate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     autosave: {
         parameters: {
             query?: never;
@@ -8004,6 +8411,60 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["ConsultationRecordResponse"];
                 };
+            };
+        };
+    };
+    updatePrice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCatalogPriceRequest"];
+            };
+        };
+        responses: {
+            /** @description Versioned price change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PriceChange"];
+                };
+            };
+            /** @description Invalid amount */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Insufficient permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Item not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Inactive, unpriced, or concurrently changed item */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -8979,6 +9440,27 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["SpecimenResponse"];
                 };
+            };
+            /** @description Invalid sample assessment */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Payment authorization required */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Insufficient permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -10715,6 +11197,54 @@ export interface operations {
             };
         };
     };
+    get_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentResponse"];
+                };
+            };
+        };
+    };
+    record_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                encounterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssessmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentResponse"];
+                };
+            };
+        };
+    };
     dispense: {
         parameters: {
             query?: never;
@@ -10735,6 +11265,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["DispenseResponse"];
+                };
+            };
+        };
+    };
+    units: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Unit"][];
+                };
+            };
+        };
+    };
+    create_9: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnitCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
                 };
             };
         };
@@ -11066,7 +11640,7 @@ export interface operations {
             };
         };
     };
-    create_9: {
+    create_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -11178,7 +11752,7 @@ export interface operations {
             };
         };
     };
-    record_4: {
+    record_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -11448,7 +12022,7 @@ export interface operations {
             };
         };
     };
-    record_5: {
+    record_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -11474,7 +12048,7 @@ export interface operations {
             };
         };
     };
-    record_6: {
+    record_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -11522,7 +12096,7 @@ export interface operations {
             };
         };
     };
-    record_7: {
+    record_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -13063,14 +13637,19 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Results not accessible */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "*/*": components["schemas"]["LabResultDetailResponse"][];
+                content?: never;
+            };
+            /** @description Request not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
                 };
+                content?: never;
             };
         };
     };
@@ -13133,6 +13712,51 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["LabOrderHistoryResponse"][];
                 };
+            };
+        };
+    };
+    ownOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Request not accessible */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Request not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    unreadResultOrders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Insufficient permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -13632,6 +14256,108 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["DepartmentResponse"][];
+                };
+            };
+        };
+    };
+    mine_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Assignment"][];
+                };
+            };
+        };
+    };
+    categories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Category"][];
+                };
+            };
+        };
+    };
+    catalogue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Unit"][];
+                };
+            };
+        };
+    };
+    staff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Staff"][];
+                };
+            };
+        };
+    };
+    categories_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Category"][];
                 };
             };
         };
@@ -14149,7 +14875,7 @@ export interface operations {
             };
         };
     };
-    mine_7: {
+    mine_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -14467,6 +15193,55 @@ export interface operations {
             };
         };
     };
+    priceHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PriceChange"][];
+                };
+            };
+        };
+    };
+    exportItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Excel workbook */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+            /** @description Insufficient permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_16: {
         parameters: {
             query?: never;
@@ -14487,7 +15262,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;

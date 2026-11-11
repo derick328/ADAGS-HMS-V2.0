@@ -64,12 +64,17 @@ public class OpenEncounterService {
             Encounter previous = existing.get();
             boolean completed = previous.state() == EncounterState.CONSULT_COMPLETE
                     || previous.state() == EncounterState.PENDING_SETTLEMENT;
-            if (!completed || !previous.departmentId().equals(command.departmentId())) {
+            if (!completed
+                    || (command.facilityId() != null && !command.facilityId().equals(previous.facilityId()))
+                    || (command.departmentId() != null && !command.departmentId().equals(previous.departmentId()))) {
                 return new CheckInResult(previous, true);
             }
         }
 
-        UUID facilityId = facilityIdFor(command.departmentId());
+        UUID facilityId = command.departmentId() == null ? command.facilityId() : facilityIdFor(command.departmentId());
+        if (facilityId == null || (command.facilityId() != null && !facilityId.equals(command.facilityId()))) {
+            throw new IllegalArgumentException("A valid encounter facility is required.");
+        }
         PayerType payerType = patientFacade.resolvePayerType(command.patientId(), LocalDate.now(clock));
 
         Encounter toInsert = new Encounter(null, command.patientId(), facilityId, command.departmentId(),

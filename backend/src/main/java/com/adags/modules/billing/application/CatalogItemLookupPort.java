@@ -33,6 +33,9 @@ public interface CatalogItemLookupPort {
      */
     List<CatalogItemView> listItems(CatalogItemQuery query);
 
+    /** Unfiltered export, ordered by category and name for section headings. */
+    List<CatalogItemView> listItemsForExport(int page, int pageSize);
+
     /** Total matching count for pagination. */
     int countItems(CatalogItemQuery query);
 

@@ -138,11 +138,12 @@ class PatientAndEncounterApiTest extends IntegrationTestSupport {
                   "familyName": "Hassan",
                   "dateOfBirth": "1990-01-01",
                   "gender": "FEMALE",
+                  "nationalId": "TEST-%s",
                   "phone": "+255700000001",
                   "nextOfKin": {"fullName": "Next Kin", "relationship": "SIBLING", "phone": "+255711000000", "isGuardian": false},
                   "facilityId": "%s"
                 }
-                """.formatted(BOOTSTRAP_FACILITY_ID);
+                """.formatted(UUID.randomUUID(), BOOTSTRAP_FACILITY_ID);
     }
 
     private String loginAsBootstrapAdmin() throws Exception {
@@ -167,8 +168,7 @@ class PatientAndEncounterApiTest extends IntegrationTestSupport {
 
     private UUID insertFixtureDepartment() {
         return jdbcTemplate.queryForObject("""
-                        INSERT INTO department (facility_id, code, name)
-                        VALUES (:facilityId, :code, 'Test Department')
+                        INSERT INTO department (facility_id, category_id, code, name) VALUES (:facilityId, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code)
                         RETURNING id
                         """,
                 new MapSqlParameterSource()

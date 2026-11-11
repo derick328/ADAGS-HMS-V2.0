@@ -34,14 +34,27 @@ describe('sample acceptance handoff', () => {
     expect(screen.queryByText('Sample accepted')).not.toBeInTheDocument();
   });
 
-  it('asks for a reason when the assessed sample type differs from the catalogue', async () => {
+  it('accepts a different assessed sample type without a reason', async () => {
+    vi.mocked(collectSpecimen).mockResolvedValue({ status: 'IN_PROGRESS', accessionNo: 'ACC-2' } as SpecimenResponse);
     show();
     const sampleType = await screen.findByLabelText('Assessed sample type');
     fireEvent.change(sampleType, { target: { value: 'Whole Blood (EDTA)' } });
-    expect(screen.getByLabelText('Reason for using a different sample type')).toBeInTheDocument();
+    expect(screen.getByLabelText('Reason for using a different sample type (Optional)')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Accept & Enter Result' }));
-    expect(await screen.findByText('Explain why the sample type differs from the catalogue')).toBeInTheDocument();
-    expect(collectSpecimen).not.toHaveBeenCalled();
+    await waitFor(() => expect(collectSpecimen).toHaveBeenCalledWith(expect.objectContaining({
+      sampleType: 'Whole Blood (EDTA)', sampleTypeOverrideReason: undefined,
+    }), 'test'));
+  });
+
+  it('keeps a supplied explanation', async () => {
+    vi.mocked(collectSpecimen).mockResolvedValue({ status: 'IN_PROGRESS', accessionNo: 'ACC-3' } as SpecimenResponse);
+    show();
+    fireEvent.change(await screen.findByLabelText('Assessed sample type'), { target: { value: 'Whole Blood (EDTA)' } });
+    fireEvent.change(screen.getByLabelText('Reason for using a different sample type (Optional)'), { target: { value: 'Clinician approved' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Accept & Enter Result' }));
+    await waitFor(() => expect(collectSpecimen).toHaveBeenCalledWith(expect.objectContaining({
+      sampleTypeOverrideReason: 'Clinician approved',
+    }), 'test'));
   });
 
   it('records a quality issue and keeps a rejected specimen out of result entry', async () => {

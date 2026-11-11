@@ -43,6 +43,8 @@ class PaymentBypassControllerTest extends IntegrationTestSupport {
 
     @AfterEach
     void cleanUp() {
+        // A failed assertion must never leave the shared Testcontainers admin without its role.
+        restoreAdminRole();
         jdbcTemplate.update("TRUNCATE payment_bypass, encounter, patient CASCADE", new MapSqlParameterSource());
     }
 
@@ -118,8 +120,13 @@ class PaymentBypassControllerTest extends IntegrationTestSupport {
     private void restoreAdminRole() {
         jdbcTemplate.update("""
                         INSERT INTO role_assignment (user_id, role_id, scope_type, scope_id)
-                        SELECT (SELECT id FROM app_user WHERE username = 'admin'), id, 'GLOBAL', NULL
-                        FROM role WHERE code = 'ADMIN'
+                        SELECT u.id, r.id, 'GLOBAL', NULL
+                        FROM app_user u CROSS JOIN role r
+                        WHERE u.username = 'admin' AND r.code = 'ADMIN'
+                          AND NOT EXISTS (
+                              SELECT 1 FROM role_assignment ra
+                              WHERE ra.user_id = u.id AND ra.role_id = r.id AND ra.revoked_at IS NULL
+                          )
                         """,
                 new MapSqlParameterSource());
     }
@@ -147,8 +154,7 @@ class PaymentBypassControllerTest extends IntegrationTestSupport {
 
     private UUID insertFixtureEncounter(UUID patientId) {
         UUID departmentId = jdbcTemplate.queryForObject("""
-                        INSERT INTO department (facility_id, code, name)
-                        VALUES (:facilityId, :code, 'Test Department')
+                        INSERT INTO department (facility_id, category_id, code, name) VALUES (:facilityId, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code)
                         RETURNING id
                         """,
                 new MapSqlParameterSource()

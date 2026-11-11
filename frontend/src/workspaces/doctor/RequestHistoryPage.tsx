@@ -3,11 +3,11 @@ import { FeedbackState } from '../../shared/components/FeedbackState';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { WorkspacePage, QueryState } from '../../shared/components/WorkspacePage';
 import { EmptyState } from '../../shared/components/EmptyState';
-import { useQuery } from '@tanstack/react-query';
-import { Fragment, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Fragment, useEffect, useState } from 'react';
 import { fetchDispensesByPrescriptionLine, type DispenseHistoryResponse } from '../../shared/api/dispenses';
 import { fetchLabResultsByOrder, type LabResultDetailResponse, type DetailParameterValueResponse } from '../../shared/api/labResults';
-import { fetchMyLabOrders } from '../../shared/api/labOrders';
+import { fetchMyLabOrders, fetchMyLabOrderDetail, fetchUnreadLabResultOrderIds } from '../../shared/api/labOrders';
 import { fetchMyPrescriptions, type PrescriptionHistoryResponse } from '../../shared/api/prescriptions';
 import { fetchPatientById } from '../../shared/api/patients';
 import { useAuth } from '../../shared/auth/AuthProvider';
@@ -46,6 +46,12 @@ export function RequestHistoryPage() {
   const { data: rx, isPending: rxPending, isError: rxError, refetch: retryRx } = useQuery({
     queryKey: ['prescriptions', 'mine'],
     queryFn: () => fetchMyPrescriptions(accessToken as string),
+    enabled: accessToken != null,
+    refetchInterval: 30_000,
+  });
+  const { data: unreadIds = [] } = useQuery({
+    queryKey: ['lab-result-unread', 'mine'],
+    queryFn: () => fetchUnreadLabResultOrderIds(accessToken as string),
     enabled: accessToken != null,
     refetchInterval: 30_000,
   });
@@ -125,7 +131,7 @@ export function RequestHistoryPage() {
         <div className="workspace-panel"><EmptyState role="status" title="No requests match these filters" description="Choose another type or status to review other requests." /></div>
       ) : (
         <div className="workspace-table" role="region" aria-label="Request history" tabIndex={0}><TableRegion><table className="table">
-          <thead><tr><th scope="col">Request details</th><th scope="col">Status</th></tr></thead><tbody>
+          <thead><tr><th scope="col">Request details</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead><tbody>
             {rows.map((row) => {
               const rowKey = `${row.type}-${row.id}`;
               const isOpen = expanded === rowKey;
@@ -159,12 +165,14 @@ export function RequestHistoryPage() {
                     </td>
                     <td>
                       <span className={`badge ${statusBadgeClass(row.status)}`}>{statusLabel(row.status)}</span>
+                      {row.type === 'LAB' && unreadIds.includes(row.id) && <span className="badge badge-info" style={{ marginLeft: 8 }}>Unread</span>}
                       {overdue && <span style={{ color: 'var(--critical)', marginLeft: 8 }}>⚠ Unpaid — {formatWaitingSince(row.occurredAt)}</span>}
                     </td>
+                    <td><button type="button" className="btn btn-secondary" onClick={() => setExpanded(isOpen ? null : rowKey)}>{isOpen ? 'Close' : 'View'}</button></td>
                   </tr>
                   {isOpen && (
                     <tr>
-                      <td colSpan={2} style={{ background: 'var(--bg-subtle)', padding: 'var(--space-4)' }}>
+                      <td colSpan={3} style={{ background: 'var(--bg-subtle)', padding: 'var(--space-4)' }}>
                         {row.type === 'LAB' ? <LabDetail labOrderId={row.id} /> : <PrescriptionDetail prescription={row.prescription as PrescriptionHistoryResponse} />}
                       </td>
                     </tr>
@@ -185,21 +193,40 @@ export function RequestHistoryPage() {
 // the doctor almost always wants to read.
 function LabDetail({ labOrderId }: { labOrderId: string }) {
   const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
+  const { data: orderDetail, isLoading: detailLoading, isError: detailError } = useQuery({
+    queryKey: ['lab-order-detail', labOrderId],
+    queryFn: () => fetchMyLabOrderDetail(labOrderId, accessToken as string),
+    enabled: accessToken != null,
+  });
   const { data, isLoading, isError } = useQuery({
     queryKey: ['lab-results', 'by-lab-order', labOrderId],
     queryFn: () => fetchLabResultsByOrder(labOrderId, accessToken as string),
-    enabled: accessToken != null,
+    enabled: accessToken != null && orderDetail != null,
   });
 
-  if (isLoading) return <FeedbackState loading>Loading result…</FeedbackState>;
+  useEffect(() => {
+    if (data) void queryClient.invalidateQueries({ queryKey: ['lab-result-unread', 'mine'] });
+  }, [data, queryClient]);
+
+  if (detailLoading || isLoading) return <FeedbackState loading>Loading request…</FeedbackState>;
+  if (detailError) return <p role="alert" style={{ color: 'var(--critical)' }}>Could not open this request.</p>;
   if (isError) return <p style={{ color: 'var(--critical)' }}>Could not load the result.</p>;
   const results = data ?? [];
+  const requestInfo = <div style={{ marginBottom: 'var(--space-3)' }}>
+    <p><strong>Patient:</strong> <PatientName patientId={orderDetail?.order.patientId as string} /> · <strong>Test:</strong> {orderDetail?.order.labTestName}</p>
+    <p><strong>Requested by:</strong> {orderDetail?.requestingDoctorName} · <strong>Date:</strong> {formatDateTime(orderDetail?.order.orderedAt)} · <strong>Priority:</strong> {orderDetail?.order.urgency} · <strong>Status:</strong> {orderDetail?.order.status}</p>
+    {orderDetail?.clinicalIndication && <p><strong>Clinical indication:</strong> {orderDetail.clinicalIndication}</p>}
+    {orderDetail?.specialInstructions && <p><strong>Special instructions:</strong> {orderDetail.specialInstructions}</p>}
+    {orderDetail?.samples.map((sample) => <p key={sample.accessionNo}><strong>Sample:</strong> {sample.accessionNo} · {sample.sampleType} · {sample.containerType} · {sample.quality} · {sample.status} · {formatDateTime(sample.collectedAt)}</p>)}
+  </div>;
   if (results.length === 0) {
-    return <p style={{ color: 'var(--text-muted)' }}>The lab has not released a result yet.</p>;
+    return <>{requestInfo}<p style={{ color: 'var(--text-muted)' }}>The lab has not released a result yet.</p></>;
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {requestInfo}
       {results.map((result, index) => (
         <LabResultCard key={result.id ?? index} result={result} superseded={index > 0} />
       ))}

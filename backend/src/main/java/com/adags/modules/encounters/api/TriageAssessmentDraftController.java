@@ -96,8 +96,9 @@ public class TriageAssessmentDraftController {
     }
 
     private void requireAssess(Actor actor, Encounter encounter) {
-        boolean allowed = authorizationService.hasPermission(
-                actor, "TRIAGE_ASSESS", ScopeRef.of(ScopeType.DEPARTMENT, encounter.departmentId()));
+        boolean allowed = encounter.departmentId() == null
+                ? authorizationService.hasPermissionForPendingEncounter(actor, "TRIAGE_ASSESS", encounter.facilityId())
+                : authorizationService.hasPermission(actor, "TRIAGE_ASSESS", encounter.scope());
         if (!allowed) {
             throw new AccessDeniedException("Missing permission: TRIAGE_ASSESS");
         }
