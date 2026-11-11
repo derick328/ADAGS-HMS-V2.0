@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -122,6 +123,21 @@ public class ClinicFollowUpService {
         }
         appointments.reschedule(appointmentId, scheduledAt, instructions);
         return appointments.findById(appointmentId).orElseThrow();
+    }
+
+    @Transactional
+    public Appointment cancelOverdue(UUID appointmentId) {
+        Appointment appointment = appointments.findById(appointmentId).orElseThrow();
+        if (appointment.clinicFollowUpId() == null || appointment.status() != AppointmentStatus.SCHEDULED
+                || clock.instant().isBefore(appointment.scheduledAt().plus(1, ChronoUnit.DAYS))) {
+            throw new IllegalArgumentException("Only a clinic appointment overdue by at least 24 hours can be cancelled.");
+        }
+        appointments.setStatus(appointmentId, AppointmentStatus.CANCELLED);
+        Appointment cancelled = appointments.findById(appointmentId).orElseThrow();
+        if (cancelled.status() != AppointmentStatus.CANCELLED) {
+            throw new IllegalStateException("Appointment was changed during cancellation.");
+        }
+        return cancelled;
     }
 
     @Transactional

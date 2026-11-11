@@ -18,7 +18,7 @@
 | D7 | Insurance settles the insurer portion; patient pays any top-up in cash | Invoice lines split gross / insurer / patient |
 | D8 | Patient activity state is visible to all roles, exclusive per activity type | Pharmacy dispensing never blocks other activity |
 | D9 | Cannot pay → patient leaves, charge voided, record retained | Does not block future visits (see `?Q3`) |
-| D10 | Receptionist has read-only visibility of expected returns | No create, edit, reschedule, or cancel on appointments |
+| D10 | Receptionist sees expected returns and may cancel a clinic appointment 24 hours after its scheduled time | No create, edit, or reschedule on appointments; early and late arrivals can check in until cancellation |
 
 ---
 

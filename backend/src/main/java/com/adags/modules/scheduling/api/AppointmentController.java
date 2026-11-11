@@ -141,6 +141,14 @@ public class AppointmentController {
         return response(appointmentRepository.findById(id).orElseThrow(), actor);
     }
 
+    @PostMapping("/{id}/cancel")
+    public AppointmentResponse cancelOverdueClinic(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
+        Appointment appointment = appointmentRepository.findById(id).orElseThrow();
+        if (appointment.clinicFollowUpId() == null) throw new IllegalArgumentException("Not a clinic appointment.");
+        requireScoped(actor, "APPOINTMENT_CANCEL", clinics.plan(appointment.clinicFollowUpId()).departmentId());
+        return response(clinics.cancelOverdue(id), actor);
+    }
+
     @PatchMapping("/{id}/reschedule")
     public AppointmentResponse reschedule(@PathVariable UUID id, @RequestBody RescheduleRequest request,
                                           @AuthenticationPrincipal Actor actor) {

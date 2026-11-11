@@ -1884,6 +1884,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/appointments/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelOverdueClinic"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/appointments/clinic": {
         parameters: {
             query?: never;
@@ -11665,6 +11681,28 @@ export interface operations {
         };
     };
     markNoShow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AppointmentResponse"];
+                };
+            };
+        };
+    };
+    cancelOverdueClinic: {
         parameters: {
             query?: never;
             header?: never;

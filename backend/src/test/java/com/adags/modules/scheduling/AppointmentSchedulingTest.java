@@ -185,6 +185,35 @@ class AppointmentSchedulingTest extends IntegrationTestSupport {
         assertThat(attended.arrivedAt()).isNotNull();
     }
 
+    @Test
+    void clinicAppointmentCanBeCancelledOnlyAfter24HoursWithoutCancellingThePlan() {
+        UUID patientId = insertFixturePatient();
+        UUID sourceEncounterId = insertFixtureEncounter(patientId);
+        UUID departmentId = jdbcTemplate.queryForObject("SELECT department_id FROM encounter WHERE id = :id",
+                new MapSqlParameterSource("id", sourceEncounterId), UUID.class);
+        String clinicName = jdbcTemplate.queryForObject("SELECT name FROM department WHERE id = :id",
+                new MapSqlParameterSource("id", departmentId), String.class);
+        UUID doctor = bootstrapAdminId();
+        jdbcTemplate.update("UPDATE encounter SET assigned_provider_id = :doctor WHERE id = :id",
+                new MapSqlParameterSource().addValue("doctor", doctor).addValue("id", sourceEncounterId));
+        Appointment appointment = clinicFollowUpService.schedule(patientId, sourceEncounterId, departmentId,
+                clinicName, Instant.now().plus(1, ChronoUnit.DAYS), null, doctor);
+
+        jdbcTemplate.update("UPDATE appointment SET scheduled_at = :due WHERE id = :id",
+                new MapSqlParameterSource().addValue("id", appointment.id())
+                        .addValue("due", java.sql.Timestamp.from(Instant.now().minus(23, ChronoUnit.HOURS))));
+        assertThatThrownBy(() -> clinicFollowUpService.cancelOverdue(appointment.id()))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        jdbcTemplate.update("UPDATE appointment SET scheduled_at = :due WHERE id = :id",
+                new MapSqlParameterSource().addValue("id", appointment.id())
+                        .addValue("due", java.sql.Timestamp.from(Instant.now().minus(25, ChronoUnit.HOURS))));
+        assertThat(clinicFollowUpService.cancelOverdue(appointment.id()).status()).isEqualTo(AppointmentStatus.CANCELLED);
+        assertThat(clinicFollowUpService.plan(appointment.clinicFollowUpId()).active()).isTrue();
+        assertThatThrownBy(() -> schedulingFacade.validateCheckIn(appointment.id(), patientId, departmentId))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
     private UUID insertFixturePatient() {
         return jdbcTemplate.queryForObject("""
                         INSERT INTO patient (hospital_no, given_name, family_name, date_of_birth, gender, phone)

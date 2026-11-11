@@ -4,7 +4,7 @@ import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { EncounterResponse } from '../../shared/api/encounters';
 import { resumeEncounter, searchEncounters } from '../../shared/api/encounters';
-import { fetchExpectedReturnAppointments, markClinicNoShow, clinicArrivalLabel, type ClinicAppointment } from '../../shared/api/appointments';
+import { fetchExpectedReturnAppointments, cancelOverdueClinic, canCancelOverdueClinic, clinicArrivalLabel, type ClinicAppointment } from '../../shared/api/appointments';
 import { fetchPatientById } from '../../shared/api/patients';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
@@ -12,7 +12,7 @@ import { formatDateTime } from '../../shared/format/date';
 
 // 05a-receptionist-decisions.md §3: two genuinely different sources,
 // visually distinguished because the receptionist's action differs.
-// D10: read-only — no create/edit/reschedule/cancel from this workspace.
+// Reception may cancel a clinic appointment once its scheduled time is 24 hours past.
 // The 48h rule is a highlight, not an expiry (§3.2): AWAITING_RESULTS rows
 // stay listed until the encounter resolves, however long that takes.
 export function ExpectedReturnsPage() {
@@ -184,7 +184,7 @@ function FollowUpRow({ appointment }: { appointment: ClinicAppointment }) {
   const arrival = clinicArrivalLabel(appointment.scheduledAt);
   const queryClient = useQueryClient();
   const canManage = usePermission('APPOINTMENT_CANCEL');
-  const noShow = useMutation({ mutationFn: () => markClinicNoShow(appointment.id!, accessToken as string),
+  const cancel = useMutation({ mutationFn: () => cancelOverdueClinic(appointment.id!, accessToken as string),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['expected-returns'] }); queryClient.invalidateQueries({ queryKey: ['appointments'] }); } });
 
   return (
@@ -194,8 +194,8 @@ function FollowUpRow({ appointment }: { appointment: ClinicAppointment }) {
       <td>{appointment.clinic ?? 'General follow-up'} · {appointment.doctor ?? '—'}</td>
       <td style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>{formatDateTime(appointment.scheduledAt)}</td>
       <td><span className={arrival === 'Overdue' ? 'badge badge-warning' : 'badge badge-info'}>{appointment.status} · {arrival}</span></td>
-      <td>{canManage && appointment.clinicFollowUpId && arrival === 'Overdue' && <button type="button" className="btn btn-ghost" disabled={noShow.isPending} onClick={() => noShow.mutate()}>Mark no-show</button>}
-        {noShow.error && <span className="form-error">Could not update appointment.</span>}</td>
+      <td>{canManage && appointment.clinicFollowUpId && canCancelOverdueClinic(appointment.scheduledAt) && <button type="button" className="btn btn-ghost" disabled={cancel.isPending} onClick={() => cancel.mutate()}>Cancel appointment</button>}
+        {cancel.error && <span className="form-error">Could not cancel appointment.</span>}</td>
     </tr>
   );
 }

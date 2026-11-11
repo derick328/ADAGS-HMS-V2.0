@@ -3132,6 +3132,25 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/AppointmentResponse"
+  /api/appointments/{id}/cancel:
+    post:
+      tags:
+      - appointment-controller
+      operationId: cancelOverdueClinic
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AppointmentResponse"
   /api/appointments/clinic:
     post:
       tags:

@@ -85,3 +85,11 @@ export function clinicArrivalLabel(scheduledAt: string | undefined, arrival = ne
 export function markClinicNoShow(id: string, token: string): Promise<ClinicAppointment> {
   return authFetch(`/api/appointments/${id}/no-show`, token, { method: 'POST' });
 }
+
+export function canCancelOverdueClinic(scheduledAt: string | undefined, now = new Date()): boolean {
+  return !!scheduledAt && now.getTime() >= new Date(scheduledAt).getTime() + 24 * 60 * 60 * 1000;
+}
+
+export function cancelOverdueClinic(id: string, token: string): Promise<ClinicAppointment> {
+  return authFetch(`/api/appointments/${id}/cancel`, token, { method: 'POST' });
+}

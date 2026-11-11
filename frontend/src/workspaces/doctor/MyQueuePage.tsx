@@ -32,7 +32,11 @@ export function MyQueuePage() {
   const catalogue = useQuery({ queryKey: ['clinic-catalogue'], queryFn: () => fetchClinicCatalogue(accessToken as string), enabled: !!accessToken });
   const assigned = useQuery({ queryKey: ['my-clinics'], queryFn: () => fetchMyClinics(accessToken as string), enabled: !!accessToken });
   const authorized = (catalogue.data ?? []).filter(u => u.consultationEnabled && assigned.data?.some(a => a.departmentId === u.id));
-  const selectedClinicId = workingClinicId || (authorized.length === 1 ? authorized[0].id : '');
+  // A routed encounter may retain the clinic chosen at check-in even when
+  // triage assigns it to a doctor whose staff clinic differs. The queue is
+  // owned by assignedProviderId; only an explicit clinic choice should
+  // narrow it.
+  const selectedClinicId = workingClinicId;
   const location = useLocation() as { state?: { consultationError?: string } };
 
   // Also fetches IN_CONSULT so a consultation the doctor already opened
@@ -41,7 +45,7 @@ export function MyQueuePage() {
   // this, the encounter fell off the queue the instant it transitioned
   // AWAITING_CONSULT -> IN_CONSULT, and the only way back was the
   // dismissible IncompleteConsultationPrompt on the next fresh sign-in.
-  const { data: encounters, isLoading } = useQuery({
+  const { data: encounters, isLoading, isError, refetch } = useQuery({
     queryKey: ['encounters', 'search', { states: ['AWAITING_CONSULT', 'IN_CONSULT'] }],
     queryFn: () => searchEncounters({ states: ['AWAITING_CONSULT', 'IN_CONSULT'] }, accessToken as string),
     enabled: accessToken != null,
@@ -85,6 +89,11 @@ export function MyQueuePage() {
           {location.state.consultationError}
         </div>
       )}
+      {isError && (
+        <div className="form-error" role="alert" style={{ marginBottom: 'var(--space-3)' }}>
+          Could not load your queue. <button type="button" className="btn btn-secondary" onClick={() => void refetch()}>Retry</button>
+        </div>
+      )}
       {inProgressRows.length > 0 && (
         <div style={{ marginBottom: 'var(--space-4)' }}>
           <QueueShell headingLevel={2}
@@ -99,7 +108,7 @@ export function MyQueuePage() {
         title="Waiting"
         rows={waitingRows}
         isLoading={isLoading}
-        emptyMessage="No patients waiting for consultation."
+        emptyMessage={isError ? 'Queue unavailable.' : 'No patients waiting for consultation.'}
       />
     </div>
   );
