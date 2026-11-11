@@ -35,9 +35,9 @@ class VisitHistoryServiceTest extends IntegrationTestSupport {
     @Test
     void returnsEncounterDepartmentProviderAndInvoiceStatusForThePatientsHistory() {
         UUID patientId = insertFixturePatient();
-        UUID departmentId = insertFixtureDepartment();
+        FixtureDepartment department = insertFixtureDepartment();
         UUID adminId = bootstrapAdminId();
-        UUID encounterId = insertFixtureEncounter(patientId, departmentId, adminId, "AWAITING_TRIAGE");
+        UUID encounterId = insertFixtureEncounter(patientId, department.id(), adminId, "AWAITING_TRIAGE");
         insertFixtureInvoice(encounterId, patientId, "ISSUED", 5_000);
 
         List<VisitHistoryEntry> history = visitHistoryService.forPatient(patientId);
@@ -46,7 +46,7 @@ class VisitHistoryServiceTest extends IntegrationTestSupport {
         VisitHistoryEntry entry = history.get(0);
         assertThat(entry.encounterId()).isEqualTo(encounterId);
         assertThat(entry.encounterState()).isEqualTo("AWAITING_TRIAGE");
-        assertThat(entry.departmentName()).isEqualTo("Test Department");
+        assertThat(entry.departmentName()).isEqualTo(department.name());
         // No staff row for the bootstrap admin — falls back to username.
         assertThat(entry.attendingProviderName()).isEqualTo("admin");
         assertThat(entry.invoiceState()).isEqualTo("ISSUED");
@@ -56,8 +56,8 @@ class VisitHistoryServiceTest extends IntegrationTestSupport {
     @Test
     void anEncounterWithNoInvoiceStillAppearsWithNullInvoiceFields() {
         UUID patientId = insertFixturePatient();
-        UUID departmentId = insertFixtureDepartment();
-        insertFixtureEncounter(patientId, departmentId, bootstrapAdminId(), "AWAITING_TRIAGE");
+        FixtureDepartment department = insertFixtureDepartment();
+        insertFixtureEncounter(patientId, department.id(), bootstrapAdminId(), "AWAITING_TRIAGE");
 
         List<VisitHistoryEntry> history = visitHistoryService.forPatient(patientId);
 
@@ -69,12 +69,12 @@ class VisitHistoryServiceTest extends IntegrationTestSupport {
     @Test
     void mostRecentEncounterFirst() {
         UUID patientId = insertFixturePatient();
-        UUID departmentId = insertFixtureDepartment();
+        FixtureDepartment department = insertFixtureDepartment();
         UUID adminId = bootstrapAdminId();
-        UUID older = insertFixtureEncounter(patientId, departmentId, adminId, "CLOSED");
+        UUID older = insertFixtureEncounter(patientId, department.id(), adminId, "CLOSED");
         jdbcTemplate.update("UPDATE encounter SET created_at = now() - interval '2 days' WHERE id = :id",
                 new MapSqlParameterSource("id", older));
-        UUID newer = insertFixtureEncounter(patientId, departmentId, adminId, "CLOSED");
+        UUID newer = insertFixtureEncounter(patientId, department.id(), adminId, "CLOSED");
 
         List<VisitHistoryEntry> history = visitHistoryService.forPatient(patientId);
 
@@ -90,15 +90,20 @@ class VisitHistoryServiceTest extends IntegrationTestSupport {
                 new MapSqlParameterSource("hospitalNo", "TEST-" + UUID.randomUUID()), UUID.class);
     }
 
-    private UUID insertFixtureDepartment() {
-        return jdbcTemplate.queryForObject("""
-                        INSERT INTO department (facility_id, category_id, code, name) VALUES (:facilityId, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code)
+    private record FixtureDepartment(UUID id, String name) {}
+
+    private FixtureDepartment insertFixtureDepartment() {
+        String name = "Test Department " + UUID.randomUUID();
+        UUID id = jdbcTemplate.queryForObject("""
+                        INSERT INTO department (facility_id, category_id, code, name) VALUES (:facilityId, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :name)
                         RETURNING id
                         """,
                 new MapSqlParameterSource()
                         .addValue("facilityId", BOOTSTRAP_FACILITY_ID)
-                        .addValue("code", "TESTDEPT-" + UUID.randomUUID().toString().substring(0, 8)),
+                        .addValue("code", "TESTDEPT-" + UUID.randomUUID().toString().substring(0, 8))
+                        .addValue("name", name),
                 UUID.class);
+        return new FixtureDepartment(id, name);
     }
 
     private UUID insertFixtureEncounter(UUID patientId, UUID departmentId, UUID providerId, String state) {

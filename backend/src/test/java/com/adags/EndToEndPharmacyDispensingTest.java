@@ -154,6 +154,7 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
         Patient patient = registerPatientService.register(patientCommand("Blister", "Patient", admin));
         Encounter encounter = openEncounterService.checkIn(
                 new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
+        recordPregnancyStatus(encounter.id(), admin);
         PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
                 encounter.id(), itemId, 3, "As directed", false, admin,
                 "ORAL", 1.0, "CAPSULE", null, null, 1, "BLISTER"));
@@ -452,6 +453,7 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
         Patient patient = registerPatientService.register(patientCommand("Amina", "Hassan", admin));
         Encounter encounter = openEncounterService.checkIn(
                 new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
+        recordPregnancyStatus(encounter.id(), admin);
         PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
                 encounter.id(), itemId, 30, "TAKE ONE TABLET THREE TIMES A DAY", false, admin,
                 null, null, null, null, null));
@@ -464,6 +466,7 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
                 patientCommand("Test" + UUID.randomUUID().toString().substring(0, 6), "Patient", admin));
         Encounter encounter = openEncounterService.checkIn(
                 new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
+        recordPregnancyStatus(encounter.id(), admin);
         PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
                 encounter.id(), itemId, quantity, "TAKE ONE TABLET THREE TIMES A DAY", false, admin,
                 null, null, null, null, null));
@@ -473,6 +476,13 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
 
     private void payFor(Fixture fixture, UUID admin) {
         payLine(fixture.prescriptionLine.invoiceLineId(), fixture.patientId, admin);
+    }
+
+    private void recordPregnancyStatus(UUID encounterId, UUID actorId) {
+        jdbcTemplate.update("""
+                INSERT INTO consultation_pregnancy_assessment (encounter_id, status, recorded_by)
+                VALUES (:encounterId, 'NO', :actorId)
+                """, new MapSqlParameterSource().addValue("encounterId", encounterId).addValue("actorId", actorId));
     }
 
     private void payLine(UUID invoiceLineId, UUID patientId, UUID admin) {

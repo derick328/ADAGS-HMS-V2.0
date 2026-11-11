@@ -286,6 +286,10 @@ class EndToEndSubstitutionAndUnavailableTest extends IntegrationTestSupport {
                 patientCommand("Test" + UUID.randomUUID().toString().substring(0, 6), "Patient", admin));
         Encounter encounter = openEncounterService.checkIn(
                 new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
+        jdbcTemplate.update("""
+                INSERT INTO consultation_pregnancy_assessment (encounter_id, status, recorded_by)
+                VALUES (:encounterId, 'NO', :actorId)
+                """, new MapSqlParameterSource().addValue("encounterId", encounter.id()).addValue("actorId", admin));
         return placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
                 encounter.id(), itemId, quantity, "TAKE ONE TABLET THREE TIMES A DAY", substitutionAllowed, admin,
                 null, null, null, null, null));

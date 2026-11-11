@@ -145,6 +145,8 @@ class AppointmentSchedulingTest extends IntegrationTestSupport {
         UUID sourceEncounterId = insertFixtureEncounter(patientId);
         UUID departmentId = jdbcTemplate.queryForObject("SELECT department_id FROM encounter WHERE id = :id",
                 new MapSqlParameterSource("id", sourceEncounterId), UUID.class);
+        jdbcTemplate.update("UPDATE department SET name = 'Diabetes' WHERE id = :id",
+                new MapSqlParameterSource("id", departmentId));
         UUID doctor = bootstrapAdminId();
         jdbcTemplate.update("UPDATE encounter SET assigned_provider_id = :doctor WHERE id = :id",
                 new MapSqlParameterSource().addValue("doctor", doctor).addValue("id", sourceEncounterId));
@@ -170,6 +172,8 @@ class AppointmentSchedulingTest extends IntegrationTestSupport {
         UUID sourceEncounterId = insertFixtureEncounter(patientId);
         UUID departmentId = jdbcTemplate.queryForObject("SELECT department_id FROM encounter WHERE id = :id",
                 new MapSqlParameterSource("id", sourceEncounterId), UUID.class);
+        jdbcTemplate.update("UPDATE department SET name = 'General review' WHERE id = :id",
+                new MapSqlParameterSource("id", departmentId));
         UUID doctor = bootstrapAdminId();
         jdbcTemplate.update("UPDATE encounter SET assigned_provider_id = :doctor WHERE id = :id",
                 new MapSqlParameterSource().addValue("doctor", doctor).addValue("id", sourceEncounterId));
