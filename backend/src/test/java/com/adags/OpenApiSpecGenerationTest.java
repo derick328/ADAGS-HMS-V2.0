@@ -56,6 +56,6 @@ class OpenApiSpecGenerationTest extends IntegrationTestSupport {
 
         Path outputPath = Path.of("..", "api", "openapi.yaml");
         Files.createDirectories(outputPath.getParent());
-        Files.writeString(outputPath, yaml);
+        Files.writeString(outputPath, OpenApiYamlNormalizer.sortResponseCodes(yaml));
     }
 }

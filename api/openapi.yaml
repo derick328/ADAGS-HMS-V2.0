@@ -245,12 +245,12 @@ paths:
                 $ref: "#/components/schemas/PriceChange"
         "400":
           description: Invalid amount
-        "409":
-          description: "Inactive, unpriced, or concurrently changed item"
-        "404":
-          description: Item not found
         "403":
           description: Insufficient permission
+        "404":
+          description: Item not found
+        "409":
+          description: "Inactive, unpriced, or concurrently changed item"
       security:
       - bearerAuth: []
   /me/change-password:
@@ -1073,18 +1073,18 @@ paths:
               $ref: "#/components/schemas/CollectSpecimenRequest"
         required: true
       responses:
-        "400":
-          description: Invalid sample assessment
-        "402":
-          description: Payment authorization required
-        "403":
-          description: Insufficient permission
         "201":
           description: Created
           content:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SpecimenResponse"
+        "400":
+          description: Invalid sample assessment
+        "402":
+          description: Payment authorization required
+        "403":
+          description: Insufficient permission
       security:
       - bearerAuth: []
   /api/shift-assignments:
