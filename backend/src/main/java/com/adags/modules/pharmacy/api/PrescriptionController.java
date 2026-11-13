@@ -100,11 +100,10 @@ public class PrescriptionController {
     }
 
     // 12-pharmacist.md §4: the Dashboard's / Dispense Queue's single source
-    // list. One flat row per open line; the frontend buckets into the six
-    // queues (ready / partially payable / awaiting payment / emergency /
-    // inpatient — surgery items deferred with the surgery module) and
-    // sorts, same "server returns the data, client owns the tab split"
-    // pattern LabOrderController's /queue documents. Unscoped by facility,
+    // list. Only lines whose live billing gate is satisfied are sent to
+    // pharmacy; unpaid lines remain on the doctor's order and appear here
+    // after reception records payment. The client buckets eligible lines
+    // into ready / emergency / inpatient. Unscoped by facility,
     // same reasoning as LabOrderController#queue (no multi-facility
     // pharmacist role exists yet to distinguish).
     @GetMapping("/queue")
@@ -127,6 +126,7 @@ public class PrescriptionController {
                             order.encounterId(), inpatientFacade::findActiveAdmissionWard);
                     return toQueueRow(line, order, ward);
                 })
+                .filter(PrescriptionQueueRowResponse::gateSatisfied)
                 .toList();
     }
 

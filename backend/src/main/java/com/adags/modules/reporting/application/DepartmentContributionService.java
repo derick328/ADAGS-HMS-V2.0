@@ -52,8 +52,9 @@ public class DepartmentContributionService {
                 GROUP BY e.department_id
                 """, params));
 
-        Map<UUID, Long> pharmacyCostByDepartment = amountByDepartment(jdbcTemplate.queryForList("""
-                SELECT e.department_id AS department_id, SUM(dl.quantity * dl.unit_cost_amount_minor) AS total_minor
+        Map<UUID, Long> pharmacyCostByDepartment = nullableAmountByDepartment(jdbcTemplate.queryForList("""
+                SELECT e.department_id AS department_id,
+                       CASE WHEN BOOL_AND(dl.cost_known) THEN SUM(dl.quantity * dl.unit_cost_amount_minor) END AS total_minor
                 FROM dispense_line dl
                 JOIN dispense d ON d.id = dl.dispense_id
                 JOIN prescription_line pl ON pl.id = d.prescription_line_id
@@ -68,11 +69,12 @@ public class DepartmentContributionService {
                     UUID departmentId = entry.getKey();
                     long cash = cashByDepartment.getOrDefault(departmentId, 0L);
                     long insurance = insuranceByDepartment.getOrDefault(departmentId, 0L);
-                    long pharmacyCost = pharmacyCostByDepartment.getOrDefault(departmentId, 0L);
+                    Long pharmacyCost = pharmacyCostByDepartment.getOrDefault(departmentId, 0L);
                     return new DepartmentContribution(departmentId, entry.getValue(), cash, insurance, pharmacyCost,
-                            cash + insurance - pharmacyCost, "TZS", false, false);
+                            pharmacyCost == null ? null : cash + insurance - pharmacyCost, "TZS", false, false);
                 })
-                .filter(line -> line.cashCollectedMinor() != 0 || line.insuranceBilledMinor() != 0 || line.pharmacyCostMinor() != 0)
+                .filter(line -> line.cashCollectedMinor() != 0 || line.insuranceBilledMinor() != 0
+                        || line.pharmacyCostMinor() == null || line.pharmacyCostMinor() != 0)
                 .sorted((a, b) -> a.departmentName().compareTo(b.departmentName()))
                 .toList();
     }
@@ -83,6 +85,15 @@ public class DepartmentContributionService {
             UUID departmentId = (UUID) row.get("department_id");
             Number totalMinor = (Number) row.get("total_minor");
             result.put(departmentId, totalMinor == null ? 0L : totalMinor.longValue());
+        }
+        return result;
+    }
+
+    private Map<UUID, Long> nullableAmountByDepartment(List<Map<String, Object>> rows) {
+        Map<UUID, Long> result = new HashMap<>();
+        for (Map<String, Object> row : rows) {
+            Number totalMinor = (Number) row.get("total_minor");
+            result.put((UUID) row.get("department_id"), totalMinor == null ? null : totalMinor.longValue());
         }
         return result;
     }

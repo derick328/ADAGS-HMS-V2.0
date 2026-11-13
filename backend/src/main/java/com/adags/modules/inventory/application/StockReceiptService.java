@@ -76,24 +76,25 @@ public class StockReceiptService {
                           String supplierName, UUID receivedBy, String receivedByName,
                           String invoiceNumber, String deliveryNoteNumber,
                           LocalDate invoiceDate, LocalDate deliveryDate, String notes,
-                          long totalReceivedCostMinor,
-                          long totalAcceptedCostMinor, String currencyCode, Instant confirmedAt,
+                          Long totalReceivedCostMinor,
+                          Long totalAcceptedCostMinor, String currencyCode, Instant confirmedAt,
                           List<LineResult> lines) {
     }
 
     public record LineResult(UUID id, UUID itemId, String itemName, String baseUnit,
-                             String purchaseUnit, int factor, int receivedQuantity,
+                             String purchaseUnit, int factor, Integer blistersPerPack,
+                             Integer unitsPerBlister, int receivedQuantity,
                              int acceptedQuantity, int rejectedQuantity, int missingQuantity,
-                             int acceptedBaseQuantity, int rejectedBaseQuantity, long receivedCostMinor,
-                             long acceptedCostMinor, String batchNumber, LocalDate expiryDate,
-                             Integer orderedQuantity, long unitPurchaseCostMinor,
+                             int acceptedBaseQuantity, int rejectedBaseQuantity, Long receivedCostMinor,
+                             Long acceptedCostMinor, String batchNumber, LocalDate expiryDate,
+                             Integer orderedQuantity, Long unitPurchaseCostMinor,
                              String discrepancyReason, String notes) {
     }
 
     private record Prepared(StockReceiptRequest.Line input, Item item,
                             MedicinePackagingService.Packaging packageDefinition,
                             int missing, int acceptedBase, int rejectedBase,
-                            long receivedCost, long acceptedCost) {
+                            Long receivedCost, Long acceptedCost) {
     }
 
     @Transactional
@@ -116,9 +117,15 @@ public class StockReceiptService {
             throw new IllegalArgumentException("Invoice and delivery dates cannot be in the future");
         }
         List<Prepared> prepared = new ArrayList<>();
-        long totalReceived = 0;
-        long totalAccepted = 0;
+        Long totalReceived = 0L;
+        Long totalAccepted = 0L;
         for (StockReceiptRequest.Line line : request.lines()) {
+            if (line.receivedQuantity() < 0 || line.acceptedQuantity() < 0 || line.rejectedQuantity() < 0
+                    || line.acceptedQuantity() > line.receivedQuantity()
+                    || line.rejectedQuantity() > line.receivedQuantity()
+                    || line.unitPurchaseCostMinor() != null && line.unitPurchaseCostMinor() < 0) {
+                throw new IllegalArgumentException("Receipt quantities and cost must be nonnegative and accepted/rejected cannot exceed received");
+            }
             if (line.receivedQuantity() == 0 && (line.orderedQuantity() == null || line.orderedQuantity() == 0)) {
                 throw new IllegalArgumentException("A receipt line needs an ordered or received quantity");
             }
@@ -129,10 +136,25 @@ public class StockReceiptService {
                 throw new IllegalArgumentException("Medicine is inactive");
             }
             MedicinePackagingService.Packaging selected = packaging.approved(item.id(), line.purchaseUnit());
+            if ((line.blistersPerPack() == null) != (line.unitsPerBlister() == null)) {
+                throw new IllegalArgumentException("Enter both blisters per pack and units per blister");
+            }
+            if (line.blistersPerPack() != null) {
+                if (line.blistersPerPack() <= 0 || line.unitsPerBlister() <= 0
+                        || Math.multiplyExact(line.blistersPerPack(), line.unitsPerBlister()) != selected.factor()
+                        || selected.blistersPerPack() != null && !selected.blistersPerPack().equals(line.blistersPerPack())
+                        || selected.unitsPerBlister() != null && !selected.unitsPerBlister().equals(line.unitsPerBlister())) {
+                    throw new IllegalArgumentException("Blister counts must match the approved pack conversion");
+                }
+            }
+            if (!selected.canSplit() && line.unitPurchaseCostMinor() != null
+                    && line.unitPurchaseCostMinor() % selected.factor() != 0) {
+                throw new IllegalArgumentException("Cost of a sealed package must divide exactly across its inventory units");
+            }
             if (!line.expiryDate().isAfter(today)) {
                 throw new IllegalArgumentException("Expiry date must be after the facility-local date");
             }
-            if (line.receivedQuantity() != line.acceptedQuantity() + line.rejectedQuantity()) {
+            if (line.receivedQuantity() != Math.addExact(line.acceptedQuantity(), line.rejectedQuantity())) {
                 throw new IllegalArgumentException("Received quantity must equal accepted plus rejected");
             }
             int missing = line.orderedQuantity() == null ? 0
@@ -144,10 +166,12 @@ public class StockReceiptService {
             }
             int acceptedBase = Math.multiplyExact(line.acceptedQuantity(), selected.factor());
             int rejectedBase = Math.multiplyExact(line.rejectedQuantity(), selected.factor());
-            long receivedCost = Math.multiplyExact((long) line.receivedQuantity(), line.unitPurchaseCostMinor());
-            long acceptedCost = Math.multiplyExact((long) line.acceptedQuantity(), line.unitPurchaseCostMinor());
-            totalReceived = Math.addExact(totalReceived, receivedCost);
-            totalAccepted = Math.addExact(totalAccepted, acceptedCost);
+            Long receivedCost = line.unitPurchaseCostMinor() == null ? null
+                    : Math.multiplyExact((long) line.receivedQuantity(), line.unitPurchaseCostMinor());
+            Long acceptedCost = line.unitPurchaseCostMinor() == null ? null
+                    : Math.multiplyExact((long) line.acceptedQuantity(), line.unitPurchaseCostMinor());
+            totalReceived = totalReceived == null || receivedCost == null ? null : Math.addExact(totalReceived, receivedCost);
+            totalAccepted = totalAccepted == null || acceptedCost == null ? null : Math.addExact(totalAccepted, acceptedCost);
             prepared.add(new Prepared(line, item, selected, missing, acceptedBase, rejectedBase,
                     receivedCost, acceptedCost));
         }
@@ -192,11 +216,13 @@ public class StockReceiptService {
                        quantity_in_base_units, ordered_quantity, received_quantity, accepted_quantity,
                        rejected_quantity, missing_quantity, accepted_base_quantity, rejected_base_quantity,
                        batch_number, expiry_date, unit_purchase_cost_minor, received_cost_minor,
-                       accepted_cost_minor, discrepancy_reason, notes)
+                       accepted_cost_minor, discrepancy_reason, notes,
+                       blisters_per_pack, units_per_blister)
                     VALUES (:id, :receiptId, :lineNumber, :itemId, :packagingId, :unit,
                             :factor, :ordered, :received, :accepted, :rejected, :missing,
                             :acceptedBase, :rejectedBase, :batch, :expiry, :unitCost,
-                            :receivedCost, :acceptedCost, :reason, :notes)
+                            :receivedCost, :acceptedCost, :reason, :notes,
+                            :blistersPerPack, :unitsPerBlister)
                     """, new MapSqlParameterSource().addValue("id", lineId).addValue("receiptId", receiptId)
                     .addValue("lineNumber", ++index).addValue("itemId", p.item().id())
                     .addValue("packagingId", p.packageDefinition().id()).addValue("unit", p.packageDefinition().unit())
@@ -207,11 +233,13 @@ public class StockReceiptService {
                     .addValue("batch", line.batchNumber().trim()).addValue("expiry", line.expiryDate())
                     .addValue("unitCost", line.unitPurchaseCostMinor()).addValue("receivedCost", p.receivedCost())
                     .addValue("acceptedCost", p.acceptedCost()).addValue("reason", line.discrepancyReason())
-                    .addValue("notes", line.notes()));
+                    .addValue("notes", line.notes())
+                    .addValue("blistersPerPack", line.blistersPerPack())
+                    .addValue("unitsPerBlister", line.unitsPerBlister()));
             int multiple = p.packageDefinition().canSplit() ? 1 : p.packageDefinition().factor();
             receiveTranches(p, lineId, store, supplier, request.deliveryNoteNumber(), actorId,
                     p.acceptedBase(), p.acceptedCost(), StockBatchStatus.ACTIVE, multiple);
-            long rejectedCost = p.receivedCost() - p.acceptedCost();
+            Long rejectedCost = p.receivedCost() == null ? null : p.receivedCost() - p.acceptedCost();
             receiveTranches(p, lineId, store, supplier, request.deliveryNoteNumber(), actorId,
                     p.rejectedBase(), rejectedCost, StockBatchStatus.QUARANTINED, multiple);
         }
@@ -222,9 +250,14 @@ public class StockReceiptService {
     }
 
     private void receiveTranches(Prepared p, UUID lineId, Store store, Supplier supplier,
-                                 String deliveryNote, UUID actorId, int baseQuantity, long value,
+                                 String deliveryNote, UUID actorId, int baseQuantity, Long value,
                                  StockBatchStatus status, int multiple) {
         if (baseQuantity == 0) return;
+        if (value == null) {
+            receiveTranche(p, lineId, store, supplier, deliveryNote, actorId,
+                    baseQuantity, 0, status, multiple);
+            return;
+        }
         long floorCost = value / baseQuantity;
         int higherCostUnits = Math.toIntExact(value % baseQuantity);
         int lowerCostUnits = baseQuantity - higherCostUnits;
@@ -242,10 +275,12 @@ public class StockReceiptService {
                 line.batchNumber().trim(), line.expiryDate(), new Money(unitCost, "TZS"),
                 supplier.id(), deliveryNote.trim(), status, actorId, null, line.notes()));
         jdbc.update("""
-                UPDATE stock_batch SET receipt_line_id = :lineId, dispense_multiple_base = :multiple
+                UPDATE stock_batch SET receipt_line_id = :lineId, dispense_multiple_base = :multiple,
+                    cost_known = :costKnown
                 WHERE id = :id
                 """, new MapSqlParameterSource().addValue("lineId", lineId)
-                .addValue("multiple", multiple).addValue("id", saved.id()));
+                .addValue("multiple", multiple).addValue("costKnown", line.unitPurchaseCostMinor() != null)
+                .addValue("id", saved.id()));
         balances.applyDelta(p.item().id(), saved.id(), store.id(), quantity);
         movements.insert(StockMovement.record(p.item().id(), saved.id(), store.id(), quantity,
                 MovementType.RECEIPT, "STOCK_RECEIPT_LINE", lineId, actorId));
@@ -268,8 +303,8 @@ public class StockReceiptService {
                 rs.getString("invoice_number"),
                 rs.getString("delivery_note_number"), rs.getDate("invoice_date").toLocalDate(),
                 rs.getDate("delivery_date").toLocalDate(), rs.getString("notes"),
-                rs.getLong("total_received_cost_minor"),
-                rs.getLong("total_accepted_cost_minor"), rs.getString("currency_code"),
+                rs.getObject("total_received_cost_minor", Long.class),
+                rs.getObject("total_accepted_cost_minor", Long.class), rs.getString("currency_code"),
                 rs.getTimestamp("confirmed_at").toInstant(), findLines(id)));
         return rows.stream().findFirst().orElseThrow(() -> new NoSuchElementException("Receipt not found"));
     }
@@ -277,7 +312,8 @@ public class StockReceiptService {
     private List<LineResult> findLines(UUID receiptId) {
         return jdbc.query("""
                 SELECT l.id, l.item_id, i.name AS item_name, i.unit AS base_unit,
-                       l.purchase_unit, l.quantity_in_base_units, l.received_quantity,
+                       l.purchase_unit, l.quantity_in_base_units, l.blisters_per_pack,
+                       l.units_per_blister, l.received_quantity,
                        accepted_quantity, rejected_quantity, missing_quantity, accepted_base_quantity,
                        rejected_base_quantity, received_cost_minor, accepted_cost_minor,
                        batch_number, expiry_date, ordered_quantity,
@@ -288,13 +324,14 @@ public class StockReceiptService {
                 """, new MapSqlParameterSource("id", receiptId), (rs, row) -> new LineResult(
                 (UUID) rs.getObject("id"), (UUID) rs.getObject("item_id"),
                 rs.getString("item_name"), rs.getString("base_unit"), rs.getString("purchase_unit"),
-                rs.getInt("quantity_in_base_units"), rs.getInt("received_quantity"),
+                rs.getInt("quantity_in_base_units"), (Integer) rs.getObject("blisters_per_pack"),
+                (Integer) rs.getObject("units_per_blister"), rs.getInt("received_quantity"),
                 rs.getInt("accepted_quantity"), rs.getInt("rejected_quantity"),
                 rs.getInt("missing_quantity"), rs.getInt("accepted_base_quantity"),
-                rs.getInt("rejected_base_quantity"), rs.getLong("received_cost_minor"),
-                rs.getLong("accepted_cost_minor"), rs.getString("batch_number"),
+                rs.getInt("rejected_base_quantity"), rs.getObject("received_cost_minor", Long.class),
+                rs.getObject("accepted_cost_minor", Long.class), rs.getString("batch_number"),
                 rs.getDate("expiry_date").toLocalDate(),
-                (Integer) rs.getObject("ordered_quantity"), rs.getLong("unit_purchase_cost_minor"),
+                (Integer) rs.getObject("ordered_quantity"), rs.getObject("unit_purchase_cost_minor", Long.class),
                 rs.getString("discrepancy_reason"), rs.getString("notes")));
     }
 

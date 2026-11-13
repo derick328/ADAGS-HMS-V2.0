@@ -10,6 +10,7 @@ export function landingRouteFor(roleCodes: string[], permissions: string[]): str
   if (roles.has('TRIAGE_NURSE')) return '/triage';
   if (roles.has('RECEPTIONIST')) return '/receptionist';
   if (roles.has('ADMIN')) return '/admin';
+  if (roles.has('ACCOUNTANT') && perms.has('PACKAGING_APPROVE')) return '/admin/packaging-approvals';
 
   // Custom roles may carry workspace permissions without a standard role code.
   if (perms.has('LAB_QUEUE_READ') || perms.has('SPECIMEN_ACCEPT') || perms.has('LAB_RESULT_ENTER')) return '/lab';
@@ -19,6 +20,7 @@ export function landingRouteFor(roleCodes: string[], permissions: string[]): str
   if (perms.has('VITALS_CREATE') && !perms.has('WARD_PATIENT_READ')) return '/triage';
   if (perms.has('PAYMENT_CREATE') || perms.has('PATIENT_REGISTER')) return '/receptionist';
   if (perms.has('USER_MANAGE')) return '/admin';
+  if (perms.has('PACKAGING_APPROVE')) return '/admin/packaging-approvals';
 
   return '/access-pending';
 }

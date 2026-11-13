@@ -5,13 +5,14 @@ import com.adags.modules.pharmacy.domain.DispenseLine;
 import java.util.UUID;
 
 public record DispenseLineResponse(
-        UUID id, UUID itemId, UUID batchId, int quantity, long unitCostAmountMinor, String unitCostCurrencyCode,
+        UUID id, UUID itemId, UUID batchId, int quantity, Long unitCostAmountMinor, String unitCostCurrencyCode,
         String fefoOverrideReason, int requestedQuantity, String requestedUnit, int conversionFactor
 ) {
 
     public static DispenseLineResponse from(DispenseLine line) {
         return new DispenseLineResponse(line.id(), line.itemId(), line.batchId(), line.quantity(),
-                line.unitCost().amountMinor(), line.unitCost().currencyCode(), line.fefoOverrideReason(),
+                line.costKnown() ? line.unitCost().amountMinor() : null,
+                line.unitCost().currencyCode(), line.fefoOverrideReason(),
                 line.requestedQuantity(), line.requestedUnit(), line.conversionFactor());
     }
 }

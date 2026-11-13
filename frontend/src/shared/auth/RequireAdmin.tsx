@@ -13,7 +13,8 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
     </main>;
   }
 
-  if (!me.scopes?.some((scope) => scope.roleCode === 'ADMIN') && !me.permissions?.includes('USER_MANAGE')) {
+  if (!me.scopes?.some((scope) => scope.roleCode === 'ADMIN') &&
+      !me.permissions?.includes('USER_MANAGE') && !me.permissions?.includes('PACKAGING_APPROVE')) {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;

@@ -7,13 +7,9 @@ import { formatWaitingSince } from '../../shared/format/date';
 import { QueueShell, type QueueRow, type QueueTab } from '../../shared/components/QueueShell';
 import { bucketOf, comparePharmacyQueueRows, countByBucket, type PharmacyQueueTabKey } from './pharmacyQueueBuckets';
 
-// 12-pharmacist.md §4: "Action queues only, no data entry." Five tabs over
-// one flat queue response (surgery items deferred with the surgery
-// module, no row exists for them here).
+// Only authorized prescriptions appear in the pharmacy queue.
 const TAB_ORDER: { key: PharmacyQueueTabKey; label: string }[] = [
   { key: 'ready', label: 'Ready to dispense' },
-  { key: 'partiallyPayable', label: 'Partially payable' },
-  { key: 'awaitingPayment', label: 'Awaiting payment' },
   { key: 'emergency', label: 'Emergency' },
   { key: 'inpatient', label: 'Inpatient / ward' },
 ];
@@ -41,8 +37,7 @@ export function DashboardPage() {
 
   // Auto-land on the first non-empty tab if 'ready' is empty — otherwise
   // a pharmacist opening the dashboard right after payment sees "No
-  // prescriptions ready" and assumes the order never arrived, when in
-  // fact the row is one tab over (Awaiting payment / Emergency / etc.).
+  // prescriptions ready" when the row is in Emergency or Inpatient.
   // Runs only until the user picks a tab themselves, so the auto-switch
   // never yanks the view out from under them once they're navigating.
   useEffect(() => {
@@ -70,7 +65,7 @@ export function DashboardPage() {
       </div>
       <QueueShell
         title="Dashboard"
-        rows={visibleRows.map((row) => toQueueRow(row, activeTab, navigate))}
+        rows={visibleRows.map((row) => toQueueRow(row, navigate))}
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={(key) => {
@@ -88,10 +83,6 @@ function emptyMessageFor(tab: PharmacyQueueTabKey): string {
   switch (tab) {
     case 'ready':
       return 'No prescriptions ready to dispense.';
-    case 'partiallyPayable':
-      return 'No partially-paid prescriptions right now.';
-    case 'awaitingPayment':
-      return 'No prescriptions waiting on payment.';
     case 'emergency':
       return 'No emergency-bypass prescriptions right now.';
     case 'inpatient':
@@ -101,14 +92,13 @@ function emptyMessageFor(tab: PharmacyQueueTabKey): string {
 
 function toQueueRow(
   row: PrescriptionQueueRowResponse,
-  tab: PharmacyQueueTabKey,
   navigate: ReturnType<typeof useNavigate>,
 ): QueueRow {
   const remaining = row.remaining ?? 0;
 
   return {
     id: row.prescriptionLineId as string,
-    isEmergency: tab === 'emergency',
+    isEmergency: Boolean(row.isEmergencyBypass),
     primary: (
       <>
         {row.patientName ?? 'Unknown patient'}
@@ -124,18 +114,14 @@ function toQueueRow(
       </>
     ),
     meta: formatWaitingSince(row.prescribedAt),
-    action: renderAction(row, tab, navigate),
+    action: renderAction(row, navigate),
   };
 }
 
 function renderAction(
   row: PrescriptionQueueRowResponse,
-  tab: PharmacyQueueTabKey,
   navigate: ReturnType<typeof useNavigate>,
 ): React.ReactNode {
-  if (tab === 'awaitingPayment' || (tab === 'partiallyPayable' && !row.gateSatisfied)) {
-    return null; // §4: visible, not actionable — line-level gating not yet satisfied.
-  }
   return (
     <button type="button" className="btn btn-primary" onClick={() => navigate(`/pharmacy/dispense/${row.prescriptionLineId}`)}>
       Dispense

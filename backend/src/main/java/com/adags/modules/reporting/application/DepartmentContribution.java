@@ -20,8 +20,8 @@ public record DepartmentContribution(
         String departmentName,
         long cashCollectedMinor,
         long insuranceBilledMinor,
-        long pharmacyCostMinor,
-        long contributionMinor,
+        Long pharmacyCostMinor,
+        Long contributionMinor,
         String currencyCode,
         boolean consumablesCostCaptured,
         boolean attributableSalariesCaptured

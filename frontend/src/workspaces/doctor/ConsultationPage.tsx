@@ -1,5 +1,4 @@
 import { PreviousMedicalHistory } from './PreviousMedicalHistory';
-import { Radio } from '../../shared/components/Radio';
 import { Checkbox } from '../../shared/components/Checkbox';
 import { FormField as FormRow } from '../../shared/components/FormField';
 import { FormSection } from '../../shared/components/FormSection';
@@ -39,7 +38,6 @@ import {
 import { fetchEncounterById, fetchEncountersByPatient } from '../../shared/api/encounters';
 import { recordIcd10Selection, searchIcd10, type Icd10SearchResult } from '../../shared/api/icd10';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
-import { fetchMedicinePackaging } from '../../shared/api/medicinePackaging';
 import { fetchLabOrdersByEncounter, placeLabOrder, type LabOrderUrgency } from '../../shared/api/labOrders';
 import { fetchLabTests, fetchPendingLabClassifications } from '../../shared/api/labTests';
 import { fetchPatientById, type PatientResponse } from '../../shared/api/patients';
@@ -1650,56 +1648,50 @@ function PrescriptionTab({
   const priceSearchRequestId = useRef(0);
   const [pending, setPending] = useState<ItemSearchResultResponse | null>(null);
   const [priceMinor, setPriceMinor] = useState<number | null>(null);
-  const [mode, setMode] = useState<'whole' | 'structured'>('whole');
   const [wholeQuantity, setWholeQuantity] = useState(1);
   const [quantityPerDose, setQuantityPerDose] = useState(1);
   const [frequency, setFrequency] = useState<PrescriptionFrequency>('OD');
   const [durationDays, setDurationDays] = useState(3);
   const [dosageInstructions, setDosageInstructions] = useState('');
   const [route, setRoute] = useState('Oral');
-  const [selectedUnit, setSelectedUnit] = useState('');
   const [sendResult, setSendResult] = useState<string | null>(null);
 
-  const { data: stock } = useQuery({
+  const { data: stock, isError: stockError } = useQuery({
     queryKey: ['stock-reports', 'current-stock'],
     queryFn: () => fetchCurrentStock(accessToken as string),
     enabled: accessToken != null,
     staleTime: 30_000,
   });
 
-  const { data: medicinePackages } = useQuery({
-    queryKey: ['medicine-packaging', pending?.id],
-    queryFn: () => fetchMedicinePackaging(pending?.id as string, accessToken as string),
-    enabled: accessToken != null && pending?.id != null,
-  });
   const stockByItem = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, { available: number; expired: number }> = {};
     (stock ?? []).forEach((row) => {
       if (!row.itemId) return;
-      map[row.itemId] = (map[row.itemId] ?? 0) + (row.quantity ?? 0);
+      const totals = map[row.itemId] ?? { available: 0, expired: 0 };
+      totals.available += row.availableQuantity ?? (row.stockStatus === 'ACTIVE' ? row.quantity ?? 0 : 0);
+      if (row.stockStatus === 'EXPIRED') totals.expired += row.quantity ?? 0;
+      map[row.itemId] = totals;
     });
     return map;
   }, [stock]);
 
   function stockStatus(itemId?: string): { label: string; className: string } {
-    const qty = itemId ? stockByItem[itemId] ?? 0 : 0;
-    if (qty <= 0) return { label: 'Out of stock', className: 'badge-critical' };
-    if (qty < 10) return { label: `Low stock — ${qty}`, className: 'badge-warning' };
-    return { label: `In stock — ${qty}`, className: 'badge-success' };
+    if (stockError) return { label: 'Stock unavailable', className: 'badge-neutral' };
+    if (!stock) return { label: 'Checking stock', className: 'badge-neutral' };
+    const totals = itemId ? stockByItem[itemId] : undefined;
+    if (totals?.available) return { label: `In stock — ${totals.available}`, className: 'badge-success' };
+    if (totals?.expired) return { label: 'Expired', className: 'badge-critical' };
+    return { label: 'Out of stock', className: 'badge-neutral' };
   }
 
   const dosesPerDay = FREQUENCY_DOSES_PER_DAY[frequency];
-  const requestedQuantity =
-    mode === 'whole' ? wholeQuantity : dosesPerDay != null ? quantityPerDose * dosesPerDay * durationDays : wholeQuantity;
+  const requestedQuantity = dosesPerDay != null ? quantityPerDose * dosesPerDay * durationDays : wholeQuantity;
   const baseUnit = pending?.unit || 'unit';
-  const effectiveUnit = mode === 'structured' ? baseUnit : selectedUnit || baseUnit;
-  const selectedPackage = medicinePackages?.find((p) => p.unit === effectiveUnit);
-  const conversionFactor = effectiveUnit.toUpperCase() === baseUnit.toUpperCase() ? 1 : selectedPackage?.factor ?? 0;
-  const computedQuantity = requestedQuantity * conversionFactor;
+  const computedQuantity = requestedQuantity;
   const overCeiling = computedQuantity > QUANTITY_SANITY_CEILING;
 
   function addLine() {
-    if (!pending || conversionFactor <= 0 || !Number.isSafeInteger(computedQuantity) || computedQuantity <= 0) return;
+    if (!pending || !Number.isSafeInteger(computedQuantity) || computedQuantity <= 0) return;
     setLines((prev) => [
       ...prev,
       {
@@ -1708,13 +1700,13 @@ function PrescriptionTab({
         priceMinor,
         quantity: computedQuantity,
         requestedQuantity,
-        requestedUnit: effectiveUnit,
-        dosageInstructions: dosageInstructions || `${route}, ${mode === 'whole' ? `${wholeQuantity} total` : `${frequency} x${durationDays}d`}`,
+        requestedUnit: baseUnit,
+        dosageInstructions: dosageInstructions || `${route}, ${frequency === 'PRN' ? `${wholeQuantity} total` : `${frequency} x${durationDays}d`}`,
         route,
-        doseAmount: mode === 'structured' ? quantityPerDose : undefined,
-        doseUnit: mode === 'structured' ? 'unit' : undefined,
-        frequency: mode === 'structured' ? frequency : undefined,
-        durationDays: mode === 'structured' ? durationDays : undefined,
+        doseAmount: frequency === 'PRN' ? undefined : quantityPerDose,
+        doseUnit: frequency === 'PRN' ? undefined : 'unit',
+        frequency,
+        durationDays: frequency === 'PRN' ? undefined : durationDays,
         quantityPerDose,
       },
     ]);
@@ -1757,7 +1749,7 @@ function PrescriptionTab({
       setSendResult(
         encounter?.type === 'EMERGENCY'
           ? 'Emergency bypass — pharmacy can dispense now. Charges added to the emergency balance.'
-          : 'Patient must pay at reception before pharmacy dispenses.',
+          : 'Prescriptions appear in pharmacy after reception payment or coverage is confirmed.',
       );
     },
   });
@@ -1792,12 +1784,13 @@ function PrescriptionTab({
             <span style={{ opacity: o.selectable === false ? 0.5 : 1 }}>
               {o.name} {o.strength} {o.form}
               {o.selectable === false && <em> — {o.unselectableReason}</em>}
+              {' '}<span className={`badge ${stockStatus(o.id).className}`}>{stockStatus(o.id).label}</span>
+              {!!stockByItem[o.id as string]?.available && !!stockByItem[o.id as string]?.expired && <>{' '}<span className="badge badge-critical">Expired batch</span></>}
             </span>
           )}
           isOptionDisabled={(o) => o.selectable === false}
           onSelect={(o) => {
             setPending(o);
-            setSelectedUnit(o.unit ?? '');
             setPriceMinor(latestPriceByCode.current[o.code as string]?.priceMinor ?? null);
           }}
         />
@@ -1811,6 +1804,7 @@ function PrescriptionTab({
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
             <strong>{pending.name}</strong>
             <span className={`badge ${stockStatus(pending.id).className}`}>{stockStatus(pending.id).label}</span>
+            {!!stockByItem[pending.id as string]?.available && !!stockByItem[pending.id as string]?.expired && <span className="badge badge-critical">Expired batch</span>}
             {priceMinor != null && <span>{formatMoney(priceMinor, 'TZS')}</span>}
           </div>
 
@@ -1820,23 +1814,7 @@ function PrescriptionTab({
             </div>
           )}
 
-          <Radio  className="clinical-choice" checked={mode === 'whole'} onChange={() => setMode('whole')} label={<>Dispense as whole</>} />
-          <Radio  className="clinical-choice" checked={mode === 'structured'} onChange={() => setMode('structured')} label={<>Structured dosing</>} />
-
-          {mode === 'whole' ? (
-            <div className="clinical-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
-              <FormRow label="Requested quantity">
-                <input className="clinical-control" type="number" min={1} value={wholeQuantity} onChange={(e) => setWholeQuantity(Number(e.target.value))} style={fieldStyle} />
-              </FormRow>
-              <FormRow label="Requested unit">
-                <select className="clinical-control" value={effectiveUnit} onChange={(e) => setSelectedUnit(e.target.value)} style={fieldStyle}>
-                  <option value={baseUnit}>{baseUnit}</option>
-                  {(medicinePackages ?? []).map((p) => <option key={p.id} value={p.unit}>{p.unit}</option>)}
-                </select>
-              </FormRow>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)', flexWrap: 'wrap' }}>
               <FormRow label="Quantity per dose">
                 <input className="clinical-control" type="number" min={1} value={quantityPerDose} onChange={(e) => setQuantityPerDose(Number(e.target.value))} style={fieldStyle} />
               </FormRow>
@@ -1861,10 +1839,9 @@ function PrescriptionTab({
               <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', alignSelf: 'center' }}>
                 = {computedQuantity} {baseUnit}
               </div>
-            </div>
-          )}
+          </div>
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-            {requestedQuantity} {effectiveUnit} = {computedQuantity} {baseUnit}
+            Total: {computedQuantity} {baseUnit}
           </p>
           {overCeiling && <p className="field-error">Quantity looks unusually high for one item — double-check before adding.</p>}
 
@@ -1873,7 +1850,7 @@ function PrescriptionTab({
             <textarea className="clinical-control" rows={2} value={dosageInstructions} onChange={(e) => setDosageInstructions(e.target.value)} style={fieldStyle} placeholder="Dosage instructions" />
           </FormRow>
 
-          <button type="button" className="btn btn-primary" onClick={addLine} disabled={conversionFactor <= 0 || overCeiling} style={{ marginTop: 'var(--space-2)' }}>
+          <button type="button" className="btn btn-primary" onClick={addLine} disabled={overCeiling} style={{ marginTop: 'var(--space-2)' }}>
             Add to prescription
           </button>
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>

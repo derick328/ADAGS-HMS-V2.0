@@ -3,13 +3,15 @@ import { authFetch } from './client';
 export interface StockReceiptLineRequest {
   itemId: string;
   purchaseUnit: string;
+  blistersPerPack?: number;
+  unitsPerBlister?: number;
   orderedQuantity?: number;
   receivedQuantity: number;
   acceptedQuantity: number;
   rejectedQuantity: number;
   batchNumber: string;
   expiryDate: string;
-  unitPurchaseCostMinor: number;
+  unitPurchaseCostMinor?: number;
   discrepancyReason?: string;
   notes?: string;
 }
@@ -33,18 +35,20 @@ export interface StockReceiptLine {
   baseUnit: string;
   purchaseUnit: string;
   factor: number;
+  blistersPerPack: number | null;
+  unitsPerBlister: number | null;
   receivedQuantity: number;
   acceptedQuantity: number;
   rejectedQuantity: number;
   missingQuantity: number;
   acceptedBaseQuantity: number;
   rejectedBaseQuantity: number;
-  receivedCostMinor: number;
-  acceptedCostMinor: number;
+  receivedCostMinor: number | null;
+  acceptedCostMinor: number | null;
   batchNumber: string;
   expiryDate: string;
   orderedQuantity: number | null;
-  unitPurchaseCostMinor: number;
+  unitPurchaseCostMinor: number | null;
   discrepancyReason: string | null;
   notes: string | null;
 }
@@ -63,8 +67,8 @@ export interface StockReceipt {
   invoiceDate: string;
   deliveryDate: string;
   notes: string | null;
-  totalReceivedCostMinor: number;
-  totalAcceptedCostMinor: number;
+  totalReceivedCostMinor: number | null;
+  totalAcceptedCostMinor: number | null;
   currencyCode: string;
   confirmedAt: string;
   lines: StockReceiptLine[];

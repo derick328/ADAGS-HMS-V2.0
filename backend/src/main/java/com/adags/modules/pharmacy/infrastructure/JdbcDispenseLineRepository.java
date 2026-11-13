@@ -18,7 +18,7 @@ public class JdbcDispenseLineRepository implements DispenseLineRepository {
 
     private static final String SELECT_COLUMNS = """
             SELECT id, dispense_id, item_id, batch_id, quantity, unit_cost_amount_minor, unit_cost_currency_code,
-                   fefo_override_reason, created_at, requested_quantity, requested_unit, conversion_factor
+                   fefo_override_reason, created_at, requested_quantity, requested_unit, conversion_factor, cost_known
             FROM dispense_line
             """;
 
@@ -33,11 +33,12 @@ public class JdbcDispenseLineRepository implements DispenseLineRepository {
         String sql = """
                 INSERT INTO dispense_line (id, dispense_id, item_id, batch_id, quantity, unit_cost_amount_minor,
                                             unit_cost_currency_code, fefo_override_reason,
-                                            requested_quantity, requested_unit, conversion_factor)
+                                            requested_quantity, requested_unit, conversion_factor, cost_known)
                 VALUES (COALESCE(:id, gen_random_uuid()), :dispenseId, :itemId, :batchId, :quantity,
                         :unitCostAmountMinor, :unitCostCurrencyCode, :fefoOverrideReason,
-                        :requestedQuantity, :requestedUnit, :conversionFactor)
-                RETURNING id, created_at
+                        :requestedQuantity, :requestedUnit, :conversionFactor,
+                        (SELECT cost_known FROM stock_batch WHERE id = :batchId))
+                RETURNING id, created_at, cost_known
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", line.id(), Types.OTHER)
@@ -55,7 +56,7 @@ public class JdbcDispenseLineRepository implements DispenseLineRepository {
         return jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> new DispenseLine(
                 (UUID) rs.getObject("id"), line.dispenseId(), line.itemId(), line.batchId(), line.quantity(),
                 line.unitCost(), line.fefoOverrideReason(), rs.getTimestamp("created_at").toInstant(),
-                line.requestedQuantity(), line.requestedUnit(), line.conversionFactor()));
+                line.requestedQuantity(), line.requestedUnit(), line.conversionFactor(), rs.getBoolean("cost_known")));
     }
 
     @Override
@@ -74,6 +75,6 @@ public class JdbcDispenseLineRepository implements DispenseLineRepository {
                 new Money(rs.getLong("unit_cost_amount_minor"), rs.getString("unit_cost_currency_code")),
                 rs.getString("fefo_override_reason"),
                 rs.getTimestamp("created_at").toInstant(), rs.getInt("requested_quantity"),
-                rs.getString("requested_unit"), rs.getInt("conversion_factor"));
+                rs.getString("requested_unit"), rs.getInt("conversion_factor"), rs.getBoolean("cost_known"));
     }
 }

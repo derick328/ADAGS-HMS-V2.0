@@ -46,5 +46,15 @@ describe('workspace routing', () => {
   it('does not send an account without a role to the admin shell', () => {
     expect(landingRouteFor([], [])).toBe('/access-pending');
     expect(landingRouteFor(['ADMIN'], ['USER_MANAGE'])).toBe('/admin');
+    expect(landingRouteFor(['ACCOUNTANT'], ['PACKAGING_APPROVE'])).toBe('/admin/packaging-approvals');
+    expect(landingRouteFor(['ACCOUNTANT'], ['PACKAGING_APPROVE', 'PAYMENT_CREATE'])).toBe('/admin/packaging-approvals');
+  });
+
+  it('allows an authorized packaging reviewer into the admin shell', () => {
+    mockMe(['ACCOUNTANT'], ['PACKAGING_APPROVE']);
+    render(<MemoryRouter initialEntries={['/admin']}><Routes>
+      <Route path="/admin" element={<RequireAdmin><p>Admin workspace</p></RequireAdmin>} />
+    </Routes></MemoryRouter>);
+    expect(screen.getByText('Admin workspace')).toBeInTheDocument();
   });
 });

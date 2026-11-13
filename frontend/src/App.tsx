@@ -29,7 +29,7 @@ import { ExpensesCategoryPage } from './workspaces/admin/ExpensesCategoryPage';
 import { MedicationPharmacyPage } from './workspaces/admin/MedicationPharmacyPage';
 import { PatientsPage } from './workspaces/admin/PatientsPage';
 import { PaymentBypassWaiverPage } from './workspaces/admin/PaymentBypassWaiverPage';
-import { PricingPage } from './workspaces/admin/PricingPage';
+import { PackagingApprovalsPage, PricingPage } from './workspaces/admin/PricingPage';
 import { ProfilePage } from './workspaces/admin/ProfilePage';
 import { RevenuePage } from './workspaces/admin/RevenuePage';
 import { SalariesPage } from './workspaces/admin/SalariesPage';
@@ -129,6 +129,7 @@ export function App() {
       >
         <Route index element={<AdminDashboard />} />
         <Route path="pricing" element={<PricingPage />} />
+        <Route path="packaging-approvals" element={<PackagingApprovalsPage />} />
         <Route path="revenue" element={<RevenuePage />} />
         <Route path="payment-bypass-waivers" element={<PaymentBypassWaiverPage />} />
         <Route path="patients" element={<PatientsPage />} />

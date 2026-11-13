@@ -5,17 +5,8 @@ import com.adags.modules.pharmacy.domain.PrescriptionLineStatus;
 import java.time.Instant;
 import java.util.UUID;
 
-// 12-pharmacist.md §4: one flat row per open prescription line, everything
-// the Dashboard's six queues need to bucket and count it. The frontend
-// buckets client-side (ready / partially payable / awaiting payment /
-// emergency / inpatient — surgery items are deferred with the surgery
-// module and carry no row here), same "server returns the data, client
-// owns the tab split" pattern as every other QueueShell screen
-// (labQueueBuckets.ts). "Partially payable" is a property of the
-// *order*, not this line — the frontend groups rows by
-// prescriptionOrderId to tell the two apart, since gating itself stays
-// per-line (root CLAUDE.md "Billing": "gating is per invoice line, never
-// per invoice").
+// One flat row per open, currently authorized prescription line. Billing
+// remains per line, so a partly paid order contributes only its paid lines.
 public record PrescriptionQueueRowResponse(
         UUID prescriptionLineId,
         UUID prescriptionOrderId,

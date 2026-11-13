@@ -84,7 +84,7 @@ public class ItemController {
 
     @GetMapping("/{id}")
     public ItemResponse get(@PathVariable UUID id, @AuthenticationPrincipal Actor actor) {
-        if (!authorizationService.hasPermission(actor, "STOCK_READ")) {
+        if (!authorizationService.hasAnyPermission(actor, "STOCK_READ", "CATALOG_IMPORT")) {
             throw new AccessDeniedException("Missing permission: STOCK_READ");
         }
         Item item = itemRepository.findById(id)
@@ -95,8 +95,7 @@ public class ItemController {
     // 13-controlled-medicines-policy.md §4: the prescriber typeahead. Every
     // match is returned, including CONTROLLED items — visible and
     // unselectable with the reason stated (ItemSearchResultResponse),
-    // never silently absent. Gated by STOCK_READ, the closest existing
-    // catalogue-visibility permission — a dedicated formulary-search
+    // never silently absent. Gated by STOCK_READ or CATALOG_IMPORT; a dedicated formulary-search
     // permission belongs to the prescribing/orders module once it exists.
     //
     // Also surfaces catalogue rows the admin importer (V67) has landed

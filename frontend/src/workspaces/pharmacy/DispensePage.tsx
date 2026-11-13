@@ -94,8 +94,9 @@ export function DispensePage() {
   const watchedLines = watch('lines');
   const baseUnit = context?.baseUnit ?? context?.item?.unit ?? '';
   const factorFor = (unit?: string) => unit && unit !== baseUnit
-    ? (packages.find((p) => p.unit === unit && p.status === 'APPROVED')?.factor ?? 1) : 1;
+    ? (packages.find((p) => p.unit === unit && p.status === 'APPROVED')?.factor ?? 0) : 1;
   const [originalSuggestion, setOriginalSuggestion] = useState<{ batchId: string; quantity: number }[]>([]);
+  const [attempt, setAttempt] = useState<{ fingerprint: string; key: string } | null>(null);
 
   useEffect(() => {
     if (!context) return;
@@ -106,18 +107,22 @@ export function DispensePage() {
   }, [context]);
 
   const submitDispense = useMutation({
-    mutationFn: (values: DispenseValues) =>
-      dispense(
+    mutationFn: (values: DispenseValues) => {
+      const fingerprint = JSON.stringify({ prescriptionLineId, values });
+      const key = attempt?.fingerprint === fingerprint ? attempt.key : crypto.randomUUID();
+      setAttempt({ fingerprint, key });
+      return dispense(
         {
           prescriptionLineId: prescriptionLineId as string,
-          idempotencyKey: crypto.randomUUID(),
+          idempotencyKey: key,
           lines: values.lines.map((l) => ({ batchId: l.batchId, quantity: l.quantity,
             requestedUnit: l.requestedUnit || baseUnit, overrideReason: l.overrideReason || undefined })),
           counsellingNotes: values.counsellingNotes || undefined,
           dispensingNotes: values.dispensingNotes || undefined,
         },
         accessToken as string,
-      ),
+      );
+    },
     onSuccess: (result) => {
       setDispensedId(result.id as string);
       queryClient.invalidateQueries({ queryKey: ['prescriptions', 'queue'] });
@@ -126,6 +131,12 @@ export function DispensePage() {
   });
 
   function onSubmitDispense(values: DispenseValues) {
+    const total = values.lines.reduce((sum, line) => sum + line.quantity * factorFor(line.requestedUnit), 0);
+    if (values.lines.some(line => factorFor(line.requestedUnit) < 1) ||
+        !Number.isSafeInteger(total) || total > Number(context?.prescriptionLine?.remaining ?? 0)) {
+      setError('lines', { message: 'Selected packages exceed the remaining prescribed quantity or include an unavailable unit.' });
+      return;
+    }
     // D5: "Batch selection is FEFO-suggested, overridable with a reason."
     // Any line that departs from the original suggestion — a different
     // batch, a different quantity, or a manually added row — needs one.
@@ -280,7 +291,7 @@ export function DispensePage() {
                   <FeedbackState>No stock available for this item.</FeedbackState>
                 )}
               </div>
-              {errors.lines?.root && <div className="field-error">{errors.lines.root.message}</div>}
+              {(errors.lines?.root || errors.lines?.message) && <div className="field-error">{errors.lines.root?.message ?? errors.lines.message}</div>}
 
               <button
                 type="button"

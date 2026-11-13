@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { BedDouble, Check, Clock, Inbox, PillBottle, Siren, Wallet } from 'lucide-react';
+import { BedDouble, Check, Inbox, PillBottle, Siren } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -39,8 +39,6 @@ const CATEGORY_RANK: Record<PharmacyQueueTabKey, number> = {
   emergency: 0,
   inpatient: 1,
   ready: 2,
-  partiallyPayable: 3,
-  awaitingPayment: 4,
 };
 
 const CATEGORY_META: Record<
@@ -50,8 +48,6 @@ const CATEGORY_META: Record<
   emergency: { label: 'Emergency', variant: 'danger', icon: Siren },
   inpatient: { label: 'Inpatient', variant: 'info', icon: BedDouble },
   ready: { label: 'Ready', variant: 'success', icon: Check },
-  partiallyPayable: { label: 'Partly payable', variant: 'warning', icon: Wallet },
-  awaitingPayment: { label: 'Awaiting payment', variant: 'neutral', icon: Clock },
 };
 
 const CATEGORY_FILTER_OPTIONS = (Object.keys(CATEGORY_RANK) as PharmacyQueueTabKey[]).map((key) => ({
@@ -254,7 +250,7 @@ export function DispensingQueue() {
       onRetry={canRead ? () => refetch() : undefined}
       emptyIcon={Inbox}
       emptyTitle="No prescriptions waiting to be dispensed"
-      emptyDescription="Newly prescribed items appear here once the doctor places the order."
+      emptyDescription="Prescriptions appear here once their payment or coverage is confirmed."
     />
   );
 }

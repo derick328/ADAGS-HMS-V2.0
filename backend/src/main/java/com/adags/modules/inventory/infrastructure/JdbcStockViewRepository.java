@@ -123,17 +123,21 @@ public class JdbcStockViewRepository implements StockViewRepository {
     public List<StockValuationRow> findStockValuation(List<UUID> storeIds) {
         String sql = """
                 SELECT s.id AS store_id, s.name AS store_name,
-                       SUM(sb.quantity * b.unit_cost_amount_minor) AS total_value_minor,
+                       CASE WHEN BOOL_AND(b.cost_known OR sb.quantity = 0)
+                            THEN SUM(sb.quantity * b.unit_cost_amount_minor) END AS total_value_minor,
                        MIN(b.unit_cost_currency_code) AS currency_code
                 FROM stock_balance sb
                 JOIN stock_batch b ON b.id = sb.batch_id
                 JOIN store s ON s.id = sb.store_id
+                WHERE b.status = 'ACTIVE'
+                  AND b.expiry_date > (now() AT TIME ZONE 'Africa/Dar_es_Salaam')::date
                 GROUP BY s.id, s.name
                 ORDER BY s.name
                 """;
-        if (storeIds != null) sql = sql.replace("GROUP BY s.id", "WHERE sb.store_id IN (:storeIds) GROUP BY s.id");
+        if (storeIds != null) sql = sql.replace("GROUP BY s.id", "AND sb.store_id IN (:storeIds) GROUP BY s.id");
         return jdbcTemplate.query(sql, new MapSqlParameterSource().addValue("storeIds", storeIds), (rs, rowNum) -> new StockValuationRow(
                 (UUID) rs.getObject("store_id"), rs.getString("store_name"),
-                new Money(rs.getLong("total_value_minor"), rs.getString("currency_code"))));
+                rs.getObject("total_value_minor") == null ? null
+                        : new Money(rs.getLong("total_value_minor"), rs.getString("currency_code"))));
     }
 }

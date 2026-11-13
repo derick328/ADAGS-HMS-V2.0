@@ -23,7 +23,8 @@ public record DispenseLine(
         Instant createdAt,
         int requestedQuantity,
         String requestedUnit,
-        int conversionFactor
+        int conversionFactor,
+        boolean costKnown
 ) {
 
     public static DispenseLine create(UUID dispenseId, UUID itemId, UUID batchId, int quantity, Money unitCost,
@@ -32,17 +33,17 @@ public record DispenseLine(
             throw new IllegalArgumentException("quantity must be > 0.");
         }
         return new DispenseLine(null, dispenseId, itemId, batchId, quantity, unitCost, fefoOverrideReason, null,
-                quantity, null, 1);
+                quantity, null, 1, true);
     }
 
     public DispenseLine withUnitSnapshot(int requestedQuantity, String requestedUnit, int conversionFactor) {
         return new DispenseLine(id, dispenseId, itemId, batchId, quantity, unitCost, fefoOverrideReason, createdAt,
-                requestedQuantity, requestedUnit, conversionFactor);
+                requestedQuantity, requestedUnit, conversionFactor, costKnown);
     }
 
     /** Pre-generated id — passed to InventoryFacade.decrementForDispense as the StockMovement's referenceId before this row exists. */
     public DispenseLine withId(UUID id) {
         return new DispenseLine(id, dispenseId, itemId, batchId, quantity, unitCost, fefoOverrideReason, createdAt,
-                requestedQuantity, requestedUnit, conversionFactor);
+                requestedQuantity, requestedUnit, conversionFactor, costKnown);
     }
 }

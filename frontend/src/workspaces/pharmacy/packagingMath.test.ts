@@ -10,6 +10,11 @@ describe('medicine delivery preview', () => {
     expect(calculateDeliveryLine(4, 100, 12000)).toEqual({ baseQuantity: 400, totalCostMinor: 48000 });
   });
 
+  it('converts five-blister packs to tablets while preserving unknown cost', () => {
+    expect(calculateDeliveryLine(10, 5 * 10, null)).toEqual({ baseQuantity: 500, totalCostMinor: null });
+    expect(calculateDeliveryLine(2, 10, 300)).toEqual({ baseQuantity: 20, totalCostMinor: 600 });
+  });
+
   it('rejects unsafe integer multiplication before showing a misleading preview', () => {
     expect(() => calculateDeliveryLine(Number.MAX_SAFE_INTEGER, 3, 1)).toThrow(RangeError);
   });

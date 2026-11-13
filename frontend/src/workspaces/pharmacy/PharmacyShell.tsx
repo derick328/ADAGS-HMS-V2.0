@@ -71,7 +71,7 @@ function DashboardLink() {
   if (!canSee) return null;
 
   const rows = data ?? [];
-  const readyCount = countByBucket(rows, 'ready') + countByBucket(rows, 'partiallyPayable');
+  const readyCount = countByBucket(rows, 'ready');
   const hasEmergency = rows.some((row) => bucketOf(row, rows) === 'emergency');
 
   return (

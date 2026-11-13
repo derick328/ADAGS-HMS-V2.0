@@ -78,8 +78,8 @@ class DepartmentContributionServiceTest extends IntegrationTestSupport {
         DepartmentContribution line = lines.stream().filter(l -> l.departmentId().equals(departmentId)).findFirst().orElseThrow();
         assertThat(line.cashCollectedMinor()).isEqualTo(8_000);
         assertThat(line.insuranceBilledMinor()).isEqualTo(0);
-        assertThat(line.pharmacyCostMinor()).isEqualTo(4_000);
-        assertThat(line.contributionMinor()).isEqualTo(4_000);
+        assertThat(line.pharmacyCostMinor()).isEqualTo(4_000L);
+        assertThat(line.contributionMinor()).isEqualTo(4_000L);
     }
 
     @Test

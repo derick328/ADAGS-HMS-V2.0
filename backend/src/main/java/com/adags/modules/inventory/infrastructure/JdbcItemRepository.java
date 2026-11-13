@@ -117,9 +117,11 @@ public class JdbcItemRepository implements ItemRepository {
 
     @Override
     public List<Item> searchByName(String query, int limit) {
-        String sql = SELECT_COLUMNS + " WHERE name ILIKE :query ORDER BY name LIMIT :limit";
+        String sql = SELECT_COLUMNS + " WHERE name ILIKE :query OR code ILIKE :query "
+                + "ORDER BY CASE WHEN code = :exact THEN 0 ELSE 1 END, name LIMIT :limit";
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("query", "%" + query + "%")
+                .addValue("exact", query)
                 .addValue("limit", limit);
         return jdbcTemplate.query(sql, params, this::mapRow);
     }

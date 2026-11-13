@@ -18,8 +18,8 @@ export interface RestockLedgerEntry {
   itemName: string;
   batchNumber: string;
   receivedQuantity: number;
-  unitCostAmountMinor: number;
-  totalCostMinor: number;
+  unitCostAmountMinor: number | null;
+  totalCostMinor: number | null;
   currencyCode: string;
   supplierId: string;
   supplierName: string;

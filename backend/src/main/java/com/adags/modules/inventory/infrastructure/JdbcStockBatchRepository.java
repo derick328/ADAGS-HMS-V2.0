@@ -119,7 +119,7 @@ public class JdbcStockBatchRepository implements StockBatchRepository {
                        i.name          AS item_name,
                        sb.batch_number AS batch_number,
                        COALESCE(mv.qty_delta, 0) AS received_qty,
-                       sb.unit_cost_amount_minor AS unit_cost_amount_minor,
+                       CASE WHEN sb.cost_known THEN sb.unit_cost_amount_minor END AS unit_cost_amount_minor,
                        sb.unit_cost_currency_code AS currency_code,
                        sb.supplier_id  AS supplier_id,
                        sup.name        AS supplier_name,
@@ -146,7 +146,7 @@ public class JdbcStockBatchRepository implements StockBatchRepository {
                 .addValue("fromTs", Timestamp.from(from))
                 .addValue("toTs", Timestamp.from(to)).addValue("storeIds", storeIds);
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
-            long unitCost = rs.getLong("unit_cost_amount_minor");
+            Long unitCost = rs.getObject("unit_cost_amount_minor", Long.class);
             int receivedQty = rs.getInt("received_qty");
             String currency = rs.getString("currency_code");
             return new RestockLedgerEntry(
@@ -156,7 +156,7 @@ public class JdbcStockBatchRepository implements StockBatchRepository {
                     rs.getString("batch_number"),
                     receivedQty,
                     unitCost,
-                    unitCost * receivedQty,
+                    unitCost == null ? null : Math.multiplyExact(unitCost, receivedQty),
                     currency,
                     (UUID) rs.getObject("supplier_id"),
                     rs.getString("supplier_name"),

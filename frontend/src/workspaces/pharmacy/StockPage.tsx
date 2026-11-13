@@ -21,7 +21,7 @@ import { formatDateTime } from '../../shared/format/date';
 import { StockInPage } from './StockInPage';
 import { StockAdjustmentsPage } from './StockAdjustmentsPage';
 
-type Tab = 'current' | 'stockIn' | 'movements' | 'low' | 'expiring' | 'history' | 'adjustments' | 'valuation';
+type Tab = 'current' | 'stockIn' | 'movements' | 'low' | 'expiring' | 'expired' | 'history' | 'adjustments' | 'valuation';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'current', label: 'Current stock' },
@@ -29,6 +29,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'movements', label: 'Movements' },
   { key: 'low', label: 'Low stock' },
   { key: 'expiring', label: 'Expiring (90d)' },
+  { key: 'expired', label: 'Expired medicines' },
   { key: 'history', label: 'Receiving history' },
   { key: 'adjustments', label: 'Adjustments' },
   { key: 'valuation', label: 'Valuation' },
@@ -52,7 +53,7 @@ export function StockPage() {
       <Tabs aria-label="Stock views" variant="underline" value={tab} onChange={(value) => selectTab(value as Tab)}
         items={TABS.map(({ key, label }) => ({ id: key, label, disabled: key === 'stockIn' && !canRestock, content: visited[key] ? {
           current: <CurrentStockView onStockIn={() => selectTab('stockIn')} canRestock={canRestock} />, stockIn: canRestock ? <StockInPage /> : <FeedbackState>Stock receiving is unavailable for this account.</FeedbackState>, movements: <MovementsView />,
-          low: <LowStockView />, expiring: <ExpiringView />, history: <ReceivingHistoryView />,
+          low: <LowStockView />, expiring: <ExpiringView />, expired: <ExpiredView />, history: <ReceivingHistoryView />,
           adjustments: <StockAdjustmentsPage />,
           valuation: <ValuationView />,
         }[key] : null }))} />
@@ -100,7 +101,7 @@ function ReceivingHistoryView() {
         <td><button type="button" className="btn btn-ghost" onClick={() => setSelectedId(row.id)}>{row.receiptNumber}</button></td>
         <td>{row.supplierName}</td><td>{row.invoiceNumber}</td><td>{row.deliveryNoteNumber}</td>
         <td>{formatDate(row.deliveryDate)}</td><td>{formatDateTime(row.confirmedAt)}</td><td>{row.receivedByName ?? row.receivedBy}</td>
-        <td className="tabular">{row.lines.length}</td><td className="money">{formatMoney(row.totalReceivedCostMinor, row.currencyCode)}</td>
+        <td className="tabular">{row.lines.length}</td><td className="money">{row.totalReceivedCostMinor == null ? 'Unknown' : formatMoney(row.totalReceivedCostMinor, row.currencyCode)}</td>
         <td><span className="badge badge-success">Confirmed</span></td></tr>)}</tbody>
     </TableShell>
     {selected && <section className="stock-in-card" aria-label="Receipt detail">
@@ -113,12 +114,12 @@ function ReceivingHistoryView() {
       <TableRegion label="Receipt lines"><table className="table"><thead><tr><th>Medicine</th><th>Batch</th><th>Purchased unit</th><th>Cost per purchase unit</th><th>Ordered</th><th>Received</th><th>Accepted base</th><th>Rejected base</th><th>Missing</th><th>Reason</th><th>Accepted value</th></tr></thead>
         <tbody>{selected.lines.map((line) => <tr key={line.id}>
           <td>{line.itemName}</td><td>{line.batchNumber} · exp {formatDate(line.expiryDate)}</td>
-          <td>{line.purchaseUnit} = {line.factor} {line.baseUnit}</td><td>{formatMoney(line.unitPurchaseCostMinor, selected.currencyCode)}</td><td>{line.orderedQuantity ?? '—'}</td><td>{line.receivedQuantity}</td>
+          <td>{line.purchaseUnit} = {line.factor} {line.baseUnit}{line.blistersPerPack != null && line.unitsPerBlister != null && <div>{line.blistersPerPack} blisters × {line.unitsPerBlister} {line.baseUnit} per blister</div>}</td><td>{line.unitPurchaseCostMinor == null ? 'Unknown' : formatMoney(line.unitPurchaseCostMinor, selected.currencyCode)}</td><td>{line.orderedQuantity ?? '—'}</td><td>{line.receivedQuantity}</td>
           <td>{line.acceptedBaseQuantity} {line.baseUnit}</td><td>{line.rejectedBaseQuantity} {line.baseUnit}</td><td>{line.missingQuantity}</td>
           <td>{line.discrepancyReason ?? '—'}</td>
-          <td>{formatMoney(line.acceptedCostMinor, selected.currencyCode)}</td>
+          <td>{line.acceptedCostMinor == null ? 'Unknown' : formatMoney(line.acceptedCostMinor, selected.currencyCode)}</td>
         </tr>)}</tbody></table></TableRegion>
-      <p>Accepted inventory value: {formatMoney(selected.totalAcceptedCostMinor, selected.currencyCode)}</p>
+      <p>Accepted inventory value: {selected.totalAcceptedCostMinor == null ? 'Unknown' : formatMoney(selected.totalAcceptedCostMinor, selected.currencyCode)}</p>
     </section>}
   </>;
 }
@@ -146,6 +147,10 @@ function CurrentStockView({ onStockIn, canRestock }: { onStockIn: () => void; ca
     (!storeFilter || row.storeId === storeFilter) &&
     (!statusFilter || row.stockStatus === statusFilter) &&
     (!search || `${row.itemName} ${row.itemCode}`.toLowerCase().includes(search.toLowerCase())));
+  const totalsByItem = new Map<string, number>();
+  (data ?? []).filter((row) => !storeFilter || row.storeId === storeFilter).forEach((row) => {
+    if (row.itemId) totalsByItem.set(row.itemId, (totalsByItem.get(row.itemId) ?? 0) + (row.quantity ?? 0));
+  });
 
   return (
     <>
@@ -158,6 +163,7 @@ function CurrentStockView({ onStockIn, canRestock }: { onStockIn: () => void; ca
       <thead>
         <tr>
           <th>Item</th>
+          <th>Total in stock</th>
           <th>Strength</th>
           <th>Batch</th>
           <th>Expiry</th>
@@ -171,13 +177,14 @@ function CurrentStockView({ onStockIn, canRestock }: { onStockIn: () => void; ca
         {rows.map((r, i) => (
           <tr key={i}>
             <td>{r.itemName} <span style={{ color: 'var(--text-muted)' }}>· {r.itemCode}</span></td>
+            <td className="tabular">{totalsByItem.get(r.itemId ?? '') ?? 0} {r.baseUnit}</td>
             <td>{r.strength ?? '—'}</td>
             <td style={{ fontFamily: 'var(--font-mono)' }}>{r.batchNumber}</td>
             <td className="tabular">{formatDate(r.expiryDate)}</td>
             <td>{r.storeName}</td>
             <td className="tabular">{r.quantity} {r.baseUnit}</td>
             <td className="tabular">{r.availableQuantity ?? (r.stockStatus === 'ACTIVE' ? r.quantity : 0)} {r.baseUnit}</td>
-            <td><span className={r.stockStatus === 'ACTIVE' ? 'badge badge-success' : 'badge badge-warning'}>
+            <td><span className={r.stockStatus === 'ACTIVE' ? 'badge badge-success' : r.stockStatus === 'EXPIRED' ? 'badge badge-critical' : 'badge badge-warning'}>
               {r.stockStatus === 'ACTIVE' ? 'Available' : r.stockStatus}</span></td>
           </tr>
         ))}
@@ -251,6 +258,37 @@ function ExpiringView() {
   );
 }
 
+function ExpiredView() {
+  const { accessToken } = useAuth();
+  const [search, setSearch] = useState('');
+  const [storeFilter, setStoreFilter] = useState('');
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['stock-reports', 'current-stock'],
+    queryFn: () => fetchCurrentStock(accessToken as string),
+    enabled: accessToken != null,
+  });
+  const expired = (data ?? []).filter((row) => row.stockStatus === 'EXPIRED');
+  const rows = expired.filter((row) =>
+    (!storeFilter || row.storeId === storeFilter) &&
+    (!search || `${row.itemName} ${row.itemCode} ${row.batchNumber}`.toLowerCase().includes(search.toLowerCase())));
+
+  return <>
+    <div className="stock-toolbar">
+      <label>Search medicine <SearchField value={search} onChange={(e) => setSearch(e.target.value)} onClear={() => setSearch('')} placeholder="Name, code or batch" /></label>
+      <DropdownSelect label="Store" value={storeFilter} onChange={setStoreFilter} options={[{ value: '', label: 'All authorized stores' }, ...[...new Map(expired.filter((row) => row.storeId).map((row) => [row.storeId, row.storeName])).entries()].map(([id, name]) => ({ value: id ?? '', label: name ?? id ?? 'Store' }))]} />
+    </div>
+    <TableShell isLoading={isLoading} isError={isError} onRetry={() => void refetch()} isEmpty={rows.length === 0} emptyMessage="No expired medicines in stock.">
+      <thead><tr><th>Medicine</th><th>Batch</th><th>Expiry</th><th>Store</th><th>Quantity on hand</th><th>Status</th></tr></thead>
+      <tbody>{rows.map((row) => <tr key={`${row.storeId}-${row.batchId}`}>
+        <td>{row.itemName} <span style={{ color: 'var(--text-muted)' }}>· {row.itemCode}</span></td>
+        <td>{row.batchNumber}</td><td className="tabular">{formatDate(row.expiryDate)}</td>
+        <td>{row.storeName}</td><td className="tabular">{row.quantity} {row.baseUnit}</td>
+        <td><span className="badge badge-critical">Expired</span></td>
+      </tr>)}</tbody>
+    </TableShell>
+  </>;
+}
+
 function ValuationView() {
   const { accessToken } = useAuth();
   const { data, isLoading, isError, refetch } = useQuery({
@@ -272,7 +310,7 @@ function ValuationView() {
         {rows.map((r, i) => (
           <tr key={i}>
             <td>{r.storeName}</td>
-            <td className="tabular">{formatMoney(r.totalValueAmountMinor, r.currencyCode)}</td>
+            <td className="tabular">{r.totalValueAmountMinor == null ? 'Unknown cost in stock' : formatMoney(r.totalValueAmountMinor, r.currencyCode)}</td>
           </tr>
         ))}
       </tbody>

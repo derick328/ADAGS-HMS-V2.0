@@ -119,10 +119,10 @@ function RestockTable({
               <td>{r.receivedByName ?? '—'}</td>
               <td style={{ textAlign: 'right' }}>{r.receivedQuantity}</td>
               <td className="money" style={{ textAlign: 'right' }}>
-                {formatMoney(r.unitCostAmountMinor, r.currencyCode)}
+                {r.unitCostAmountMinor == null ? 'Unknown' : formatMoney(r.unitCostAmountMinor, r.currencyCode)}
               </td>
               <td className="money" style={{ textAlign: 'right' }}>
-                {formatMoney(r.totalCostMinor, r.currencyCode)}
+                {r.totalCostMinor == null ? 'Unknown' : formatMoney(r.totalCostMinor, r.currencyCode)}
               </td>
             </tr>
           ))}
@@ -130,7 +130,7 @@ function RestockTable({
         <tfoot>
           <tr>
             <td colSpan={7} style={{ textAlign: 'right', fontWeight: 'var(--weight-medium)' }}>
-              Total spent
+              {rows.some(row => row.totalCostMinor == null) ? 'Known cost subtotal (some costs unknown)' : 'Total spent'}
             </td>
             <td className="money" style={{ textAlign: 'right', fontWeight: 'var(--weight-medium)' }}>
               {formatMoney(totalSpend, currency)}

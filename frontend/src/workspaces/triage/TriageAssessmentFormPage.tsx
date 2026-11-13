@@ -114,14 +114,15 @@ export function TriageAssessmentFormPage() {
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { hasPain: false, fallRisk: false, infectionRisk: false, dangerSigns: [] },
+    defaultValues: { fallRisk: false, infectionRisk: false, dangerSigns: [] },
   });
 
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     if (hydrated) return;
     if (ownDraft?.formState && Object.keys(ownDraft.formState).length > 0) {
-      reset(ownDraft.formState as unknown as Values);
+      const { hasPain: _hasPain, painScore: _painScore, painLocation: _painLocation, ...formState } = ownDraft.formState;
+      reset(formState as Values);
       setHydrated(true);
     } else if (ownDraft === null) {
       setHydrated(true);
@@ -129,7 +130,6 @@ export function TriageAssessmentFormPage() {
   }, [ownDraft, hydrated, reset]);
 
   const priority = watch('priority');
-  const hasPain = watch('hasPain');
   const fallRisk = watch('fallRisk');
   const immediateReason = watch('immediateReason');
   const dangerSigns = watch('dangerSigns') ?? [];
@@ -243,9 +243,7 @@ export function TriageAssessmentFormPage() {
       const payload: SubmitTriageAssessmentRequest = {
       expectedEncounterVersion: encounter.version,
       assignedProviderId: values.assignedProviderId,
-      hasPain: values.hasPain,
-      painScore: values.hasPain ? values.painScore : undefined,
-      painLocation: values.hasPain ? values.painLocation : undefined,
+      hasPain: false,
       fallRisk: values.fallRisk,
       fallScore: values.fallRisk ? values.fallScore : undefined,
       infectionRisk: values.infectionRisk,
@@ -350,21 +348,6 @@ export function TriageAssessmentFormPage() {
           </FormRow>
           {!suppressBmi && bmi != null && !Number.isNaN(bmi) && (
             <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>BMI: {bmi.toFixed(1)} (computed, not enterable)</p>
-          )}
-        </FormSection>
-
-        <FormSection title="Pain assessment" columns={1}>
-
-          <Checkbox  className="clinical-choice" {...register('hasPain')} label={<>Patient has pain</>} />
-          {hasPain && (
-            <>
-              <FormRow label="Pain score (0–10)" error={errors.painScore?.message}>
-                <input className="clinical-control" type="number" min={0} max={10} {...register('painScore', { valueAsNumber: true })} style={fieldStyle} />
-              </FormRow>
-              <FormRow label="Pain location" error={errors.painLocation?.message}>
-                <input className="clinical-control" {...register('painLocation')} style={fieldStyle} />
-              </FormRow>
-            </>
           )}
         </FormSection>
 
@@ -572,8 +555,6 @@ const FIELD_LABELS: Record<string, string> = {
   spo2Pct: 'SpO₂',
   weightKg: 'Weight',
   heightCm: 'Height',
-  painScore: 'Pain score',
-  painLocation: 'Pain location',
   fallScore: 'Fall risk score',
   priority: 'Triage priority',
   immediateReason: 'IMMEDIATE reason',
@@ -612,9 +593,6 @@ function buildSchema() {
       spo2Pct: z.number({ invalid_type_error: 'Enter the SpO2' }),
       weightKg: z.number({ invalid_type_error: 'Enter the weight' }).positive('Enter a weight greater than 0'),
       heightCm: z.number({ invalid_type_error: 'Enter the height' }).positive('Enter a height greater than 0'),
-      hasPain: z.boolean(),
-      painScore: z.number().optional(),
-      painLocation: z.string().optional(),
       fallRisk: z.boolean(),
       fallScore: z.number().optional(),
       infectionRisk: z.boolean(),
@@ -640,17 +618,6 @@ function buildSchema() {
       dangerSigns: z.array(z.string()).optional(),
     })
     .superRefine((v, ctx) => {
-      if (v.hasPain) {
-        if (v.painScore != null && !Number.isNaN(v.painScore) && (v.painScore < 0 || v.painScore > 10)) {
-          ctx.addIssue({ path: ['painScore'], code: z.ZodIssueCode.custom, message: 'Pain score must be 0 to 10' });
-        }
-        if (!v.painLocation || v.painLocation.trim() === '') {
-          ctx.addIssue({ path: ['painLocation'], code: z.ZodIssueCode.custom, message: 'Enter where the pain is' });
-        }
-      }
-      // fallScore is optional even when fallRisk is true — mirrors the pain
-      // score relaxation (V77): the nurse can flag the risk without pinning
-      // a numeric on it. Backend + DB CHECK relaxed to match (V79).
       if (v.priority === 'IMMEDIATE') {
         if (!v.immediateReason) {
           ctx.addIssue({ path: ['immediateReason'], code: z.ZodIssueCode.custom, message: 'Choose a reason' });

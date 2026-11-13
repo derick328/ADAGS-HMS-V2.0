@@ -20,6 +20,7 @@ const NAV: NavGroup[] = [
   { title: 'Finance', items: [
     { to: '/admin/revenue', label: 'Revenue & cancellations', icon: Wallet, permission: 'INVOICE_CANCEL_APPROVE' },
     { to: '/admin/pricing', label: 'Pricing & proposals', icon: Tags, permission: 'PHARMACY_ITEM_APPROVE' },
+    { to: '/admin/packaging-approvals', label: 'Packaging approvals', icon: Package, permission: 'PACKAGING_APPROVE' },
     { to: '/admin/payment-bypass-waivers', label: 'Payment bypass waivers', icon: CreditCard, permission: 'PAYMENT_BYPASS_WAIVE' },
     { to: '/admin/expense-analytics', label: 'Expense analytics', icon: Activity, permission: 'FINANCIAL_REPORT_READ' },
   ], collapsible: true },

@@ -7,78 +7,201 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Combobox } from '../../shared/components/Combobox';
+import { TableRegion } from '../../shared/components/TableRegion';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
 import { proposeNewItem, proposePriceChange } from '../../shared/api/pharmacyItemProposals';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
-import { fetchMedicinePackaging, proposeMedicinePackaging } from '../../shared/api/medicinePackaging';
+import { fetchMedicinePackaging, fetchMedicinePackagingCatalogue, proposeMedicinePackaging,
+  type PackagingConfigurationFilter, type MedicinePackaging, type MedicinePackagingCatalogueItem } from '../../shared/api/medicinePackaging';
+import { ApiError } from '../../shared/api/client';
 import './StockInPage.css';
 
-type Tab = 'newItem' | 'priceChange' | 'packaging';
+type Tab = 'overview' | 'newItem' | 'priceChange' | 'packaging';
+type PackagingEdit = { item: MedicinePackagingCatalogueItem; pack: MedicinePackaging };
+
+function cannotConfigurePackaging(option: ItemSearchResultResponse) {
+  return !option.id || !option.unit || option.regulatorySchedule === 'CONTROLLED' ||
+    option.regulatorySchedule === 'UNCLASSIFIED';
+}
 
 // 12-pharmacist.md §9.2: new items and price changes both go through admin
 // approval — a pharmacist can never set a live price or activate an item
 // directly (root CLAUDE.md "Billing": "nobody types a price"). Category
 // and type are forced to MEDICINES AND CONSUMABLES / PHARMACY server-side.
 export function PharmacyItemsPage() {
-  const [tab, setTab] = useState<Tab>('newItem');
+  const [tab, setTab] = useState<Tab>('overview');
+  const [packagingEdit, setPackagingEdit] = useState<PackagingEdit | null>(null);
 
   return (
     <div className="staff-page-stack pharmacy-items-page">
-      <PageHeader title={<>Pharmacy items</>} description={<>Propose a new item or a price change. Both go to admin for approval.</>} />
+      <PageHeader title={<>Pharmacy items</>} description={<>View medicine packaging and propose changes for Admin approval.</>} />
 
       <Tabs aria-label="Proposal type" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} items={[
+        { id: 'overview', label: 'Packaging overview', content: <PackagingOverview onEdit={(item, pack) => {
+          setPackagingEdit({ item, pack }); setTab('packaging');
+        }} /> },
         { id: 'newItem', label: 'New item', content: <NewItemForm /> },
         { id: 'priceChange', label: 'Price change', content: <PriceChangeForm /> },
-        { id: 'packaging', label: 'Packaging', content: <PackagingProposalForm /> },
+        { id: 'packaging', label: 'Packaging', content: <PackagingProposalForm key={packagingEdit?.pack.id ?? 'new'}
+          edit={packagingEdit} onCancelEdit={() => setPackagingEdit(null)} /> },
       ]} />
 
     </div>
   );
 }
 
-function PackagingProposalForm() {
+const PACKAGING_PAGE_SIZE = 50;
+
+function PackagingOverview({ onEdit }: { onEdit: (item: MedicinePackagingCatalogueItem, pack: MedicinePackaging) => void }) {
+  const { accessToken } = useAuth();
+  const canPropose = usePermission('PACKAGING_PROPOSE');
+  const [search, setSearch] = useState('');
+  const [query, setQuery] = useState('');
+  const [configuration, setConfiguration] = useState<PackagingConfigurationFilter>('CONFIGURED');
+  const [page, setPage] = useState(0);
+  const catalogue = useQuery({
+    queryKey: ['medicine-packaging', 'catalogue', query, configuration, page],
+    queryFn: () => fetchMedicinePackagingCatalogue(query, configuration, PACKAGING_PAGE_SIZE,
+      page * PACKAGING_PAGE_SIZE, accessToken as string),
+    enabled: !!accessToken,
+  });
+  return <section className="stock-in-card pharmacy-proposal-form">
+    <h3>Medicine packaging catalogue</h3>
+    <p>Approved package definitions are shown for each medicine. Use the filter to find medicines that still need packaging configured.</p>
+    <label htmlFor="packaging-configuration-filter">Packaging status</label>
+    <select id="packaging-configuration-filter" className="clinical-control" value={configuration}
+      onChange={(event) => { setPage(0); setConfiguration(event.target.value as PackagingConfigurationFilter); }}>
+      <option value="CONFIGURED">Configured</option>
+      <option value="UNCONFIGURED">Not configured</option>
+      <option value="ALL">All medicines</option>
+    </select>
+    <form onSubmit={(event) => { event.preventDefault(); setPage(0);
+      const nextQuery = search.trim();
+      if (nextQuery) setConfiguration('ALL');
+      setQuery(nextQuery); }}>
+      <label htmlFor="packaging-catalogue-search">Search by medicine name or code</label>
+      <div className="stock-in-actions">
+        <input id="packaging-catalogue-search" className="clinical-control" value={search}
+          onChange={(event) => setSearch(event.target.value)} />
+        <button type="submit" className="btn btn-secondary">Search</button>
+      </div>
+    </form>
+    {catalogue.isLoading && <p role="status">Loading medicines…</p>}
+    {catalogue.isError && <p role="alert">Could not load medicines. <button type="button" className="link-button" onClick={() => catalogue.refetch()}>Retry</button></p>}
+    {catalogue.data && <>
+      {catalogue.data.items.length === 0 ? <p>No medicines found.</p> :
+        <TableRegion label="Medicine packaging catalogue"><table className="table">
+          <thead><tr><th>Medicine</th><th>Base unit</th><th>Package unit</th><th>Blisters per pack</th>
+            <th>Units per blister</th><th>Base units per package</th><th>Dispensing</th><th>Catalogue status</th><th>Action</th></tr></thead>
+          <tbody>{catalogue.data.items.flatMap((item) =>
+            (item.packages.length ? item.packages : [null]).map((pack) => <tr key={`${item.id}-${pack?.id ?? 'none'}`}>
+            <td><strong>{item.name}</strong>{item.strength && ` · ${item.strength}`}{item.form && <div>{item.form}</div>}<small>{item.code}</small></td>
+            <td>{item.baseUnit}</td>
+            <td>{pack?.unit ?? 'No approved package'}</td>
+            <td>{pack?.blistersPerPack ?? '—'}</td>
+            <td>{pack?.unitsPerBlister ?? '—'}</td>
+            <td>{pack?.factor ?? '—'}</td>
+            <td>{pack ? (pack.canSplit ? 'Can split' : 'Whole package only') : '—'}</td>
+            <td>{item.active ? 'Active' : 'Inactive'}</td>
+            <td>{pack && canPropose && <button type="button" className="btn btn-secondary"
+              onClick={() => onEdit(item, pack)} aria-label={`Edit ${item.name} ${pack.unit}`}>Edit</button>}</td>
+          </tr>))}</tbody>
+        </table></TableRegion>}
+      <div className="stock-in-actions">
+        <button type="button" className="btn btn-secondary" disabled={page === 0 || catalogue.isFetching}
+          onClick={() => setPage(value => value - 1)}>Previous</button>
+        <span>Page {page + 1}</span>
+        <button type="button" className="btn btn-secondary" disabled={!catalogue.data.hasMore || catalogue.isFetching}
+          onClick={() => setPage(value => value + 1)}>Next</button>
+      </div>
+    </>}
+  </section>;
+}
+
+function PackagingProposalForm({ edit, onCancelEdit }: { edit: PackagingEdit | null; onCancelEdit: () => void }) {
   const { accessToken } = useAuth();
   const canPropose = usePermission('PACKAGING_PROPOSE');
   const queryClient = useQueryClient();
-  const [item, setItem] = useState<ItemSearchResultResponse | null>(null);
-  const [unit, setUnit] = useState('');
-  const [factor, setFactor] = useState('');
-  const [canSplit, setCanSplit] = useState(true);
+  const [item, setItem] = useState<ItemSearchResultResponse | null>(edit ? {
+    id: edit.item.id, code: edit.item.code, name: edit.item.name, unit: edit.item.baseUnit,
+    strength: edit.item.strength ?? undefined, form: edit.item.form,
+  } : null);
+  const [unit, setUnit] = useState(edit?.pack.unit ?? '');
+  const [factor, setFactor] = useState(edit ? String(edit.pack.factor) : '');
+  const [presentation, setPresentation] = useState<'BLISTER_PACK' | 'OTHER'>(
+    edit ? (edit.pack.blistersPerPack != null ? 'BLISTER_PACK' : 'OTHER') : 'BLISTER_PACK');
+  const [blistersPerPack, setBlistersPerPack] = useState(edit?.pack.blistersPerPack != null ? String(edit.pack.blistersPerPack) : '');
+  const [unitsPerBlister, setUnitsPerBlister] = useState(edit?.pack.unitsPerBlister != null ? String(edit.pack.unitsPerBlister) : '');
+  const [canSplit, setCanSplit] = useState(edit?.pack.canSplit ?? true);
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
   const { data: approved } = useQuery({ queryKey: ['medicine-packaging', item?.id],
     queryFn: () => fetchMedicinePackaging(item?.id as string, accessToken as string),
     enabled: item?.id != null && accessToken != null });
+  const blisterTotal = Number(blistersPerPack) * Number(unitsPerBlister);
   const submit = useMutation({ mutationFn: () => proposeMedicinePackaging(item?.id as string,
-    { unit: unit.trim().toUpperCase(), quantityInBaseUnits: Number(factor), canSplit,
-      reason: reason.trim() }, accessToken as string),
-    onSuccess: () => { setUnit(''); setFactor(''); setReason('');
-      queryClient.invalidateQueries({ queryKey: ['medicine-packaging', item?.id] }); } });
+    presentation === 'BLISTER_PACK'
+      ? { unit: `PACK_${blisterTotal}`, quantityInBaseUnits: blisterTotal, canSplit,
+          blistersPerPack: Number(blistersPerPack), unitsPerBlister: Number(unitsPerBlister), reason: reason.trim(),
+          replacesPackagingId: edit?.pack.id ?? undefined }
+      : { unit: unit.trim().toUpperCase(), quantityInBaseUnits: Number(factor), canSplit,
+          reason: reason.trim(), replacesPackagingId: edit?.pack.id ?? undefined }, accessToken as string),
+    onSuccess: () => { if (!edit) { setUnit(''); setFactor(''); setBlistersPerPack(''); setUnitsPerBlister(''); setReason(''); }
+      queryClient.invalidateQueries({ queryKey: ['medicine-packaging', item?.id] });
+      queryClient.invalidateQueries({ queryKey: ['medicine-packaging', 'catalogue'] }); } });
   if (!canPropose) return <p>Packaging proposals require PACKAGING_PROPOSE permission.</p>;
   return <div className="stock-in-card pharmacy-proposal-form">
-    <p>Conversions are specific to each catalogue product. An authorized second person approves a proposal before it can be used.</p>
-    <Combobox<ItemSearchResultResponse> label="Medicine" placeholder="Search catalogue"
+    <h3>{edit ? `Edit ${edit.item.name} packaging` : 'Configure how this medicine is packaged'}</h3>
+    <p>Enter the manufacturer's package counts here. A second authorized person reviews the proposal in Admin → Packaging approvals before it appears in Stock In or dispensing.</p>
+    {edit && <button type="button" className="btn btn-secondary" onClick={onCancelEdit}>Cancel edit</button>}
+    {!edit && <Combobox<ItemSearchResultResponse> label="Medicine" placeholder="Search catalogue"
       search={(query) => searchItems(query, accessToken as string)} getKey={(option) => option.id as string}
-      renderOption={(option) => <span>{option.name} {option.strength}</span>}
-      onSelect={setItem} />
-    {item && <><p>Base unit: <strong>{item.unit ?? 'Not configured'}</strong></p>
+      renderOption={(option) => <span>{option.name} {option.strength} {cannotConfigurePackaging(option) && ` — ${option.unselectableReason ?? 'Base unit not configured'}`}</span>}
+      isOptionDisabled={cannotConfigurePackaging}
+      onSelect={(selected) => { setItem(selected); setError(''); }} />}
+    {item && <><p>Selected medicine: <strong>{item.name}{item.strength ? ` · ${item.strength}` : ''}</strong></p>
+      <p>Base unit: <strong>{item.unit ?? 'Not configured'}</strong></p>
       <p>Approved packages: {(approved ?? []).map((p) => `${p.unit} = ${p.factor} ${item.unit}`).join(' · ') || 'none'}</p></>}
     <div className="stock-in-grid">
-      <label>Packaging unit <input className="clinical-control" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="BLISTER, PACK, BOX…" /></label>
-      <label>Base units per package <input className="clinical-control" type="number" min="2" value={factor} onChange={(e) => setFactor(e.target.value)} /></label>
+      <label>Package type <select className="clinical-control" value={presentation} onChange={(e) => setPresentation(e.target.value as 'BLISTER_PACK' | 'OTHER')}>
+        <option value="BLISTER_PACK">Pack containing blisters</option><option value="OTHER">Bottle, vial, ampoule, tube, or other</option>
+      </select></label>
+      {presentation === 'BLISTER_PACK' ? <>
+        <label>Blisters per pack <input className="clinical-control" type="number" min="1" step="1" value={blistersPerPack} onChange={(e) => setBlistersPerPack(e.target.value)} /></label>
+        <label>{item?.unit ?? 'Tablets/capsules'} per blister <input className="clinical-control" type="number" min="1" step="1" value={unitsPerBlister} onChange={(e) => setUnitsPerBlister(e.target.value)} /></label>
+      </> : <>
+        <label>Package name <input className="clinical-control" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="BOTTLE_100, VIAL_10…" /></label>
+        <label>{item?.unit ?? 'Base units'} per package <input className="clinical-control" type="number" min="1" step="1" value={factor} onChange={(e) => setFactor(e.target.value)} /></label>
+      </>}
       <label><input type="checkbox" checked={canSplit} onChange={(e) => setCanSplit(e.target.checked)} /> May dispense individual base units from this package</label>
       <label>Reason and manufacturer specification <textarea className="clinical-control" value={reason} onChange={(e) => setReason(e.target.value)} /></label>
     </div>
+    {presentation === 'BLISTER_PACK' && <p className="stock-in-calculation" role="status">
+      {blistersPerPack || '0'} blisters × {unitsPerBlister || '0'} {item?.unit ?? 'units'} per blister = <strong>{Number.isSafeInteger(blisterTotal) ? blisterTotal : 'Invalid'} {item?.unit ?? 'units'} per pack</strong>
+    </p>}
     {error && <p className="field-error" role="alert">{error}</p>}
-    {submit.error && <p className="field-error" role="alert">Could not submit packaging proposal.</p>}
-    {submit.isSuccess && <p role="status">Packaging proposal submitted for approval.</p>}
-    <button type="button" className="btn btn-primary" disabled={submit.isPending} onClick={() => {
-      if (!item?.unit || !unit.trim() || !Number.isSafeInteger(Number(factor)) || Number(factor) <= 1 || !reason.trim()) {
-        setError('Select a medicine and enter a package unit, whole conversion factor, and reason.'); return;
-      }
+    {submit.error && <p className="field-error" role="alert">
+      {submit.error instanceof ApiError
+        ? submit.error.status === 403
+          ? 'You do not have permission to propose packaging.'
+          : submit.error.body?.detail ?? `Could not submit packaging proposal (HTTP ${submit.error.status}).`
+        : 'Could not submit packaging proposal. Check your connection and try again.'}
+    </p>}
+    {submit.isSuccess && <p role="status">Packaging proposal submitted for approval. A separate blister unit is proposed when each blister contains more than one base unit.</p>}
+    <button type="button" className="btn btn-primary" disabled={submit.isPending || (edit != null && submit.isSuccess)} onClick={() => {
+      const invalidBlister = presentation === 'BLISTER_PACK' &&
+        (!Number.isSafeInteger(Number(blistersPerPack)) || Number(blistersPerPack) < 1 ||
+         !Number.isSafeInteger(Number(unitsPerBlister)) || Number(unitsPerBlister) < 1 ||
+         !Number.isSafeInteger(blisterTotal) || blisterTotal < 1);
+      const invalidOther = presentation === 'OTHER' &&
+        (!unit.trim() || !Number.isSafeInteger(Number(factor)) || Number(factor) < 1);
+      if (!item?.id || !item.unit) { setError('Select a medicine from the search results.'); return; }
+      if (invalidBlister) { setError('Enter positive whole numbers for blisters per pack and units per blister.'); return; }
+      if (invalidOther) { setError('Enter a package name and a positive whole number of base units per package.'); return; }
+      if (!reason.trim()) { setError('Provide the reason and manufacturer specification.'); return; }
       setError(''); submit.mutate();
-    }}>Propose packaging</button>
+    }}>{edit ? 'Submit edited packaging' : 'Propose packaging'}</button>
   </div>;
 }
 

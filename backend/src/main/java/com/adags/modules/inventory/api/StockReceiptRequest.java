@@ -31,9 +31,17 @@ public record StockReceiptRequest(
             @PositiveOrZero int rejectedQuantity,
             @NotBlank String batchNumber,
             @NotNull LocalDate expiryDate,
-            @PositiveOrZero long unitPurchaseCostMinor,
+            @PositiveOrZero Long unitPurchaseCostMinor,
             String discrepancyReason,
-            String notes
+            String notes,
+            @Positive Integer blistersPerPack,
+            @Positive Integer unitsPerBlister
     ) {
+        public Line(UUID itemId, String purchaseUnit, Integer orderedQuantity, int receivedQuantity,
+                    int acceptedQuantity, int rejectedQuantity, String batchNumber, LocalDate expiryDate,
+                    Long unitPurchaseCostMinor, String discrepancyReason, String notes) {
+            this(itemId, purchaseUnit, orderedQuantity, receivedQuantity, acceptedQuantity, rejectedQuantity,
+                    batchNumber, expiryDate, unitPurchaseCostMinor, discrepancyReason, notes, null, null);
+        }
     }
 }

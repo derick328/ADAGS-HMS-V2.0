@@ -26,10 +26,12 @@ import {
 } from '../../shared/api/pricing';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
-import { approveMedicinePackaging, fetchPendingMedicinePackaging } from '../../shared/api/medicinePackaging';
+import { approveMedicinePackaging, fetchPendingMedicinePackaging, rejectMedicinePackaging } from '../../shared/api/medicinePackaging';
 import { formatDateTime } from '../../shared/format/date';
 import { formatMoney } from '../../shared/format/money';
 import { QueueShell, type QueueRow } from '../../shared/components/QueueShell';
+import { MedicationSettings } from './MedicationSettings';
+import { useMe } from '../../shared/auth/useMe';
 
 // 18-admin.md §2/§7, 12-pharmacist.md §9.2: the pharmacy item and
 // price-change approval queue is the only pricing backend that exists
@@ -47,7 +49,7 @@ export function PricingPage() {
   const { data: proposals, isLoading } = useQuery({
     queryKey: ['pharmacy-item-proposals', 'pending'],
     queryFn: () => fetchPendingPharmacyItemProposals(accessToken as string),
-    enabled: accessToken != null,
+    enabled: accessToken != null && canApprove,
   });
 
   const review = useMutation({
@@ -108,28 +110,55 @@ export function PricingPage() {
 
 function PackagingApprovalSection() {
   const { accessToken } = useAuth();
+  const { data: me } = useMe();
   const canApprove = usePermission('PACKAGING_APPROVE');
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ['medicine-packaging', 'pending'],
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['medicine-packaging', 'pending'],
     queryFn: () => fetchPendingMedicinePackaging(accessToken as string),
     enabled: accessToken != null && canApprove });
   const approve = useMutation({ mutationFn: (id: string) => approveMedicinePackaging(id, accessToken as string),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['medicine-packaging'] }) });
+  const reject = useMutation({ mutationFn: (id: string) => rejectMedicinePackaging(id, rejectionReason.trim(), accessToken as string),
+    onSuccess: () => { setRejectingId(null); setRejectionReason('');
+      queryClient.invalidateQueries({ queryKey: ['medicine-packaging'] }); } });
   if (!canApprove) return null;
   return <section style={{ marginBottom: 'var(--space-5)' }}>
     <h2>Packaging approvals</h2>
-    {isLoading ? <FeedbackState loading>Loading proposals…</FeedbackState> : !data?.length ?
+    <p>Review each proposed pack or blister conversion. A different authorized person must decide; rejection requires a reason.</p>
+    {isLoading ? <FeedbackState loading>Loading proposals…</FeedbackState> : isError ?
+      <p role="alert">Could not load packaging proposals. <button type="button" className="link-button" onClick={() => refetch()}>Retry</button></p> : !data?.length ?
       <FeedbackState>No packaging proposals pending.</FeedbackState> :
       <TableRegion label="Pending packaging conversions"><table className="table"><thead><tr>
-        <th>Medicine ID</th><th>Unit</th><th>Base units</th><th>Split allowed</th><th>Version</th><th>Decision</th>
-      </tr></thead><tbody>{data.map((proposal) => <tr key={proposal.id}>
-        <td>{proposal.itemId}</td><td>{proposal.unit}</td><td>{proposal.factor}</td>
-        <td>{proposal.canSplit ? 'Yes' : 'No'}</td><td>{proposal.version}</td>
-        <td><button type="button" className="btn btn-primary" disabled={approve.isPending || !proposal.id}
-          onClick={() => proposal.id && approve.mutate(proposal.id)}>Approve</button></td>
+        <th>Medicine</th><th>Package</th><th>Conversion</th><th>Blister counts</th><th>Split</th><th>Proposed by</th><th>Manufacturer specification</th><th>Decision</th>
+      </tr></thead><tbody>{data.map((proposal) => <tr key={proposal.packaging.id}>
+        <td>{proposal.itemName}</td><td>{proposal.packaging.unit}</td>
+        <td>{proposal.packaging.factor} {proposal.baseUnit}</td>
+        <td>{proposal.packaging.blistersPerPack != null && proposal.packaging.unitsPerBlister != null
+          ? `${proposal.packaging.blistersPerPack} × ${proposal.packaging.unitsPerBlister}` : '—'}</td>
+        <td>{proposal.packaging.canSplit ? 'Yes' : 'No'}</td>
+        <td>{proposal.proposedBy}</td><td>{proposal.reason}</td>
+        <td>{proposal.proposedBy === me?.username ? 'Your proposal needs another reviewer' : <>
+          <button type="button" className="btn btn-primary" disabled={approve.isPending || reject.isPending || !proposal.packaging.id}
+            onClick={() => proposal.packaging.id && approve.mutate(proposal.packaging.id)}>Approve</button>{' '}
+          <button type="button" className="btn btn-secondary" disabled={approve.isPending || reject.isPending || !proposal.packaging.id}
+            onClick={() => { setRejectingId(proposal.packaging.id); setRejectionReason(''); }}>Reject</button>
+          {rejectingId === proposal.packaging.id && <form onSubmit={(event) => { event.preventDefault();
+            if (rejectionReason.trim() && proposal.packaging.id) reject.mutate(proposal.packaging.id); }}>
+            <label>Reason for rejection <textarea className="clinical-control" required value={rejectionReason}
+              onChange={(event) => setRejectionReason(event.target.value)} /></label>
+            <button type="submit" className="btn btn-secondary" disabled={reject.isPending || !rejectionReason.trim()}>Confirm rejection</button>{' '}
+            <button type="button" className="btn btn-ghost" onClick={() => setRejectingId(null)}>Cancel</button>
+          </form>}</>}</td>
       </tr>)}</tbody></table></TableRegion>}
-    {approve.error && <p className="field-error" role="alert">Could not approve packaging. The proposer cannot approve their own proposal.</p>}
+    {approve.error && <p className="field-error" role="alert">{approve.error instanceof ApiError ? approve.error.message : 'Could not approve packaging.'}</p>}
+    {reject.error && <p className="field-error" role="alert">{reject.error instanceof ApiError ? reject.error.message : 'Could not reject packaging.'}</p>}
   </section>;
+}
+
+export function PackagingApprovalsPage() {
+  return <div><PackagingApprovalSection /></div>;
 }
 
 function ReviewPanel({
@@ -529,6 +558,7 @@ function CatalogueItemsBrowser() {
   const [priceError, setPriceError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
+  const [medicationSettings, setMedicationSettings] = useState<CatalogItem | null>(null);
   const pageSize = 50;
 
   const savePrice = useMutation({
@@ -693,6 +723,8 @@ function CatalogueItemsBrowser() {
                       setEditing(item); setNewPrice(String(item.currentCashPriceMinor)); setPriceError(null);
                     }}>Edit Price</button>}{' '}
                     <button type="button" className="btn btn-ghost" onClick={() => setHistoryId(item.id)}>History</button>
+                    {(item.type === 'PHARMACY' || item.billingCategory === 'MEDICINES_AND_CONSUMABLES') &&
+                      <button type="button" className="btn btn-secondary" onClick={() => setMedicationSettings(item)}>Packaging & costs</button>}
                   </td>
                 </tr>
               ))}
@@ -725,6 +757,13 @@ function CatalogueItemsBrowser() {
         </div>
       )}
 
+      {medicationSettings && <div role="dialog" aria-modal="true" aria-label={`Packaging and costs for ${medicationSettings.name}`}
+        onKeyDown={(event) => { if (event.key === 'Escape') setMedicationSettings(null); }}
+        style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,.55)', display: 'grid', placeItems: 'center', padding: 'var(--space-3)' }}>
+        <div style={{ width: 'min(100%, 760px)', maxHeight: '90vh', overflowY: 'auto' }}>
+          <MedicationSettings catalogueItem={medicationSettings} onClose={() => setMedicationSettings(null)} />
+        </div>
+      </div>}
       {editing && <div role="dialog" aria-modal="true" aria-label="Edit catalogue price" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'grid', placeItems: 'center', zIndex: 1000, padding: 'var(--space-3)' }}>
         <form onSubmit={(event) => {
           event.preventDefault();

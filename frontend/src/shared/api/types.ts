@@ -988,6 +988,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/medicine-packaging/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["rejectMedicinePackaging"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/medicine-packaging/items/{itemId}/proposals": {
         parameters: {
             query?: never;
@@ -2988,6 +3004,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/medicines/{itemId}/default-purchase-cost": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Requires CATALOG_IMPORT or STOCK_READ. A null response means no default cost is configured. */
+        get: operations["currentMedicinePurchaseCost"];
+        /** @description Requires CATALOG_IMPORT; does not change the selling price or historical receipts. */
+        put: operations["updateMedicinePurchaseCost"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/medicines/{itemId}/default-purchase-cost/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["medicinePurchaseCostHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/medicine-packaging/pending": {
         parameters: {
             query?: never;
@@ -2996,6 +3046,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["pending_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/medicine-packaging/catalogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["medicinePackagingCatalogue"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3355,6 +3421,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Search medicines by name or catalogue code. Requires STOCK_READ or CATALOG_IMPORT; controlled and unclassified entries remain visible but unselectable. */
         get: operations["search_5"];
         put?: never;
         post?: never;
@@ -4444,6 +4511,23 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        MedicinePurchaseCost: {
+            unit?: string;
+            /**
+             * Format: int64
+             * @description Whole TZS amount per selected purchase unit
+             */
+            amountMinor?: number;
+            /** Format: uuid */
+            updatedBy?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        UpdateMedicinePurchaseCost: {
+            unit: string;
+            /** Format: int64 */
+            amountMinor: number;
+        };
         ClinicAssignmentsRequest: {
             unitIds?: string[];
             /** Format: uuid */
@@ -4946,10 +5030,15 @@ export interface components {
             cancelledLine?: components["schemas"]["PrescriptionLineResponse"];
             replacementLine?: components["schemas"]["PrescriptionLineResponse"];
         };
+        /** @description Confirmed line: accepted and rejected must be nonnegative, each at most received, and their sum must equal received. A discrepancy reason is required for rejection or an ordered/received difference; batch and future expiry are required. Packaging conversion comes from an approved catalogue rule. Entered blister counts must multiply to that conversion and match approved counts when present. */
         Line: {
             /** Format: uuid */
             itemId: string;
             purchaseUnit: string;
+            /** Format: int32 */
+            blistersPerPack?: number;
+            /** Format: int32 */
+            unitsPerBlister?: number;
             /** Format: int32 */
             orderedQuantity?: number;
             /** Format: int32 */
@@ -4961,8 +5050,11 @@ export interface components {
             batchNumber: string;
             /** Format: date */
             expiryDate: string;
-            /** Format: int64 */
-            unitPurchaseCostMinor?: number;
+            /**
+             * Format: int64
+             * @description Optional whole TZS amount per selected purchase unit; null means unknown.
+             */
+            unitPurchaseCostMinor?: number | null;
             discrepancyReason?: string;
             notes?: string;
         };
@@ -4992,6 +5084,10 @@ export interface components {
             /** Format: int32 */
             factor?: number;
             /** Format: int32 */
+            blistersPerPack?: number | null;
+            /** Format: int32 */
+            unitsPerBlister?: number | null;
+            /** Format: int32 */
             receivedQuantity?: number;
             /** Format: int32 */
             acceptedQuantity?: number;
@@ -5004,16 +5100,16 @@ export interface components {
             /** Format: int32 */
             rejectedBaseQuantity?: number;
             /** Format: int64 */
-            receivedCostMinor?: number;
+            receivedCostMinor?: number | null;
             /** Format: int64 */
-            acceptedCostMinor?: number;
+            acceptedCostMinor?: number | null;
             batchNumber?: string;
             /** Format: date */
             expiryDate?: string;
             /** Format: int32 */
             orderedQuantity?: number;
             /** Format: int64 */
-            unitPurchaseCostMinor?: number;
+            unitPurchaseCostMinor?: number | null;
             discrepancyReason?: string;
             notes?: string;
         };
@@ -5039,9 +5135,9 @@ export interface components {
             deliveryDate?: string;
             notes?: string;
             /** Format: int64 */
-            totalReceivedCostMinor?: number;
+            totalReceivedCostMinor?: number | null;
             /** Format: int64 */
-            totalAcceptedCostMinor?: number;
+            totalAcceptedCostMinor?: number | null;
             currencyCode?: string;
             /** Format: date-time */
             confirmedAt?: string;
@@ -5544,13 +5640,50 @@ export interface components {
             /** Format: int32 */
             version?: number;
             status?: string;
+            /**
+             * Format: int32
+             * @description Set with unitsPerBlister for blister-packaged packs.
+             */
+            blistersPerPack?: number | null;
+            /** Format: int32 */
+            unitsPerBlister?: number | null;
         };
+        PendingPackaging: {
+            packaging: components["schemas"]["Packaging"];
+            itemName: string;
+            baseUnit: string;
+            reason: string;
+            proposedBy: string;
+        };
+        RejectPackagingRequest: {
+            reason: string;
+        };
+        MedicinePackagingCatalogueItem: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            form: string;
+            strength?: string | null;
+            baseUnit: string;
+            active: boolean;
+            packages: components["schemas"]["Packaging"][];
+        };
+        MedicinePackagingCataloguePage: {
+            items: components["schemas"]["MedicinePackagingCatalogueItem"][];
+            hasMore: boolean;
+        };
+        /** @description A blister-pack proposal supplies blistersPerPack and unitsPerBlister; their product must equal quantityInBaseUnits. PACK proposals with more than one unit per blister also create a matching BLISTER_n proposal when one is not already approved or pending. Both require independent approval before use. */
         ProposalRequest: {
             unit: string;
             /** Format: int32 */
             quantityInBaseUnits?: number;
             canSplit?: boolean;
             reason: string;
+            /** Format: int32 */
+            blistersPerPack?: number;
+            /** Format: int32 */
+            unitsPerBlister?: number;
         };
         CreateLabStockRequestRequest: {
             /** Format: uuid */
@@ -6188,8 +6321,11 @@ export interface components {
             batchId?: string;
             /** Format: int32 */
             quantity?: number;
-            /** Format: int64 */
-            unitCostAmountMinor?: number;
+            /**
+             * Format: int64
+             * @description Null when the supplier purchase cost was unknown at receipt.
+             */
+            unitCostAmountMinor?: number | null;
             unitCostCurrencyCode?: string;
             fefoOverrideReason?: string;
             /** Format: int32 */
@@ -6892,8 +7028,11 @@ export interface components {
             /** Format: uuid */
             storeId?: string;
             storeName?: string;
-            /** Format: int64 */
-            totalValueAmountMinor?: number;
+            /**
+             * Format: int64
+             * @description Null when any positive on-hand quantity in the store has unknown purchase cost.
+             */
+            totalValueAmountMinor?: number | null;
             currencyCode?: string;
         };
         LowStockResponse: {
@@ -6963,9 +7102,9 @@ export interface components {
             /** Format: int32 */
             receivedQuantity?: number;
             /** Format: int64 */
-            unitCostAmountMinor?: number;
+            unitCostAmountMinor?: number | null;
             /** Format: int64 */
-            totalCostMinor?: number;
+            totalCostMinor?: number | null;
             currencyCode?: string;
             /** Format: uuid */
             supplierId?: string;
@@ -7141,10 +7280,13 @@ export interface components {
             cashCollectedMinor?: number;
             /** Format: int64 */
             insuranceBilledMinor?: number;
+            /**
+             * Format: int64
+             * @description Null if any dispensed medicine in this department has unknown purchase cost.
+             */
+            pharmacyCostMinor?: number | null;
             /** Format: int64 */
-            pharmacyCostMinor?: number;
-            /** Format: int64 */
-            contributionMinor?: number;
+            contributionMinor?: number | null;
             currencyCode?: string;
             consumablesCostCaptured?: boolean;
             attributableSalariesCaptured?: boolean;
@@ -10145,6 +10287,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Packaging"];
+                };
+            };
+        };
+    };
+    rejectMedicinePackaging: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectPackagingRequest"];
+            };
+        };
+        responses: {
+            /** @description Rejected packaging proposal */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Packaging"];
                 };
             };
         };
@@ -13364,6 +13532,76 @@ export interface operations {
             };
         };
     };
+    currentMedicinePurchaseCost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current optional procurement suggestion */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MedicinePurchaseCost"];
+                };
+            };
+        };
+    };
+    updateMedicinePurchaseCost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMedicinePurchaseCost"];
+            };
+        };
+        responses: {
+            /** @description Updated default purchase cost */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MedicinePurchaseCost"];
+                };
+            };
+        };
+    };
+    medicinePurchaseCostHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Purchase cost changes, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MedicinePurchaseCost"][];
+                };
+            };
+        };
+    };
     pending_1: {
         parameters: {
             query?: never;
@@ -13379,7 +13617,32 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["Packaging"][];
+                    "*/*": components["schemas"]["PendingPackaging"][];
+                };
+            };
+        };
+    };
+    medicinePackagingCatalogue: {
+        parameters: {
+            query?: {
+                q?: string;
+                configuration?: "CONFIGURED" | "UNCONFIGURED" | "ALL";
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paged medicine catalogue with approved package definitions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MedicinePackagingCataloguePage"];
                 };
             };
         };
