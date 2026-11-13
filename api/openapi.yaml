@@ -47,6 +47,49 @@ paths:
       responses:
         "200":
           description: OK
+  /api/medicines/{itemId}/default-purchase-cost:
+    get:
+      tags:
+      - medicine-purchase-cost-controller
+      operationId: current
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Cost"
+    put:
+      tags:
+      - medicine-purchase-cost-controller
+      operationId: update
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Update"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Cost"
   /api/lab-orders/{labOrderId}/result-draft:
     get:
       tags:
@@ -137,7 +180,7 @@ paths:
     put:
       tags:
       - department-management-controller
-      operationId: update
+      operationId: update_1
       parameters:
       - name: id
         in: path
@@ -1649,6 +1692,31 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/WatchlistEntryResponse"
+  /api/medicine-packaging/{id}/reject:
+    post:
+      tags:
+      - medicine-packaging-controller
+      operationId: reject
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Packaging"
   /api/medicine-packaging/{id}/approve:
     post:
       tags:
@@ -1668,27 +1736,6 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/Packaging"
-  /api/medicine-packaging/{id}/reject:
-    post:
-      tags:
-      - medicine-packaging-controller
-      operationId: rejectMedicinePackaging
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema: { type: string, format: uuid }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/RejectPackagingRequest" }
-      responses:
-        "200":
-          description: Rejected packaging proposal
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Packaging" }
   /api/medicine-packaging/items/{itemId}/proposals:
     post:
       tags:
@@ -1761,7 +1808,7 @@ paths:
     post:
       tags:
       - lab-stock-request-controller
-      operationId: reject
+      operationId: reject_1
       parameters:
       - name: id
         in: path
@@ -4777,59 +4824,27 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/NurseWorkloadResponse"
-  /api/medicines/{itemId}/default-purchase-cost:
-    get:
-      tags: [medicine-purchase-cost-controller]
-      operationId: currentMedicinePurchaseCost
-      description: Requires CATALOG_IMPORT or STOCK_READ. A null response means no default cost is configured.
-      parameters:
-      - name: itemId
-        in: path
-        required: true
-        schema: { type: string, format: uuid }
-      responses:
-        "200":
-          description: Current optional procurement suggestion
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/MedicinePurchaseCost" }
-    put:
-      tags: [medicine-purchase-cost-controller]
-      operationId: updateMedicinePurchaseCost
-      description: Requires CATALOG_IMPORT; does not change the selling price or historical receipts.
-      parameters:
-      - name: itemId
-        in: path
-        required: true
-        schema: { type: string, format: uuid }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/UpdateMedicinePurchaseCost" }
-      responses:
-        "200":
-          description: Updated default purchase cost
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/MedicinePurchaseCost" }
   /api/medicines/{itemId}/default-purchase-cost/history:
     get:
-      tags: [medicine-purchase-cost-controller]
-      operationId: medicinePurchaseCostHistory
+      tags:
+      - medicine-purchase-cost-controller
+      operationId: history
       parameters:
       - name: itemId
         in: path
         required: true
-        schema: { type: string, format: uuid }
+        schema:
+          type: string
+          format: uuid
       responses:
         "200":
-          description: Purchase cost changes, newest first
+          description: OK
           content:
-            application/json:
+            '*/*':
               schema:
                 type: array
-                items: { $ref: "#/components/schemas/MedicinePurchaseCost" }
+                items:
+                  $ref: "#/components/schemas/Cost"
   /api/medicine-packaging/pending:
     get:
       tags:
@@ -4844,30 +4859,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PendingPackaging"
-  /api/medicine-packaging/catalogue:
-    get:
-      tags:
-      - medicine-packaging-controller
-      operationId: medicinePackagingCatalogue
-      parameters:
-      - name: q
-        in: query
-        schema: { type: string, default: "" }
-      - name: configuration
-        in: query
-        schema: { type: string, enum: [CONFIGURED, UNCONFIGURED, ALL], default: CONFIGURED }
-      - name: limit
-        in: query
-        schema: { type: integer, format: int32, default: 50, minimum: 1, maximum: 100 }
-      - name: offset
-        in: query
-        schema: { type: integer, format: int32, default: 0, minimum: 0 }
-      responses:
-        "200":
-          description: Paged medicine catalogue with approved package definitions
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/MedicinePackagingCataloguePage" }
   /api/medicine-packaging/items/{itemId}:
     get:
       tags:
@@ -4889,6 +4880,45 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Packaging"
+  /api/medicine-packaging/catalogue:
+    get:
+      tags:
+      - medicine-packaging-controller
+      operationId: catalogue
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+          default: ""
+      - name: configuration
+        in: query
+        required: false
+        schema:
+          type: string
+          default: CONFIGURED
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 50
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CataloguePage"
   /api/lab-tests:
     get:
       tags:
@@ -5256,7 +5286,6 @@ paths:
       tags:
       - item-controller
       operationId: search_5
-      description: Search medicines by name or catalogue code. Requires STOCK_READ or CATALOG_IMPORT; controlled and unclassified entries remain visible but unselectable.
       parameters:
       - name: q
         in: query
@@ -5696,7 +5725,7 @@ paths:
     get:
       tags:
       - department-controller
-      operationId: catalogue
+      operationId: catalogue_1
       responses:
         "200":
           description: OK
@@ -5822,7 +5851,7 @@ paths:
     get:
       tags:
       - cashier-shift-controller
-      operationId: current
+      operationId: current_1
       responses:
         "200":
           description: OK
@@ -6747,19 +6776,6 @@ paths:
           description: No Content
 components:
   schemas:
-    MedicinePurchaseCost:
-      type: object
-      properties:
-        unit: { type: string }
-        amountMinor: { type: integer, format: int64, minimum: 0, description: Whole TZS amount per selected purchase unit }
-        updatedBy: { type: string, format: uuid }
-        updatedAt: { type: string, format: date-time }
-    UpdateMedicinePurchaseCost:
-      type: object
-      required: [unit, amountMinor]
-      properties:
-        unit: { type: string }
-        amountMinor: { type: integer, format: int64, minimum: 0 }
     ClinicAssignmentsRequest:
       type: object
       properties:
@@ -6779,6 +6795,31 @@ components:
           items:
             type: string
             format: uuid
+    Update:
+      required:
+      - amountMinor
+      - unit
+      type: object
+      properties:
+        unit:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+    Cost:
+      type: object
+      properties:
+        unit:
+          type: string
+        amountMinor:
+          type: integer
+          format: int64
+        updatedBy:
+          type: string
+          format: uuid
+        updatedAt:
+          type: string
+          format: date-time
     JsonNode:
       type: object
     SaveDraftRequest:
@@ -7771,7 +7812,6 @@ components:
         replacementLine:
           $ref: "#/components/schemas/PrescriptionLineResponse"
     Line:
-      description: "Confirmed line: accepted and rejected must be nonnegative, each at most received, and their sum must equal received. A discrepancy reason is required for rejection or an ordered/received difference; batch and future expiry are required. Packaging conversion comes from an approved catalogue rule. Entered blister counts must multiply to that conversion and match approved counts when present."
       required:
       - batchNumber
       - expiryDate
@@ -7784,29 +7824,18 @@ components:
           format: uuid
         purchaseUnit:
           type: string
-        blistersPerPack:
-          type: integer
-          format: int32
-          minimum: 1
-        unitsPerBlister:
-          type: integer
-          format: int32
-          minimum: 1
         orderedQuantity:
           type: integer
           format: int32
         receivedQuantity:
           type: integer
           format: int32
-          minimum: 0
         acceptedQuantity:
           type: integer
           format: int32
-          minimum: 0
         rejectedQuantity:
           type: integer
           format: int32
-          minimum: 0
         batchNumber:
           type: string
         expiryDate:
@@ -7815,13 +7844,16 @@ components:
         unitPurchaseCostMinor:
           type: integer
           format: int64
-          nullable: true
-          minimum: 0
-          description: Optional whole TZS amount per selected purchase unit; null means unknown.
         discrepancyReason:
           type: string
         notes:
           type: string
+        blistersPerPack:
+          type: integer
+          format: int32
+        unitsPerBlister:
+          type: integer
+          format: int32
     StockReceiptRequest:
       required:
       - deliveryDate
@@ -7879,11 +7911,9 @@ components:
         blistersPerPack:
           type: integer
           format: int32
-          nullable: true
         unitsPerBlister:
           type: integer
           format: int32
-          nullable: true
         receivedQuantity:
           type: integer
           format: int32
@@ -7905,11 +7935,9 @@ components:
         receivedCostMinor:
           type: integer
           format: int64
-          nullable: true
         acceptedCostMinor:
           type: integer
           format: int64
-          nullable: true
         batchNumber:
           type: string
         expiryDate:
@@ -7921,7 +7949,6 @@ components:
         unitPurchaseCostMinor:
           type: integer
           format: int64
-          nullable: true
         discrepancyReason:
           type: string
         notes:
@@ -7965,11 +7992,9 @@ components:
         totalReceivedCostMinor:
           type: integer
           format: int64
-          nullable: true
         totalAcceptedCostMinor:
           type: integer
           format: int64
-          nullable: true
         currencyCode:
           type: string
         confirmedAt:
@@ -8942,6 +8967,13 @@ components:
         sourceDate:
           type: string
           format: date
+    RejectRequest:
+      required:
+      - reason
+      type: object
+      properties:
+        reason:
+          type: string
     Packaging:
       type: object
       properties:
@@ -8966,50 +8998,10 @@ components:
         blistersPerPack:
           type: integer
           format: int32
-          nullable: true
-          description: Set with unitsPerBlister for blister-packaged packs.
         unitsPerBlister:
           type: integer
           format: int32
-          nullable: true
-    PendingPackaging:
-      type: object
-      required: [packaging, itemName, baseUnit, reason, proposedBy]
-      properties:
-        packaging: { $ref: "#/components/schemas/Packaging" }
-        itemName: { type: string }
-        baseUnit: { type: string }
-        reason: { type: string }
-        proposedBy: { type: string }
-    RejectPackagingRequest:
-      type: object
-      required: [reason]
-      properties:
-        reason: { type: string, minLength: 1 }
-    MedicinePackagingCatalogueItem:
-      type: object
-      required: [id, code, name, form, baseUnit, active, packages]
-      properties:
-        id: { type: string, format: uuid }
-        code: { type: string }
-        name: { type: string }
-        form: { type: string }
-        strength: { type: string, nullable: true }
-        baseUnit: { type: string }
-        active: { type: boolean }
-        packages:
-          type: array
-          items: { $ref: "#/components/schemas/Packaging" }
-    MedicinePackagingCataloguePage:
-      type: object
-      required: [items, hasMore]
-      properties:
-        items:
-          type: array
-          items: { $ref: "#/components/schemas/MedicinePackagingCatalogueItem" }
-        hasMore: { type: boolean }
     ProposalRequest:
-      description: "A blister-pack proposal supplies blistersPerPack and unitsPerBlister; their product must equal quantityInBaseUnits. PACK proposals with more than one unit per blister also create a matching BLISTER_n proposal when one is not already approved or pending. Both require independent approval before use."
       required:
       - reason
       - unit
@@ -9026,13 +9018,16 @@ components:
         reason:
           type: string
         blistersPerPack:
+          minimum: 1
           type: integer
           format: int32
-          minimum: 1
         unitsPerBlister:
+          minimum: 1
           type: integer
           format: int32
-          minimum: 1
+        replacesPackagingId:
+          type: string
+          format: uuid
     CreateLabStockRequestRequest:
       required:
       - itemId
@@ -10384,8 +10379,6 @@ components:
         unitCostAmountMinor:
           type: integer
           format: int64
-          nullable: true
-          description: Null when the supplier purchase cost was unknown at receipt.
         unitCostCurrencyCode:
           type: string
         fefoOverrideReason:
@@ -11723,8 +11716,6 @@ components:
         totalValueAmountMinor:
           type: integer
           format: int64
-          nullable: true
-          description: Null when any positive on-hand quantity in the store has unknown purchase cost.
         currencyCode:
           type: string
     LowStockResponse:
@@ -11840,11 +11831,9 @@ components:
         unitCostAmountMinor:
           type: integer
           format: int64
-          nullable: true
         totalCostMinor:
           type: integer
           format: int64
-          nullable: true
         currencyCode:
           type: string
         supplierId:
@@ -12132,12 +12121,9 @@ components:
         pharmacyCostMinor:
           type: integer
           format: int64
-          nullable: true
-          description: Null if any dispensed medicine in this department has unknown purchase cost.
         contributionMinor:
           type: integer
           format: int64
-          nullable: true
         currencyCode:
           type: string
         consumablesCostCaptured:
@@ -12684,6 +12670,50 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/WatchlistEntryResponse"
+    PendingPackaging:
+      type: object
+      properties:
+        packaging:
+          $ref: "#/components/schemas/Packaging"
+        itemName:
+          type: string
+        baseUnit:
+          type: string
+        reason:
+          type: string
+        proposedBy:
+          type: string
+    CatalogueItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        form:
+          type: string
+        strength:
+          type: string
+        baseUnit:
+          type: string
+        active:
+          type: boolean
+        packages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Packaging"
+    CataloguePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogueItem"
+        hasMore:
+          type: boolean
     LabTestParameterResponse:
       type: object
       properties:
