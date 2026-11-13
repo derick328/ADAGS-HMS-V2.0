@@ -251,6 +251,12 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
         // proves, independent of the stored status column.
         UUID batchId = insertExpiredFixtureBatch(itemId, storeId, supplierId, admin);
         insertFixtureServiceItemAndPrice("AMX500", 200, admin);
+        assertThatThrownBy(() -> prescribeAndPay(itemId, 10, admin))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("No usable, unexpired stock");
+
+        StockBatch usable = restock(itemId, storeId, supplierId, "BATCH-USABLE",
+                LocalDate.now().plusYears(1), 10, admin);
         PrescriptionLine line = prescribeAndPay(itemId, 10, admin);
 
         assertThatThrownBy(() -> dispenseService.dispense(new DispenseCommand(line.id(),
@@ -259,7 +265,8 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
                 .isInstanceOf(BatchExpiredException.class);
 
         var context = dispenseContextService.build(line.id());
-        assertThat(context.availableBatches()).as("expired batch excluded from FEFO availability").isEmpty();
+        assertThat(context.availableBatches()).as("expired batch excluded from FEFO availability")
+                .extracting(batch -> batch.batchId()).containsExactly(usable.id());
     }
 
     // §4.4's three-way rule.

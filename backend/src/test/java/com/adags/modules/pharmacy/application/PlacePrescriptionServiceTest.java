@@ -92,6 +92,26 @@ class PlacePrescriptionServiceTest extends IntegrationTestSupport {
                 .hasMessageContaining("Choose pregnancy status");
     }
 
+    @Test
+    void rejectsPrescribingWhenNoUsableStockExists() {
+        UUID admin = bootstrapAdminId();
+        UUID itemId = inventoryFacade.ensureCatalogueItem(
+                "RX-EMPTY-" + UUID.randomUUID().toString().substring(0, 8), "Unstocked medicine", "PHARMACY", admin);
+        Patient patient = registerPatientService.register(patientCommand("Amina", "Hassan", admin));
+        Encounter encounter = openEncounterService.checkIn(
+                new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
+        jdbcTemplate.update("""
+                INSERT INTO consultation_pregnancy_assessment (encounter_id, status, recorded_by)
+                VALUES (:encounterId, 'NO', :actorId)
+                """, new MapSqlParameterSource().addValue("encounterId", encounter.id()).addValue("actorId", admin));
+
+        assertThatThrownBy(() -> placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
+                encounter.id(), itemId, 1, "As directed", false, admin,
+                null, null, null, null, null)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("No usable, unexpired stock");
+    }
+
     private UUID insertFixtureDepartment() {
         return jdbcTemplate.queryForObject("""
                         INSERT INTO department (facility_id, category_id, code, name) VALUES (:facilityId, (SELECT id FROM department_category WHERE code = 'GENERAL_CLINICAL'), :code, :code)

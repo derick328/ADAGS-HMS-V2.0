@@ -97,6 +97,13 @@ public class PlacePrescriptionService {
             throw new IllegalArgumentException("Choose pregnancy status (Yes, No, or Unknown) before prescribing.");
         }
 
+        // Recheck at placement: the picker may have shown stock that was
+        // dispensed or expired while the doctor completed the prescription.
+        if (inventoryFacade.findFefoBatches(command.itemId(), encounterContext.facilityId()).stream()
+                .noneMatch(batch -> batch.quantityAvailable() > 0)) {
+            throw new IllegalArgumentException("No usable, unexpired stock is available for this medicine.");
+        }
+
         UUID prescriptionOrderId = UUID.randomUUID();
 
         // Posted before the order/line rows exist — same ordering

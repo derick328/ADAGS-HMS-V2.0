@@ -43,7 +43,7 @@ import { fetchLabTests, fetchPendingLabClassifications } from '../../shared/api/
 import { fetchPatientById, type PatientResponse } from '../../shared/api/patients';
 import { searchPriceCatalog, type PriceCatalogItemResponse } from '../../shared/api/priceCatalog';
 import { placePrescription, type PrescriptionFrequency } from '../../shared/api/prescriptions';
-import { fetchCurrentStock } from '../../shared/api/stockReports';
+import { fetchCurrentStock, type CurrentStockResponse } from '../../shared/api/stockReports';
 import { searchCompletedAssessments, type CompletedTriageAssessmentResponse } from '../../shared/api/triage';
 import { fetchVitalSignsByEncounter, recordConsultationVitals, type VitalSignsResponse } from '../../shared/api/vitalSigns';
 import { useAuth } from '../../shared/auth/AuthProvider';
@@ -95,6 +95,14 @@ const DISPOSITION_OPTIONS: {
 
 const FREQUENCY_DOSES_PER_DAY: Record<string, number | null> = { STAT: 1, OD: 1, BD: 2, TDS: 3, QDS: 4, PRN: null };
 const QUANTITY_SANITY_CEILING = 200;
+
+function availableStockByItem(rows: CurrentStockResponse[]): Record<string, number> {
+  const available: Record<string, number> = {};
+  for (const row of rows) {
+    if (row.itemId) available[row.itemId] = (available[row.itemId] ?? 0) + (row.availableQuantity ?? 0);
+  }
+  return available;
+}
 
 // Picks the shift the doctor is currently working in — a sensible
 // default for the nurse-assignment shift picker on the admit form.
@@ -1675,14 +1683,16 @@ function PrescriptionTab({
     return map;
   }, [stock]);
 
-  function stockStatus(itemId?: string): { label: string; className: string } {
-    if (stockError) return { label: 'Stock unavailable', className: 'badge-neutral' };
-    if (!stock) return { label: 'Checking stock', className: 'badge-neutral' };
+  function stockStatus(itemId?: string): { label: string; className: string; reason?: string } {
+    if (stockError) return { label: 'Stock unavailable', className: 'badge-neutral', reason: 'Stock could not be checked. Try again before prescribing.' };
+    if (!stock) return { label: 'Checking stock', className: 'badge-neutral', reason: 'Checking stock before this medicine can be selected.' };
     const totals = itemId ? stockByItem[itemId] : undefined;
     if (totals?.available) return { label: `In stock — ${totals.available}`, className: 'badge-success' };
-    if (totals?.expired) return { label: 'Expired', className: 'badge-critical' };
-    return { label: 'Out of stock', className: 'badge-neutral' };
+    if (totals?.expired) return { label: 'Expired', className: 'badge-critical', reason: 'Only expired stock is available. This medicine cannot be prescribed.' };
+    return { label: 'Out of stock', className: 'badge-neutral', reason: 'No usable stock is available. This medicine cannot be prescribed.' };
   }
+
+  const unavailableDraft = lines.find((line) => stockStatus(line.item.id).reason);
 
   const dosesPerDay = FREQUENCY_DOSES_PER_DAY[frequency];
   const requestedQuantity = dosesPerDay != null ? quantityPerDose * dosesPerDay * durationDays : wholeQuantity;
@@ -1691,7 +1701,7 @@ function PrescriptionTab({
   const overCeiling = computedQuantity > QUANTITY_SANITY_CEILING;
 
   function addLine() {
-    if (!pending || !Number.isSafeInteger(computedQuantity) || computedQuantity <= 0) return;
+    if (!pending || stockStatus(pending.id).reason || !Number.isSafeInteger(computedQuantity) || computedQuantity <= 0) return;
     setLines((prev) => [
       ...prev,
       {
@@ -1723,6 +1733,14 @@ function PrescriptionTab({
     mutationFn: async () => {
       if (pregnancyAssessment?.applicable && !pregnancyAssessment.status) {
         throw new Error('Choose pregnancy status before prescribing.');
+      }
+      // A selected draft may sit open while stock is dispensed or expires.
+      const currentStock = await fetchCurrentStock(accessToken as string);
+      const availableByItem = availableStockByItem(currentStock);
+      for (const line of lines) {
+        if (!availableByItem[line.item.id as string]) {
+          throw new Error(`${line.item.name}: no usable stock is available. Remove this medicine before sending.`);
+        }
       }
       for (const line of [...lines]) {
         await placePrescription(
@@ -1785,10 +1803,11 @@ function PrescriptionTab({
               {o.name} {o.strength} {o.form}
               {o.selectable === false && <em> — {o.unselectableReason}</em>}
               {' '}<span className={`badge ${stockStatus(o.id).className}`}>{stockStatus(o.id).label}</span>
+              {o.selectable !== false && stockStatus(o.id).reason && <em> — {stockStatus(o.id).reason}</em>}
               {!!stockByItem[o.id as string]?.available && !!stockByItem[o.id as string]?.expired && <>{' '}<span className="badge badge-critical">Expired batch</span></>}
             </span>
           )}
-          isOptionDisabled={(o) => o.selectable === false}
+          isOptionDisabled={(o) => o.selectable === false || !!stockStatus(o.id).reason}
           onSelect={(o) => {
             setPending(o);
             setPriceMinor(latestPriceByCode.current[o.code as string]?.priceMinor ?? null);
@@ -1807,6 +1826,7 @@ function PrescriptionTab({
             {!!stockByItem[pending.id as string]?.available && !!stockByItem[pending.id as string]?.expired && <span className="badge badge-critical">Expired batch</span>}
             {priceMinor != null && <span>{formatMoney(priceMinor, 'TZS')}</span>}
           </div>
+          {stockStatus(pending.id).reason && <p role="alert" className="field-error">{stockStatus(pending.id).reason}</p>}
 
           {patientAge != null && patientAge < 18 && (
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--info)', marginBottom: 'var(--space-2)' }}>
@@ -1850,7 +1870,7 @@ function PrescriptionTab({
             <textarea className="clinical-control" rows={2} value={dosageInstructions} onChange={(e) => setDosageInstructions(e.target.value)} style={fieldStyle} placeholder="Dosage instructions" />
           </FormRow>
 
-          <button type="button" className="btn btn-primary" onClick={addLine} disabled={overCeiling} style={{ marginTop: 'var(--space-2)' }}>
+          <button type="button" className="btn btn-primary" onClick={addLine} disabled={overCeiling || !!stockStatus(pending.id).reason} style={{ marginTop: 'var(--space-2)' }}>
             Add to prescription
           </button>
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
@@ -1885,7 +1905,13 @@ function PrescriptionTab({
         </tbody>
       </table></TableRegion>
 
-      <button type="button" className="btn btn-primary" disabled={lines.length === 0 || send.isPending || pregnancyAssessment == null || (pregnancyAssessment.applicable && !pregnancyAssessment.status)} onClick={() => send.mutate()} style={{ marginTop: 'var(--space-3)' }}>
+      {unavailableDraft && (
+        <p role="alert" className="field-error">
+          {unavailableDraft.item.name}: {stockStatus(unavailableDraft.item.id).reason} Remove this line before sending.
+        </p>
+      )}
+
+      <button type="button" className="btn btn-primary" disabled={lines.length === 0 || !!unavailableDraft || send.isPending || pregnancyAssessment == null || (pregnancyAssessment.applicable && !pregnancyAssessment.status)} onClick={() => send.mutate()} style={{ marginTop: 'var(--space-3)' }}>
         {send.isPending ? 'Sending…' : 'Send Prescription'}
       </button>
       {lines.length === 0 && (
