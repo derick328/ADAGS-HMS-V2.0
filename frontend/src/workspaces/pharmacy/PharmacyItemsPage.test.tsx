@@ -66,6 +66,9 @@ describe('pharmacy medicine packaging', () => {
     await waitFor(() => expect(proposeMedicinePackaging).toHaveBeenCalledWith('medicine-1',
       expect.objectContaining({ unit: 'PACK_60', quantityInBaseUnits: 60,
         replacesPackagingId: 'pack-1', blistersPerPack: 6, unitsPerBlister: 10 }), 'test-token'));
+    expect(await screen.findByRole('status')).toHaveTextContent('Edited packaging submitted for Admin approval');
+    expect(screen.getByRole('tab', { name: 'Packaging overview' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('button', { name: 'Submit edited packaging' })).not.toBeInTheDocument();
   });
 
   it('searches all medicines from the configured default', async () => {

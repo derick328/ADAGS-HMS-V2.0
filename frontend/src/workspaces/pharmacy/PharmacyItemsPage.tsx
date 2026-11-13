@@ -32,19 +32,26 @@ function cannotConfigurePackaging(option: ItemSearchResultResponse) {
 export function PharmacyItemsPage() {
   const [tab, setTab] = useState<Tab>('overview');
   const [packagingEdit, setPackagingEdit] = useState<PackagingEdit | null>(null);
+  const [packagingNotice, setPackagingNotice] = useState('');
 
   return (
     <div className="staff-page-stack pharmacy-items-page">
       <PageHeader title={<>Pharmacy items</>} description={<>View medicine packaging and propose changes for Admin approval.</>} />
+      {packagingNotice && <p role="status">{packagingNotice}</p>}
 
       <Tabs aria-label="Proposal type" variant="underline" value={tab} onChange={(value) => setTab(value as Tab)} items={[
         { id: 'overview', label: 'Packaging overview', content: <PackagingOverview onEdit={(item, pack) => {
+          setPackagingNotice('');
           setPackagingEdit({ item, pack }); setTab('packaging');
         }} /> },
         { id: 'newItem', label: 'New item', content: <NewItemForm /> },
         { id: 'priceChange', label: 'Price change', content: <PriceChangeForm /> },
         { id: 'packaging', label: 'Packaging', content: <PackagingProposalForm key={packagingEdit?.pack.id ?? 'new'}
-          edit={packagingEdit} onCancelEdit={() => setPackagingEdit(null)} /> },
+          edit={packagingEdit} onCancelEdit={() => setPackagingEdit(null)} onEditedSubmitted={() => {
+            setPackagingEdit(null);
+            setPackagingNotice('Edited packaging submitted for Admin approval. The approved package stays in use until approval.');
+            setTab('overview');
+          }} /> },
       ]} />
 
     </div>
@@ -119,7 +126,11 @@ function PackagingOverview({ onEdit }: { onEdit: (item: MedicinePackagingCatalog
   </section>;
 }
 
-function PackagingProposalForm({ edit, onCancelEdit }: { edit: PackagingEdit | null; onCancelEdit: () => void }) {
+function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
+  edit: PackagingEdit | null;
+  onCancelEdit: () => void;
+  onEditedSubmitted: () => void;
+}) {
   const { accessToken } = useAuth();
   const canPropose = usePermission('PACKAGING_PROPOSE');
   const queryClient = useQueryClient();
@@ -149,7 +160,8 @@ function PackagingProposalForm({ edit, onCancelEdit }: { edit: PackagingEdit | n
           reason: reason.trim(), replacesPackagingId: edit?.pack.id ?? undefined }, accessToken as string),
     onSuccess: () => { if (!edit) { setUnit(''); setFactor(''); setBlistersPerPack(''); setUnitsPerBlister(''); setReason(''); }
       queryClient.invalidateQueries({ queryKey: ['medicine-packaging', item?.id] });
-      queryClient.invalidateQueries({ queryKey: ['medicine-packaging', 'catalogue'] }); } });
+      queryClient.invalidateQueries({ queryKey: ['medicine-packaging', 'catalogue'] });
+      if (edit) onEditedSubmitted(); } });
   if (!canPropose) return <p>Packaging proposals require PACKAGING_PROPOSE permission.</p>;
   return <div className="stock-in-card pharmacy-proposal-form">
     <h3>{edit ? `Edit ${edit.item.name} packaging` : 'Configure how this medicine is packaged'}</h3>
@@ -189,7 +201,7 @@ function PackagingProposalForm({ edit, onCancelEdit }: { edit: PackagingEdit | n
         : 'Could not submit packaging proposal. Check your connection and try again.'}
     </p>}
     {submit.isSuccess && <p role="status">Packaging proposal submitted for approval. A separate blister unit is proposed when each blister contains more than one base unit.</p>}
-    <button type="button" className="btn btn-primary" disabled={submit.isPending || (edit != null && submit.isSuccess)} onClick={() => {
+    <button type="button" className="btn btn-primary" disabled={submit.isPending} onClick={() => {
       const invalidBlister = presentation === 'BLISTER_PACK' &&
         (!Number.isSafeInteger(Number(blistersPerPack)) || Number(blistersPerPack) < 1 ||
          !Number.isSafeInteger(Number(unitsPerBlister)) || Number(unitsPerBlister) < 1 ||
