@@ -876,6 +876,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/medicine-routes/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMedicineRoutes"];
+        put?: never;
+        post: operations["configureMedicineRoutes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pharmacy-item-proposals/form-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["proposeFormChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/pharmacy-item-proposals/price-change": {
         parameters: {
             query?: never;
@@ -4997,7 +5029,7 @@ export interface components {
             doseAmount?: number;
             doseUnit?: string;
             /** @enum {string} */
-            frequency?: "STAT" | "OD" | "BD" | "TDS" | "QDS" | "PRN";
+            frequency?: "STAT" | "OD" | "BD" | "TDS" | "QDS" | "PRN" | "OTHER";
             /** Format: int32 */
             durationDays?: number;
         };
@@ -5392,7 +5424,7 @@ export interface components {
             doseAmount?: number;
             doseUnit?: string;
             /** @enum {string} */
-            frequency?: "STAT" | "OD" | "BD" | "TDS" | "QDS" | "PRN";
+            frequency?: "STAT" | "OD" | "BD" | "TDS" | "QDS" | "PRN" | "OTHER";
             /** Format: int32 */
             durationDays?: number;
             /** Format: int32 */
@@ -5420,7 +5452,7 @@ export interface components {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
-            proposalType?: "NEW_ITEM" | "PRICE_CHANGE";
+            proposalType?: "NEW_ITEM" | "PRICE_CHANGE" | "FORM_CHANGE";
             /** Format: uuid */
             itemId?: string;
             proposedName?: string;
@@ -5442,6 +5474,22 @@ export interface components {
             reviewNote?: string;
             /** Format: uuid */
             createdItemId?: string;
+        };
+        MedicineRouteConfiguration: {
+            routes?: string[];
+            concentration?: string;
+        };
+        ConfigureMedicineRoutesRequest: {
+            routes: string[];
+            concentration?: string;
+            reason: string;
+        };
+        ProposeFormChangeRequest: {
+            /** Format: uuid */
+            itemId: string;
+            proposedForm: string;
+            proposedUnit?: string;
+            justification: string;
         };
         ProposePriceChangeRequest: {
             /** Format: uuid */
@@ -7337,7 +7385,7 @@ export interface components {
             doseUnit?: string;
             route?: string;
             /** @enum {string} */
-            frequency?: "STAT" | "OD" | "BD" | "TDS" | "QDS" | "PRN";
+            frequency?: "STAT" | "OD" | "BD" | "TDS" | "QDS" | "PRN" | "OTHER";
             /** Format: int32 */
             durationDays?: number;
             /** Format: int32 */
@@ -7379,6 +7427,8 @@ export interface components {
             /** Format: int32 */
             conversionFactor?: number;
             baseUnit?: string;
+            dosageForm?: string;
+            productStrength?: string;
         };
         ItemSummaryResponse: {
             /** Format: uuid */
@@ -10049,6 +10099,78 @@ export interface operations {
         responses: {
             /** @description OK */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PharmacyItemProposalResponse"];
+                };
+            };
+        };
+    };
+    getMedicineRoutes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MedicineRouteConfiguration"];
+                };
+            };
+        };
+    };
+    configureMedicineRoutes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigureMedicineRoutesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MedicineRouteConfiguration"];
+                };
+            };
+        };
+    };
+    proposeFormChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposeFormChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

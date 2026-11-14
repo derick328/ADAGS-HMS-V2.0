@@ -11,6 +11,8 @@ import com.adags.modules.pharmacy.domain.PrescriptionLineRepository;
 import com.adags.modules.pharmacy.domain.PrescriptionUnitSnapshot;
 import com.adags.modules.pharmacy.domain.PrescriptionOrder;
 import com.adags.modules.pharmacy.domain.PrescriptionOrderRepository;
+import com.adags.shared.kernel.DosageForm;
+import com.adags.modules.pharmacy.domain.PrescriptionFrequency;
 import com.adags.shared.events.DomainEventPublisher;
 import com.adags.shared.kernel.EncounterContext;
 import com.adags.shared.kernel.ItemSummary;
@@ -104,6 +106,19 @@ public class PlacePrescriptionService {
             throw new IllegalArgumentException("No usable, unexpired stock is available for this medicine.");
         }
 
+        validateQuantityPolicy(item, command, requestedQuantity, requestedUnit);
+        var approvedRoutes = inventoryFacade.approvedAdministrationRoutes(command.itemId());
+        String productStrength = DosageForm.fromCatalogue(item.form()) == DosageForm.INJECTION
+                ? inventoryFacade.productStrength(command.itemId()) : null;
+        if (DosageForm.fromCatalogue(item.form()) == DosageForm.INJECTION &&
+                (approvedRoutes.isEmpty() || productStrength == null || productStrength.isBlank())) {
+            throw new IllegalArgumentException("Injection requires a recorded concentration and approved administration routes.");
+        }
+        if (!approvedRoutes.isEmpty() && approvedRoutes.stream()
+                .noneMatch(route -> route.equalsIgnoreCase(command.route().trim()))) {
+            throw new IllegalArgumentException("Select a route approved for this medicine.");
+        }
+
         UUID prescriptionOrderId = UUID.randomUUID();
 
         // Posted before the order/line rows exist — same ordering
@@ -125,7 +140,8 @@ public class PlacePrescriptionService {
                 command.route(), command.doseAmount(), command.doseUnit(), command.frequency(), command.durationDays());
         PrescriptionLine savedLine = prescriptionLineRepository.insert(line);
         prescriptionLineRepository.insertUnitSnapshot(new PrescriptionUnitSnapshot(savedLine.id(),
-                requestedQuantity, requestedUnit, factor, item.unit()));
+                requestedQuantity, requestedUnit, factor, item.unit(), item.form(),
+                productStrength == null ? inventoryFacade.productStrength(command.itemId()) : productStrength));
 
         eventPublisher.publish(PRESCRIPTION_ISSUED_EVENT, Map.of(
                 "prescriptionOrderId", savedOrder.id().toString(),
@@ -142,12 +158,73 @@ public class PlacePrescriptionService {
         // active admission and the prescriber supplied a schedulable
         // frequency (PRN and a bare null both generate nothing — see
         // PrescriptionFrequency).
-        if (command.frequency() != null && command.durationDays() != null) {
+        if (command.frequency() != null && command.frequency() != PrescriptionFrequency.PRN
+                && command.frequency() != PrescriptionFrequency.OTHER
+                && (command.durationDays() != null || command.frequency() == PrescriptionFrequency.STAT)) {
             inpatientFacade.findActiveAdmissionId(command.encounterId()).ifPresent(admissionId ->
                     inpatientFacade.generateMedicationAdministrationSchedule(admissionId, savedLine.id(),
-                            command.frequency().name(), command.durationDays(), savedOrder.prescribedAt()));
+                            command.frequency().name(), command.frequency() == PrescriptionFrequency.STAT
+                                    ? 1 : command.durationDays(), savedOrder.prescribedAt()));
         }
 
         return savedLine;
+    }
+
+    static void validateQuantityPolicy(ItemSummary item, PlacePrescriptionCommand command,
+                                               int requestedQuantity, String requestedUnit) {
+        DosageForm form = DosageForm.fromCatalogue(item.form());
+        if (form == null) {
+            throw new IllegalArgumentException("Assign a supported dosage form to this medicine before prescribing.");
+        }
+        if (command.doseAmount() == null || !Double.isFinite(command.doseAmount())
+                || command.doseAmount() <= 0 || command.doseUnit() == null || command.doseUnit().isBlank()
+                || command.route() == null || command.route().isBlank() || command.frequency() == null) {
+            throw new IllegalArgumentException("Dose amount, dose unit, route and frequency are required.");
+        }
+        PrescriptionFrequency frequency = command.frequency();
+        if (frequency == PrescriptionFrequency.OTHER && (command.dosageInstructions() == null
+                || command.dosageInstructions().isBlank()
+                || command.dosageInstructions().trim().equalsIgnoreCase("As directed"))) {
+            throw new IllegalArgumentException("Describe the nonstandard administration schedule.");
+        }
+        if (frequency != PrescriptionFrequency.STAT && frequency != PrescriptionFrequency.PRN
+                && frequency != PrescriptionFrequency.OTHER
+                && (command.durationDays() == null || command.durationDays() <= 0)) {
+            throw new IllegalArgumentException("Duration in days is required for this schedule.");
+        }
+        if (form.automaticQuantity()) {
+            if (!form.name().equalsIgnoreCase(item.unit())) {
+                throw new IllegalArgumentException("Solid-dose catalogue base unit must match its dosage form.");
+            }
+            if (!command.doseUnit().trim().equalsIgnoreCase(item.unit())) {
+                throw new IllegalArgumentException("Solid-dose unit must match the medicine's base unit.");
+            }
+            if (command.doseAmount() != Math.rint(command.doseAmount())
+                    || command.doseAmount() > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("Solid-dose amount must be a whole unit.");
+            }
+            if (frequency != PrescriptionFrequency.PRN && frequency != PrescriptionFrequency.OTHER) {
+                try {
+                    int administrations = frequency == PrescriptionFrequency.STAT ? 1
+                            : Math.multiplyExact(frequency.timesPerDay(), command.durationDays());
+                    int expected = Math.multiplyExact(command.doseAmount().intValue(), administrations);
+                    if (command.quantityPrescribed() != expected) {
+                        throw new IllegalArgumentException("Dispensing quantity must equal dose units × administrations × days.");
+                    }
+                } catch (ArithmeticException overflow) {
+                    throw new IllegalArgumentException("Calculated dispensing quantity is too large.", overflow);
+                }
+            } // PRN requires an explicit positive supply quantity, checked above.
+        } else {
+            if (command.requestedQuantity() == null || command.requestedUnit() == null
+                    || command.requestedUnit().isBlank()) {
+                throw new IllegalArgumentException("Manual dispensing quantity and approved supply unit are required.");
+            }
+            String unit = requestedUnit.trim().toUpperCase(java.util.Locale.ROOT);
+            if (unit.equals("ML") || unit.equals("MILLILITRE") || unit.equals("G")
+                    || unit.equals("GRAM") || unit.equals("UNIT")) {
+                throw new IllegalArgumentException("Select an approved supply package, such as a bottle, vial or tube.");
+            }
+        }
     }
 }

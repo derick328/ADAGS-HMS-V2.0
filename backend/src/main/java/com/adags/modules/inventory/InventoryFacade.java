@@ -42,6 +42,12 @@ public interface InventoryFacade {
     /** Approved product-specific purchase/prescription unit to base-unit factor. */
     int conversionFactor(UUID itemId, String unit);
 
+    /** Empty when no product-specific route restriction has been configured. */
+    List<String> approvedAdministrationRoutes(UUID itemId);
+
+    /** Manufacturer strength/concentration text for clinical presentation checks. */
+    String productStrength(UUID itemId);
+
     /** ACTIVE, not-yet-expired batches for the item, earliest expiry first — 12-pharmacist.md §5.3's FEFO order. */
     List<BatchAvailability> findFefoBatches(UUID itemId);
 

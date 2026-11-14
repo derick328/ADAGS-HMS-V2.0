@@ -157,7 +157,7 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
         recordPregnancyStatus(encounter.id(), admin);
         PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
                 encounter.id(), itemId, 3, "As directed", false, admin,
-                "ORAL", 1.0, "CAPSULE", null, null, 1, "BLISTER"));
+                "ORAL", 3.0, "CAPSULE", com.adags.modules.pharmacy.domain.PrescriptionFrequency.STAT, null, 1, "BLISTER"));
         assertThat(line.quantityPrescribed()).isEqualTo(3);
         var snapshot = jdbcTemplate.queryForMap("""
                 SELECT requested_quantity, requested_unit, conversion_factor FROM prescription_unit_snapshot
@@ -463,7 +463,7 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
         recordPregnancyStatus(encounter.id(), admin);
         PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
                 encounter.id(), itemId, 30, "TAKE ONE TABLET THREE TIMES A DAY", false, admin,
-                null, null, null, null, null));
+                "ORAL", 1.0, "TABLET", com.adags.modules.pharmacy.domain.PrescriptionFrequency.TDS, 10));
 
         return new Fixture(patient.id(), line, batch.id());
     }
@@ -476,7 +476,7 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
         recordPregnancyStatus(encounter.id(), admin);
         PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
                 encounter.id(), itemId, quantity, "TAKE ONE TABLET THREE TIMES A DAY", false, admin,
-                null, null, null, null, null));
+                "ORAL", 1.0, "TABLET", com.adags.modules.pharmacy.domain.PrescriptionFrequency.OD, quantity));
         payLine(line.invoiceLineId(), patient.id(), admin);
         return line;
     }

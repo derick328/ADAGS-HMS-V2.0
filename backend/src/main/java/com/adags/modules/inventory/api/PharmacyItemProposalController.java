@@ -76,6 +76,16 @@ public class PharmacyItemProposalController {
         return PharmacyItemProposalResponse.from(proposal);
     }
 
+    @PostMapping("/form-change")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PharmacyItemProposalResponse proposeFormChange(@Valid @RequestBody ProposeFormChangeRequest request,
+                                                            @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor, "PHARMACY_ITEM_PROPOSE");
+        return PharmacyItemProposalResponse.from(proposePharmacyItemService.proposeFormChange(
+                request.itemId(), request.proposedForm(), request.proposedUnit(),
+                request.justification(), actor.userId()));
+    }
+
     @PostMapping("/{id}/review")
     public PharmacyItemProposalResponse review(
             @PathVariable UUID id, @Valid @RequestBody ReviewPharmacyItemProposalRequest request, @AuthenticationPrincipal Actor actor

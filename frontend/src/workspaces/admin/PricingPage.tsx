@@ -68,7 +68,8 @@ export function PricingPage() {
     id: proposal.id ?? '',
     primary: describeProposal(proposal),
     secondary: proposal.justification ?? undefined,
-    meta: <span className="money">{formatMoney(proposal.proposedPriceAmountMinor, proposal.currencyCode)}</span>,
+    meta: proposal.proposalType === 'FORM_CHANGE' ? <span>Dosage form review</span> :
+      <span className="money">{formatMoney(proposal.proposedPriceAmountMinor, proposal.currencyCode)}</span>,
     action: canApprove ? (
       <button type="button" className="btn btn-secondary" onClick={() => setReviewingId(proposal.id ?? null)}>
         Review
@@ -84,10 +85,10 @@ export function PricingPage() {
       <PackagingApprovalSection />
 
       <QueueShell
-        title="Pricing / price proposals"
+        title="Medicine catalogue proposals"
         rows={rows}
         isLoading={isLoading}
-        emptyMessage="No pending pharmacy item or price-change proposals"
+        emptyMessage="No pending medicine catalogue proposals"
       />
 
       {reviewingProposal && (
@@ -190,12 +191,12 @@ function ReviewPanel({
       }}
     >
       <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)', marginTop: 0 }}>
-        Review {proposal.proposalType === 'NEW_ITEM' ? 'new item' : 'price change'}
+        Review {proposal.proposalType === 'NEW_ITEM' ? 'new item' : proposal.proposalType === 'FORM_CHANGE' ? 'dosage form correction' : 'price change'}
       </h2>
       <dl style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
         <dt style={{ fontWeight: 'var(--weight-medium)' }}>Item</dt>
         <dd style={{ margin: '0 0 var(--space-2)' }}>{describeProposal(proposal)}</dd>
-        {proposal.currentPriceAmountMinor != null && (
+        {proposal.proposalType !== 'FORM_CHANGE' && proposal.currentPriceAmountMinor != null && (
           <>
             <dt style={{ fontWeight: 'var(--weight-medium)' }}>Current price</dt>
             <dd style={{ margin: '0 0 var(--space-2)' }}>
@@ -203,10 +204,12 @@ function ReviewPanel({
             </dd>
           </>
         )}
-        <dt style={{ fontWeight: 'var(--weight-medium)' }}>Proposed price</dt>
-        <dd style={{ margin: '0 0 var(--space-2)' }}>
-          {formatMoney(proposal.proposedPriceAmountMinor, proposal.currencyCode)}
-        </dd>
+        {proposal.proposalType !== 'FORM_CHANGE' && <>
+          <dt style={{ fontWeight: 'var(--weight-medium)' }}>Proposed price</dt>
+          <dd style={{ margin: '0 0 var(--space-2)' }}>
+            {formatMoney(proposal.proposedPriceAmountMinor, proposal.currencyCode)}
+          </dd>
+        </>}
         {proposal.justification && (
           <>
             <dt style={{ fontWeight: 'var(--weight-medium)' }}>Justification</dt>
@@ -250,6 +253,9 @@ function ReviewPanel({
 }
 
 function describeProposal(proposal: PharmacyItemProposalResponse): string {
+  if (proposal.proposalType === 'FORM_CHANGE') {
+    return `Dosage form correction — item ${proposal.itemId?.slice(0, 8) ?? '—'} → ${proposal.proposedForm} / ${proposal.proposedUnit}`;
+  }
   if (proposal.proposalType === 'NEW_ITEM') {
     const details = [proposal.proposedClassification, proposal.proposedForm].filter(Boolean).join(' · ');
     return details ? `${proposal.proposedName} (${details})` : (proposal.proposedName ?? 'New item');

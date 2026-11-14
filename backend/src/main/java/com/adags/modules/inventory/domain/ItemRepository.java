@@ -17,6 +17,9 @@ public interface ItemRepository {
 
     Item updateSchedule(UUID itemId, RegulatorySchedule newSchedule);
 
+    /** Reviewed product-presentation correction; previous prescriptions retain their form snapshot. */
+    Item updateFormAndUnit(UUID itemId, String form, String unit);
+
     /** 17-ward-nurse.md §5.3: whether administering this item requires a witness. */
     Item updateAdministrationWitness(UUID itemId, boolean requiresWitness);
 

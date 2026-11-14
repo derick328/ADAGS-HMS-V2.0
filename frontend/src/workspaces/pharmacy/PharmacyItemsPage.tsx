@@ -9,7 +9,8 @@ import { z } from 'zod';
 import { Combobox } from '../../shared/components/Combobox';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
-import { proposeNewItem, proposePriceChange } from '../../shared/api/pharmacyItemProposals';
+import { proposeNewItem, proposePriceChange, proposeFormChange } from '../../shared/api/pharmacyItemProposals';
+import { dosageForms } from '../doctor/prescriptionQuantity';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
 import { fetchMedicinePackaging, fetchMedicinePackagingCatalogue, proposeMedicinePackaging,
@@ -17,7 +18,7 @@ import { fetchMedicinePackaging, fetchMedicinePackagingCatalogue, proposeMedicin
 import { ApiError } from '../../shared/api/client';
 import './StockInPage.css';
 
-type Tab = 'overview' | 'newItem' | 'priceChange' | 'packaging';
+type Tab = 'overview' | 'newItem' | 'priceChange' | 'formChange' | 'packaging';
 type PackagingEdit = { item: MedicinePackagingCatalogueItem; pack: MedicinePackaging };
 
 function cannotConfigurePackaging(option: ItemSearchResultResponse) {
@@ -46,6 +47,7 @@ export function PharmacyItemsPage() {
         }} /> },
         { id: 'newItem', label: 'New item', content: <NewItemForm /> },
         { id: 'priceChange', label: 'Price change', content: <PriceChangeForm /> },
+        { id: 'formChange', label: 'Dosage form correction', content: <FormChangeForm /> },
         { id: 'packaging', label: 'Packaging', content: <PackagingProposalForm key={packagingEdit?.pack.id ?? 'new'}
           edit={packagingEdit} onCancelEdit={() => setPackagingEdit(null)} onEditedSubmitted={() => {
             setPackagingEdit(null);
@@ -220,7 +222,7 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
 const newItemSchema = z.object({
   proposedName: z.string().min(1, 'Enter an item name'),
   proposedClassification: z.string().min(1, 'Enter a classification'),
-  proposedForm: z.string().min(1, 'Enter a form (e.g. tablet, capsule, injection)'),
+  proposedForm: z.enum(dosageForms),
   proposedUnit: z.string().min(1, 'Enter a unit'),
   proposedPriceMinor: z.coerce.number({ invalid_type_error: 'Enter a price' }).min(0, 'Enter a price'),
   justification: z.string().min(1, 'Enter a justification'),
@@ -260,7 +262,10 @@ function NewItemForm() {
           <input aria-label="e.g. Antibiotic" className="clinical-control" placeholder="e.g. Antibiotic" {...register('proposedClassification')} style={inputStyle} />
         </Field>
         <Field label="Form" error={errors.proposedForm?.message}>
-          <input aria-label="e.g. Tablet" className="clinical-control" placeholder="e.g. Tablet" {...register('proposedForm')} style={inputStyle} />
+          <select aria-label="Dosage form" className="clinical-control" {...register('proposedForm')} style={inputStyle}>
+            <option value="">Select dosage form</option>
+            {dosageForms.map(form => <option key={form} value={form}>{form[0] + form.slice(1).toLowerCase()}</option>)}
+          </select>
         </Field>
         <Field label="Unit" error={errors.proposedUnit?.message}>
           <input aria-label="e.g. tablet, ml" className="clinical-control" placeholder="e.g. tablet, ml" {...register('proposedUnit')} style={inputStyle} />
@@ -280,6 +285,52 @@ function NewItemForm() {
       </button>
     </form>
   );
+}
+
+function FormChangeForm() {
+  const { accessToken } = useAuth();
+  const [item, setItem] = useState<ItemSearchResultResponse | null>(null);
+  const [form, setForm] = useState('');
+  const [baseUnit, setBaseUnit] = useState('');
+  const [reason, setReason] = useState('');
+  const submit = useMutation({
+    mutationFn: () => proposeFormChange({ itemId: item?.id as string, proposedForm: form,
+      proposedUnit: baseUnit.trim().toUpperCase(),
+      justification: reason.trim() }, accessToken as string),
+    onSuccess: () => { setItem(null); setForm(''); setBaseUnit(''); setReason(''); },
+  });
+  return <form className="stock-in-card pharmacy-proposal-form" onSubmit={event => {
+    event.preventDefault();
+    if (item?.id && form && baseUnit.trim() && reason.trim() &&
+        (form !== item.form?.toUpperCase() || baseUnit.trim().toUpperCase() !== item.unit?.toUpperCase())) submit.mutate();
+  }}>
+    <h3>Correct a medicine dosage form</h3>
+    <p>A second authorized person reviews this correction. Existing prescriptions retain their original form.</p>
+    <Combobox<ItemSearchResultResponse> label="Medicine" placeholder="Search catalogue"
+      search={query => searchItems(query, accessToken as string)} getKey={option => option.id as string}
+      renderOption={option => <span>{option.name} · {option.form ?? 'Form unspecified'} · {option.strength ?? ''}</span>}
+      onSelect={selected => { setItem(selected); setForm(''); setBaseUnit(selected.unit ?? ''); }} />
+    {item && <p>Current dosage form: <strong>{item.form ?? 'Unspecified'}</strong></p>}
+    <Field label="Proposed dosage form">
+      <select className="clinical-control" value={form} onChange={event => setForm(event.target.value)} style={inputStyle}>
+        <option value="">Select dosage form</option>
+        {dosageForms.map(value => <option key={value} value={value}>{value[0] + value.slice(1).toLowerCase()}</option>)}
+      </select>
+    </Field>
+    <Field label="Base inventory unit for this presentation">
+      <input className="clinical-control" value={baseUnit} onChange={event => setBaseUnit(event.target.value)} style={inputStyle} />
+      <small>Changing the base unit is allowed only before any stock or prescriptions exist.</small>
+    </Field>
+    <Field label="Reason and product evidence">
+      <textarea className="clinical-control" value={reason} onChange={event => setReason(event.target.value)} style={inputStyle} />
+    </Field>
+    {submit.isSuccess && <p role="status">Dosage form correction sent for Admin review.</p>}
+    {submit.isError && <p role="alert" className="field-error">{submit.error instanceof ApiError ? submit.error.message : 'Could not submit the correction.'}</p>}
+    <button className="btn btn-primary" disabled={submit.isPending || !item?.id || !form || !baseUnit.trim() || !reason.trim() ||
+      (form === item.form?.toUpperCase() && baseUnit.trim().toUpperCase() === item.unit?.toUpperCase())}>
+      Submit for approval
+    </button>
+  </form>;
 }
 
 const priceChangeSchema = z.object({

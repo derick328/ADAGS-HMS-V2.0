@@ -36,22 +36,24 @@ public class JdbcPrescriptionLineRepository implements PrescriptionLineRepositor
     public void insertUnitSnapshot(PrescriptionUnitSnapshot snapshot) {
         jdbcTemplate.update("""
                 INSERT INTO prescription_unit_snapshot
-                  (prescription_line_id, requested_quantity, requested_unit, conversion_factor, base_unit)
-                VALUES (:lineId, :quantity, :unit, :factor, :baseUnit)
+                  (prescription_line_id, requested_quantity, requested_unit, conversion_factor, base_unit, dosage_form, product_strength)
+                VALUES (:lineId, :quantity, :unit, :factor, :baseUnit, :form, :strength)
                 """, new MapSqlParameterSource().addValue("lineId", snapshot.prescriptionLineId())
                 .addValue("quantity", snapshot.requestedQuantity()).addValue("unit", snapshot.requestedUnit())
-                .addValue("factor", snapshot.conversionFactor()).addValue("baseUnit", snapshot.baseUnit()));
+                .addValue("factor", snapshot.conversionFactor()).addValue("baseUnit", snapshot.baseUnit())
+                .addValue("form", snapshot.dosageForm()).addValue("strength", snapshot.productStrength()));
     }
 
     @Override
     public Optional<PrescriptionUnitSnapshot> findUnitSnapshot(UUID prescriptionLineId) {
         List<PrescriptionUnitSnapshot> rows = jdbcTemplate.query("""
-                SELECT prescription_line_id, requested_quantity, requested_unit, conversion_factor, base_unit
+                SELECT prescription_line_id, requested_quantity, requested_unit, conversion_factor, base_unit, dosage_form, product_strength
                 FROM prescription_unit_snapshot WHERE prescription_line_id = :id
                 """, new MapSqlParameterSource("id", prescriptionLineId),
                 (rs, row) -> new PrescriptionUnitSnapshot((UUID) rs.getObject("prescription_line_id"),
                         rs.getInt("requested_quantity"), rs.getString("requested_unit"),
-                        rs.getInt("conversion_factor"), rs.getString("base_unit")));
+                        rs.getInt("conversion_factor"), rs.getString("base_unit"), rs.getString("dosage_form"),
+                        rs.getString("product_strength")));
         return rows.stream().findFirst();
     }
 

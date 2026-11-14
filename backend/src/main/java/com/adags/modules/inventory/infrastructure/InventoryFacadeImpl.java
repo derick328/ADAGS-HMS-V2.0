@@ -39,6 +39,7 @@ public class InventoryFacadeImpl implements InventoryFacade {
     private final StockMovementRepository stockMovementRepository;
     private final StoreRepository storeRepository;
     private final MedicinePackagingService packagingService;
+    private final com.adags.modules.inventory.application.MedicineRouteService medicineRouteService;
 
     public InventoryFacadeImpl(
             ItemRepository itemRepository,
@@ -46,7 +47,8 @@ public class InventoryFacadeImpl implements InventoryFacade {
             StockBalanceRepository stockBalanceRepository,
             StockMovementRepository stockMovementRepository,
             StoreRepository storeRepository,
-            MedicinePackagingService packagingService
+            MedicinePackagingService packagingService,
+            com.adags.modules.inventory.application.MedicineRouteService medicineRouteService
     ) {
         this.itemRepository = itemRepository;
         this.stockBatchRepository = stockBatchRepository;
@@ -54,6 +56,7 @@ public class InventoryFacadeImpl implements InventoryFacade {
         this.stockMovementRepository = stockMovementRepository;
         this.storeRepository = storeRepository;
         this.packagingService = packagingService;
+        this.medicineRouteService = medicineRouteService;
     }
 
     @Override
@@ -99,6 +102,18 @@ public class InventoryFacadeImpl implements InventoryFacade {
     @Override
     public int conversionFactor(UUID itemId, String unit) {
         return packagingService.approved(itemId, unit).factor();
+    }
+
+    @Override
+    public List<String> approvedAdministrationRoutes(UUID itemId) {
+        return medicineRouteService.current(itemId).routes();
+    }
+
+    @Override
+    public String productStrength(UUID itemId) {
+        String strength = itemRepository.findById(itemId)
+                .orElseThrow(() -> new NoSuchElementException("Item not found: " + itemId)).strength();
+        return strength == null || strength.isBlank() ? medicineRouteService.current(itemId).concentration() : strength;
     }
 
     @Override

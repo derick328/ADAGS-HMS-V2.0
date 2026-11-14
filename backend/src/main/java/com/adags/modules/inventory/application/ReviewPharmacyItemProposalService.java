@@ -63,6 +63,10 @@ public class ReviewPharmacyItemProposalService {
                 approvePriceChange(proposal, command.reviewedBy());
                 yield null;
             }
+            case FORM_CHANGE -> {
+                itemRepository.updateFormAndUnit(proposal.itemId(), proposal.proposedForm(), proposal.proposedUnit());
+                yield null;
+            }
         };
 
         return pharmacyItemProposalRepository.update(withReview(proposal, ProposalStatus.APPROVED, command, createdItemId));

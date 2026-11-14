@@ -43,6 +43,9 @@ import { fetchLabTests, fetchPendingLabClassifications } from '../../shared/api/
 import { fetchPatientById, type PatientResponse } from '../../shared/api/patients';
 import { searchPriceCatalog, type PriceCatalogItemResponse } from '../../shared/api/priceCatalog';
 import { placePrescription, type PrescriptionFrequency } from '../../shared/api/prescriptions';
+import { fetchMedicinePackaging } from '../../shared/api/medicinePackaging';
+import { fetchMedicineRoutes } from '../../shared/api/medicineRoutes';
+import { automaticSupply, dosageForm, dosageFormLabel, isAutomaticForm } from './prescriptionQuantity';
 import { fetchCurrentStock, type CurrentStockResponse } from '../../shared/api/stockReports';
 import { searchCompletedAssessments, type CompletedTriageAssessmentResponse } from '../../shared/api/triage';
 import { fetchVitalSignsByEncounter, recordConsultationVitals, type VitalSignsResponse } from '../../shared/api/vitalSigns';
@@ -93,7 +96,6 @@ const DISPOSITION_OPTIONS: {
   { value: 'SCHEDULE_SURGERY', label: 'Schedule surgery' },
 ];
 
-const FREQUENCY_DOSES_PER_DAY: Record<string, number | null> = { STAT: 1, OD: 1, BD: 2, TDS: 3, QDS: 4, PRN: null };
 const QUANTITY_SANITY_CEILING = 200;
 
 function availableStockByItem(rows: CurrentStockResponse[]): Record<string, number> {
@@ -1658,11 +1660,24 @@ function PrescriptionTab({
   const [priceMinor, setPriceMinor] = useState<number | null>(null);
   const [wholeQuantity, setWholeQuantity] = useState(1);
   const [quantityPerDose, setQuantityPerDose] = useState(1);
+  const [doseUnit, setDoseUnit] = useState('');
+  const [supplyUnit, setSupplyUnit] = useState('');
   const [frequency, setFrequency] = useState<PrescriptionFrequency>('OD');
   const [durationDays, setDurationDays] = useState(3);
   const [dosageInstructions, setDosageInstructions] = useState('');
   const [route, setRoute] = useState('Oral');
   const [sendResult, setSendResult] = useState<string | null>(null);
+  const { data: approvedPackages = [], isLoading: packagingLoading, isError: packagingError } = useQuery({
+    queryKey: ['medicine-packaging', pending?.id],
+    queryFn: () => fetchMedicinePackaging(pending?.id as string, accessToken as string),
+    enabled: Boolean(pending?.id && accessToken && !isAutomaticForm(pending.form)),
+  });
+  const { data: routeConfiguration, isLoading: routesLoading, isError: routesError } = useQuery({
+    queryKey: ['medicine-routes', pending?.id],
+    queryFn: () => fetchMedicineRoutes(pending?.id as string, accessToken as string),
+    enabled: Boolean(pending?.id && accessToken),
+  });
+  const approvedRoutes = routeConfiguration?.routes ?? [];
 
   const { data: stock, isError: stockError } = useQuery({
     queryKey: ['stock-reports', 'current-stock'],
@@ -1694,14 +1709,27 @@ function PrescriptionTab({
 
   const unavailableDraft = lines.find((line) => stockStatus(line.item.id).reason);
 
-  const dosesPerDay = FREQUENCY_DOSES_PER_DAY[frequency];
-  const requestedQuantity = dosesPerDay != null ? quantityPerDose * dosesPerDay * durationDays : wholeQuantity;
+  const automatic = isAutomaticForm(pending?.form);
+  const calculated = automaticSupply(quantityPerDose, frequency, durationDays);
+  const explicitSupply = frequency === 'PRN' || frequency === 'OTHER';
+  const requestedQuantity = automatic && !explicitSupply ? (calculated ?? 0) : wholeQuantity;
   const baseUnit = pending?.unit || 'unit';
-  const computedQuantity = requestedQuantity;
-  const overCeiling = computedQuantity > QUANTITY_SANITY_CEILING;
+  const requestedUnit = automatic ? baseUnit : supplyUnit;
+  const injectionNeedsSetup = dosageForm(pending?.form) === 'INJECTION'
+    && (!(pending?.strength?.trim() || routeConfiguration?.concentration?.trim()) || approvedRoutes.length === 0);
+  const selectedPackage = approvedPackages.find(p => p.status === 'APPROVED' && p.unit === supplyUnit);
+  const packageFactor = automatic || supplyUnit === baseUnit ? 1 : selectedPackage?.factor ?? 0;
+  const computedQuantity = requestedQuantity * packageFactor;
+  const overCeiling = requestedQuantity > QUANTITY_SANITY_CEILING;
 
   function addLine() {
-    if (!pending || stockStatus(pending.id).reason || !Number.isSafeInteger(computedQuantity) || computedQuantity <= 0) return;
+    if (!pending || stockStatus(pending.id).reason || injectionNeedsSetup || routesLoading || routesError || (!automatic && (packagingLoading || packagingError))
+      || !Number.isSafeInteger(computedQuantity) || computedQuantity <= 0
+      || !Number.isSafeInteger(requestedQuantity) || requestedQuantity <= 0 || !requestedUnit
+      || !Number.isFinite(quantityPerDose) || quantityPerDose <= 0 || (automatic && !Number.isInteger(quantityPerDose))
+      || !doseUnit.trim() || !route.trim() || (approvedRoutes.length > 0 && !approvedRoutes.includes(route.toUpperCase()))
+      || (frequency === 'OTHER' && !dosageInstructions.trim())
+      || (!['STAT', 'PRN', 'OTHER'].includes(frequency) && (!Number.isSafeInteger(durationDays) || durationDays <= 0))) return;
     setLines((prev) => [
       ...prev,
       {
@@ -1710,13 +1738,13 @@ function PrescriptionTab({
         priceMinor,
         quantity: computedQuantity,
         requestedQuantity,
-        requestedUnit: baseUnit,
-        dosageInstructions: dosageInstructions || `${route}, ${frequency === 'PRN' ? `${wholeQuantity} total` : `${frequency} x${durationDays}d`}`,
+        requestedUnit,
+        dosageInstructions: dosageInstructions || `${quantityPerDose} ${doseUnit} ${route}, ${frequency}${frequency === 'STAT' ? ' once' : frequency === 'PRN' ? ' as needed' : ` for ${durationDays} days`}`,
         route,
-        doseAmount: frequency === 'PRN' ? undefined : quantityPerDose,
-        doseUnit: frequency === 'PRN' ? undefined : 'unit',
+        doseAmount: quantityPerDose,
+        doseUnit,
         frequency,
-        durationDays: frequency === 'PRN' ? undefined : durationDays,
+        durationDays: frequency === 'STAT' || frequency === 'PRN' || frequency === 'OTHER' ? undefined : durationDays,
         quantityPerDose,
       },
     ]);
@@ -1811,6 +1839,11 @@ function PrescriptionTab({
           onSelect={(o) => {
             setPending(o);
             setPriceMinor(latestPriceByCode.current[o.code as string]?.priceMinor ?? null);
+            setSupplyUnit('');
+            const form = dosageForm(o.form);
+            const topical = form === 'CREAM' || form === 'GEL' || form === 'LOTION' || form === 'PASTE';
+            setDoseUnit(isAutomaticForm(o.form) ? (o.unit ?? '') : form === 'SYRUP' ? 'mL' : topical ? 'application' : '');
+            setRoute(form === 'INJECTION' ? '' : topical ? 'Topical' : 'Oral');
           }}
         />
       </div>
@@ -1827,6 +1860,11 @@ function PrescriptionTab({
             {priceMinor != null && <span>{formatMoney(priceMinor, 'TZS')}</span>}
           </div>
           {stockStatus(pending.id).reason && <p role="alert" className="field-error">{stockStatus(pending.id).reason}</p>}
+          <p>Dosage form: <strong>{dosageFormLabel(pending.form)}</strong>
+            {(pending.strength || routeConfiguration?.concentration) && <> · Strength or concentration: <strong>{pending.strength || routeConfiguration?.concentration}</strong></>}</p>
+          {dosageForm(pending.form) === 'INJECTION' && <p role="note">Verify the dose and route against this product’s concentration and presentation before prescribing.</p>}
+          {injectionNeedsSetup && !routesLoading && <p role="alert" className="field-error">Injection prescribing requires a recorded concentration and approved product routes in the catalogue.</p>}
+          {(routesError || packagingError) && <p role="alert" className="field-error">Could not load this medicine’s approved route or packaging configuration. Try again.</p>}
 
           {patientAge != null && patientAge < 18 && (
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--info)', marginBottom: 'var(--space-2)' }}>
@@ -1834,43 +1872,63 @@ function PrescriptionTab({
             </div>
           )}
 
+          <h3>Dosage Instructions</h3>
+          <p>Amount and schedule administered to the patient.</p>
           <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)', flexWrap: 'wrap' }}>
-              <FormRow label="Quantity per dose">
-                <input className="clinical-control" type="number" min={1} value={quantityPerDose} onChange={(e) => setQuantityPerDose(Number(e.target.value))} style={fieldStyle} />
+              <FormRow label="Dose amount per administration">
+                <input className="clinical-control" type="number" min={automatic ? 1 : 0.001} step={automatic ? 1 : 'any'} value={quantityPerDose} onChange={(e) => setQuantityPerDose(Number(e.target.value))} style={fieldStyle} />
+              </FormRow>
+              <FormRow label="Dose unit">
+                <input className="clinical-control" value={doseUnit} onChange={(e) => setDoseUnit(e.target.value)}
+                  readOnly={automatic} placeholder="e.g. capsule, mL, mg" style={fieldStyle} />
               </FormRow>
               <FormRow label="Frequency">
                 <select className="clinical-control" value={frequency} onChange={(e) => setFrequency(e.target.value as PrescriptionFrequency)} style={fieldStyle}>
-                  {(['STAT', 'OD', 'BD', 'TDS', 'QDS', 'PRN'] as PrescriptionFrequency[]).map((f) => (
+                  {(['STAT', 'OD', 'BD', 'TDS', 'QDS', 'PRN', 'OTHER'] as PrescriptionFrequency[]).map((f) => (
                     <option key={f} value={f}>
-                      {f}
+                      {f === 'OTHER' ? 'Other / non-daily schedule' : f}
                     </option>
                   ))}
                 </select>
               </FormRow>
-              {dosesPerDay != null ? (
-                <FormRow label="Days">
+              {!['STAT', 'PRN', 'OTHER'].includes(frequency) && (
+                <FormRow label="Duration (days)">
                   <input className="clinical-control" type="number" min={1} value={durationDays} onChange={(e) => setDurationDays(Number(e.target.value))} style={fieldStyle} />
                 </FormRow>
-              ) : (
-                <FormRow label="Total quantity (PRN — no fixed schedule)">
-                  <input className="clinical-control" type="number" min={1} value={wholeQuantity} onChange={(e) => setWholeQuantity(Number(e.target.value))} style={fieldStyle} />
-                </FormRow>
               )}
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', alignSelf: 'center' }}>
-                = {computedQuantity} {baseUnit}
-              </div>
           </div>
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-            Total: {computedQuantity} {baseUnit}
-          </p>
-          {overCeiling && <p className="field-error">Quantity looks unusually high for one item — double-check before adding.</p>}
-
-          <FormRow label="Route / instructions">
-            <input className="clinical-control" value={route} onChange={(e) => setRoute(e.target.value)} style={{ ...fieldStyle, marginBottom: 'var(--space-2)' }} />
-            <textarea className="clinical-control" rows={2} value={dosageInstructions} onChange={(e) => setDosageInstructions(e.target.value)} style={fieldStyle} placeholder="Dosage instructions" />
+          <FormRow label="Route of administration">
+            {approvedRoutes.length ? <select className="clinical-control" value={approvedRoutes.includes(route.toUpperCase()) ? route.toUpperCase() : ''}
+              onChange={e => setRoute(e.target.value)} style={fieldStyle}>
+              <option value="">Select an approved route</option>
+              {approvedRoutes.map(value => <option key={value} value={value}>{value}</option>)}
+            </select> : <input className="clinical-control" value={route} onChange={(e) => setRoute(e.target.value)} style={fieldStyle} />}
           </FormRow>
+          <FormRow label="Additional dosage instructions">
+            <textarea className="clinical-control" rows={2} value={dosageInstructions} onChange={(e) => setDosageInstructions(e.target.value)} style={fieldStyle} placeholder="Dosage instructions" />
+            {frequency === 'OTHER' && <small>Describe the full weekly, tapering, or other non-daily schedule.</small>}
+          </FormRow>
+          <h3>Quantity to Dispense</h3>
+          <p>Supply the pharmacist must issue; separate from the dose administered each time.</p>
+          {automatic && !explicitSupply ? (
+            <p><strong>{calculated ?? 'Enter a valid whole dose and duration'} {baseUnit}</strong> (Auto-calculated)</p>
+          ) : <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <FormRow label={automatic ? 'Explicit total dispensing quantity' : 'Package quantity to dispense'}>
+              <input className="clinical-control" type="number" min={1} step={1} value={wholeQuantity} onChange={e => setWholeQuantity(Number(e.target.value))} style={fieldStyle} />
+            </FormRow>
+            {!automatic && <FormRow label="Dispensing unit">
+              <select className="clinical-control" value={supplyUnit} onChange={e => setSupplyUnit(e.target.value)} style={fieldStyle}>
+                <option value="">Select approved supply unit</option>
+                {!['ML', 'MILLILITRE', 'G', 'GRAM', 'UNIT'].includes(baseUnit.toUpperCase()) && <option value={baseUnit}>{baseUnit}</option>}
+                {approvedPackages.filter(p => p.status === 'APPROVED').map(p => <option key={p.id} value={p.unit}>{p.unit} — {p.factor} {baseUnit}</option>)}
+              </select>
+              {packagingLoading && <small>Loading approved packages…</small>}
+            </FormRow>}
+          </div>}
+          {!automatic && requestedUnit && <p>Base inventory quantity: {computedQuantity} {baseUnit}</p>}
+          {overCeiling && <p className="field-error">Dispensing quantity looks unusually high — double-check before adding.</p>}
 
-          <button type="button" className="btn btn-primary" onClick={addLine} disabled={overCeiling || !!stockStatus(pending.id).reason} style={{ marginTop: 'var(--space-2)' }}>
+          <button type="button" className="btn btn-primary" onClick={addLine} disabled={overCeiling || !!stockStatus(pending.id).reason || injectionNeedsSetup || routesLoading || routesError || (!automatic && (packagingLoading || packagingError)) || computedQuantity <= 0 || !requestedUnit || !doseUnit.trim() || !route.trim() || (frequency === 'OTHER' && !dosageInstructions.trim()) || (approvedRoutes.length > 0 && !approvedRoutes.includes(route.toUpperCase()))} style={{ marginTop: 'var(--space-2)' }}>
             Add to prescription
           </button>
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: 'var(--space-2)' }}>
@@ -1884,7 +1942,7 @@ function PrescriptionTab({
           {lines.map((l) => (
             <tr key={l.key}>
               <td>
-                {l.item.name} — {l.requestedQuantity} {l.requestedUnit} ({l.quantity} {l.item.unit ?? 'base units'})
+                {l.item.name} — Quantity to dispense: {l.requestedQuantity} {l.requestedUnit} ({l.quantity} {l.item.unit ?? 'base units'} in inventory)
                 <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{l.dosageInstructions}</div>
               </td>
               <td className="money">{l.priceMinor != null ? formatMoney(l.priceMinor * l.quantity, 'TZS') : '—'}</td>

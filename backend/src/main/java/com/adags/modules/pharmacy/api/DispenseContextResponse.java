@@ -14,7 +14,9 @@ public record DispenseContextResponse(
         int requestedQuantity,
         String requestedUnit,
         int conversionFactor,
-        String baseUnit
+        String baseUnit,
+        String dosageForm,
+        String productStrength
 ) {
 
     public static DispenseContextResponse from(DispenseContext context) {
@@ -26,6 +28,7 @@ public record DispenseContextResponse(
                 context.fefoSuggestion().stream().map(BatchAllocationResponse::from).toList(),
                 context.weightKg(), context.unitSnapshot().requestedQuantity(),
                 context.unitSnapshot().requestedUnit(), context.unitSnapshot().conversionFactor(),
-                context.unitSnapshot().baseUnit());
+                context.unitSnapshot().baseUnit(), context.unitSnapshot().dosageForm(),
+                context.unitSnapshot().productStrength());
     }
 }

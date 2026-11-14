@@ -292,7 +292,7 @@ class EndToEndSubstitutionAndUnavailableTest extends IntegrationTestSupport {
                 """, new MapSqlParameterSource().addValue("encounterId", encounter.id()).addValue("actorId", admin));
         return placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
                 encounter.id(), itemId, quantity, "TAKE ONE TABLET THREE TIMES A DAY", substitutionAllowed, admin,
-                null, null, null, null, null));
+                "ORAL", 1.0, "TABLET", com.adags.modules.pharmacy.domain.PrescriptionFrequency.OD, quantity));
     }
 
     private UUID patientIdFor(PrescriptionLine line) {

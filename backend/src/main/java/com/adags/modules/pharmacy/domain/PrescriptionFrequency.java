@@ -14,7 +14,8 @@ public enum PrescriptionFrequency {
     BD(2),
     TDS(3),
     QDS(4),
-    PRN(0);
+    PRN(0),
+    OTHER(0);
 
     private final int timesPerDay;
 

@@ -11,7 +11,7 @@ import { ApiError } from '../../shared/api/client';
 import { Combobox } from '../../shared/components/Combobox';
 import { dispense, fetchDispenseContext, fetchDispenseLabel } from '../../shared/api/dispenses';
 import { startPharmacyProcessing } from '../../shared/api/tatWorkflow';
-import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
+import { fetchItemById, searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
 import { markPrescriptionLineUnavailable } from '../../shared/api/prescriptionLines';
 import { fetchPrescriptionQueue } from '../../shared/api/prescriptions';
 import { proposeSubstitution } from '../../shared/api/substitutions';
@@ -19,6 +19,8 @@ import { useAuth } from '../../shared/auth/AuthProvider';
 import { formatDate, formatDateTime } from '../../shared/format/date';
 import { formatMoney } from '../../shared/format/money';
 import { fetchMedicinePackaging } from '../../shared/api/medicinePackaging';
+import { dosageFormLabel } from '../doctor/prescriptionQuantity';
+import { fetchMedicineRoutes } from '../../shared/api/medicineRoutes';
 
 type Mode = 'dispense' | 'markUnavailable' | 'substitute';
 
@@ -82,6 +84,16 @@ export function DispensePage() {
     queryFn: () => fetchMedicinePackaging(context?.item?.itemId as string, accessToken as string),
     enabled: Boolean(context?.item?.itemId && accessToken),
   });
+  const { data: catalogueItem } = useQuery({
+    queryKey: ['item', context?.item?.itemId],
+    queryFn: () => fetchItemById(context?.item?.itemId as string, accessToken as string),
+    enabled: Boolean(context?.item?.itemId && accessToken),
+  });
+  const { data: routeConfiguration } = useQuery({
+    queryKey: ['medicine-routes', context?.item?.itemId],
+    queryFn: () => fetchMedicineRoutes(context?.item?.itemId as string, accessToken as string),
+    enabled: Boolean(context?.item?.itemId && accessToken),
+  });
 
   const {
     register,
@@ -96,7 +108,8 @@ export function DispensePage() {
   const watchedLines = watch('lines');
   const baseUnit = context?.baseUnit ?? context?.item?.unit ?? '';
   const factorFor = (unit?: string) => unit && unit !== baseUnit
-    ? (packages.find((p) => p.unit === unit && p.status === 'APPROVED')?.factor ?? 0) : 1;
+    ? (unit === context?.requestedUnit ? (context.conversionFactor ?? 0)
+      : packages.find((p) => p.unit === unit && p.status === 'APPROVED')?.factor ?? 0) : 1;
   const [originalSuggestion, setOriginalSuggestion] = useState<{ batchId: string; quantity: number }[]>([]);
   const [attempt, setAttempt] = useState<{ fingerprint: string; key: string } | null>(null);
 
@@ -104,7 +117,12 @@ export function DispensePage() {
     if (!context) return;
     const suggestion = (context.fefoSuggestion ?? []).map((a) => ({ batchId: a.batchId as string, quantity: a.quantity as number }));
     setOriginalSuggestion(suggestion);
-    reset({ lines: suggestion.map((s) => ({ ...s, requestedUnit: context.baseUnit ?? context.item?.unit ?? '', overrideReason: '' })), counsellingNotes: '', dispensingNotes: '' });
+    const prescribedUnit = context.requestedUnit ?? context.baseUnit ?? context.item?.unit ?? '';
+    const factor = context.conversionFactor ?? 1;
+    reset({ lines: suggestion.map((s) => ({ batchId: s.batchId,
+      quantity: factor > 1 && s.quantity % factor === 0 ? s.quantity / factor : s.quantity,
+      requestedUnit: factor > 1 && s.quantity % factor === 0 ? prescribedUnit : context.baseUnit ?? context.item?.unit ?? '',
+      overrideReason: '' })), counsellingNotes: '', dispensingNotes: '' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context]);
 
@@ -198,26 +216,35 @@ export function DispensePage() {
           <AllergyInlineWarning allergies={context.allergies ?? []} />
 
           <section className="dispense-summary">
+            {context.dosageForm && <p>Dosage form: <strong>{dosageFormLabel(context.dosageForm)}</strong>
+              {(context.productStrength || catalogueItem?.strength || routeConfiguration?.concentration) && <> · Prescribed product strength/concentration: <strong>{context.productStrength || catalogueItem?.strength || routeConfiguration?.concentration}</strong></>}</p>}
+            {context.dosageForm?.toUpperCase() === 'INJECTION' &&
+              <p role="note">Verify dose, concentration, route and product presentation before dispensing.</p>}
             <dl className="clinical-grid">
               <div>
-                <dt style={{ color: 'var(--text-muted)' }}>Prescribed</dt>
+                <dt style={{ color: 'var(--text-muted)' }}>Prescribed quantity to dispense</dt>
                 <dd style={{ margin: 0 }}>
                   {context.requestedQuantity ?? context.prescriptionLine?.quantityPrescribed} {context.requestedUnit ?? context.item?.unit}
-                  {' '}= {context.prescriptionLine?.quantityPrescribed} {context.baseUnit ?? context.item?.unit}
+                  {' '}({context.prescriptionLine?.quantityPrescribed} {context.baseUnit ?? context.item?.unit} in inventory)
+                </dd>
+              </div>
+              <div>
+                <dt style={{ color: 'var(--text-muted)' }}>Dosage instructions</dt>
+                <dd style={{ margin: 0 }}>
+                  {context.prescriptionLine?.doseAmount != null && `${context.prescriptionLine.doseAmount} ${context.prescriptionLine.doseUnit ?? ''} · `}
+                  {context.prescriptionLine?.route ?? '—'}
+                  {context.prescriptionLine?.frequency && ` · ${context.prescriptionLine.frequency}`}
+                  {context.prescriptionLine?.durationDays && ` · ${context.prescriptionLine.durationDays} days`}
                   <br />{context.prescriptionLine?.dosageInstructions}
                 </dd>
               </div>
               <div>
-                <dt style={{ color: 'var(--text-muted)' }}>Route / dose</dt>
-                <dd style={{ margin: 0 }}>
-                  {context.prescriptionLine?.route ?? '—'}
-                  {context.prescriptionLine?.doseAmount != null && ` · ${context.prescriptionLine.doseAmount}${context.prescriptionLine.doseUnit ?? ''}`}
-                  {context.prescriptionLine?.frequency && ` · ${context.prescriptionLine.frequency}`}
+                <dt style={{ color: 'var(--text-muted)' }}>Quantity remaining to dispense</dt>
+                <dd style={{ margin: 0, fontWeight: 'var(--weight-medium)' }}>
+                  {(context.conversionFactor ?? 1) > 1 && Number(context.prescriptionLine?.remaining) % (context.conversionFactor ?? 1) === 0
+                    ? `${Number(context.prescriptionLine?.remaining) / (context.conversionFactor ?? 1)} ${context.requestedUnit}`
+                    : `${context.prescriptionLine?.remaining} ${context.baseUnit ?? context.item?.unit}`}
                 </dd>
-              </div>
-              <div>
-                <dt style={{ color: 'var(--text-muted)' }}>Remaining to dispense</dt>
-                <dd style={{ margin: 0, fontWeight: 'var(--weight-medium)' }}>{context.prescriptionLine?.remaining} {context.baseUnit ?? context.item?.unit}</dd>
               </div>
               {context.weightKg != null && (
                 <div>
@@ -250,8 +277,8 @@ export function DispensePage() {
                   <thead>
                     <tr>
                       <th>Batch</th>
-                      <th>Quantity</th>
-                      <th>Unit</th>
+                      <th>Dispensing quantity</th>
+                      <th>Dispensing unit</th>
                       <th>Override reason</th>
                       <th></th>
                     </tr>
@@ -277,6 +304,8 @@ export function DispensePage() {
                         <td>
                           <select className="clinical-control" {...register(`lines.${index}.requestedUnit` as const)} style={selectStyle}>
                             <option value={baseUnit}>{baseUnit}</option>
+                            {context.requestedUnit !== baseUnit && context.requestedUnit && !packages.some(p => p.status === 'APPROVED' && p.unit === context.requestedUnit) &&
+                              <option value={context.requestedUnit}>{context.requestedUnit} ({context.conversionFactor} {baseUnit}, prescribed)</option>}
                             {packages.filter((p) => p.status === 'APPROVED' && p.unit !== baseUnit).map((p) =>
                               <option key={p.id} value={p.unit}>{p.unit} ({p.factor} {baseUnit})</option>)}
                           </select>

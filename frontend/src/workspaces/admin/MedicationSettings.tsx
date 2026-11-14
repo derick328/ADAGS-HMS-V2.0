@@ -9,6 +9,8 @@ import { formatDateTime } from '../../shared/format/date';
 import { FeedbackState } from '../../shared/components/FeedbackState';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import '../pharmacy/StockInPage.css';
+import { dosageFormLabel } from '../doctor/prescriptionQuantity';
+import { configureMedicineRoutes, fetchMedicineRoutes } from '../../shared/api/medicineRoutes';
 
 export function MedicationSettings({ catalogueItem, onClose }: { catalogueItem: CatalogItem; onClose: () => void }) {
   const { accessToken } = useAuth();
@@ -24,6 +26,9 @@ export function MedicationSettings({ catalogueItem, onClose }: { catalogueItem: 
   const [canSplit, setCanSplit] = useState(true);
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
+  const [routeInput, setRouteInput] = useState('');
+  const [concentration, setConcentration] = useState('');
+  const [routeReason, setRouteReason] = useState('');
   const { data: matches, isLoading, isError } = useQuery({ queryKey: ['admin-medication-match', catalogueItem.code],
     queryFn: () => searchItems(catalogueItem.code, token), enabled: !!token });
   const { data: sellingHistory } = useQuery({ queryKey: ['catalog-price-history', catalogueItem.id],
@@ -32,6 +37,9 @@ export function MedicationSettings({ catalogueItem, onClose }: { catalogueItem: 
   const itemId = medicine?.id as string | undefined;
   const { data: packages } = useQuery({ queryKey: ['medicine-packaging', itemId],
     queryFn: () => fetchMedicinePackaging(itemId as string, token), enabled: !!itemId });
+  const { data: routeConfiguration } = useQuery({ queryKey: ['medicine-routes', itemId],
+    queryFn: () => fetchMedicineRoutes(itemId as string, token), enabled: !!itemId });
+  const approvedRoutes = routeConfiguration?.routes ?? [];
   const { data: defaultCost } = useQuery({ queryKey: ['medicine-purchase-cost', itemId],
     queryFn: () => fetchMedicinePurchaseCost(itemId as string, token), enabled: !!itemId });
   const { data: history } = useQuery({ queryKey: ['medicine-purchase-cost-history', itemId],
@@ -49,6 +57,11 @@ export function MedicationSettings({ catalogueItem, onClose }: { catalogueItem: 
   }, token), onSuccess: () => { setPackageUnit(''); setFactor(''); setBlisters(''); setPerBlister(''); setReason(''); setError('Proposal submitted for a second person to approve.');
     void cache.invalidateQueries({ queryKey: ['medicine-packaging'] }); },
     onError: () => setError('Could not submit packaging. Check that the unit is distinct and no proposal is pending.') });
+  const saveRoutes = useMutation({ mutationFn: (routes: string[]) => configureMedicineRoutes(itemId as string, routes,
+    concentration.trim() || routeConfiguration?.concentration || null, routeReason.trim(), token),
+    onSuccess: () => { setRouteInput(''); setConcentration(''); setRouteReason(''); setError('Approved routes saved.');
+      void cache.invalidateQueries({ queryKey: ['medicine-routes', itemId] }); },
+    onError: () => setError('Could not save medicine routes.') });
   return <section className="stock-in-card" aria-label="Medication settings" style={{ marginTop: 'var(--space-4)' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}><h3>{catalogueItem.name} · medication settings</h3>
       <button type="button" className="btn btn-secondary" onClick={onClose}>Close</button></div>
@@ -58,9 +71,28 @@ export function MedicationSettings({ catalogueItem, onClose }: { catalogueItem: 
     {isError && <p role="alert" className="form-error">Could not load the medicine catalogue.</p>}
     {!isLoading && !medicine && <p role="status">This catalogue entry has no classified medicine record. Packaging and purchase cost can be set after classification.</p>}
     {medicine && <>
-      <p><strong>{medicine.name}</strong> · {medicine.strength || 'Strength unspecified'} · {medicine.form} · Base inventory unit: {medicine.unit}</p>
+      <p><strong>{medicine.name}</strong> · {medicine.strength || 'Strength unspecified'} · Dosage form: {dosageFormLabel(medicine.form)} · Base inventory unit: {medicine.unit}</p>
       <h4>Approved packaging</h4>
       <ul>{options.map(unit => { const p = packages?.find(p => p.unit === unit); return <li key={unit}>{unit} = {p?.factor ?? 1} {medicine.unit}{p?.blistersPerPack && p.unitsPerBlister ? ` (${p.blistersPerPack} blisters × ${p.unitsPerBlister} ${medicine.unit} per blister)` : ''}</li>; })}</ul>
+      <form onSubmit={event => { event.preventDefault(); setError('');
+        const routes = routeInput.split(',').map(value => value.trim().toUpperCase()).filter(Boolean);
+        if (!routes.length || !routeReason.trim()) { setError('Enter approved routes and a reason.'); return; }
+        saveRoutes.mutate(routes);
+      }}>
+        <h4>Approved administration routes</h4>
+        <p>Current: {approvedRoutes.length ? approvedRoutes.join(', ') : 'No product-specific restriction configured'}</p>
+        <p>Recorded concentration: {routeConfiguration?.concentration || medicine.strength || 'Not recorded'}</p>
+        <p>Enter the complete approved list for this medicine. Changes are versioned; past prescriptions keep their recorded route.</p>
+        <div className="stock-in-grid">
+          <label>Routes, separated by commas <input className="clinical-control" value={routeInput}
+            onChange={event => setRouteInput(event.target.value)} placeholder="ORAL, SUBLINGUAL" /></label>
+          <label>Product concentration, if applicable <input className="clinical-control" value={concentration}
+            onChange={event => setConcentration(event.target.value)} placeholder="e.g. 1 mg/mL" /></label>
+          <label>Reason <input className="clinical-control" value={routeReason}
+            onChange={event => setRouteReason(event.target.value)} /></label>
+        </div>
+        <button className="btn btn-secondary" disabled={saveRoutes.isPending}>Save approved routes</button>
+      </form>
       <form onSubmit={event => { event.preventDefault(); setError('');
         const invalidBlister = presentation === 'BLISTER_PACK' &&
           (!Number.isSafeInteger(Number(blisters)) || Number(blisters) < 1 || !Number.isSafeInteger(Number(perBlister)) || Number(perBlister) < 1 || !Number.isSafeInteger(blisterTotal) || blisterTotal < 2);

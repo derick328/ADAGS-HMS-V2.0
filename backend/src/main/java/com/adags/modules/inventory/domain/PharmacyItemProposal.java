@@ -53,6 +53,15 @@ public record PharmacyItemProposal(
                 null, null);
     }
 
+    public static PharmacyItemProposal proposeFormChange(UUID itemId, String proposedForm, String proposedUnit,
+                                                           String justification, UUID proposedBy) {
+        requireField(proposedForm, "proposedForm");
+        requireField(justification, "justification");
+        return new PharmacyItemProposal(null, ProposalType.FORM_CHANGE, itemId, null, null,
+                proposedForm, proposedUnit, new Money(0, "TZS"), null, justification, proposedBy, null,
+                ProposalStatus.PROPOSED, null, null, null, null);
+    }
+
     private static void requireField(String value, String name) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(name + " is required.");

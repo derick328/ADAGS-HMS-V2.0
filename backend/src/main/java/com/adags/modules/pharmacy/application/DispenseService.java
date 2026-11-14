@@ -90,6 +90,7 @@ public class DispenseService {
         UUID facilityId = prescriptionOrderRepository.findById(prescriptionLine.prescriptionOrderId())
                 .orElseThrow(() -> new NoSuchElementException("Prescription order not found"))
                 .facilityId();
+        var prescribedUnit = prescriptionLineRepository.findUnitSnapshot(prescriptionLine.id()).orElse(null);
 
         // Normalize each requested package quantity before FEFO, billing and stock mutation.
         // The selected factor is saved on the dispense line, so later packaging edits
@@ -100,7 +101,9 @@ public class DispenseService {
             String unit = input.requestedUnit() == null
                     ? inventoryFacade.findItemSummary(prescriptionLine.itemId()).orElseThrow().unit()
                     : input.requestedUnit();
-            int factor = inventoryFacade.conversionFactor(prescriptionLine.itemId(), unit);
+            int factor = prescribedUnit != null && unit.equalsIgnoreCase(prescribedUnit.requestedUnit())
+                    ? prescribedUnit.conversionFactor()
+                    : inventoryFacade.conversionFactor(prescriptionLine.itemId(), unit);
             return new Normalized(input, Math.multiplyExact(input.quantity(), factor), factor, unit);
         }).toList();
         List<DispenseLineInput> baseLines = normalized.stream().map(n ->

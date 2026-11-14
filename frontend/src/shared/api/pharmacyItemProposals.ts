@@ -14,3 +14,9 @@ export function proposeNewItem(body: ProposeNewItemRequest, accessToken: string)
 export function proposePriceChange(body: ProposePriceChangeRequest, accessToken: string): Promise<PharmacyItemProposalResponse> {
   return authFetch('/api/pharmacy-item-proposals/price-change', accessToken, { method: 'POST', body: JSON.stringify(body) });
 }
+
+export function proposeFormChange(body: { itemId: string; proposedForm: string; proposedUnit?: string; justification: string },
+  accessToken: string): Promise<PharmacyItemProposalResponse> {
+  return authFetch('/api/pharmacy-item-proposals/form-change', accessToken,
+    { method: 'POST', body: JSON.stringify(body) });
+}
