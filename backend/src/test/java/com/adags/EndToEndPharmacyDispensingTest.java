@@ -410,7 +410,7 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
         assertThat(label.hospitalNumber()).isNotBlank();
         assertThat(label.patientName()).contains("Amina").contains("Hassan");
         assertThat(label.drugName()).isEqualTo("Amoxicillin 500mg capsule");
-        assertThat(label.doseInstructions()).isEqualTo("TAKE ONE TABLET THREE TIMES A DAY");
+        assertThat(label.doseInstructions()).isEqualTo("TAKE ONE CAPSULE THREE TIMES A DAY");
         assertThat(label.batchLines()).hasSize(1);
         assertThat(label.batchLines().get(0).batchNumber()).isEqualTo("BATCH-1");
     }
@@ -462,8 +462,8 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
                 new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
         recordPregnancyStatus(encounter.id(), admin);
         PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
-                encounter.id(), itemId, 30, "TAKE ONE TABLET THREE TIMES A DAY", false, admin,
-                "ORAL", 1.0, "TABLET", com.adags.modules.pharmacy.domain.PrescriptionFrequency.TDS, 10));
+                encounter.id(), itemId, 30, "TAKE ONE CAPSULE THREE TIMES A DAY", false, admin,
+                "ORAL", 1.0, "CAPSULE", com.adags.modules.pharmacy.domain.PrescriptionFrequency.TDS, 10));
 
         return new Fixture(patient.id(), line, batch.id());
     }
@@ -475,8 +475,8 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
                 new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
         recordPregnancyStatus(encounter.id(), admin);
         PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
-                encounter.id(), itemId, quantity, "TAKE ONE TABLET THREE TIMES A DAY", false, admin,
-                "ORAL", 1.0, "TABLET", com.adags.modules.pharmacy.domain.PrescriptionFrequency.OD, quantity));
+                encounter.id(), itemId, quantity, "TAKE ONE CAPSULE ONCE A DAY", false, admin,
+                "ORAL", 1.0, "CAPSULE", com.adags.modules.pharmacy.domain.PrescriptionFrequency.OD, quantity));
         payLine(line.invoiceLineId(), patient.id(), admin);
         return line;
     }
