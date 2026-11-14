@@ -114,8 +114,6 @@ export function StockInPage() {
           Number.isSafeInteger(blisters * perBlister) && blisters * perBlister === line.factor &&
           (line.approvedBlistersPerPack == null || blisters === line.approvedBlistersPerPack) &&
           (line.approvedUnitsPerBlister == null || perBlister === line.approvedUnitsPerBlister));
-      const missing = ordered == null || received == null ? 0 : Math.max(ordered - received, 0);
-      const discrepancy = (rejected ?? 0) > 0 || missing > 0 || ordered != null && received != null && received > ordered;
       let calculationValid = true;
       try {
         calculateDeliveryLine(accepted ?? -1, line.factor, cost);
@@ -126,11 +124,11 @@ export function StockInPage() {
           rejected == null || accepted > received || rejected > received ||
           accepted + rejected !== received || line.unitCost.trim() !== '' && cost == null ||
           !line.batch.trim() || !line.expiry || line.expiry <= facilityDate() ||
-          line.ordered && ordered == null || discrepancy && !line.discrepancyReason.trim() ||
+          line.ordered && ordered == null ||
           !calculationValid || !blisterCountsValid) {
         setError(!blisterCountsValid
           ? `Check medicine line ${index + 1}: enter the blisters per pack and pills per blister so they match the approved pack conversion.`
-          : `Check medicine line ${index + 1}: unit, quantities, batch, future expiry, cost, or discrepancy reason is invalid.`);
+          : `Check medicine line ${index + 1}: unit, quantities, batch, future expiry, or cost is invalid.`);
         return null;
       }
       result.push({ itemId: line.item.id as string, purchaseUnit: line.unit,
@@ -205,7 +203,7 @@ export function StockInPage() {
         <label>Delivery date <input className="clinical-control" type="date" max={facilityDate()} value={deliveryDate} onChange={(e) => editDelivery(() => setDeliveryDate(e.target.value))} /></label>
         <label>Receiving store <input className="clinical-control" value={store?.name ?? (storeLoading ? 'Loading…' : 'Unavailable')} readOnly /></label>
         <label>Receiving pharmacist <input className="clinical-control" value={me?.username ?? 'Loading…'} readOnly /></label>
-        <label>Notes <input className="clinical-control" value={notes} onChange={(e) => editDelivery(() => setNotes(e.target.value))} /></label>
+        <label>Notes (optional) <input className="clinical-control" value={notes} onChange={(e) => editDelivery(() => setNotes(e.target.value))} /></label>
       </div>
     </section>
 
@@ -291,8 +289,8 @@ function MedicineLine({ line, index, token, update, remove, canRemove }: {
       <label>Batch number <input className="clinical-control" value={line.batch} onChange={(e) => update({ batch: e.target.value })} /></label>
       <label>Expiry date <input className="clinical-control" type="date" min={facilityDate(1)} value={line.expiry} onChange={(e) => update({ expiry: e.target.value })} /></label>
       <label>Purchase cost per selected purchase unit (TZS) — Optional <input className="clinical-control" type="number" min="0" step="1" value={line.unitCost} onChange={(e) => update({ unitCost: e.target.value })} /></label>
-      <label>Discrepancy reason <input className="clinical-control" value={line.discrepancyReason} onChange={(e) => update({ discrepancyReason: e.target.value })} /></label>
-      <label>Notes <input className="clinical-control" value={line.notes} onChange={(e) => update({ notes: e.target.value })} /></label>
+      <label>Discrepancy reason (optional) <input className="clinical-control" value={line.discrepancyReason} onChange={(e) => update({ discrepancyReason: e.target.value })} /></label>
+      <label>Notes (optional) <input className="clinical-control" value={line.notes} onChange={(e) => update({ notes: e.target.value })} /></label>
     </div>
     {isPack && <p className="stock-in-selected" role="status">{line.blistersPerPack || line.unitsPerBlister
       ? `Each pack: ${line.blistersPerPack || '0'} blisters × ${line.unitsPerBlister || '0'} pills = ${unitsPerPack} ${baseUnit}.`

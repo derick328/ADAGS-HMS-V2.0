@@ -39,6 +39,7 @@ const CATEGORY_RANK: Record<PharmacyQueueTabKey, number> = {
   emergency: 0,
   inpatient: 1,
   ready: 2,
+  unpaid: 3,
 };
 
 const CATEGORY_META: Record<
@@ -48,6 +49,7 @@ const CATEGORY_META: Record<
   emergency: { label: 'Emergency', variant: 'danger', icon: Siren },
   inpatient: { label: 'Inpatient', variant: 'info', icon: BedDouble },
   ready: { label: 'Ready', variant: 'success', icon: Check },
+  unpaid: { label: 'Awaiting payment', variant: 'warning', icon: PillBottle },
 };
 
 const CATEGORY_FILTER_OPTIONS = (Object.keys(CATEGORY_RANK) as PharmacyQueueTabKey[]).map((key) => ({
@@ -200,8 +202,7 @@ export function DispensingQueue() {
       detailTitle={(g) => g.patientName}
       renderDetail={(g) =>
         g.lines.map((line) => {
-          const dispensable =
-            g.category === 'emergency' || g.category === 'inpatient' || Boolean(line.gateSatisfied);
+          const dispensable = Boolean(line.gateSatisfied);
           const unit = line.itemForm ? line.itemForm.toLowerCase() : 'unit';
           const detail = [
             line.dosageInstructions,
@@ -224,11 +225,10 @@ export function DispensingQueue() {
                 <Button
                   size="sm"
                   variant={dispensable ? 'primary' : 'secondary'}
-                  disabled={!dispensable}
                   leadingIcon={dispensable ? PillBottle : undefined}
                   onClick={() => navigate(`/pharmacy/dispense/${line.prescriptionLineId}`)}
                 >
-                  {dispensable ? 'Dispense' : 'Awaiting payment'}
+                  {dispensable ? 'Dispense' : 'View prescription'}
                 </Button>
               }
             >
@@ -249,8 +249,8 @@ export function DispensingQueue() {
       }
       onRetry={canRead ? () => refetch() : undefined}
       emptyIcon={Inbox}
-      emptyTitle="No prescriptions waiting to be dispensed"
-      emptyDescription="Prescriptions appear here once their payment or coverage is confirmed."
+      emptyTitle="No open prescriptions"
+      emptyDescription="Open prescriptions appear here, including those awaiting payment."
     />
   );
 }

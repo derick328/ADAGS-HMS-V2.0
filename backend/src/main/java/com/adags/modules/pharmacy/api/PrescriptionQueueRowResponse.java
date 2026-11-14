@@ -5,8 +5,8 @@ import com.adags.modules.pharmacy.domain.PrescriptionLineStatus;
 import java.time.Instant;
 import java.util.UUID;
 
-// One flat row per open, currently authorized prescription line. Billing
-// remains per line, so a partly paid order contributes only its paid lines.
+// One flat row per open prescription line. gateSatisfied lets pharmacy show
+// unpaid lines while keeping dispensing subject to the live billing gate.
 public record PrescriptionQueueRowResponse(
         UUID prescriptionLineId,
         UUID prescriptionOrderId,

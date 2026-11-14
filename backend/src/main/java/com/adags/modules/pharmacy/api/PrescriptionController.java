@@ -100,10 +100,9 @@ public class PrescriptionController {
     }
 
     // 12-pharmacist.md §4: the Dashboard's / Dispense Queue's single source
-    // list. Only lines whose live billing gate is satisfied are sent to
-    // pharmacy; unpaid lines remain on the doctor's order and appear here
-    // after reception records payment. The client buckets eligible lines
-    // into ready / emergency / inpatient. Unscoped by facility,
+    // list. Include unpaid lines so pharmacy can review the prescription and
+    // see what is awaiting payment. DispenseService still checks the live
+    // billing gate before any stock is consumed. Unscoped by facility,
     // same reasoning as LabOrderController#queue (no multi-facility
     // pharmacist role exists yet to distinguish).
     @GetMapping("/queue")
@@ -126,7 +125,6 @@ public class PrescriptionController {
                             order.encounterId(), inpatientFacade::findActiveAdmissionWard);
                     return toQueueRow(line, order, ward);
                 })
-                .filter(PrescriptionQueueRowResponse::gateSatisfied)
                 .toList();
     }
 

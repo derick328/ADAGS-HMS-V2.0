@@ -303,6 +303,25 @@ class StockReceiptIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    void discrepancyAndNotesMayBeBlank() {
+        UUID actor = bootstrapAdminId();
+        UUID store = store();
+        UUID supplier = supplier();
+        UUID item = item("OPTIONAL-REASON", "Optional reason tablets", "TABLET");
+        var input = new StockReceiptRequest.Line(item, "TABLET", 5, 3, 2, 1,
+                "OPTIONAL-1", LocalDate.now(FACILITY_ZONE).plusYears(1), 100L,
+                null, null);
+
+        var receipt = receipts.confirm(request(supplier, store, "optional-reason", List.of(input)), actor);
+
+        assertThat(receipt.lines().getFirst().missingQuantity()).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT discrepancy_reason FROM stock_receipt_line WHERE receipt_id = :id",
+                new MapSqlParameterSource("id", receipt.id()), String.class)).isNull();
+        assertThat(quantity(item, "ACTIVE")).isEqualTo(2);
+        assertThat(quantity(item, "QUARANTINED")).isEqualTo(1);
+    }
+
+    @Test
     void fullyMissingOrderLineCreatesNoPhysicalStock() {
         UUID actor = bootstrapAdminId();
         UUID store = store();

@@ -159,11 +159,6 @@ public class StockReceiptService {
             }
             int missing = line.orderedQuantity() == null ? 0
                     : Math.max(0, line.orderedQuantity() - line.receivedQuantity());
-            boolean discrepancy = line.rejectedQuantity() > 0 || missing > 0
-                    || line.orderedQuantity() != null && line.receivedQuantity() > line.orderedQuantity();
-            if (discrepancy && (line.discrepancyReason() == null || line.discrepancyReason().isBlank())) {
-                throw new IllegalArgumentException("A discrepancy reason is required");
-            }
             int acceptedBase = Math.multiplyExact(line.acceptedQuantity(), selected.factor());
             int rejectedBase = Math.multiplyExact(line.rejectedQuantity(), selected.factor());
             Long receivedCost = line.unitPurchaseCostMinor() == null ? null

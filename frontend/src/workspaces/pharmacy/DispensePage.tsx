@@ -67,8 +67,10 @@ export function DispensePage() {
     queryKey: ['prescriptions', 'queue'],
     queryFn: () => fetchPrescriptionQueue(accessToken as string),
     enabled: accessToken != null,
+    refetchInterval: 10_000,
   });
   const queueRow = (queue ?? []).find((row) => row.prescriptionLineId === prescriptionLineId);
+  const awaitingPayment = queueRow?.gateSatisfied === false;
 
   const { data: context, isLoading } = useQuery({
     queryKey: ['dispense-context', prescriptionLineId],
@@ -176,12 +178,18 @@ export function DispensePage() {
         )}</PageHeader>
 
       <div style={{ marginBottom: 'var(--space-3)' }}>
-        <button type="button" className="btn btn-secondary" disabled={processingStarted || startProcessing.isPending || !prescriptionLineId}
+        <button type="button" className="btn btn-secondary" disabled={awaitingPayment || processingStarted || startProcessing.isPending || !prescriptionLineId}
           onClick={beginProcessing}>
           {processingStarted ? 'Processing started' : 'Begin processing'}
         </button>
         {startProcessing.isError && <p className="form-error">Could not record processing start. Try again.</p>}
       </div>
+
+      {awaitingPayment && (
+        <div className="form-error" role="status" style={{ marginBottom: 'var(--space-3)' }}>
+          Unpaid — this prescription can be reviewed now. Dispensing becomes available after payment or coverage is confirmed.
+        </div>
+      )}
 
       {isLoading || !context ? (
         <FeedbackState loading>Loading…</FeedbackState>
@@ -234,7 +242,7 @@ export function DispensePage() {
             )}
           </div>
 
-          {mode === 'dispense' && (
+          {mode === 'dispense' && !awaitingPayment && (
             <form className="dispense-form" onSubmit={handleSubmit(onSubmitDispense)} onChangeCapture={beginProcessing} noValidate>
               <div className="dispense-batches">
                 <TableRegion label="Batch lines"><table className="table">

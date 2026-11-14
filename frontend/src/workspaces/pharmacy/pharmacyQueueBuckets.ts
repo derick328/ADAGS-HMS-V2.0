@@ -1,9 +1,8 @@
 import type { PrescriptionQueueRowResponse } from '../../shared/api/prescriptions';
 
-// The queue API returns only lines currently authorized by the billing gate.
-// A partially paid order contributes its paid lines; unpaid lines appear
-// after reception records their payment.
-export type PharmacyQueueTabKey = 'ready' | 'emergency' | 'inpatient';
+// The queue includes unpaid lines for review. Only authorized lines can be
+// dispensed; each line moves to Ready when its own payment is recorded.
+export type PharmacyQueueTabKey = 'ready' | 'unpaid' | 'emergency' | 'inpatient';
 
 export function bucketOf(row: PrescriptionQueueRowResponse, _rows: PrescriptionQueueRowResponse[]): PharmacyQueueTabKey {
   // §4: "Emergency | Active PaymentBypass; dispensable now" — sorts and
@@ -12,6 +11,8 @@ export function bucketOf(row: PrescriptionQueueRowResponse, _rows: PrescriptionQ
   if (row.isEmergencyBypass) return 'emergency';
   // §4: "Inpatient / ward | Deposit-backed; dispensable without prior payment."
   if (row.isInpatient) return 'inpatient';
+
+  if (!row.gateSatisfied) return 'unpaid';
 
   return 'ready';
 }

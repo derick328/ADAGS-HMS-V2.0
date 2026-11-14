@@ -7,9 +7,9 @@ import { formatWaitingSince } from '../../shared/format/date';
 import { QueueShell, type QueueRow, type QueueTab } from '../../shared/components/QueueShell';
 import { bucketOf, comparePharmacyQueueRows, countByBucket, type PharmacyQueueTabKey } from './pharmacyQueueBuckets';
 
-// Only authorized prescriptions appear in the pharmacy queue.
 const TAB_ORDER: { key: PharmacyQueueTabKey; label: string }[] = [
   { key: 'ready', label: 'Ready to dispense' },
+  { key: 'unpaid', label: 'Awaiting payment' },
   { key: 'emergency', label: 'Emergency' },
   { key: 'inpatient', label: 'Inpatient / ward' },
 ];
@@ -83,6 +83,8 @@ function emptyMessageFor(tab: PharmacyQueueTabKey): string {
   switch (tab) {
     case 'ready':
       return 'No prescriptions ready to dispense.';
+    case 'unpaid':
+      return 'No prescriptions awaiting payment.';
     case 'emergency':
       return 'No emergency-bypass prescriptions right now.';
     case 'inpatient':
@@ -122,9 +124,10 @@ function renderAction(
   row: PrescriptionQueueRowResponse,
   navigate: ReturnType<typeof useNavigate>,
 ): React.ReactNode {
+  const dispensable = Boolean(row.gateSatisfied);
   return (
-    <button type="button" className="btn btn-primary" onClick={() => navigate(`/pharmacy/dispense/${row.prescriptionLineId}`)}>
-      Dispense
+    <button type="button" className={dispensable ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => navigate(`/pharmacy/dispense/${row.prescriptionLineId}`)}>
+      {dispensable ? 'Dispense' : 'View prescription · Unpaid'}
     </button>
   );
 }

@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 class PrescriptionQueuePaymentTest {
 
     @Test
-    void unpaidLinesStayOutOfPharmacyUntilTheirOwnPaymentIsRecorded() {
+    void unpaidLinesAreVisibleAndBecomeReadyAfterPayment() {
         var orders = mock(PrescriptionOrderRepository.class);
         var lines = mock(PrescriptionLineRepository.class);
         var billing = mock(BillingFacade.class);
@@ -62,9 +62,13 @@ class PrescriptionQueuePaymentTest {
                 inventory, billing, mock(EncounterFacade.class), inpatient, patients,
                 authorization, mock(AuditRecorder.class));
 
-        assertThat(controller.queue(actor)).extracting(PrescriptionQueueRowResponse::itemId)
-                .containsExactly(paid.itemId());
-        assertThat(controller.queue(actor)).extracting(PrescriptionQueueRowResponse::itemId)
+        var beforePayment = controller.queue(actor);
+        assertThat(beforePayment).extracting(PrescriptionQueueRowResponse::itemId)
                 .containsExactlyInAnyOrder(paid.itemId(), unpaid.itemId());
+        assertThat(beforePayment.stream().filter(row -> row.itemId().equals(unpaid.itemId()))
+                .findFirst().orElseThrow().gateSatisfied()).isFalse();
+
+        var afterPayment = controller.queue(actor);
+        assertThat(afterPayment).allMatch(PrescriptionQueueRowResponse::gateSatisfied);
     }
 }
