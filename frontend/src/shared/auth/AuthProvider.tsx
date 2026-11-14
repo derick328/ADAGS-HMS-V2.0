@@ -16,6 +16,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [accessTokenExpiresAt, setAccessTokenExpiresAt] = useState<string | null>(null);
   const [status, setStatus] = useState<AuthStatus>('loading');
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .refresh()
       .then((token) => {
         setAccessToken(token.accessToken ?? null);
+        setAccessTokenExpiresAt(token.accessTokenExpiresAt ?? null);
         setStatus('authenticated');
       })
       .catch(() => setStatus('unauthenticated'));
@@ -36,14 +38,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = await api.refresh();
       const next = token.accessToken ?? null;
       setAccessToken(next);
+      setAccessTokenExpiresAt(token.accessTokenExpiresAt ?? null);
       setStatus(next ? 'authenticated' : 'unauthenticated');
       return next;
     } catch {
       setAccessToken(null);
+      setAccessTokenExpiresAt(null);
       setStatus('unauthenticated');
+      queryClient.clear();
       return null;
     }
-  }, []);
+  }, [queryClient]);
 
   // Backstop: any request that still 401s (e.g. the laptop was asleep) gets
   // one transparent retry with a freshly-minted token.
@@ -60,6 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(id);
   }, [status, renewAccessToken]);
 
+  // The server caps the final access token at the session's 30-minute
+  // deadline. Check it at expiry so an idle open tab returns to login too.
+  useEffect(() => {
+    if (status !== 'authenticated' || !accessTokenExpiresAt) return;
+    const delay = Math.max(0, new Date(accessTokenExpiresAt).getTime() - Date.now() + 100);
+    const id = window.setTimeout(() => void renewAccessToken(), delay);
+    return () => window.clearTimeout(id);
+  }, [status, accessTokenExpiresAt, renewAccessToken]);
+
   const login = useCallback(async (username: string, password: string) => {
     const response = await api.login({ username, password });
     // Wipe every cached query before the new identity takes effect. Shared
@@ -69,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // refetch — the cross-user bleed behind "glory sees Friday's name".
     queryClient.clear();
     setAccessToken(response.accessToken ?? null);
+    setAccessTokenExpiresAt(response.accessTokenExpiresAt ?? null);
     setStatus('authenticated');
     return response.accessToken ?? null;
   }, [queryClient]);
@@ -82,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // access token expires on its own TTL regardless.
     const token = accessToken;
     setAccessToken(null);
+    setAccessTokenExpiresAt(null);
     setStatus('unauthenticated');
     queryClient.clear();
     if (token) {

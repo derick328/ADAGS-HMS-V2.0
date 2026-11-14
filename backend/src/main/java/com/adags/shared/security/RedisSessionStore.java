@@ -19,40 +19,44 @@ public class RedisSessionStore implements SessionStore {
     private final StringRedisTemplate redisTemplate;
     private final Clock clock;
     private final Duration accessTtl;
-    private final Duration refreshTtl;
+    private final Duration sessionTtl;
 
     public RedisSessionStore(
             StringRedisTemplate redisTemplate,
             Clock clock,
             @Value("${adags.auth.access-token-ttl-minutes}") long accessTtlMinutes,
-            @Value("${adags.auth.refresh-token-ttl-days}") long refreshTtlDays
+            @Value("${adags.auth.session-ttl-minutes}") long sessionTtlMinutes
     ) {
         this.redisTemplate = redisTemplate;
         this.clock = clock;
         this.accessTtl = Duration.ofMinutes(accessTtlMinutes);
-        this.refreshTtl = Duration.ofDays(refreshTtlDays);
+        this.sessionTtl = Duration.ofMinutes(sessionTtlMinutes);
     }
 
     @Override
     public IssuedSession issueSession(UUID userId) {
-        return storeNewSession(userId);
+        return storeNewSession(userId, clock.instant().plus(sessionTtl));
     }
 
     @Override
     public Optional<UUID> resolveAccessToken(String accessToken) {
         String value = redisTemplate.opsForValue().get(ACCESS_KEY_PREFIX + accessToken);
-        return Optional.ofNullable(value).map(UUID::fromString);
+        return parseSession(value)
+                .filter(session -> clock.instant().isBefore(session.expiresAt()))
+                .map(StoredSession::userId);
     }
 
     @Override
     public IssuedSession rotateRefreshToken(String refreshToken) {
         String key = REFRESH_KEY_PREFIX + refreshToken;
         String value = redisTemplate.opsForValue().get(key);
-        if (value == null) {
+        Optional<StoredSession> session = parseSession(value)
+                .filter(stored -> clock.instant().isBefore(stored.expiresAt()));
+        if (session.isEmpty()) {
             throw new InvalidTokenException();
         }
         redisTemplate.delete(key);
-        return storeNewSession(UUID.fromString(value));
+        return storeNewSession(session.get().userId(), session.get().expiresAt());
     }
 
     @Override
@@ -65,14 +69,33 @@ public class RedisSessionStore implements SessionStore {
         }
     }
 
-    private IssuedSession storeNewSession(UUID userId) {
+    private IssuedSession storeNewSession(UUID userId, Instant sessionExpiresAt) {
         String accessToken = OpaqueTokenGenerator.generate();
         String refreshToken = OpaqueTokenGenerator.generate();
         Instant now = clock.instant();
+        Duration remaining = Duration.between(now, sessionExpiresAt);
+        if (remaining.isZero() || remaining.isNegative()) {
+            throw new InvalidTokenException();
+        }
+        Duration accessLifetime = remaining.compareTo(accessTtl) < 0 ? remaining : accessTtl;
+        String storedValue = userId + "|" + sessionExpiresAt.toEpochMilli();
 
-        redisTemplate.opsForValue().set(ACCESS_KEY_PREFIX + accessToken, userId.toString(), accessTtl);
-        redisTemplate.opsForValue().set(REFRESH_KEY_PREFIX + refreshToken, userId.toString(), refreshTtl);
+        redisTemplate.opsForValue().set(ACCESS_KEY_PREFIX + accessToken, storedValue, accessLifetime);
+        redisTemplate.opsForValue().set(REFRESH_KEY_PREFIX + refreshToken, storedValue, remaining);
 
-        return new IssuedSession(accessToken, now.plus(accessTtl), refreshToken, now.plus(refreshTtl), userId);
+        return new IssuedSession(accessToken, now.plus(accessLifetime), refreshToken, sessionExpiresAt, userId);
     }
+
+    private Optional<StoredSession> parseSession(String value) {
+        if (value == null) return Optional.empty();
+        String[] parts = value.split("\\|", -1);
+        if (parts.length != 2) return Optional.empty();
+        try {
+            return Optional.of(new StoredSession(UUID.fromString(parts[0]), Instant.ofEpochMilli(Long.parseLong(parts[1]))));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
+    private record StoredSession(UUID userId, Instant expiresAt) {}
 }
