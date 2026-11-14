@@ -118,6 +118,28 @@ class PharmacyItemProposalTest extends IntegrationTestSupport {
     }
 
     @Test
+    void dosageFormCorrectionAppearsInAdminPendingQueueWithMedicineName() {
+        UUID proposer = bootstrapAdminId();
+        UUID reviewer = insertFixtureUser();
+        PharmacyItemProposal newItem = proposePharmacyItemService.proposeNewItem(new ProposeNewItemCommand(
+                "Amoxicillin 500mg", "ANTIBIOTIC", "TABLET", "TABLET", 500, null, proposer));
+        UUID itemId = reviewPharmacyItemProposalService.review(
+                new ReviewPharmacyItemProposalCommand(newItem.id(), ProposalStatus.APPROVED, reviewer, null))
+                .createdItemId();
+
+        PharmacyItemProposal correction = proposePharmacyItemService.proposeFormChange(
+                itemId, "CAPSULE", "CAPSULE", "Manufacturer label confirms capsule", proposer);
+
+        assertThat(pharmacyItemProposalRepository.findPending()).extracting(PharmacyItemProposal::id)
+                .contains(correction.id());
+        PharmacyItemProposal visible = pharmacyItemProposalRepository.findPending().stream()
+                .filter(proposal -> proposal.id().equals(correction.id())).findFirst().orElseThrow();
+        assertThat(visible.proposalType().name()).isEqualTo("FORM_CHANGE");
+        assertThat(visible.proposedName()).isEqualTo("Amoxicillin 500mg");
+        assertThat(visible.proposedForm()).isEqualTo("CAPSULE");
+    }
+
+    @Test
     void proposingAPriceChangeWithNoJustificationIsRejected() {
         assertThatThrownBy(() -> com.adags.modules.inventory.domain.PharmacyItemProposal.proposePriceChange(
                 UUID.randomUUID(), new com.adags.shared.kernel.Money(1000, "TZS"), null, "  ", UUID.randomUUID()))

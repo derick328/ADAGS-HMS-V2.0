@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { PackagingApprovalsPage } from './PricingPage';
 import { approveMedicinePackaging, fetchPendingMedicinePackaging, rejectMedicinePackaging } from '../../shared/api/medicinePackaging';
 
@@ -24,8 +25,9 @@ describe('packaging approvals', () => {
         baseUnit: 'tablet', reason: 'Five tablets', proposedBy: 'reviewer' },
     ]);
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(<QueryClientProvider client={client}><PackagingApprovalsPage /></QueryClientProvider>);
+    render(<MemoryRouter><QueryClientProvider client={client}><PackagingApprovalsPage /></QueryClientProvider></MemoryRouter>);
 
+    expect(screen.getByRole('link', { name: /Pricing & proposals/ })).toHaveAttribute('href', '/admin/pricing');
     expect(await screen.findByText('Your proposal needs another reviewer')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Approve' })).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
@@ -40,7 +42,7 @@ describe('packaging approvals', () => {
       proposedBy: 'pharmacist',
     }]);
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(<QueryClientProvider client={client}><PackagingApprovalsPage /></QueryClientProvider>);
+    render(<MemoryRouter><QueryClientProvider client={client}><PackagingApprovalsPage /></QueryClientProvider></MemoryRouter>);
 
     expect(await screen.findByText('Amoxicillin')).toBeInTheDocument();
     expect(screen.getByText('Manufacturer specifies three tablets')).toBeInTheDocument();

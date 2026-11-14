@@ -53,11 +53,12 @@ public record PharmacyItemProposal(
                 null, null);
     }
 
-    public static PharmacyItemProposal proposeFormChange(UUID itemId, String proposedForm, String proposedUnit,
+    public static PharmacyItemProposal proposeFormChange(UUID itemId, String itemName, String proposedForm, String proposedUnit,
                                                            String justification, UUID proposedBy) {
+        requireField(itemName, "itemName");
         requireField(proposedForm, "proposedForm");
         requireField(justification, "justification");
-        return new PharmacyItemProposal(null, ProposalType.FORM_CHANGE, itemId, null, null,
+        return new PharmacyItemProposal(null, ProposalType.FORM_CHANGE, itemId, itemName, null,
                 proposedForm, proposedUnit, new Money(0, "TZS"), null, justification, proposedBy, null,
                 ProposalStatus.PROPOSED, null, null, null, null);
     }

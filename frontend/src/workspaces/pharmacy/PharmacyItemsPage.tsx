@@ -183,13 +183,13 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
     {edit && <button type="button" className="btn btn-secondary" onClick={onCancelEdit}>Cancel edit</button>}
     {!edit && <Combobox<ItemSearchResultResponse> label="Medicine" placeholder="Search catalogue"
       search={(query) => searchItems(query, accessToken as string)} getKey={(option) => option.id as string}
-      renderOption={(option) => <span>{option.name} {option.strength} {cannotConfigurePackaging(option) && ` — ${option.unselectableReason ?? 'Base unit not configured'}`}</span>}
+      renderOption={(option) => <span>{option.name} {option.strength} {cannotConfigurePackaging(option) && ` — ${!option.unit ? 'Price catalogue only; inventory medicine record required' : option.unselectableReason ?? 'Base unit not configured'}`}</span>}
       isOptionDisabled={cannotConfigurePackaging}
       onSelect={(selected) => {
         submitFormCorrection.reset();
         setItem(selected);
         setSelectedForm(dosageForm(selected.form) ?? '');
-        setCorrectedBaseUnit(selected.unit ?? '');
+        setCorrectedBaseUnit(['UNIT', '—', '-'].includes(selected.unit?.trim().toUpperCase() ?? '') ? '' : selected.unit ?? '');
         setPresentation(isAutomaticForm(selected.form) ? 'BLISTER_PACK' : 'OTHER');
         setCanSplit(isAutomaticForm(selected.form));
         setFormReason('');
@@ -203,6 +203,8 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
         submitFormCorrection.reset();
         const nextForm = event.target.value;
         setSelectedForm(nextForm);
+        if (isAutomaticForm(nextForm)) setCorrectedBaseUnit(nextForm);
+        else if (['UNIT', 'TABLET', 'CAPSULE', 'CAPLET'].includes(correctedBaseUnit.trim().toUpperCase())) setCorrectedBaseUnit('');
         setPresentation(isAutomaticForm(nextForm) ? 'BLISTER_PACK' : 'OTHER');
         setCanSplit(isAutomaticForm(nextForm));
         setError('');
@@ -212,16 +214,16 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
       </select></label>
     </div>
     {presentationNeedsApproval && <section aria-label="Dosage form correction" className="stock-in-card">
-      <p>Current catalogue presentation: <strong>{dosageFormLabel(item.form)} · {item.unit}</strong>. The selected form or base unit requires a separate Admin approved catalogue correction before packaging can be submitted for it.</p>
+      <p>Current catalogue presentation: <strong>{dosageForm(item.form) ? dosageFormLabel(item.form) : 'Not configured'} · {item.unit}</strong>. Submit the dosage form correction below with a specific base inventory unit and product evidence. After Admin approval, reselect this medicine to propose packaging.</p>
       <div className="stock-in-grid">
         <label>Reason and product evidence <textarea className="clinical-control" value={formReason}
           onChange={event => setFormReason(event.target.value)} /></label>
       </div>
-      {submitFormCorrection.isSuccess && <p role="status">Dosage form correction submitted. Wait for Admin approval, then reselect this medicine to configure its packaging.</p>}
+      {submitFormCorrection.isSuccess && <p role="status">Dosage form correction submitted to Admin → Pricing & proposals → Medicine catalogue proposals. After approval, reselect this medicine to configure its packaging.</p>}
       {submitFormCorrection.error && <p role="alert" className="field-error">{submitFormCorrection.error instanceof ApiError
         ? submitFormCorrection.error.body?.detail ?? submitFormCorrection.error.message
         : 'Could not submit the dosage form correction.'}</p>}
-      <button type="button" className="btn btn-secondary" disabled={!canProposeForm || !selectedForm || !correctedBaseUnit.trim() || !formReason.trim() || submitFormCorrection.isPending || submitFormCorrection.isSuccess}
+      <button type="button" className="btn btn-secondary" disabled={!canProposeForm || !selectedForm || !correctedBaseUnit.trim() || ['UNIT', '—', '-'].includes(correctedBaseUnit.trim().toUpperCase()) || !formReason.trim() || submitFormCorrection.isPending || submitFormCorrection.isSuccess}
         onClick={() => submitFormCorrection.mutate()}>Submit dosage form correction for approval</button>
       {!canProposeForm && <small>Dosage form corrections require PHARMACY_ITEM_PROPOSE permission.</small>}
     </section>}
@@ -257,7 +259,8 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
         : 'Could not submit packaging proposal. Check your connection and try again.'}
     </p>}
     {submit.isSuccess && <p role="status">Packaging proposal submitted for approval. A separate blister unit is proposed when each blister contains more than one base unit.</p>}
-    <button type="button" className="btn btn-primary" disabled={submit.isPending || presentationNeedsApproval} onClick={() => {
+    {presentationNeedsApproval && <p>Packaging can be proposed after the catalogue correction is approved.</p>}
+    <button type="button" className="btn btn-primary" disabled={submit.isPending || !item?.id || !selectedForm || presentationNeedsApproval} onClick={() => {
       const invalidBlister = presentation === 'BLISTER_PACK' &&
         (!Number.isSafeInteger(Number(blistersPerPack)) || Number(blistersPerPack) < 1 ||
          !Number.isSafeInteger(Number(unitsPerBlister)) || Number(unitsPerBlister) < 1 ||
@@ -361,11 +364,10 @@ function FormChangeForm() {
     mutationFn: () => proposeFormChange({ itemId: item?.id as string, proposedForm: form,
       proposedUnit: normalizedUnit,
       justification: reason.trim() }, accessToken as string),
-    onSuccess: () => { setItem(null); setForm(''); setBaseUnit(''); setReason(''); },
   });
   return <form className="stock-in-card pharmacy-proposal-form" onSubmit={event => {
     event.preventDefault();
-    if (canSubmit && !submit.isPending) submit.mutate();
+    if (canSubmit && !submit.isPending && !submit.isSuccess) submit.mutate();
   }}>
     <h3>Correct a medicine dosage form</h3>
     <p>A second authorized person reviews this correction. Existing prescriptions retain their original form.</p>
@@ -373,7 +375,7 @@ function FormChangeForm() {
     <Combobox<ItemSearchResultResponse> label="Medicine" placeholder="Search catalogue"
       search={query => searchItems(query, accessToken as string)} getKey={option => option.id as string}
       renderOption={option => <span>{option.name}{option.strength && ` · ${option.strength}`} · {option.code} · {dosageFormLabel(option.form)}
-        {!option.unit && ` — ${option.unselectableReason ?? 'Pending pharmacy classification'}`}</span>}
+        {!option.unit && ' — Price catalogue only; inventory medicine record required'}</span>}
       isOptionDisabled={option => !option.id || !option.unit || option.regulatorySchedule === 'CONTROLLED'}
       onSelect={selected => { setItem(selected); setForm('');
         setBaseUnit(['UNIT', '—', '-'].includes(selected.unit?.trim().toUpperCase() ?? '') ? '' : selected.unit ?? '');
@@ -407,9 +409,9 @@ function FormChangeForm() {
     <Field label="Reason and product evidence">
       <textarea className="clinical-control" value={reason} onChange={event => setReason(event.target.value)} style={inputStyle} />
     </Field>
-    {submit.isSuccess && <p role="status">Dosage form correction sent for Admin review.</p>}
+    {submit.isSuccess && <p role="status">Dosage form correction for {item?.name} sent to Admin → Pricing & proposals → Medicine catalogue proposals. After approval, reselect it in Packaging.</p>}
     {submit.isError && <p role="alert" className="field-error">{submit.error instanceof ApiError ? submit.error.message : 'Could not submit the correction.'}</p>}
-    <button className="btn btn-primary" disabled={submit.isPending || !canSubmit}>
+    <button className="btn btn-primary" disabled={submit.isPending || submit.isSuccess || !canSubmit}>
       Submit for approval
     </button>
   </form>;

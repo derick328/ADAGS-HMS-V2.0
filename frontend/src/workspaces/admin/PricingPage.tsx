@@ -3,6 +3,7 @@ import { FeedbackState } from '../../shared/components/FeedbackState';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ApiError } from '../../shared/api/client';
 import {
   applyCatalogImport,
@@ -46,10 +47,11 @@ export function PricingPage() {
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [reviewNote, setReviewNote] = useState('');
 
-  const { data: proposals, isLoading } = useQuery({
+  const { data: proposals, isLoading, isError, refetch } = useQuery({
     queryKey: ['pharmacy-item-proposals', 'pending'],
     queryFn: () => fetchPendingPharmacyItemProposals(accessToken as string),
     enabled: accessToken != null && canApprove,
+    refetchInterval: 15_000,
   });
 
   const review = useMutation({
@@ -84,12 +86,14 @@ export function PricingPage() {
 
       <PackagingApprovalSection />
 
-      <QueueShell
-        title="Medicine catalogue proposals"
-        rows={rows}
-        isLoading={isLoading}
-        emptyMessage="No pending medicine catalogue proposals"
-      />
+      {isError ? <p role="alert">Could not load medicine catalogue proposals. <button type="button" className="link-button" onClick={() => void refetch()}>Retry</button></p> :
+        <QueueShell
+          title="Medicine catalogue proposals"
+          description="Includes dosage form corrections, new medicines, and price changes."
+          rows={rows}
+          isLoading={isLoading}
+          emptyMessage="No pending medicine catalogue proposals"
+        />}
 
       {reviewingProposal && (
         <ReviewPanel
@@ -159,7 +163,11 @@ function PackagingApprovalSection() {
 }
 
 export function PackagingApprovalsPage() {
-  return <div><PackagingApprovalSection /></div>;
+  const canApproveCatalogue = usePermission('PHARMACY_ITEM_APPROVE');
+  return <div>
+    {canApproveCatalogue && <p>Dosage form corrections are reviewed in <Link to="/admin/pricing">Pricing & proposals → Medicine catalogue proposals</Link>.</p>}
+    <PackagingApprovalSection />
+  </div>;
 }
 
 function ReviewPanel({
@@ -254,7 +262,7 @@ function ReviewPanel({
 
 function describeProposal(proposal: PharmacyItemProposalResponse): string {
   if (proposal.proposalType === 'FORM_CHANGE') {
-    return `Dosage form correction — item ${proposal.itemId?.slice(0, 8) ?? '—'} → ${proposal.proposedForm} / ${proposal.proposedUnit}`;
+    return `Dosage form correction — ${proposal.proposedName ?? `item ${proposal.itemId?.slice(0, 8) ?? '—'}`} → ${proposal.proposedForm} / ${proposal.proposedUnit}`;
   }
   if (proposal.proposalType === 'NEW_ITEM') {
     const details = [proposal.proposedClassification, proposal.proposedForm].filter(Boolean).join(' · ');

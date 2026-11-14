@@ -83,6 +83,6 @@ public class ProposePharmacyItemService {
             throw new IllegalArgumentException("This correction conflicts with the product's base unit. Create a distinct catalogue product for the new presentation.");
         }
         return pharmacyItemProposalRepository.insert(PharmacyItemProposal.proposeFormChange(
-                item.id(), normalized.name(), targetUnit, justification, proposedBy));
+                item.id(), item.name(), normalized.name(), targetUnit, justification, proposedBy));
     }
 }
