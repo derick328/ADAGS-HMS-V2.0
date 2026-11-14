@@ -107,9 +107,15 @@ class StockReceiptIntegrationTest extends IntegrationTestSupport {
         var blister = packaging.pending().stream()
                 .filter(p -> p.itemId().equals(item) && p.unit().equals("BLISTER_10"))
                 .findFirst().orElseThrow();
+        assertThat(packaging.pendingReview()).extracting(p -> p.packaging().id())
+                .contains(pack50.id(), pack100.id()).doesNotContain(blister.id());
+        assertThatThrownBy(() -> packaging.approve(blister.id(), approver))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("parent packaging proposal");
         packaging.approve(pack50.id(), approver);
         packaging.approve(pack100.id(), approver);
-        packaging.approve(blister.id(), approver);
+        assertThat(packaging.approvedForItem(item)).extracting(MedicinePackagingService.Packaging::id)
+                .contains(blister.id());
         var countedPack = new StockReceiptRequest.Line(item, "PACK_50", null, 10, 10, 0,
                 "PV-1", LocalDate.now(FACILITY_ZONE).plusYears(1), 3000L, null, null, 5, 10);
         var receipt = receipts.confirm(request(supplier, store, "multiple-packs", List.of(
