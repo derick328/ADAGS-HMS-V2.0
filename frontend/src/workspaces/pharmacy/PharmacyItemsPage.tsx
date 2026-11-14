@@ -349,6 +349,15 @@ function FormChangeForm() {
   const [form, setForm] = useState('');
   const [baseUnit, setBaseUnit] = useState('');
   const [reason, setReason] = useState('');
+  const normalizedUnit = baseUnit.trim().toUpperCase();
+  const solidUnit = isAutomaticForm(normalizedUnit);
+  const unitError = !normalizedUnit || ['UNIT', '—', '-'].includes(normalizedUnit)
+    ? 'Enter a specific base inventory unit, such as TABLET, ML, VIAL, or G.'
+    : (isAutomaticForm(form) && normalizedUnit !== form) || (form && !isAutomaticForm(form) && solidUnit)
+      ? 'Use the matching solid-dose unit, or a specific unit for this presentation such as ML, VIAL, or G.'
+      : undefined;
+  const unchanged = form === dosageForm(item?.form) && normalizedUnit === item?.unit?.trim().toUpperCase();
+  const canSubmit = !!item?.id && !!form && !unitError && !!reason.trim() && !unchanged;
   const submit = useMutation({
     mutationFn: () => proposeFormChange({ itemId: item?.id as string, proposedForm: form,
       proposedUnit: baseUnit.trim().toUpperCase(),
@@ -357,24 +366,38 @@ function FormChangeForm() {
   });
   return <form className="stock-in-card pharmacy-proposal-form" onSubmit={event => {
     event.preventDefault();
-    if (item?.id && form && baseUnit.trim() && reason.trim() &&
-        (form !== item.form?.toUpperCase() || baseUnit.trim().toUpperCase() !== item.unit?.toUpperCase())) submit.mutate();
+    if (canSubmit && !submit.isPending) submit.mutate();
   }}>
     <h3>Correct a medicine dosage form</h3>
     <p>A second authorized person reviews this correction. Existing prescriptions retain their original form.</p>
     <Combobox<ItemSearchResultResponse> label="Medicine" placeholder="Search catalogue"
       search={query => searchItems(query, accessToken as string)} getKey={option => option.id as string}
-      renderOption={option => <span>{option.name} · {option.form ?? 'Form unspecified'} · {option.strength ?? ''}</span>}
-      onSelect={selected => { setItem(selected); setForm(''); setBaseUnit(selected.unit ?? ''); }} />
-    {item && <p>Current dosage form: <strong>{item.form ?? 'Unspecified'}</strong></p>}
+      renderOption={option => <span>{option.name} · {dosageForm(option.form) ? dosageFormLabel(option.form) : 'Form not configured'} · {option.strength ?? ''}</span>}
+      isOptionDisabled={option => !option.id || option.regulatorySchedule === 'CONTROLLED'}
+      onSelect={selected => {
+        submit.reset();
+        setItem(selected); setForm(''); setReason('');
+        const unit = selected.unit?.trim().toUpperCase() ?? '';
+        setBaseUnit(['UNIT', '—', '-'].includes(unit) ? '' : unit);
+      }} />
+    {item && <>
+      <p>Selected medicine: <strong>{item.name}{item.strength ? ` · ${item.strength}` : ''}</strong>{item.code && ` (${item.code})`}</p>
+      <p>Current dosage form: <strong>{dosageForm(item.form) ? dosageFormLabel(item.form) : 'Not configured'}</strong></p>
+    </>}
     <Field label="Proposed dosage form">
-      <select className="clinical-control" value={form} onChange={event => setForm(event.target.value)} style={inputStyle}>
+      <select className="clinical-control" value={form} onChange={event => {
+        submit.reset();
+        const nextForm = event.target.value;
+        setForm(nextForm);
+        if (isAutomaticForm(nextForm)) setBaseUnit(nextForm);
+        else if (isAutomaticForm(baseUnit)) setBaseUnit('');
+      }} style={inputStyle}>
         <option value="">Select dosage form</option>
         {dosageForms.map(value => <option key={value} value={value}>{value[0] + value.slice(1).toLowerCase()}</option>)}
       </select>
     </Field>
-    <Field label="Base inventory unit for this presentation">
-      <input className="clinical-control" value={baseUnit} onChange={event => setBaseUnit(event.target.value)} style={inputStyle} />
+    <Field label="Base inventory unit for this presentation" error={item && form ? unitError : undefined}>
+      <input className="clinical-control" value={baseUnit} onChange={event => { submit.reset(); setBaseUnit(event.target.value); }} placeholder="e.g. TABLET, ML, VIAL, G" style={inputStyle} />
       <small>Changing the base unit is allowed only before packaging, stock, or prescriptions exist.</small>
     </Field>
     <Field label="Reason and product evidence">
@@ -382,8 +405,7 @@ function FormChangeForm() {
     </Field>
     {submit.isSuccess && <p role="status">Dosage form correction sent for Admin review.</p>}
     {submit.isError && <p role="alert" className="field-error">{submit.error instanceof ApiError ? submit.error.message : 'Could not submit the correction.'}</p>}
-    <button className="btn btn-primary" disabled={submit.isPending || !item?.id || !form || !baseUnit.trim() || !reason.trim() ||
-      (form === item.form?.toUpperCase() && baseUnit.trim().toUpperCase() === item.unit?.toUpperCase())}>
+    <button className="btn btn-primary" disabled={submit.isPending || !canSubmit}>
       Submit for approval
     </button>
   </form>;

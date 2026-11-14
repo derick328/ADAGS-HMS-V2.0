@@ -191,3 +191,57 @@ describe('pharmacy medicine packaging', () => {
     expect(await within(panel).findByRole('alert')).toHaveTextContent('A proposal for PACK_1 is already awaiting approval');
   });
 });
+
+
+describe('dosage form correction', () => {
+  async function selectImportedMedicine() {
+    vi.mocked(proposeFormChange).mockClear();
+    vi.mocked(searchItems).mockResolvedValue([{ id: 'imported-medicine', code: 'MED-42',
+      name: 'Amoxicillin', strength: '500 mg', form: '—', unit: 'unit',
+      regulatorySchedule: 'UNCLASSIFIED', selectable: false }]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
+    fireEvent.click(screen.getByRole('tab', { name: 'Dosage form correction' }));
+    const panel = screen.getByRole('tabpanel');
+    fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Amox' } });
+    fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Amoxicillin/ }));
+    return panel;
+  }
+
+  it('shows the selected imported medicine and submits a solid form with its specific base unit', async () => {
+    const panel = await selectImportedMedicine();
+    expect(within(panel).getByText(/Selected medicine:/)).toHaveTextContent('Amoxicillin · 500 mg (MED-42)');
+    expect(within(panel).getByText(/Current dosage form:/)).toHaveTextContent('Not configured');
+    expect(within(panel).getByLabelText('Base inventory unit for this presentation')).toHaveValue('');
+    fireEvent.change(within(panel).getByLabelText('Proposed dosage form'), { target: { value: 'CAPSULE' } });
+    expect(within(panel).getByLabelText('Base inventory unit for this presentation')).toHaveValue('CAPSULE');
+    fireEvent.change(within(panel).getByLabelText('Reason and product evidence'), { target: { value: 'Manufacturer label confirms capsules' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Submit for approval' }));
+    await waitFor(() => expect(proposeFormChange).toHaveBeenCalledWith({ itemId: 'imported-medicine',
+      proposedForm: 'CAPSULE', proposedUnit: 'CAPSULE', justification: 'Manufacturer label confirms capsules' }, 'test-token'));
+    expect(await within(panel).findByRole('status')).toHaveTextContent('Dosage form correction sent for Admin review.');
+  });
+
+  it('requires an explicit liquid unit and blocks generic or mismatched units before submitting', async () => {
+    const panel = await selectImportedMedicine();
+    const form = within(panel).getByLabelText('Proposed dosage form');
+    const unit = within(panel).getByLabelText('Base inventory unit for this presentation');
+    const button = within(panel).getByRole('button', { name: 'Submit for approval' });
+    fireEvent.change(form, { target: { value: 'TABLET' } });
+    fireEvent.change(form, { target: { value: 'SYRUP' } });
+    expect(unit).toHaveValue('');
+    fireEvent.change(within(panel).getByLabelText('Reason and product evidence'), { target: { value: 'Bottle label confirms syrup' } });
+    for (const invalid of ['unit', 'TABLET', '—']) {
+      fireEvent.change(unit, { target: { value: invalid } });
+      expect(unit).toHaveAttribute('aria-invalid', 'true');
+      expect(button).toBeDisabled();
+      fireEvent.submit(button.closest('form')!);
+    }
+    expect(proposeFormChange).not.toHaveBeenCalled();
+    fireEvent.change(unit, { target: { value: 'ml' } });
+    fireEvent.click(button);
+    await waitFor(() => expect(proposeFormChange).toHaveBeenCalledWith(expect.objectContaining({
+      proposedForm: 'SYRUP', proposedUnit: 'ML',
+    }), 'test-token'));
+  });
+});
