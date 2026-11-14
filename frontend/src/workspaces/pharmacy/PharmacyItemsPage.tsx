@@ -10,7 +10,7 @@ import { Combobox } from '../../shared/components/Combobox';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
 import { proposeNewItem, proposePriceChange, proposeFormChange } from '../../shared/api/pharmacyItemProposals';
-import { dosageForms } from '../doctor/prescriptionQuantity';
+import { dosageForm, dosageFormLabel, dosageForms, isAutomaticForm } from '../doctor/prescriptionQuantity';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
 import { fetchMedicinePackaging, fetchMedicinePackagingCatalogue, proposeMedicinePackaging,
@@ -140,6 +140,9 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
     id: edit.item.id, code: edit.item.code, name: edit.item.name, unit: edit.item.baseUnit,
     strength: edit.item.strength ?? undefined, form: edit.item.form,
   } : null);
+  const [selectedForm, setSelectedForm] = useState<string>(dosageForm(edit?.item.form) ?? '');
+  const [correctedBaseUnit, setCorrectedBaseUnit] = useState(edit?.item.baseUnit ?? '');
+  const [formReason, setFormReason] = useState('');
   const [unit, setUnit] = useState(edit?.pack.unit ?? '');
   const [factor, setFactor] = useState(edit ? String(edit.pack.factor) : '');
   const [presentation, setPresentation] = useState<'BLISTER_PACK' | 'OTHER'>(
@@ -149,6 +152,10 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
   const [canSplit, setCanSplit] = useState(edit?.pack.canSplit ?? true);
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
+  const canProposeForm = usePermission('PHARMACY_ITEM_PROPOSE');
+  const presentationNeedsApproval = !!item &&
+    (selectedForm !== (dosageForm(item.form) ?? '') || correctedBaseUnit.trim().toUpperCase() !== item.unit?.trim().toUpperCase());
+  const displayBaseUnit = presentationNeedsApproval ? correctedBaseUnit.trim() || 'base units' : item?.unit ?? 'base units';
   const { data: approved } = useQuery({ queryKey: ['medicine-packaging', item?.id],
     queryFn: () => fetchMedicinePackaging(item?.id as string, accessToken as string),
     enabled: item?.id != null && accessToken != null });
@@ -164,6 +171,11 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
       queryClient.invalidateQueries({ queryKey: ['medicine-packaging', item?.id] });
       queryClient.invalidateQueries({ queryKey: ['medicine-packaging', 'catalogue'] });
       if (edit) onEditedSubmitted(); } });
+  const submitFormCorrection = useMutation({
+    mutationFn: () => proposeFormChange({ itemId: item?.id as string, proposedForm: selectedForm,
+      proposedUnit: correctedBaseUnit.trim().toUpperCase(), justification: formReason.trim() }, accessToken as string),
+    onSuccess: () => setFormReason(''),
+  });
   if (!canPropose) return <p>Packaging proposals require PACKAGING_PROPOSE permission.</p>;
   return <div className="stock-in-card pharmacy-proposal-form">
     <h3>{edit ? `Edit ${edit.item.name} packaging` : 'Configure how this medicine is packaged'}</h3>
@@ -173,26 +185,68 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
       search={(query) => searchItems(query, accessToken as string)} getKey={(option) => option.id as string}
       renderOption={(option) => <span>{option.name} {option.strength} {cannotConfigurePackaging(option) && ` — ${option.unselectableReason ?? 'Base unit not configured'}`}</span>}
       isOptionDisabled={cannotConfigurePackaging}
-      onSelect={(selected) => { setItem(selected); setError(''); }} />}
+      onSelect={(selected) => {
+        submitFormCorrection.reset();
+        setItem(selected);
+        setSelectedForm(dosageForm(selected.form) ?? '');
+        setCorrectedBaseUnit(selected.unit ?? '');
+        setPresentation(isAutomaticForm(selected.form) ? 'BLISTER_PACK' : 'OTHER');
+        setCanSplit(isAutomaticForm(selected.form));
+        setFormReason('');
+        setError('');
+      }} />}
     {item && <><p>Selected medicine: <strong>{item.name}{item.strength ? ` · ${item.strength}` : ''}</strong></p>
       <p>Base unit: <strong>{item.unit ?? 'Not configured'}</strong></p>
       <p>Approved packages: {(approved ?? []).map((p) => `${p.unit} = ${p.factor} ${item.unit}`).join(' · ') || 'none'}</p></>}
     <div className="stock-in-grid">
+      <label>Dosage form <select className="clinical-control" value={selectedForm} onChange={(event) => {
+        submitFormCorrection.reset();
+        const nextForm = event.target.value;
+        setSelectedForm(nextForm);
+        setPresentation(isAutomaticForm(nextForm) ? 'BLISTER_PACK' : 'OTHER');
+        setCanSplit(isAutomaticForm(nextForm));
+        setError('');
+      }} disabled={!item}>
+        <option value="">Select dosage form</option>
+        {dosageForms.map(form => <option key={form} value={form}>{dosageFormLabel(form)}</option>)}
+      </select></label>
+    </div>
+    {presentationNeedsApproval && <section aria-label="Dosage form correction" className="stock-in-card">
+      <p>Current catalogue presentation: <strong>{dosageFormLabel(item.form)} · {item.unit}</strong>. The selected form or base unit requires a separate Admin approved catalogue correction before packaging can be submitted for it.</p>
+      <div className="stock-in-grid">
+        <label>Reason and product evidence <textarea className="clinical-control" value={formReason}
+          onChange={event => setFormReason(event.target.value)} /></label>
+      </div>
+      {submitFormCorrection.isSuccess && <p role="status">Dosage form correction submitted. Wait for Admin approval, then reselect this medicine to configure its packaging.</p>}
+      {submitFormCorrection.error && <p role="alert" className="field-error">{submitFormCorrection.error instanceof ApiError
+        ? submitFormCorrection.error.body?.detail ?? submitFormCorrection.error.message
+        : 'Could not submit the dosage form correction.'}</p>}
+      <button type="button" className="btn btn-secondary" disabled={!canProposeForm || !selectedForm || !correctedBaseUnit.trim() || !formReason.trim() || submitFormCorrection.isPending || submitFormCorrection.isSuccess}
+        onClick={() => submitFormCorrection.mutate()}>Submit dosage form correction for approval</button>
+      {!canProposeForm && <small>Dosage form corrections require PHARMACY_ITEM_PROPOSE permission.</small>}
+    </section>}
+    <div className="stock-in-grid">
+      <label>Base inventory unit for selected form <input className="clinical-control" value={correctedBaseUnit}
+        onChange={event => { submitFormCorrection.reset(); setCorrectedBaseUnit(event.target.value); }} disabled={!item}
+        placeholder="e.g. TABLET, ML, VIAL, G" /></label>
+      {item && <small>Base unit changes require a new product once packaging, stock, or prescriptions exist.</small>}
       <label>Package type <select className="clinical-control" value={presentation} onChange={(e) => setPresentation(e.target.value as 'BLISTER_PACK' | 'OTHER')}>
         <option value="BLISTER_PACK">Pack containing blisters</option><option value="OTHER">Bottle, vial, ampoule, tube, or other</option>
       </select></label>
       {presentation === 'BLISTER_PACK' ? <>
         <label>Blisters per pack <input className="clinical-control" type="number" min="1" step="1" value={blistersPerPack} onChange={(e) => setBlistersPerPack(e.target.value)} /></label>
-        <label>{item?.unit ?? 'Tablets/capsules'} per blister <input className="clinical-control" type="number" min="1" step="1" value={unitsPerBlister} onChange={(e) => setUnitsPerBlister(e.target.value)} /></label>
+        <label>{item ? displayBaseUnit : 'Tablets/capsules'} per blister <input className="clinical-control" type="number" min="1" step="1" value={unitsPerBlister} onChange={(e) => setUnitsPerBlister(e.target.value)} /></label>
       </> : <>
-        <label>Package name <input className="clinical-control" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="BOTTLE_100, VIAL_10…" /></label>
-        <label>{item?.unit ?? 'Base units'} per package <input className="clinical-control" type="number" min="1" step="1" value={factor} onChange={(e) => setFactor(e.target.value)} /></label>
+        <label>Package name <input className="clinical-control" value={unit} onChange={(e) => setUnit(e.target.value)}
+          placeholder={selectedForm === 'SYRUP' ? 'BOTTLE_100' : selectedForm === 'INJECTION' ? 'VIAL_10' :
+            ['CREAM', 'GEL', 'LOTION', 'PASTE'].includes(selectedForm) ? 'TUBE_30' : 'PACK_50'} /></label>
+        <label>{item ? displayBaseUnit : 'Base units'} per package <input className="clinical-control" type="number" min="1" step="1" value={factor} onChange={(e) => setFactor(e.target.value)} /></label>
       </>}
       <label><input type="checkbox" checked={canSplit} onChange={(e) => setCanSplit(e.target.checked)} /> May dispense individual base units from this package</label>
       <label>Reason and manufacturer specification <textarea className="clinical-control" value={reason} onChange={(e) => setReason(e.target.value)} /></label>
     </div>
     {presentation === 'BLISTER_PACK' && <p className="stock-in-calculation" role="status">
-      {blistersPerPack || '0'} blisters × {unitsPerBlister || '0'} {item?.unit ?? 'units'} per blister = <strong>{Number.isSafeInteger(blisterTotal) ? blisterTotal : 'Invalid'} {item?.unit ?? 'units'} per pack</strong>
+      {blistersPerPack || '0'} blisters × {unitsPerBlister || '0'} {item ? displayBaseUnit : 'units'} per blister = <strong>{Number.isSafeInteger(blisterTotal) ? blisterTotal : 'Invalid'} {item ? displayBaseUnit : 'units'} per pack</strong>
     </p>}
     {error && <p className="field-error" role="alert">{error}</p>}
     {submit.error && <p className="field-error" role="alert">
@@ -203,7 +257,7 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
         : 'Could not submit packaging proposal. Check your connection and try again.'}
     </p>}
     {submit.isSuccess && <p role="status">Packaging proposal submitted for approval. A separate blister unit is proposed when each blister contains more than one base unit.</p>}
-    <button type="button" className="btn btn-primary" disabled={submit.isPending} onClick={() => {
+    <button type="button" className="btn btn-primary" disabled={submit.isPending || presentationNeedsApproval} onClick={() => {
       const invalidBlister = presentation === 'BLISTER_PACK' &&
         (!Number.isSafeInteger(Number(blistersPerPack)) || Number(blistersPerPack) < 1 ||
          !Number.isSafeInteger(Number(unitsPerBlister)) || Number(unitsPerBlister) < 1 ||
@@ -211,6 +265,8 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
       const invalidOther = presentation === 'OTHER' &&
         (!unit.trim() || !Number.isSafeInteger(Number(factor)) || Number(factor) < 1);
       if (!item?.id || !item.unit) { setError('Select a medicine from the search results.'); return; }
+      if (!selectedForm) { setError('Select a dosage form for this medicine.'); return; }
+      if (presentationNeedsApproval) { setError('Wait for the dosage form or base-unit correction to be approved before proposing packaging.'); return; }
       if (invalidBlister) { setError('Enter positive whole numbers for blisters per pack and units per blister.'); return; }
       if (invalidOther) { setError('Enter a package name and a positive whole number of base units per package.'); return; }
       if (!reason.trim()) { setError('Provide the reason and manufacturer specification.'); return; }
@@ -319,7 +375,7 @@ function FormChangeForm() {
     </Field>
     <Field label="Base inventory unit for this presentation">
       <input className="clinical-control" value={baseUnit} onChange={event => setBaseUnit(event.target.value)} style={inputStyle} />
-      <small>Changing the base unit is allowed only before any stock or prescriptions exist.</small>
+      <small>Changing the base unit is allowed only before packaging, stock, or prescriptions exist.</small>
     </Field>
     <Field label="Reason and product evidence">
       <textarea className="clinical-control" value={reason} onChange={event => setReason(event.target.value)} style={inputStyle} />

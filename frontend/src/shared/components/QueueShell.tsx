@@ -136,7 +136,7 @@ export function QueueShell({
         ) : rows.length === 0 ? (
           <QueueEmpty message={emptyMessage} />
         ) : (
-          <TableRegion label={title}><table className="table">
+          <TableRegion label={title}><table className="table queue-table">
             <caption className="sr-only">{title}</caption>
             <tbody>
               {rows.map((row) => (
@@ -148,7 +148,7 @@ export function QueueShell({
                       : SEVERITY_CLASS[row.severity ?? 'normal']
                   }
                 >
-                  <td style={{ width: 32, paddingRight: 0 }}>
+                  <td className="queue-severity">
                     {/* Icon carries the meaning, not the row colour. */}
                     {row.isEmergency ? (
                       <span
@@ -175,7 +175,7 @@ export function QueueShell({
                     ) : null}
                   </td>
 
-                  <td>
+                  <td className="queue-details">
                     <div style={{ fontWeight: 'var(--weight-medium)' }}>
                       {row.primary}
                     </div>
@@ -210,18 +210,17 @@ export function QueueShell({
                   </td>
 
                   <td
-                    className="tabular"
+                    className="tabular queue-waiting"
                     style={{
                       textAlign: 'right',
                       color: 'var(--text-secondary)',
                       fontSize: 'var(--text-sm)',
-                      whiteSpace: 'nowrap',
                     }}
                   >
                     {row.meta}
                   </td>
 
-                  <td style={{ width: 1, whiteSpace: 'nowrap' }}>{row.action}</td>
+                  <td className="queue-action">{row.action}</td>
                 </tr>
               ))}
             </tbody>

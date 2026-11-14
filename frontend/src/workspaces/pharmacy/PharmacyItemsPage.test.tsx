@@ -5,6 +5,7 @@ import { PharmacyItemsPage } from './PharmacyItemsPage';
 import { searchItems } from '../../shared/api/items';
 import { fetchMedicinePackagingCatalogue, proposeMedicinePackaging } from '../../shared/api/medicinePackaging';
 import { ApiError } from '../../shared/api/client';
+import { proposeFormChange } from '../../shared/api/pharmacyItemProposals';
 
 vi.mock('../../shared/auth/AuthProvider', () => ({ useAuth: () => ({ accessToken: 'test-token' }) }));
 vi.mock('../../shared/auth/usePermission', () => ({ usePermission: () => true }));
@@ -13,6 +14,11 @@ vi.mock('../../shared/api/medicinePackaging', () => ({
   fetchMedicinePackaging: vi.fn().mockResolvedValue([]),
   fetchMedicinePackagingCatalogue: vi.fn().mockResolvedValue({ items: [], hasMore: false }),
   proposeMedicinePackaging: vi.fn().mockResolvedValue({}),
+}));
+vi.mock('../../shared/api/pharmacyItemProposals', () => ({
+  proposeFormChange: vi.fn().mockResolvedValue({}),
+  proposeNewItem: vi.fn().mockResolvedValue({}),
+  proposePriceChange: vi.fn().mockResolvedValue({}),
 }));
 
 describe('pharmacy medicine packaging', () => {
@@ -97,8 +103,57 @@ describe('pharmacy medicine packaging', () => {
     expect(within(panel).queryByLabelText('Blisters per pack')).not.toBeInTheDocument();
   });
 
+  it('lets the user choose a new dosage form through catalogue approval before packaging', async () => {
+    vi.mocked(proposeFormChange).mockClear();
+    vi.mocked(proposeMedicinePackaging).mockClear();
+    vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', name: 'Amoxicillin', form: 'TABLET', unit: 'tablet',
+      regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: true }]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
+    fireEvent.click(screen.getByRole('tab', { name: 'Packaging' }));
+    const panel = screen.getByRole('tabpanel');
+    fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Amox' } });
+    fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Amoxicillin/ }));
+    const form = within(panel).getByLabelText('Dosage form');
+    expect(form).toHaveValue('TABLET');
+    expect(within(form).getAllByRole('option').map(option => option.getAttribute('value'))).toEqual([
+      '', 'CAPSULE', 'TABLET', 'CAPLET', 'SYRUP', 'INJECTION', 'CREAM', 'GEL', 'LOTION', 'PASTE',
+    ]);
+    fireEvent.change(form, { target: { value: 'SYRUP' } });
+    expect(within(panel).getByRole('button', { name: 'Propose packaging' })).toBeDisabled();
+    fireEvent.change(within(panel).getByLabelText('Base inventory unit for selected form'), { target: { value: 'ML' } });
+    fireEvent.change(within(panel).getByLabelText('Reason and product evidence'),
+      { target: { value: 'Manufacturer label confirms oral syrup' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Submit dosage form correction for approval' }));
+    await waitFor(() => expect(proposeFormChange).toHaveBeenCalledWith({ itemId: 'medicine-1',
+      proposedForm: 'SYRUP', proposedUnit: 'ML', justification: 'Manufacturer label confirms oral syrup' }, 'test-token'));
+    expect(proposeMedicinePackaging).not.toHaveBeenCalled();
+  });
+
+  it('defaults syrup packaging to a bottle configuration', async () => {
+    vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-syrup', name: 'Paracetamol syrup', form: 'SYRUP', unit: 'mL',
+      regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: true }]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
+    fireEvent.click(screen.getByRole('tab', { name: 'Packaging' }));
+    const panel = screen.getByRole('tabpanel');
+    fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Para' } });
+    fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Paracetamol syrup/ }));
+    expect(within(panel).getByLabelText('Dosage form')).toHaveValue('SYRUP');
+    expect(within(panel).getByLabelText('Package type')).toHaveValue('OTHER');
+    expect(within(panel).getByPlaceholderText('BOTTLE_100')).toBeInTheDocument();
+    expect(within(panel).getByLabelText('May dispense individual base units from this package')).not.toBeChecked();
+    fireEvent.change(within(panel).getByLabelText('Package name'), { target: { value: 'BOTTLE_100' } });
+    fireEvent.change(within(panel).getByLabelText('mL per package'), { target: { value: '100' } });
+    fireEvent.change(within(panel).getByLabelText('Reason and manufacturer specification'),
+      { target: { value: 'Manufacturer 100 mL bottle' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Propose packaging' }));
+    await waitFor(() => expect(proposeMedicinePackaging).toHaveBeenCalledWith('medicine-syrup',
+      expect.objectContaining({ unit: 'BOTTLE_100', quantityInBaseUnits: 100 }), 'test-token'));
+  });
+
   it.each([[5, 10], [1, 1]])('accepts a classified inactive medicine with %i blisters and %i units per blister', async (blisters, units) => {
-    vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', name: 'Amoxicillin', unit: 'tablet',
+    vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', name: 'Amoxicillin', form: 'TABLET', unit: 'tablet',
       regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: false, unselectableReason: 'Not yet active in the catalogue.' }]);
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
@@ -119,7 +174,7 @@ describe('pharmacy medicine packaging', () => {
   });
 
   it('shows the server reason when a packaging proposal is rejected', async () => {
-    vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', name: 'Amoxicillin', unit: 'tablet',
+    vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', name: 'Amoxicillin', form: 'TABLET', unit: 'tablet',
       regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: true }]);
     vi.mocked(proposeMedicinePackaging).mockRejectedValueOnce(new ApiError(400,
       { detail: 'A proposal for PACK_1 is already awaiting approval' }));

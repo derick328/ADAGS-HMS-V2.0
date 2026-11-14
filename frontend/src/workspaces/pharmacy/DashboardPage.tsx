@@ -125,9 +125,10 @@ function renderAction(
   navigate: ReturnType<typeof useNavigate>,
 ): React.ReactNode {
   const dispensable = Boolean(row.gateSatisfied);
-  return (
+  return <div className="queue-action-group">
     <button type="button" className={dispensable ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => navigate(`/pharmacy/dispense/${row.prescriptionLineId}`)}>
-      {dispensable ? 'Dispense' : 'View prescription · Unpaid'}
+      {dispensable ? 'Dispense' : 'View prescription'}
     </button>
-  );
+    {!dispensable && <span className="badge badge-warning">Awaiting payment</span>}
+  </div>;
 }

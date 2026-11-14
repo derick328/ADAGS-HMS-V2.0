@@ -135,6 +135,36 @@ body { background: var(--bg-page); }
 .app-content .badge { padding: 5px 9px; border: 1px solid currentColor; border-color: color-mix(in srgb, currentColor 18%, transparent); font-weight: 700; letter-spacing: .01em; }
 .app-content .table td .badge + .badge { margin-left: 5px; }
 
+/* Queue actions use their label width; patient details absorb the remaining space. */
+.app-content .queue-table .queue-severity { width: 32px; padding-right: 0; }
+.app-content .queue-table .queue-details { width: 100%; min-width: 0; }
+.app-content .queue-table .queue-waiting { white-space: nowrap; }
+.app-content .queue-table .queue-action { overflow-wrap: normal; word-break: normal; }
+.app-content .queue-table .queue-action :is(.btn, button, a) {
+  width: max-content; max-width: 100%; min-width: max-content;
+  white-space: nowrap; overflow-wrap: normal; word-break: normal;
+}
+.app-content .queue-action-group { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+
+@media (max-width: 900px) {
+  .app-content .table-region > .queue-table { min-width: 0; }
+  .app-content .queue-table, .app-content .queue-table tbody { display: block; width: 100%; }
+  .app-content .queue-table tr {
+    display: grid; grid-template-columns: 24px minmax(0, 1fr);
+    column-gap: 10px; padding: 12px; border-bottom: 1px solid var(--border);
+  }
+  .app-content .queue-table tr:last-child { border-bottom: 0; }
+  .app-content .table.queue-table td { display: block; width: auto; padding: 0; border: 0; }
+  .app-content .queue-table .queue-severity { grid-column: 1; grid-row: 1 / 4; width: auto; }
+  .app-content .queue-table .queue-details { grid-column: 2; grid-row: 1; width: auto; }
+  .app-content .queue-table .queue-waiting { grid-column: 2; grid-row: 2; margin-top: 8px; text-align: left !important; }
+  .app-content .queue-table .queue-action { grid-column: 2; grid-row: 3; margin-top: 10px; }
+  .app-content .queue-table .queue-action :is(.btn, button, a) {
+    width: 100%; min-width: 0; white-space: normal;
+  }
+  .app-content .queue-action-group { justify-content: stretch; }
+}
+
 /* Navigation within a page and feedback. */
 .app-content :is(.queue-filters, .workspace-filters) { gap: 7px; margin-bottom: 18px; }
 .app-content .queue-filter { min-height: 42px; padding: 9px 15px; background: var(--white); border: 1px solid var(--border); color: var(--text-secondary); }
