@@ -22,6 +22,47 @@ vi.mock('../../shared/api/pharmacyItemProposals', () => ({
 }));
 
 describe('pharmacy medicine packaging', () => {
+  it('shows the chosen medicine in dosage form correction and rejects the generic UNIT placeholder', async () => {
+    vi.mocked(proposeFormChange).mockClear();
+    vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', code: 'MED-1', name: 'Paracetamol',
+      strength: '120 mg/5 mL', form: 'UNKNOWN', unit: 'UNIT', regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: false }]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
+    fireEvent.click(screen.getByRole('tab', { name: 'Dosage form correction' }));
+    const panel = screen.getByRole('tabpanel');
+    fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Paracetamol' } });
+    fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Paracetamol/ }));
+    expect(within(panel).getByRole('status')).toHaveTextContent('Selected medicine: Paracetamol · 120 mg/5 mL · MED-1');
+    expect(within(panel).getByRole('status')).toHaveTextContent('Current base inventory unit: UNIT');
+    expect(within(panel).queryByRole('combobox', { name: 'Medicine' })).not.toBeInTheDocument();
+    fireEvent.change(within(panel).getByLabelText('Proposed dosage form'), { target: { value: 'SYRUP' } });
+    const baseUnit = within(panel).getByLabelText('Base inventory unit for this presentation');
+    fireEvent.change(baseUnit, { target: { value: 'unit' } });
+    expect(within(panel).getByRole('alert')).toHaveTextContent('Enter a specific base inventory unit');
+    expect(within(panel).getByRole('button', { name: 'Submit for approval' })).toBeDisabled();
+    fireEvent.change(baseUnit, { target: { value: 'ML' } });
+    fireEvent.change(within(panel).getByLabelText('Reason and product evidence'),
+      { target: { value: 'Manufacturer label confirms syrup presentation' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Submit for approval' }));
+    await waitFor(() => expect(proposeFormChange).toHaveBeenCalledWith({ itemId: 'medicine-1',
+      proposedForm: 'SYRUP', proposedUnit: 'ML', justification: 'Manufacturer label confirms syrup presentation' }, 'test-token'));
+  });
+
+  it('clears the previous medicine before searching for a different correction', async () => {
+    vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', code: 'MED-1', name: 'Paracetamol',
+      form: 'TABLET', unit: 'TABLET', regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: true }]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
+    fireEvent.click(screen.getByRole('tab', { name: 'Dosage form correction' }));
+    const panel = screen.getByRole('tabpanel');
+    fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Paracetamol' } });
+    fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Paracetamol/ }));
+    fireEvent.click(within(panel).getByRole('button', { name: 'Change medicine' }));
+    expect(within(panel).queryByText(/Selected medicine:/)).not.toBeInTheDocument();
+    expect(within(panel).getByRole('combobox', { name: 'Medicine' })).toHaveValue('');
+    expect(within(panel).getByRole('button', { name: 'Submit for approval' })).toBeDisabled();
+  });
+
   it('lists approved packaging and medicines with no approved package', async () => {
     const packaged = { id: 'medicine-1', code: 'MED-1', name: 'Amoxicillin', form: 'tablet', strength: '500 mg',
         baseUnit: 'tablet', active: true, packages: [{ id: 'pack-1', itemId: 'medicine-1', unit: 'PACK_50',
