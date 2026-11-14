@@ -1,19 +1,28 @@
-export const dosageForms = ['CAPSULE', 'TABLET', 'CAPLET', 'SYRUP', 'INJECTION', 'CREAM', 'GEL', 'LOTION', 'PASTE'] as const;
+export const dosageForms = ['CAPSULE', 'TABLET', 'TABLETS', 'ORAL_TABLETS', 'CAPLET', 'SYRUP',
+  'SUSPENSION', 'ORAL_SUSPENSION', 'INJECTION', 'CREAM', 'GEL', 'LOTION', 'PASTE'] as const;
 
 export function dosageForm(form?: string | null) {
-  let normalized = form?.trim().toUpperCase();
-  if (normalized === 'ORAL SUSPENSION' || normalized === 'SUSPENSION') return 'SYRUP';
-  if (normalized?.endsWith('S')) normalized = normalized.slice(0, -1);
+  let normalized = form?.trim().toUpperCase().replaceAll(' ', '_');
+  if (normalized?.endsWith('S') && normalized !== 'TABLETS' && normalized !== 'ORAL_TABLETS') normalized = normalized.slice(0, -1);
   return dosageForms.find(value => value === normalized);
 }
 
 export function isAutomaticForm(form?: string | null) {
-  return ['CAPSULE', 'TABLET', 'CAPLET'].includes(dosageForm(form) ?? '');
+  return ['CAPSULE', 'TABLET', 'TABLETS', 'ORAL_TABLETS', 'CAPLET'].includes(dosageForm(form) ?? '');
+}
+
+export function baseUnitForForm(form?: string | null) {
+  const value = dosageForm(form);
+  return value === 'TABLETS' || value === 'ORAL_TABLETS' ? 'TABLET' : value;
+}
+
+export function isLiquidOralForm(form?: string | null) {
+  return ['SYRUP', 'SUSPENSION', 'ORAL_SUSPENSION'].includes(dosageForm(form) ?? '');
 }
 
 export function dosageFormLabel(form?: string | null) {
   const value = dosageForm(form);
-  return value ? value[0] + value.slice(1).toLowerCase() : form ?? 'Unspecified';
+  return value ? value.toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase()) : form ?? 'Unspecified';
 }
 
 export function automaticSupply(dose: number, frequency: string, days: number): number | null {

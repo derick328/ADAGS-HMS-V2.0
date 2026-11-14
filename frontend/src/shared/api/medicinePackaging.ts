@@ -18,6 +18,8 @@ export interface PendingMedicinePackaging {
   baseUnit: string;
   reason: string;
   proposedBy: string;
+  proposedForm?: string | null;
+  proposedBaseUnit?: string | null;
 }
 
 export interface MedicinePackagingCatalogueItem {
@@ -52,6 +54,7 @@ export function fetchMedicinePackaging(itemId: string, accessToken: string): Pro
 export function proposeMedicinePackaging(itemId: string, body: {
   unit: string; quantityInBaseUnits: number; canSplit: boolean; reason: string;
   blistersPerPack?: number; unitsPerBlister?: number; replacesPackagingId?: string;
+  proposedForm?: string; proposedBaseUnit?: string;
 }, accessToken: string): Promise<MedicinePackaging> {
   return authFetch(`/api/medicine-packaging/items/${itemId}/proposals`, accessToken, {
     method: 'POST', body: JSON.stringify(body),

@@ -4,13 +4,13 @@ import java.util.Locale;
 
 /** Supported medicine presentations and their supply-quantity policy. */
 public enum DosageForm {
-    CAPSULE, TABLET, CAPLET, SYRUP, INJECTION, CREAM, GEL, LOTION, PASTE;
+    CAPSULE, TABLET, TABLETS, ORAL_TABLETS, CAPLET, SYRUP, SUSPENSION, ORAL_SUSPENSION,
+    INJECTION, CREAM, GEL, LOTION, PASTE;
 
     public static DosageForm fromCatalogue(String value) {
         if (value == null) return null;
-        String normalized = value.trim().toUpperCase(Locale.ROOT);
-        if (normalized.equals("ORAL SUSPENSION") || normalized.equals("SUSPENSION")) return SYRUP;
-        if (normalized.endsWith("S")) {
+        String normalized = value.trim().toUpperCase(Locale.ROOT).replace(' ', '_');
+        if (normalized.endsWith("S") && !normalized.equals("TABLETS") && !normalized.equals("ORAL_TABLETS")) {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
         try {
@@ -27,6 +27,10 @@ public enum DosageForm {
     }
 
     public boolean automaticQuantity() {
-        return this == CAPSULE || this == TABLET || this == CAPLET;
+        return this == CAPSULE || this == TABLET || this == TABLETS || this == ORAL_TABLETS || this == CAPLET;
+    }
+
+    public String baseUnit() {
+        return this == TABLETS || this == ORAL_TABLETS ? TABLET.name() : name();
     }
 }

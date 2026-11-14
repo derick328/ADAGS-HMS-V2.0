@@ -9,8 +9,8 @@ import { z } from 'zod';
 import { Combobox } from '../../shared/components/Combobox';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { searchItems, type ItemSearchResultResponse } from '../../shared/api/items';
-import { proposeNewItem, proposePriceChange, proposeFormChange } from '../../shared/api/pharmacyItemProposals';
-import { dosageForm, dosageFormLabel, dosageForms, isAutomaticForm } from '../doctor/prescriptionQuantity';
+import { proposeNewItem, proposePriceChange } from '../../shared/api/pharmacyItemProposals';
+import { baseUnitForForm, dosageForm, dosageFormLabel, dosageForms, isAutomaticForm, isLiquidOralForm } from '../doctor/prescriptionQuantity';
 import { useAuth } from '../../shared/auth/AuthProvider';
 import { usePermission } from '../../shared/auth/usePermission';
 import { fetchMedicinePackaging, fetchMedicinePackagingCatalogue, proposeMedicinePackaging,
@@ -18,7 +18,7 @@ import { fetchMedicinePackaging, fetchMedicinePackagingCatalogue, proposeMedicin
 import { ApiError } from '../../shared/api/client';
 import './StockInPage.css';
 
-type Tab = 'overview' | 'newItem' | 'priceChange' | 'formChange' | 'packaging';
+type Tab = 'overview' | 'newItem' | 'priceChange' | 'packaging';
 type PackagingEdit = { item: MedicinePackagingCatalogueItem; pack: MedicinePackaging };
 
 function cannotConfigurePackaging(option: ItemSearchResultResponse) {
@@ -47,7 +47,6 @@ export function PharmacyItemsPage() {
         }} /> },
         { id: 'newItem', label: 'New item', content: <NewItemForm /> },
         { id: 'priceChange', label: 'Price change', content: <PriceChangeForm /> },
-        { id: 'formChange', label: 'Dosage form correction', content: <FormChangeForm /> },
         { id: 'packaging', label: 'Packaging', content: <PackagingProposalForm key={packagingEdit?.pack.id ?? 'new'}
           edit={packagingEdit} onCancelEdit={() => setPackagingEdit(null)} onEditedSubmitted={() => {
             setPackagingEdit(null);
@@ -105,7 +104,7 @@ function PackagingOverview({ onEdit }: { onEdit: (item: MedicinePackagingCatalog
             <th>Units per blister</th><th>Base units per package</th><th>Dispensing</th><th>Catalogue status</th><th>Action</th></tr></thead>
           <tbody>{catalogue.data.items.flatMap((item) =>
             (item.packages.length ? item.packages : [null]).map((pack) => <tr key={`${item.id}-${pack?.id ?? 'none'}`}>
-            <td><strong>{item.name}</strong>{item.strength && ` · ${item.strength}`}{item.form && <div>{item.form}</div>}<small>{item.code}</small></td>
+            <td><strong>{item.name}</strong>{item.strength && ` · ${item.strength}`}{item.form && <div>{dosageFormLabel(item.form)}</div>}<small>{item.code}</small></td>
             <td>{item.baseUnit}</td>
             <td>{pack?.unit ?? 'No approved package'}</td>
             <td>{pack?.blistersPerPack ?? '—'}</td>
@@ -142,7 +141,6 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
   } : null);
   const [selectedForm, setSelectedForm] = useState<string>(dosageForm(edit?.item.form) ?? '');
   const [correctedBaseUnit, setCorrectedBaseUnit] = useState(edit?.item.baseUnit ?? '');
-  const [formReason, setFormReason] = useState('');
   const [unit, setUnit] = useState(edit?.pack.unit ?? '');
   const [factor, setFactor] = useState(edit ? String(edit.pack.factor) : '');
   const [presentation, setPresentation] = useState<'BLISTER_PACK' | 'OTHER'>(
@@ -152,7 +150,6 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
   const [canSplit, setCanSplit] = useState(edit?.pack.canSplit ?? true);
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
-  const canProposeForm = usePermission('PHARMACY_ITEM_PROPOSE');
   const presentationNeedsApproval = !!item &&
     (selectedForm !== (dosageForm(item.form) ?? '') || correctedBaseUnit.trim().toUpperCase() !== item.unit?.trim().toUpperCase());
   const displayBaseUnit = presentationNeedsApproval ? correctedBaseUnit.trim() || 'base units' : item?.unit ?? 'base units';
@@ -164,18 +161,17 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
     presentation === 'BLISTER_PACK'
       ? { unit: `PACK_${blisterTotal}`, quantityInBaseUnits: blisterTotal, canSplit,
           blistersPerPack: Number(blistersPerPack), unitsPerBlister: Number(unitsPerBlister), reason: reason.trim(),
-          replacesPackagingId: edit?.pack.id ?? undefined }
+          replacesPackagingId: edit?.pack.id ?? undefined,
+          proposedForm: presentationNeedsApproval ? selectedForm : undefined,
+          proposedBaseUnit: presentationNeedsApproval ? correctedBaseUnit.trim().toUpperCase() : undefined }
       : { unit: unit.trim().toUpperCase(), quantityInBaseUnits: Number(factor), canSplit,
-          reason: reason.trim(), replacesPackagingId: edit?.pack.id ?? undefined }, accessToken as string),
+          reason: reason.trim(), replacesPackagingId: edit?.pack.id ?? undefined,
+          proposedForm: presentationNeedsApproval ? selectedForm : undefined,
+          proposedBaseUnit: presentationNeedsApproval ? correctedBaseUnit.trim().toUpperCase() : undefined }, accessToken as string),
     onSuccess: () => { if (!edit) { setUnit(''); setFactor(''); setBlistersPerPack(''); setUnitsPerBlister(''); setReason(''); }
       queryClient.invalidateQueries({ queryKey: ['medicine-packaging', item?.id] });
       queryClient.invalidateQueries({ queryKey: ['medicine-packaging', 'catalogue'] });
       if (edit) onEditedSubmitted(); } });
-  const submitFormCorrection = useMutation({
-    mutationFn: () => proposeFormChange({ itemId: item?.id as string, proposedForm: selectedForm,
-      proposedUnit: correctedBaseUnit.trim().toUpperCase(), justification: formReason.trim() }, accessToken as string),
-    onSuccess: () => setFormReason(''),
-  });
   if (!canPropose) return <p>Packaging proposals require PACKAGING_PROPOSE permission.</p>;
   return <div className="stock-in-card pharmacy-proposal-form">
     <h3>{edit ? `Edit ${edit.item.name} packaging` : 'Configure how this medicine is packaged'}</h3>
@@ -186,13 +182,11 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
       renderOption={(option) => <span>{option.name} {option.strength} {cannotConfigurePackaging(option) && ` — ${!option.unit ? 'Price catalogue only; inventory medicine record required' : option.unselectableReason ?? 'Base unit not configured'}`}</span>}
       isOptionDisabled={cannotConfigurePackaging}
       onSelect={(selected) => {
-        submitFormCorrection.reset();
         setItem(selected);
         setSelectedForm(dosageForm(selected.form) ?? '');
         setCorrectedBaseUnit(['UNIT', '—', '-'].includes(selected.unit?.trim().toUpperCase() ?? '') ? '' : selected.unit ?? '');
         setPresentation(isAutomaticForm(selected.form) ? 'BLISTER_PACK' : 'OTHER');
         setCanSplit(isAutomaticForm(selected.form));
-        setFormReason('');
         setError('');
       }} />}
     {item && <><p>Selected medicine: <strong>{item.name}{item.strength ? ` · ${item.strength}` : ''}</strong></p>
@@ -200,10 +194,9 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
       <p>Approved packages: {(approved ?? []).map((p) => `${p.unit} = ${p.factor} ${item.unit}`).join(' · ') || 'none'}</p></>}
     <div className="stock-in-grid">
       <label>Dosage form <select className="clinical-control" value={selectedForm} onChange={(event) => {
-        submitFormCorrection.reset();
         const nextForm = event.target.value;
         setSelectedForm(nextForm);
-        if (isAutomaticForm(nextForm)) setCorrectedBaseUnit(nextForm);
+        if (isAutomaticForm(nextForm)) setCorrectedBaseUnit(baseUnitForForm(nextForm) ?? '');
         else if (['UNIT', 'TABLET', 'CAPSULE', 'CAPLET'].includes(correctedBaseUnit.trim().toUpperCase())) setCorrectedBaseUnit('');
         setPresentation(isAutomaticForm(nextForm) ? 'BLISTER_PACK' : 'OTHER');
         setCanSplit(isAutomaticForm(nextForm));
@@ -213,23 +206,10 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
         {dosageForms.map(form => <option key={form} value={form}>{dosageFormLabel(form)}</option>)}
       </select></label>
     </div>
-    {presentationNeedsApproval && <section aria-label="Dosage form correction" className="stock-in-card">
-      <p>Current catalogue presentation: <strong>{dosageForm(item.form) ? dosageFormLabel(item.form) : 'Not configured'} · {item.unit}</strong>. Submit the dosage form correction below with a specific base inventory unit and product evidence. After Admin approval, reselect this medicine to propose packaging.</p>
-      <div className="stock-in-grid">
-        <label>Reason and product evidence <textarea className="clinical-control" value={formReason}
-          onChange={event => setFormReason(event.target.value)} /></label>
-      </div>
-      {submitFormCorrection.isSuccess && <p role="status">Dosage form correction submitted to Admin → Pricing & proposals → Medicine catalogue proposals. After approval, reselect this medicine to configure its packaging.</p>}
-      {submitFormCorrection.error && <p role="alert" className="field-error">{submitFormCorrection.error instanceof ApiError
-        ? submitFormCorrection.error.body?.detail ?? submitFormCorrection.error.message
-        : 'Could not submit the dosage form correction.'}</p>}
-      <button type="button" className="btn btn-secondary" disabled={!canProposeForm || !selectedForm || !correctedBaseUnit.trim() || ['UNIT', '—', '-'].includes(correctedBaseUnit.trim().toUpperCase()) || !formReason.trim() || submitFormCorrection.isPending || submitFormCorrection.isSuccess}
-        onClick={() => submitFormCorrection.mutate()}>Submit dosage form correction for approval</button>
-      {!canProposeForm && <small>Dosage form corrections require PHARMACY_ITEM_PROPOSE permission.</small>}
-    </section>}
+    {presentationNeedsApproval && <p>Dosage form and base unit correction will be included in this packaging proposal. Admin reviews both together.</p>}
     <div className="stock-in-grid">
       <label>Base inventory unit for selected form <input className="clinical-control" value={correctedBaseUnit}
-        onChange={event => { submitFormCorrection.reset(); setCorrectedBaseUnit(event.target.value); }} disabled={!item}
+        onChange={event => setCorrectedBaseUnit(event.target.value)} disabled={!item}
         placeholder="e.g. TABLET, ML, VIAL, G" /></label>
       {item && <small>Base unit changes require a new product once packaging, stock, or prescriptions exist.</small>}
       <label>Package type <select className="clinical-control" value={presentation} onChange={(e) => setPresentation(e.target.value as 'BLISTER_PACK' | 'OTHER')}>
@@ -240,7 +220,7 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
         <label>{item ? displayBaseUnit : 'Tablets/capsules'} per blister <input className="clinical-control" type="number" min="1" step="1" value={unitsPerBlister} onChange={(e) => setUnitsPerBlister(e.target.value)} /></label>
       </> : <>
         <label>Package name <input className="clinical-control" value={unit} onChange={(e) => setUnit(e.target.value)}
-          placeholder={selectedForm === 'SYRUP' ? 'BOTTLE_100' : selectedForm === 'INJECTION' ? 'VIAL_10' :
+          placeholder={isLiquidOralForm(selectedForm) ? 'BOTTLE_100' : selectedForm === 'INJECTION' ? 'VIAL_10' :
             ['CREAM', 'GEL', 'LOTION', 'PASTE'].includes(selectedForm) ? 'TUBE_30' : 'PACK_50'} /></label>
         <label>{item ? displayBaseUnit : 'Base units'} per package <input className="clinical-control" type="number" min="1" step="1" value={factor} onChange={(e) => setFactor(e.target.value)} /></label>
       </>}
@@ -258,9 +238,8 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
           : submit.error.body?.detail ?? `Could not submit packaging proposal (HTTP ${submit.error.status}).`
         : 'Could not submit packaging proposal. Check your connection and try again.'}
     </p>}
-    {submit.isSuccess && <p role="status">Packaging proposal submitted for approval. A separate blister unit is proposed when each blister contains more than one base unit.</p>}
-    {presentationNeedsApproval && <p>Packaging can be proposed after the catalogue correction is approved.</p>}
-    <button type="button" className="btn btn-primary" disabled={submit.isPending || !item?.id || !selectedForm || presentationNeedsApproval} onClick={() => {
+    {submit.isSuccess && <p role="status">Packaging proposal submitted for approval with its dosage form and any blister conversion.</p>}
+    <button type="button" className="btn btn-primary" disabled={submit.isPending || !item?.id || !selectedForm} onClick={() => {
       const invalidBlister = presentation === 'BLISTER_PACK' &&
         (!Number.isSafeInteger(Number(blistersPerPack)) || Number(blistersPerPack) < 1 ||
          !Number.isSafeInteger(Number(unitsPerBlister)) || Number(unitsPerBlister) < 1 ||
@@ -269,7 +248,12 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
         (!unit.trim() || !Number.isSafeInteger(Number(factor)) || Number(factor) < 1);
       if (!item?.id || !item.unit) { setError('Select a medicine from the search results.'); return; }
       if (!selectedForm) { setError('Select a dosage form for this medicine.'); return; }
-      if (presentationNeedsApproval) { setError('Wait for the dosage form or base-unit correction to be approved before proposing packaging.'); return; }
+      const baseUnit = correctedBaseUnit.trim().toUpperCase();
+      if (!baseUnit || ['UNIT', '—', '-'].includes(baseUnit)) { setError('Enter a specific base inventory unit.'); return; }
+      const solid = ['TABLET', 'CAPSULE', 'CAPLET'].includes(baseUnit);
+      if ((isAutomaticForm(selectedForm) && baseUnit !== baseUnitForForm(selectedForm)) || (!isAutomaticForm(selectedForm) && solid)) {
+        setError('The base unit does not match the dosage form.'); return;
+      }
       if (invalidBlister) { setError('Enter positive whole numbers for blisters per pack and units per blister.'); return; }
       if (invalidOther) { setError('Enter a package name and a positive whole number of base units per package.'); return; }
       if (!reason.trim()) { setError('Provide the reason and manufacturer specification.'); return; }
@@ -323,7 +307,7 @@ function NewItemForm() {
         <Field label="Form" error={errors.proposedForm?.message}>
           <select aria-label="Dosage form" className="clinical-control" {...register('proposedForm')} style={inputStyle}>
             <option value="">Select dosage form</option>
-            {dosageForms.map(form => <option key={form} value={form}>{form[0] + form.slice(1).toLowerCase()}</option>)}
+            {dosageForms.map(form => <option key={form} value={form}>{dosageFormLabel(form)}</option>)}
           </select>
         </Field>
         <Field label="Unit" error={errors.proposedUnit?.message}>
@@ -344,77 +328,6 @@ function NewItemForm() {
       </button>
     </form>
   );
-}
-
-function FormChangeForm() {
-  const { accessToken } = useAuth();
-  const [item, setItem] = useState<ItemSearchResultResponse | null>(null);
-  const [form, setForm] = useState('');
-  const [baseUnit, setBaseUnit] = useState('');
-  const [reason, setReason] = useState('');
-  const normalizedUnit = baseUnit.trim().toUpperCase();
-  const solidUnit = ['TABLET', 'CAPSULE', 'CAPLET'].includes(normalizedUnit);
-  const unitError = !normalizedUnit || ['UNIT', '—', '-'].includes(normalizedUnit)
-    ? 'Enter a specific base inventory unit, such as TABLET, ML, VIAL, or G.'
-    : form && ((isAutomaticForm(form) && normalizedUnit !== form) || (!isAutomaticForm(form) && solidUnit))
-      ? 'This base unit does not match the proposed dosage form.' : '';
-  const unchanged = !!item && form === dosageForm(item.form) && normalizedUnit === item.unit?.trim().toUpperCase();
-  const canSubmit = !!item?.id && !!form && !unitError && !!reason.trim() && !unchanged;
-  const submit = useMutation({
-    mutationFn: () => proposeFormChange({ itemId: item?.id as string, proposedForm: form,
-      proposedUnit: normalizedUnit,
-      justification: reason.trim() }, accessToken as string),
-  });
-  return <form className="stock-in-card pharmacy-proposal-form" onSubmit={event => {
-    event.preventDefault();
-    if (canSubmit && !submit.isPending && !submit.isSuccess) submit.mutate();
-  }}>
-    <h3>Correct a medicine dosage form</h3>
-    <p>A second authorized person reviews this correction. Existing prescriptions retain their original form.</p>
-    {!item && <><p>Search by medicine name or code, then choose the matching catalogue result.</p>
-    <Combobox<ItemSearchResultResponse> label="Medicine" placeholder="Search catalogue"
-      search={query => searchItems(query, accessToken as string)} getKey={option => option.id as string}
-      renderOption={option => <span>{option.name}{option.strength && ` · ${option.strength}`} · {option.code} · {dosageFormLabel(option.form)}
-        {!option.unit && ' — Price catalogue only; inventory medicine record required'}</span>}
-      isOptionDisabled={option => !option.id || !option.unit || option.regulatorySchedule === 'CONTROLLED'}
-      onSelect={selected => { setItem(selected); setForm('');
-        setBaseUnit(['UNIT', '—', '-'].includes(selected.unit?.trim().toUpperCase() ?? '') ? '' : selected.unit ?? '');
-        setReason(''); submit.reset(); }} /></>}
-    {item && <div className="stock-in-selected" role="status">
-      Selected medicine: <strong>{item.name}{item.strength && ` · ${item.strength}`}</strong>
-      {item.code && <> ({item.code})</>}
-      <div>Current dosage form: <strong>{dosageForm(item.form) ? dosageFormLabel(item.form) : 'Not configured'}</strong> · Current base inventory unit: <strong>{item.unit || 'Unspecified'}</strong></div>
-      <button type="button" className="btn btn-secondary" onClick={() => {
-        setItem(null); setForm(''); setBaseUnit(''); setReason(''); submit.reset();
-      }}>Change medicine</button>
-    </div>}
-    <Field label="Proposed dosage form">
-      <select className="clinical-control" value={form} onChange={event => {
-        submit.reset();
-        const nextForm = event.target.value;
-        setForm(nextForm);
-        if (isAutomaticForm(nextForm)) setBaseUnit(nextForm);
-        else if (['UNIT', 'TABLET', 'CAPSULE', 'CAPLET'].includes(normalizedUnit)) setBaseUnit('');
-      }} style={inputStyle}>
-        <option value="">Select dosage form</option>
-        {dosageForms.map(value => <option key={value} value={value}>{dosageFormLabel(value)}</option>)}
-      </select>
-    </Field>
-    <Field label="Base inventory unit for this presentation">
-      <input className="clinical-control" value={baseUnit} onChange={event => { submit.reset(); setBaseUnit(event.target.value); }}
-        placeholder="e.g. TABLET, ML, VIAL, G" aria-invalid={!!baseUnit && !!unitError} style={inputStyle} />
-      {item && form && unitError && <span role="alert" className="field-error">{unitError}</span>}
-      <small>Changing the base unit is allowed only before packaging, stock, or prescriptions exist.</small>
-    </Field>
-    <Field label="Reason and product evidence">
-      <textarea className="clinical-control" value={reason} onChange={event => setReason(event.target.value)} style={inputStyle} />
-    </Field>
-    {submit.isSuccess && <p role="status">Dosage form correction for {item?.name} sent to Admin → Pricing & proposals → Medicine catalogue proposals. After approval, reselect it in Packaging.</p>}
-    {submit.isError && <p role="alert" className="field-error">{submit.error instanceof ApiError ? submit.error.message : 'Could not submit the correction.'}</p>}
-    <button className="btn btn-primary" disabled={submit.isPending || submit.isSuccess || !canSubmit}>
-      Submit for approval
-    </button>
-  </form>;
 }
 
 const priceChangeSchema = z.object({

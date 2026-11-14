@@ -9131,6 +9131,10 @@ components:
         replacesPackagingId:
           type: string
           format: uuid
+        proposedForm:
+          type: string
+        proposedBaseUnit:
+          type: string
     CreateLabStockRequestRequest:
       required:
       - itemId
@@ -12790,6 +12794,10 @@ components:
         reason:
           type: string
         proposedBy:
+          type: string
+        proposedForm:
+          type: string
+        proposedBaseUnit:
           type: string
     CatalogueItem:
       type: object

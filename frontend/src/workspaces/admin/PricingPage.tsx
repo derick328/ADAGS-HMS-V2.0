@@ -3,7 +3,6 @@ import { FeedbackState } from '../../shared/components/FeedbackState';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ApiError } from '../../shared/api/client';
 import {
   applyCatalogImport,
@@ -33,6 +32,7 @@ import { formatMoney } from '../../shared/format/money';
 import { QueueShell, type QueueRow } from '../../shared/components/QueueShell';
 import { MedicationSettings } from './MedicationSettings';
 import { useMe } from '../../shared/auth/useMe';
+import { dosageFormLabel } from '../doctor/prescriptionQuantity';
 
 // 18-admin.md §2/§7, 12-pharmacist.md §9.2: the pharmacy item and
 // price-change approval queue is the only pricing backend that exists
@@ -131,15 +131,17 @@ function PackagingApprovalSection() {
   if (!canApprove) return null;
   return <section style={{ marginBottom: 'var(--space-5)' }}>
     <h2>Packaging approvals</h2>
-    <p>Review each proposed pack or blister conversion. A different authorized person must decide; rejection requires a reason.</p>
+    <p>Review each packaging configuration, including any dosage form correction and blister conversion. A different authorized person must decide; rejection requires a reason.</p>
     {isLoading ? <FeedbackState loading>Loading proposals…</FeedbackState> : isError ?
       <p role="alert">Could not load packaging proposals. <button type="button" className="link-button" onClick={() => refetch()}>Retry</button></p> : !data?.length ?
       <FeedbackState>No packaging proposals pending.</FeedbackState> :
       <TableRegion label="Pending packaging conversions"><table className="table"><thead><tr>
-        <th>Medicine</th><th>Package</th><th>Conversion</th><th>Blister counts</th><th>Split</th><th>Proposed by</th><th>Manufacturer specification</th><th>Decision</th>
+        <th>Medicine</th><th>Dosage form correction</th><th>Package</th><th>Conversion</th><th>Blister counts</th><th>Split</th><th>Proposed by</th><th>Manufacturer specification</th><th>Decision</th>
       </tr></thead><tbody>{data.map((proposal) => <tr key={proposal.packaging.id}>
-        <td>{proposal.itemName}</td><td>{proposal.packaging.unit}</td>
-        <td>{proposal.packaging.factor} {proposal.baseUnit}</td>
+        <td>{proposal.itemName}</td>
+        <td>{proposal.proposedForm ? `${dosageFormLabel(proposal.proposedForm)} · ${proposal.proposedBaseUnit}` : '—'}</td>
+        <td>{proposal.packaging.unit}</td>
+        <td>{proposal.packaging.factor} {proposal.proposedBaseUnit ?? proposal.baseUnit}</td>
         <td>{proposal.packaging.blistersPerPack != null && proposal.packaging.unitsPerBlister != null
           ? `${proposal.packaging.blistersPerPack} × ${proposal.packaging.unitsPerBlister}` : '—'}</td>
         <td>{proposal.packaging.canSplit ? 'Yes' : 'No'}</td>
@@ -163,9 +165,7 @@ function PackagingApprovalSection() {
 }
 
 export function PackagingApprovalsPage() {
-  const canApproveCatalogue = usePermission('PHARMACY_ITEM_APPROVE');
   return <div>
-    {canApproveCatalogue && <p>Dosage form corrections are reviewed in <Link to="/admin/pricing">Pricing & proposals → Medicine catalogue proposals</Link>.</p>}
     <PackagingApprovalSection />
   </div>;
 }

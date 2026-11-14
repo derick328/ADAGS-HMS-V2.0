@@ -45,7 +45,7 @@ import { searchPriceCatalog, type PriceCatalogItemResponse } from '../../shared/
 import { placePrescription, type PrescriptionFrequency } from '../../shared/api/prescriptions';
 import { fetchMedicinePackaging } from '../../shared/api/medicinePackaging';
 import { fetchMedicineRoutes } from '../../shared/api/medicineRoutes';
-import { automaticSupply, dosageForm, dosageFormLabel, isAutomaticForm } from './prescriptionQuantity';
+import { automaticSupply, dosageForm, dosageFormLabel, isAutomaticForm, isLiquidOralForm } from './prescriptionQuantity';
 import { fetchCurrentStock, type CurrentStockResponse } from '../../shared/api/stockReports';
 import { searchCompletedAssessments, type CompletedTriageAssessmentResponse } from '../../shared/api/triage';
 import { fetchVitalSignsByEncounter, recordConsultationVitals, type VitalSignsResponse } from '../../shared/api/vitalSigns';
@@ -1842,7 +1842,7 @@ function PrescriptionTab({
             setSupplyUnit('');
             const form = dosageForm(o.form);
             const topical = form === 'CREAM' || form === 'GEL' || form === 'LOTION' || form === 'PASTE';
-            setDoseUnit(isAutomaticForm(o.form) ? (o.unit ?? '') : form === 'SYRUP' ? 'mL' : topical ? 'application' : '');
+            setDoseUnit(isAutomaticForm(o.form) ? (o.unit ?? '') : isLiquidOralForm(o.form) ? 'mL' : topical ? 'application' : '');
             setRoute(form === 'INJECTION' ? '' : topical ? 'Topical' : 'Oral');
           }}
         />

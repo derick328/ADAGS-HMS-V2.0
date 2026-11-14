@@ -193,7 +193,7 @@ public class PlacePrescriptionService {
             throw new IllegalArgumentException("Duration in days is required for this schedule.");
         }
         if (form.automaticQuantity()) {
-            if (!form.name().equalsIgnoreCase(item.unit())) {
+            if (!form.baseUnit().equalsIgnoreCase(item.unit())) {
                 throw new IllegalArgumentException("Solid-dose catalogue base unit must match its dosage form.");
             }
             if (!command.doseUnit().trim().equalsIgnoreCase(item.unit())) {

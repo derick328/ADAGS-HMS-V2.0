@@ -78,7 +78,7 @@ public class MedicinePackagingController {
         }
         return service.propose(itemId, request.unit(), request.quantityInBaseUnits(), request.canSplit(),
                 request.reason(), actor.userId(), request.blistersPerPack(), request.unitsPerBlister(),
-                request.replacesPackagingId());
+                request.replacesPackagingId(), request.proposedForm(), request.proposedBaseUnit());
     }
 
     @PostMapping("/{id}/approve")
@@ -101,7 +101,7 @@ public class MedicinePackagingController {
     public record ProposalRequest(@NotBlank String unit, @Min(1) int quantityInBaseUnits,
                                   boolean canSplit, @NotBlank String reason,
                                   @Min(1) Integer blistersPerPack, @Min(1) Integer unitsPerBlister,
-                                  UUID replacesPackagingId) {
+                                  UUID replacesPackagingId, String proposedForm, String proposedBaseUnit) {
     }
 
     public record RejectRequest(@NotBlank String reason) {

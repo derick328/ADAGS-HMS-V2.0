@@ -32,7 +32,7 @@ public record ItemSearchResultResponse(
         } else if (DosageForm.fromCatalogue(item.form()) == null) {
             reason = "Dosage form is not configured. Submit a catalogue correction before prescribing.";
         } else if (DosageForm.fromCatalogue(item.form()).automaticQuantity()
-                && !DosageForm.fromCatalogue(item.form()).name().equalsIgnoreCase(item.unit())) {
+                && !DosageForm.fromCatalogue(item.form()).baseUnit().equalsIgnoreCase(item.unit())) {
             reason = "Dosage form and base inventory unit differ. Correct the catalogue presentation before prescribing.";
         }
         selectable = selectable && reason == null;

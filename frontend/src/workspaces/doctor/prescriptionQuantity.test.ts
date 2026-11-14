@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { automaticSupply, dosageForm, isAutomaticForm } from './prescriptionQuantity';
+import { automaticSupply, baseUnitForForm, dosageForm, dosageFormLabel, isAutomaticForm, isLiquidOralForm } from './prescriptionQuantity';
 
 describe('prescription supply policy', () => {
   it('calculates whole solid-dose supplies for regular schedules and STAT', () => {
@@ -22,5 +22,17 @@ describe('prescription supply policy', () => {
     expect(isAutomaticForm('caplet')).toBe(true);
     expect(isAutomaticForm('syrup')).toBe(false);
     expect(isAutomaticForm('injection')).toBe(false);
+  });
+
+  it('keeps tablet and suspension presentations distinct with the right supply policy', () => {
+    expect(dosageForm('Tablets')).toBe('TABLETS');
+    expect(dosageForm('Oral Tablets')).toBe('ORAL_TABLETS');
+    expect(dosageForm('Suspension')).toBe('SUSPENSION');
+    expect(dosageForm('Oral Suspension')).toBe('ORAL_SUSPENSION');
+    expect(dosageFormLabel('ORAL_TABLETS')).toBe('Oral Tablets');
+    expect(baseUnitForForm('ORAL_TABLETS')).toBe('TABLET');
+    expect(isAutomaticForm('Oral Tablets')).toBe(true);
+    expect(isLiquidOralForm('Oral Suspension')).toBe(true);
+    expect(isAutomaticForm('Suspension')).toBe(false);
   });
 });

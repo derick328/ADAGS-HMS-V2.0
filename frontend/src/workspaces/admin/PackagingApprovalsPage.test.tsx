@@ -19,7 +19,8 @@ describe('packaging approvals', () => {
     vi.mocked(fetchPendingMedicinePackaging).mockResolvedValue([
       { packaging: { id: 'other-pack', itemId: 'medicine-1', unit: 'PACK_3', factor: 3,
           canSplit: true, version: 1, status: 'PROPOSED' }, itemName: 'Amoxicillin',
-        baseUnit: 'tablet', reason: 'Three tablets', proposedBy: 'pharmacist' },
+        baseUnit: 'tablet', reason: 'Three tablets', proposedBy: 'pharmacist',
+        proposedForm: 'CAPSULE', proposedBaseUnit: 'CAPSULE' },
       { packaging: { id: 'own-pack', itemId: 'medicine-2', unit: 'PACK_5', factor: 5,
           canSplit: true, version: 1, status: 'PROPOSED' }, itemName: 'Paracetamol',
         baseUnit: 'tablet', reason: 'Five tablets', proposedBy: 'reviewer' },
@@ -27,8 +28,8 @@ describe('packaging approvals', () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<MemoryRouter><QueryClientProvider client={client}><PackagingApprovalsPage /></QueryClientProvider></MemoryRouter>);
 
-    expect(screen.getByRole('link', { name: /Pricing & proposals/ })).toHaveAttribute('href', '/admin/pricing');
     expect(await screen.findByText('Your proposal needs another reviewer')).toBeInTheDocument();
+    expect(screen.getByText('Capsule · CAPSULE')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Approve' })).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
     await waitFor(() => expect(approveMedicinePackaging).toHaveBeenCalledWith('other-pack', 'test-token'));

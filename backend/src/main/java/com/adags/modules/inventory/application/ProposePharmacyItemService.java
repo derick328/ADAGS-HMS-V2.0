@@ -41,7 +41,7 @@ public class ProposePharmacyItemService {
             throw new IllegalArgumentException("Select a specific base inventory unit for this presentation.");
         }
         if (form.automaticQuantity() && (command.proposedUnit() == null
-                || !form.name().equalsIgnoreCase(command.proposedUnit().trim()))) {
+                || !form.baseUnit().equalsIgnoreCase(command.proposedUnit().trim()))) {
             throw new IllegalArgumentException("Solid-dose base unit must match the dosage form.");
         }
         PharmacyItemProposal proposal = PharmacyItemProposal.proposeNewItem(
@@ -78,7 +78,7 @@ public class ProposePharmacyItemService {
             throw new IllegalArgumentException("Select a specific base inventory unit for this presentation.");
         }
         boolean solidBaseUnit = baseUnit.equals("TABLET") || baseUnit.equals("CAPSULE") || baseUnit.equals("CAPLET");
-        if ((normalized.automaticQuantity() && !baseUnit.equals(normalized.name()))
+        if ((normalized.automaticQuantity() && !baseUnit.equals(normalized.baseUnit()))
                 || (!normalized.automaticQuantity() && solidBaseUnit)) {
             throw new IllegalArgumentException("This correction conflicts with the product's base unit. Create a distinct catalogue product for the new presentation.");
         }

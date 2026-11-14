@@ -110,9 +110,9 @@ public class JdbcItemRepository implements ItemRepository {
         // inserts so the history guard below cannot race a new reference.
         jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE stock_batch, prescription_line, medicine_packaging IN SHARE MODE");
         String sql = "UPDATE item SET form = :form, unit = :unit WHERE id = :id "
-                + "AND (unit = :unit OR (NOT EXISTS (SELECT 1 FROM stock_batch WHERE item_id = :id) "
+                + "AND (UPPER(unit) = :unit OR (NOT EXISTS (SELECT 1 FROM stock_batch WHERE item_id = :id) "
                 + "AND NOT EXISTS (SELECT 1 FROM prescription_line WHERE item_id = :id) "
-                + "AND NOT EXISTS (SELECT 1 FROM medicine_packaging WHERE item_id = :id))) RETURNING "
+                + "AND NOT EXISTS (SELECT 1 FROM medicine_packaging WHERE item_id = :id AND status <> 'PROPOSED'))) RETURNING "
                 + "id, code, name, classification, form, strength, unit, regulatory_schedule, "
                 + "reorder_level, active, requires_administration_witness, created_by, created_at";
         var rows = jdbcTemplate.query(sql, new MapSqlParameterSource()

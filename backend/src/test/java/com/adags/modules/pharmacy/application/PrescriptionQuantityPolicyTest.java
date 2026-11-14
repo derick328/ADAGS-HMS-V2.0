@@ -59,6 +59,14 @@ class PrescriptionQuantityPolicyTest {
     }
 
     @Test
+    void oralTabletsUseTabletAsTheirBaseUnit() {
+        var tablets = item("Oral Tablets", "TABLET");
+        var supply = prescription(10, 1, "TABLET", PrescriptionFrequency.BD, 5, 10, "TABLET");
+        assertThatCode(() -> PlacePrescriptionService.validateQuantityPolicy(tablets, supply, 10, "TABLET"))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     void syrupSupplyIsIndependentOfDoseScheduleAndRequiresPackageUnit() {
         var syrup = item("Oral Suspension", "mL");
         var bottle = prescription(100, 5, "mL", PrescriptionFrequency.BD, 3, 1, "BOTTLE_100");

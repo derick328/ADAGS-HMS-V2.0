@@ -5,7 +5,6 @@ import { PharmacyItemsPage } from './PharmacyItemsPage';
 import { searchItems } from '../../shared/api/items';
 import { fetchMedicinePackagingCatalogue, proposeMedicinePackaging } from '../../shared/api/medicinePackaging';
 import { ApiError } from '../../shared/api/client';
-import { proposeFormChange } from '../../shared/api/pharmacyItemProposals';
 
 vi.mock('../../shared/auth/AuthProvider', () => ({ useAuth: () => ({ accessToken: 'test-token' }) }));
 vi.mock('../../shared/auth/usePermission', () => ({ usePermission: () => true }));
@@ -16,75 +15,52 @@ vi.mock('../../shared/api/medicinePackaging', () => ({
   proposeMedicinePackaging: vi.fn().mockResolvedValue({}),
 }));
 vi.mock('../../shared/api/pharmacyItemProposals', () => ({
-  proposeFormChange: vi.fn().mockResolvedValue({}),
   proposeNewItem: vi.fn().mockResolvedValue({}),
   proposePriceChange: vi.fn().mockResolvedValue({}),
 }));
 
 describe('pharmacy medicine packaging', () => {
-  it('guides an unconfigured catalogue medicine through dosage form approval', async () => {
-    vi.mocked(proposeFormChange).mockClear();
+  it('submits dosage form and packaging together for one approval', async () => {
     vi.mocked(proposeMedicinePackaging).mockClear();
     vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', name: 'Amoxicillin', form: '—', unit: 'unit',
       regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: false }]);
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
+    expect(screen.queryByRole('tab', { name: 'Dosage form correction' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: 'Packaging' }));
     const panel = screen.getByRole('tabpanel');
-    expect(within(panel).getByRole('button', { name: 'Propose packaging' })).toBeDisabled();
     fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Amox' } });
     fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Amoxicillin/ }));
-    expect(within(panel).getByRole('button', { name: 'Propose packaging' })).toBeDisabled();
     fireEvent.change(within(panel).getByLabelText('Dosage form'), { target: { value: 'TABLET' } });
+    for (const label of ['Tablets', 'Oral Tablets', 'Suspension', 'Oral Suspension']) {
+      expect(within(panel).getByRole('option', { name: label })).toBeInTheDocument();
+    }
     expect(within(panel).getByLabelText('Base inventory unit for selected form')).toHaveValue('TABLET');
-    expect(within(panel).getByText(/After Admin approval, reselect this medicine/)).toBeInTheDocument();
-    fireEvent.change(within(panel).getByLabelText('Reason and product evidence'),
-      { target: { value: 'Manufacturer label says tablet' } });
-    fireEvent.click(within(panel).getByRole('button', { name: 'Submit dosage form correction for approval' }));
-    await waitFor(() => expect(proposeFormChange).toHaveBeenCalledWith({ itemId: 'medicine-1',
-      proposedForm: 'TABLET', proposedUnit: 'TABLET', justification: 'Manufacturer label says tablet' }, 'test-token'));
-    expect(proposeMedicinePackaging).not.toHaveBeenCalled();
+    fireEvent.change(within(panel).getByLabelText('Blisters per pack'), { target: { value: '5' } });
+    fireEvent.change(within(panel).getByLabelText('TABLET per blister'), { target: { value: '10' } });
+    fireEvent.change(within(panel).getByLabelText('Reason and manufacturer specification'),
+      { target: { value: 'Manufacturer label confirms 5 × 10 tablets' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Propose packaging' }));
+    await waitFor(() => expect(proposeMedicinePackaging).toHaveBeenCalledWith('medicine-1',
+      expect.objectContaining({ proposedForm: 'TABLET', proposedBaseUnit: 'TABLET',
+        unit: 'PACK_50', quantityInBaseUnits: 50 }), 'test-token'));
   });
 
-  it('shows the chosen medicine in dosage form correction and rejects the generic UNIT placeholder', async () => {
-    vi.mocked(proposeFormChange).mockClear();
-    vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', code: 'MED-1', name: 'Paracetamol',
-      strength: '120 mg/5 mL', form: 'UNKNOWN', unit: 'UNIT', regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: false }]);
+  it('sets tablet and suspension packaging defaults from the selected form', async () => {
+    vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', name: 'Example medicine', form: '—', unit: 'unit',
+      regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: false }]);
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
-    fireEvent.click(screen.getByRole('tab', { name: 'Dosage form correction' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Packaging' }));
     const panel = screen.getByRole('tabpanel');
-    fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Paracetamol' } });
-    fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Paracetamol/ }));
-    expect(within(panel).getByRole('status')).toHaveTextContent('Selected medicine: Paracetamol · 120 mg/5 mL (MED-1)');
-    expect(within(panel).getByRole('status')).toHaveTextContent('Current base inventory unit: UNIT');
-    expect(within(panel).queryByRole('combobox', { name: 'Medicine' })).not.toBeInTheDocument();
-    fireEvent.change(within(panel).getByLabelText('Proposed dosage form'), { target: { value: 'SYRUP' } });
-    const baseUnit = within(panel).getByLabelText('Base inventory unit for this presentation');
-    fireEvent.change(baseUnit, { target: { value: 'unit' } });
-    expect(within(panel).getByRole('alert')).toHaveTextContent('Enter a specific base inventory unit');
-    expect(within(panel).getByRole('button', { name: 'Submit for approval' })).toBeDisabled();
-    fireEvent.change(baseUnit, { target: { value: 'ML' } });
-    fireEvent.change(within(panel).getByLabelText('Reason and product evidence'),
-      { target: { value: 'Manufacturer label confirms syrup presentation' } });
-    fireEvent.click(within(panel).getByRole('button', { name: 'Submit for approval' }));
-    await waitFor(() => expect(proposeFormChange).toHaveBeenCalledWith({ itemId: 'medicine-1',
-      proposedForm: 'SYRUP', proposedUnit: 'ML', justification: 'Manufacturer label confirms syrup presentation' }, 'test-token'));
-  });
-
-  it('clears the previous medicine before searching for a different correction', async () => {
-    vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', code: 'MED-1', name: 'Paracetamol',
-      form: 'TABLET', unit: 'TABLET', regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: true }]);
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
-    fireEvent.click(screen.getByRole('tab', { name: 'Dosage form correction' }));
-    const panel = screen.getByRole('tabpanel');
-    fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Paracetamol' } });
-    fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Paracetamol/ }));
-    fireEvent.click(within(panel).getByRole('button', { name: 'Change medicine' }));
-    expect(within(panel).queryByText(/Selected medicine:/)).not.toBeInTheDocument();
-    expect(within(panel).getByRole('combobox', { name: 'Medicine' })).toHaveValue('');
-    expect(within(panel).getByRole('button', { name: 'Submit for approval' })).toBeDisabled();
+    fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Example' } });
+    fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Example medicine/ }));
+    fireEvent.change(within(panel).getByLabelText('Dosage form'), { target: { value: 'ORAL_TABLETS' } });
+    expect(within(panel).getByLabelText('Base inventory unit for selected form')).toHaveValue('TABLET');
+    expect(within(panel).getByLabelText('Package type')).toHaveValue('BLISTER_PACK');
+    fireEvent.change(within(panel).getByLabelText('Dosage form'), { target: { value: 'ORAL_SUSPENSION' } });
+    expect(within(panel).getByLabelText('Package type')).toHaveValue('OTHER');
+    expect(within(panel).getByPlaceholderText('BOTTLE_100')).toBeInTheDocument();
   });
 
   it('lists approved packaging and medicines with no approved package', async () => {
@@ -168,33 +144,6 @@ describe('pharmacy medicine packaging', () => {
     expect(within(panel).queryByLabelText('Blisters per pack')).not.toBeInTheDocument();
   });
 
-  it('lets the user choose a new dosage form through catalogue approval before packaging', async () => {
-    vi.mocked(proposeFormChange).mockClear();
-    vi.mocked(proposeMedicinePackaging).mockClear();
-    vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', name: 'Amoxicillin', form: 'TABLET', unit: 'tablet',
-      regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: true }]);
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
-    fireEvent.click(screen.getByRole('tab', { name: 'Packaging' }));
-    const panel = screen.getByRole('tabpanel');
-    fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Amox' } });
-    fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Amoxicillin/ }));
-    const form = within(panel).getByLabelText('Dosage form');
-    expect(form).toHaveValue('TABLET');
-    expect(within(form).getAllByRole('option').map(option => option.getAttribute('value'))).toEqual([
-      '', 'CAPSULE', 'TABLET', 'CAPLET', 'SYRUP', 'INJECTION', 'CREAM', 'GEL', 'LOTION', 'PASTE',
-    ]);
-    fireEvent.change(form, { target: { value: 'SYRUP' } });
-    expect(within(panel).getByRole('button', { name: 'Propose packaging' })).toBeDisabled();
-    fireEvent.change(within(panel).getByLabelText('Base inventory unit for selected form'), { target: { value: 'ML' } });
-    fireEvent.change(within(panel).getByLabelText('Reason and product evidence'),
-      { target: { value: 'Manufacturer label confirms oral syrup' } });
-    fireEvent.click(within(panel).getByRole('button', { name: 'Submit dosage form correction for approval' }));
-    await waitFor(() => expect(proposeFormChange).toHaveBeenCalledWith({ itemId: 'medicine-1',
-      proposedForm: 'SYRUP', proposedUnit: 'ML', justification: 'Manufacturer label confirms oral syrup' }, 'test-token'));
-    expect(proposeMedicinePackaging).not.toHaveBeenCalled();
-  });
-
   it('defaults syrup packaging to a bottle configuration', async () => {
     vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-syrup', name: 'Paracetamol syrup', form: 'SYRUP', unit: 'mL',
       regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: true }]);
@@ -254,76 +203,5 @@ describe('pharmacy medicine packaging', () => {
     fireEvent.change(within(panel).getByLabelText('Reason and manufacturer specification'), { target: { value: 'Single tablet pack' } });
     fireEvent.click(within(panel).getByRole('button', { name: 'Propose packaging' }));
     expect(await within(panel).findByRole('alert')).toHaveTextContent('A proposal for PACK_1 is already awaiting approval');
-  });
-});
-
-
-describe('dosage form correction', () => {
-  it('identifies price catalogue entries without an inventory medicine record', async () => {
-    vi.mocked(searchItems).mockResolvedValue([{ id: 'service-1', code: 'MED-100', name: 'Example medicine',
-      form: '—', unit: undefined, regulatorySchedule: 'UNCLASSIFIED', selectable: false }]);
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
-    fireEvent.click(screen.getByRole('tab', { name: 'Dosage form correction' }));
-    const panel = screen.getByRole('tabpanel');
-    fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Example' } });
-    const option = await within(panel).findByRole('option', { name: /Example medicine/ });
-    expect(option).toHaveTextContent('Price catalogue only; inventory medicine record required');
-    expect(option).toHaveAttribute('aria-disabled', 'true');
-    fireEvent.mouseDown(option);
-    expect(within(panel).queryByText(/Selected medicine:/)).not.toBeInTheDocument();
-  });
-
-  async function selectImportedMedicine() {
-    vi.mocked(proposeFormChange).mockClear();
-    vi.mocked(searchItems).mockResolvedValue([{ id: 'imported-medicine', code: 'MED-42',
-      name: 'Amoxicillin', strength: '500 mg', form: '—', unit: 'unit',
-      regulatorySchedule: 'UNCLASSIFIED', selectable: false }]);
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-    render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
-    fireEvent.click(screen.getByRole('tab', { name: 'Dosage form correction' }));
-    const panel = screen.getByRole('tabpanel');
-    fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Amox' } });
-    fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Amoxicillin/ }));
-    return panel;
-  }
-
-  it('shows the selected imported medicine and submits a solid form with its specific base unit', async () => {
-    const panel = await selectImportedMedicine();
-    expect(within(panel).getByText(/Selected medicine:/)).toHaveTextContent('Amoxicillin · 500 mg (MED-42)');
-    expect(within(panel).getByText(/Current dosage form:/)).toHaveTextContent('Not configured');
-    expect(within(panel).getByLabelText('Base inventory unit for this presentation')).toHaveValue('');
-    fireEvent.change(within(panel).getByLabelText('Proposed dosage form'), { target: { value: 'CAPSULE' } });
-    expect(within(panel).getByLabelText('Base inventory unit for this presentation')).toHaveValue('CAPSULE');
-    fireEvent.change(within(panel).getByLabelText('Reason and product evidence'), { target: { value: 'Manufacturer label confirms capsules' } });
-    fireEvent.click(within(panel).getByRole('button', { name: 'Submit for approval' }));
-    await waitFor(() => expect(proposeFormChange).toHaveBeenCalledWith({ itemId: 'imported-medicine',
-      proposedForm: 'CAPSULE', proposedUnit: 'CAPSULE', justification: 'Manufacturer label confirms capsules' }, 'test-token'));
-    expect(await within(panel).findByText(/Dosage form correction for Amoxicillin sent to Admin → Pricing & proposals → Medicine catalogue proposals/)).toBeInTheDocument();
-    expect(within(panel).getByText(/Selected medicine:/)).toHaveTextContent('Amoxicillin');
-    expect(within(panel).getByRole('button', { name: 'Submit for approval' })).toBeDisabled();
-  });
-
-  it('requires an explicit liquid unit and blocks generic or mismatched units before submitting', async () => {
-    const panel = await selectImportedMedicine();
-    const form = within(panel).getByLabelText('Proposed dosage form');
-    const unit = within(panel).getByLabelText('Base inventory unit for this presentation');
-    const button = within(panel).getByRole('button', { name: 'Submit for approval' });
-    fireEvent.change(form, { target: { value: 'TABLET' } });
-    fireEvent.change(form, { target: { value: 'SYRUP' } });
-    expect(unit).toHaveValue('');
-    fireEvent.change(within(panel).getByLabelText('Reason and product evidence'), { target: { value: 'Bottle label confirms syrup' } });
-    for (const invalid of ['unit', 'TABLET', '—']) {
-      fireEvent.change(unit, { target: { value: invalid } });
-      expect(unit).toHaveAttribute('aria-invalid', 'true');
-      expect(button).toBeDisabled();
-      fireEvent.submit(button.closest('form')!);
-    }
-    expect(proposeFormChange).not.toHaveBeenCalled();
-    fireEvent.change(unit, { target: { value: 'ml' } });
-    fireEvent.click(button);
-    await waitFor(() => expect(proposeFormChange).toHaveBeenCalledWith(expect.objectContaining({
-      proposedForm: 'SYRUP', proposedUnit: 'ML',
-    }), 'test-token'));
   });
 });

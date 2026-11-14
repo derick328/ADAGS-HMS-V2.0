@@ -2,6 +2,7 @@ package com.adags.modules.inventory.application;
 
 import com.adags.modules.inventory.domain.Item;
 import com.adags.modules.inventory.domain.ItemRepository;
+import com.adags.shared.kernel.DosageForm;
 import com.adags.shared.authz.AuditRecorder;
 import com.adags.shared.events.DomainEventPublisher;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -39,7 +40,7 @@ public class MedicinePackagingService {
     }
 
     public record PendingPackaging(Packaging packaging, String itemName, String baseUnit,
-                                   String reason, String proposedBy) {
+                                   String reason, String proposedBy, String proposedForm, String proposedBaseUnit) {
     }
 
     public record CatalogueItem(UUID id, String code, String name, String form, String strength,
@@ -112,15 +113,17 @@ public class MedicinePackagingService {
         return jdbc.query("""
                 SELECT p.id, p.item_id, p.packaging_unit, p.quantity_in_base_units, p.can_split,
                        p.version, p.status, p.blisters_per_pack, p.units_per_blister,
-                       p.reason, i.name AS item_name, i.unit AS base_unit, u.username AS proposer_name
+                       p.reason, p.proposed_form, p.proposed_base_unit,
+                       i.name AS item_name, i.unit AS base_unit, u.username AS proposer_name
                 FROM medicine_packaging p
                 JOIN item i ON i.id = p.item_id
                 JOIN app_user u ON u.id = p.proposed_by
-                WHERE p.status = 'PROPOSED'
+                WHERE p.status = 'PROPOSED' AND p.parent_proposal_id IS NULL
                 ORDER BY p.proposed_at, p.id
                 """, new MapSqlParameterSource(), (rs, row) -> new PendingPackaging(
                 map(rs, row), rs.getString("item_name"), rs.getString("base_unit"),
-                rs.getString("reason"), rs.getString("proposer_name")));
+                rs.getString("reason"), rs.getString("proposer_name"),
+                rs.getString("proposed_form"), rs.getString("proposed_base_unit")));
     }
 
     public Packaging approved(UUID itemId, String unit) {
@@ -151,9 +154,43 @@ public class MedicinePackagingService {
     public Packaging propose(UUID itemId, String unit, int factor, boolean canSplit,
                              String reason, UUID actorId, Integer blistersPerPack, Integer unitsPerBlister,
                              UUID replacesPackagingId) {
+        return propose(itemId, unit, factor, canSplit, reason, actorId, blistersPerPack,
+                unitsPerBlister, replacesPackagingId, null, null);
+    }
+
+    @Transactional
+    public Packaging propose(UUID itemId, String unit, int factor, boolean canSplit,
+                             String reason, UUID actorId, Integer blistersPerPack, Integer unitsPerBlister,
+                             UUID replacesPackagingId, String proposedForm, String proposedBaseUnit) {
         Item item = items.findById(itemId).orElseThrow(() -> new NoSuchElementException("Item not found"));
         String normalized = normalize(unit);
-        if (normalized.equals(normalize(item.unit())) || factor < 1) {
+        String targetUnit = proposedBaseUnit == null ? normalize(item.unit()) : normalize(proposedBaseUnit);
+        String targetForm = proposedForm == null ? null : DosageForm.requireSupported(proposedForm).name();
+        if ((proposedForm == null) != (proposedBaseUnit == null)) {
+            throw new IllegalArgumentException("Dosage form and base unit must be proposed together");
+        }
+        if (targetForm != null) {
+            if (targetUnit.equals("UNIT") || targetUnit.equals("—") || targetUnit.equals("-")) {
+                throw new IllegalArgumentException("Select a specific base inventory unit");
+            }
+            boolean solid = List.of("TABLET", "CAPSULE", "CAPLET").contains(targetUnit);
+            if ((DosageForm.requireSupported(targetForm).automaticQuantity()
+                    && !targetUnit.equals(DosageForm.requireSupported(targetForm).baseUnit()))
+                    || (!DosageForm.requireSupported(targetForm).automaticQuantity() && solid)) {
+                throw new IllegalArgumentException("Base unit does not match the dosage form");
+            }
+            if (!targetUnit.equalsIgnoreCase(item.unit())) {
+                Integer history = jdbc.queryForObject("""
+                        SELECT (SELECT COUNT(*) FROM stock_batch WHERE item_id = :id)
+                             + (SELECT COUNT(*) FROM prescription_line WHERE item_id = :id)
+                             + (SELECT COUNT(*) FROM medicine_packaging WHERE item_id = :id AND status <> 'PROPOSED')
+                        """, new MapSqlParameterSource("id", itemId), Integer.class);
+                if (history != null && history > 0) {
+                    throw new IllegalArgumentException("Base unit cannot change after packaging, stock or prescriptions exist");
+                }
+            }
+        }
+        if (normalized.equals(targetUnit) || factor < 1) {
             throw new IllegalArgumentException("A package must contain at least one base unit and use a distinct unit name");
         }
         if (reason == null || reason.isBlank()) {
@@ -199,14 +236,17 @@ public class MedicinePackagingService {
         UUID id = jdbc.queryForObject("""
                 INSERT INTO medicine_packaging
                   (item_id, packaging_unit, quantity_in_base_units, can_split, version,
-                   status, reason, proposed_by, blisters_per_pack, units_per_blister, replaces_packaging_id)
+                   status, reason, proposed_by, blisters_per_pack, units_per_blister, replaces_packaging_id,
+                   proposed_form, proposed_base_unit)
                 VALUES (:itemId, :unit, :factor, :canSplit, :version,
-                        'PROPOSED', :reason, :actorId, :blisters, :perBlister, :replacesId) RETURNING id
+                        'PROPOSED', :reason, :actorId, :blisters, :perBlister, :replacesId,
+                        :proposedForm, :proposedBaseUnit) RETURNING id
                 """, new MapSqlParameterSource().addValue("itemId", itemId).addValue("unit", normalized)
                 .addValue("factor", factor).addValue("canSplit", canSplit).addValue("version", next)
                 .addValue("reason", reason.trim()).addValue("actorId", actorId)
                 .addValue("blisters", blistersPerPack).addValue("perBlister", unitsPerBlister)
-                .addValue("replacesId", replacesPackagingId), UUID.class);
+                .addValue("replacesId", replacesPackagingId)
+                .addValue("proposedForm", targetForm).addValue("proposedBaseUnit", targetForm == null ? null : targetUnit), UUID.class);
         audit.record(actorId, "PACKAGING_PROPOSE", "MEDICINE_PACKAGING", id, null);
         events.publish("MedicinePackagingProposed", java.util.Map.of("packagingId", id.toString()));
         if (blistersPerPack != null && unitsPerBlister > 1 && normalized.startsWith("PACK")) {
@@ -222,8 +262,10 @@ public class MedicinePackagingService {
                 throw new IllegalArgumentException("Existing blister conversion conflicts with the pack hierarchy");
             }
             if (existingBlister.isEmpty()) {
-                propose(itemId, blisterUnit, unitsPerBlister, true,
+                Packaging blister = propose(itemId, blisterUnit, unitsPerBlister, true,
                         "Blister unit for " + normalized + ": " + reason.trim(), actorId);
+                jdbc.update("UPDATE medicine_packaging SET parent_proposal_id = :parent WHERE id = :id",
+                        new MapSqlParameterSource().addValue("parent", id).addValue("id", blister.id()));
             }
         }
         return new Packaging(id, itemId, normalized, factor, canSplit, next, "PROPOSED", blistersPerPack, unitsPerBlister);
@@ -231,6 +273,13 @@ public class MedicinePackagingService {
 
     @Transactional
     public Packaging approve(UUID id, UUID actorId) {
+        return approve(id, actorId, false);
+    }
+
+    private Packaging approve(UUID id, UUID actorId, boolean linkedDecision) {
+        if (!linkedDecision && hasParent(id)) {
+            throw new IllegalArgumentException("Review the parent packaging proposal instead");
+        }
         List<Packaging> rows = jdbc.query("""
                 SELECT id, item_id, packaging_unit, quantity_in_base_units, can_split, version, status,
                        blisters_per_pack, units_per_blister
@@ -257,6 +306,13 @@ public class MedicinePackagingService {
                 throw new IllegalArgumentException("The package being edited is no longer approved");
             }
         }
+        var presentation = jdbc.query("""
+                SELECT proposed_form, proposed_base_unit FROM medicine_packaging WHERE id = :id
+                """, new MapSqlParameterSource("id", id), (rs, row) ->
+                new String[]{rs.getString("proposed_form"), rs.getString("proposed_base_unit")}).getFirst();
+        if (presentation[0] != null) {
+            items.updateFormAndUnit(proposal.itemId(), presentation[0], presentation[1]);
+        }
         jdbc.update("""
                 UPDATE medicine_packaging SET status = 'SUPERSEDED'
                 WHERE item_id = :itemId AND status = 'APPROVED'
@@ -269,12 +325,23 @@ public class MedicinePackagingService {
                 """, new MapSqlParameterSource().addValue("actorId", actorId).addValue("id", id));
         audit.record(actorId, "PACKAGING_APPROVE", "MEDICINE_PACKAGING", id, null);
         events.publish("MedicinePackagingApproved", java.util.Map.of("packagingId", id.toString()));
+        for (UUID childId : jdbc.query("SELECT id FROM medicine_packaging WHERE parent_proposal_id = :id AND status = 'PROPOSED'",
+                new MapSqlParameterSource("id", id), (rs, row) -> (UUID) rs.getObject("id"))) {
+            approve(childId, actorId, true);
+        }
         return new Packaging(id, proposal.itemId(), proposal.unit(), proposal.factor(), proposal.canSplit(),
                 proposal.version(), "APPROVED", proposal.blistersPerPack(), proposal.unitsPerBlister());
     }
 
     @Transactional
     public Packaging reject(UUID id, String reason, UUID actorId) {
+        return reject(id, reason, actorId, false);
+    }
+
+    private Packaging reject(UUID id, String reason, UUID actorId, boolean linkedDecision) {
+        if (!linkedDecision && hasParent(id)) {
+            throw new IllegalArgumentException("Review the parent packaging proposal instead");
+        }
         if (reason == null || reason.isBlank()) {
             throw new IllegalArgumentException("Enter a reason for rejecting the packaging proposal");
         }
@@ -301,6 +368,10 @@ public class MedicinePackagingService {
                 .addValue("reason", reason.trim()));
         audit.record(actorId, "PACKAGING_REJECT", "MEDICINE_PACKAGING", id, null);
         events.publish("MedicinePackagingRejected", java.util.Map.of("packagingId", id.toString()));
+        for (UUID childId : jdbc.query("SELECT id FROM medicine_packaging WHERE parent_proposal_id = :id AND status = 'PROPOSED'",
+                new MapSqlParameterSource("id", id), (rs, row) -> (UUID) rs.getObject("id"))) {
+            reject(childId, reason, actorId, true);
+        }
         return new Packaging(id, proposal.itemId(), proposal.unit(), proposal.factor(), proposal.canSplit(),
                 proposal.version(), "REJECTED", proposal.blistersPerPack(), proposal.unitsPerBlister());
     }
@@ -310,6 +381,12 @@ public class MedicinePackagingService {
                 rs.getString("packaging_unit"), rs.getInt("quantity_in_base_units"),
                 rs.getBoolean("can_split"), rs.getInt("version"), rs.getString("status"),
                 (Integer) rs.getObject("blisters_per_pack"), (Integer) rs.getObject("units_per_blister"));
+    }
+
+    private boolean hasParent(UUID id) {
+        Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM medicine_packaging WHERE id = :id AND parent_proposal_id IS NOT NULL",
+                new MapSqlParameterSource("id", id), Integer.class);
+        return count != null && count > 0;
     }
 
     private String normalize(String unit) {

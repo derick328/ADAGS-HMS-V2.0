@@ -5698,6 +5698,8 @@ export interface components {
             unitsPerBlister?: number;
             /** Format: uuid */
             replacesPackagingId?: string;
+            proposedForm?: string;
+            proposedBaseUnit?: string;
         };
         CreateLabStockRequestRequest: {
             /** Format: uuid */
@@ -7612,6 +7614,8 @@ export interface components {
             baseUnit?: string;
             reason?: string;
             proposedBy?: string;
+            proposedForm?: string;
+            proposedBaseUnit?: string;
         };
         CatalogueItem: {
             /** Format: uuid */
