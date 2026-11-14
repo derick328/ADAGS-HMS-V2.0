@@ -1485,67 +1485,6 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/PharmacyItemProposalResponse"
-  /api/medicine-routes/items/{itemId}:
-    get:
-      tags:
-      - medicine-route-controller
-      operationId: getMedicineRoutes
-      parameters:
-      - name: itemId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/MedicineRouteConfiguration"
-    post:
-      tags:
-      - medicine-route-controller
-      operationId: configureMedicineRoutes
-      parameters:
-      - name: itemId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ConfigureMedicineRoutesRequest"
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/MedicineRouteConfiguration"
-  /api/pharmacy-item-proposals/form-change:
-    post:
-      tags:
-      - pharmacy-item-proposal-controller
-      operationId: proposeFormChange
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ProposeFormChangeRequest"
-        required: true
-      responses:
-        "201":
-          description: Created
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/PharmacyItemProposalResponse"
   /api/pharmacy-item-proposals/price-change:
     post:
       tags:
@@ -1574,6 +1513,24 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/ProposeNewItemRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PharmacyItemProposalResponse"
+  /api/pharmacy-item-proposals/form-change:
+    post:
+      tags:
+      - pharmacy-item-proposal-controller
+      operationId: proposeFormChange
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposeFormChangeRequest"
         required: true
       responses:
         "201":
@@ -1753,6 +1710,49 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/WatchlistEntryResponse"
+  /api/medicine-routes/items/{itemId}:
+    get:
+      tags:
+      - medicine-route-controller
+      operationId: current_1
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RouteConfiguration"
+    post:
+      tags:
+      - medicine-route-controller
+      operationId: configure
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfigureRoutesRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RouteConfiguration"
   /api/medicine-packaging/{id}/reject:
     post:
       tags:
@@ -5912,7 +5912,7 @@ paths:
     get:
       tags:
       - cashier-shift-controller
-      operationId: current_1
+      operationId: current_2
       responses:
         "200":
           description: OK
@@ -8669,45 +8669,6 @@ components:
         createdItemId:
           type: string
           format: uuid
-    MedicineRouteConfiguration:
-      type: object
-      properties:
-        routes:
-          type: array
-          items:
-            type: string
-        concentration:
-          type: string
-    ConfigureMedicineRoutesRequest:
-      required:
-      - routes
-      - reason
-      type: object
-      properties:
-        routes:
-          type: array
-          items:
-            type: string
-        concentration:
-          type: string
-        reason:
-          type: string
-    ProposeFormChangeRequest:
-      required:
-      - itemId
-      - proposedForm
-      - justification
-      type: object
-      properties:
-        itemId:
-          type: string
-          format: uuid
-        proposedForm:
-          type: string
-        proposedUnit:
-          type: string
-        justification:
-          type: string
     ProposePriceChangeRequest:
       required:
       - itemId
@@ -8743,6 +8704,22 @@ components:
           minimum: 0
           type: integer
           format: int64
+        justification:
+          type: string
+    ProposeFormChangeRequest:
+      required:
+      - itemId
+      - justification
+      - proposedForm
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        proposedForm:
+          type: string
+        proposedUnit:
+          type: string
         justification:
           type: string
     PaymentLineAllocationRequest:
@@ -9070,6 +9047,29 @@ components:
         sourceDate:
           type: string
           format: date
+    ConfigureRoutesRequest:
+      required:
+      - reason
+      - routes
+      type: object
+      properties:
+        routes:
+          type: array
+          items:
+            type: string
+        concentration:
+          type: string
+        reason:
+          type: string
+    RouteConfiguration:
+      type: object
+      properties:
+        routes:
+          type: array
+          items:
+            type: string
+        concentration:
+          type: string
     RejectRequest:
       required:
       - reason

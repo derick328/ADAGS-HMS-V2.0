@@ -21,7 +21,7 @@ import static org.mockito.Mockito.*;
 class RedisSessionStoreTest {
 
     @Test
-    void refreshCannotExtendSessionBeyondThirtyMinutes() {
+    void refreshCannotExtendSessionBeyondFifteenMinutes() {
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         @SuppressWarnings("unchecked")
         ValueOperations<String, String> values = mock(ValueOperations.class);
@@ -37,17 +37,17 @@ class RedisSessionStoreTest {
         Instant started = Instant.parse("2026-01-01T00:00:00Z");
         UUID userId = UUID.randomUUID();
         IssuedSession login = storeAt(redis, started).issueSession(userId);
-        assertThat(login.refreshTokenExpiresAt()).isEqualTo(started.plus(Duration.ofMinutes(30)));
+        assertThat(login.refreshTokenExpiresAt()).isEqualTo(started.plus(Duration.ofMinutes(15)));
         assertThat(login.accessTokenExpiresAt()).isEqualTo(started.plus(Duration.ofMinutes(15)));
 
-        IssuedSession refreshed = storeAt(redis, started.plus(Duration.ofMinutes(24)))
+        IssuedSession refreshed = storeAt(redis, started.plus(Duration.ofMinutes(12)))
                 .rotateRefreshToken(login.refreshToken());
         assertThat(refreshed.refreshTokenExpiresAt()).isEqualTo(login.refreshTokenExpiresAt());
         assertThat(refreshed.accessTokenExpiresAt()).isEqualTo(login.refreshTokenExpiresAt());
-        assertThat(storeAt(redis, started.plus(Duration.ofMinutes(29)))
+        assertThat(storeAt(redis, started.plus(Duration.ofMinutes(14)))
                 .resolveAccessToken(refreshed.accessToken())).contains(userId);
 
-        RedisSessionStore expiredStore = storeAt(redis, started.plus(Duration.ofMinutes(30)));
+        RedisSessionStore expiredStore = storeAt(redis, started.plus(Duration.ofMinutes(15)));
         assertThat(expiredStore.resolveAccessToken(refreshed.accessToken())).isEmpty();
         assertThatThrownBy(() -> expiredStore.rotateRefreshToken(refreshed.refreshToken()))
                 .isInstanceOf(InvalidTokenException.class);
@@ -68,6 +68,6 @@ class RedisSessionStoreTest {
     }
 
     private RedisSessionStore storeAt(StringRedisTemplate redis, Instant now) {
-        return new RedisSessionStore(redis, Clock.fixed(now, ZoneOffset.UTC), 15, 30);
+        return new RedisSessionStore(redis, Clock.fixed(now, ZoneOffset.UTC), 15, 15);
     }
 }

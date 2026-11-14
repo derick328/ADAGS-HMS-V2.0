@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(id);
   }, [status, renewAccessToken]);
 
-  // The server caps the final access token at the session's 30-minute
+  // The server caps the final access token at the session's 15-minute
   // deadline. Check it at expiry so an idle open tab returns to login too.
   useEffect(() => {
     if (status !== 'authenticated' || !accessTokenExpiresAt) return;
