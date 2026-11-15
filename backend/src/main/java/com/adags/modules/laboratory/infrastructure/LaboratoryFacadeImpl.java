@@ -29,4 +29,8 @@ public class LaboratoryFacadeImpl implements LaboratoryFacade {
                     return labTestRepository.insert(draft).id();
                 });
     }
+    @Override
+    public void updateCatalogueName(String code, String name) {
+        labTestRepository.updateCatalogueName(code, name);
+    }
 }

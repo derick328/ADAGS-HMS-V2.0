@@ -50,7 +50,7 @@ describe('pharmacy medicine packaging', () => {
     fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Amox' } });
     fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Amoxicillin/ }));
     fireEvent.change(within(panel).getByLabelText('Dosage form'), { target: { value: 'TABLET' } });
-    for (const label of ['Tablets', 'Oral Tablets', 'Suspension', 'Oral Suspension']) {
+    for (const label of ['Tablet', 'Suspension', 'Oral Suspension']) {
       expect(within(panel).getByRole('option', { name: label })).toBeInTheDocument();
     }
     expect(within(panel).getByLabelText('Base inventory unit for selected form')).toHaveValue('TABLET');
@@ -72,7 +72,7 @@ describe('pharmacy medicine packaging', () => {
     const panel = screen.getByRole('tabpanel');
     fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Example' } });
     fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Example medicine/ }));
-    fireEvent.change(within(panel).getByLabelText('Dosage form'), { target: { value: 'ORAL_TABLETS' } });
+    fireEvent.change(within(panel).getByLabelText('Dosage form'), { target: { value: 'TABLET' } });
     expect(within(panel).getByLabelText('Base inventory unit for selected form')).toHaveValue('TABLET');
     expect(within(panel).getByLabelText('Package type')).toHaveValue('BLISTER_PACK');
     fireEvent.change(within(panel).getByLabelText('Dosage form'), { target: { value: 'ORAL_SUSPENSION' } });

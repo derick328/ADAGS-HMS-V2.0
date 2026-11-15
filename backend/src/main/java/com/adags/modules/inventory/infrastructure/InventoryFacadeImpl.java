@@ -232,4 +232,8 @@ public class InventoryFacadeImpl implements InventoryFacade {
         stockMovementRepository.insert(StockMovement.record(itemId, batchId, batch.storeId(), quantity,
                 MovementType.RETURN, "PROCEDURE_ITEM_RETURN", referenceId, actorUserId));
     }
+    @Override
+    public void updateCatalogueDetails(String code, String name, String classification, boolean classificationChanged) {
+        itemRepository.updateCatalogueDetails(code, name, classification, classificationChanged);
+    }
 }

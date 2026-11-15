@@ -6,6 +6,7 @@ import com.adags.modules.billing.application.CatalogItemLookupPort;
 import com.adags.modules.billing.application.CatalogItemQuery;
 import com.adags.modules.billing.application.CatalogPriceManagementService;
 import com.adags.modules.billing.application.CreateCatalogItemService;
+import com.adags.modules.billing.application.UpdateCatalogItemService;
 import com.adags.modules.billing.application.DeactivateAllCatalogItemsService;
 import com.adags.modules.billing.application.PreviewCatalogImportService;
 import com.adags.modules.billing.domain.CatalogBillingCategory;
@@ -60,6 +61,7 @@ public class CatalogImportController {
     private final CatalogPriceManagementService priceManagement;
     private final CatalogWorkbookExporter workbookExporter;
     private final CreateCatalogItemService createItemService;
+    private final UpdateCatalogItemService updateItemService;
 
     public CatalogImportController(
             PreviewCatalogImportService previewService,
@@ -70,7 +72,8 @@ public class CatalogImportController {
             AuthorizationService authorizationService,
             CatalogPriceManagementService priceManagement,
             CatalogWorkbookExporter workbookExporter,
-            CreateCatalogItemService createItemService
+            CreateCatalogItemService createItemService,
+            UpdateCatalogItemService updateItemService
     ) {
         this.previewService = previewService;
         this.applyService = applyService;
@@ -81,6 +84,7 @@ public class CatalogImportController {
         this.priceManagement = priceManagement;
         this.workbookExporter = workbookExporter;
         this.createItemService = createItemService;
+        this.updateItemService = updateItemService;
     }
 
     @PostMapping(path = "/import/preview", consumes = { "multipart/form-data" })
@@ -152,6 +156,16 @@ public class CatalogImportController {
         return createItemService.create(new CreateCatalogItemService.Command(
                 request.name(), request.type(), request.billingCategory(), request.classification(),
                 request.productCodePrefix(), request.priceMinor()), actor.userId());
+    }
+
+    @PutMapping("/items/{itemId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Update catalogue item details and optional CASH price", description = "Requires CATALOG_IMPORT. Previous values prevent stale edits. Item and product codes remain stable.")
+    public void updateItem(@PathVariable UUID itemId,
+            @RequestBody UpdateCatalogItemService.Command request, @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor);
+        updateItemService.update(itemId, request, actor.userId());
     }
 
     @PutMapping("/items/{itemId}/price")

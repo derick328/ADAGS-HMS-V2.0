@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { automaticSupply, baseUnitForForm, dosageForm, dosageFormLabel, isAutomaticForm, isLiquidOralForm } from './prescriptionQuantity';
+import { dosageForms, dosageFormLabels, automaticSupply, baseUnitForForm, dosageForm, dosageFormLabel, isAutomaticForm, isLiquidOralForm } from './prescriptionQuantity';
 
 describe('prescription supply policy', () => {
   it('calculates whole solid-dose supplies for regular schedules and STAT', () => {
@@ -25,14 +25,26 @@ describe('prescription supply policy', () => {
   });
 
   it('keeps tablet and suspension presentations distinct with the right supply policy', () => {
-    expect(dosageForm('Tablets')).toBe('TABLETS');
-    expect(dosageForm('Oral Tablets')).toBe('ORAL_TABLETS');
+    expect(dosageForm('Tablets')).toBe('TABLET');
+    expect(dosageForm('Oral Tablets')).toBe('TABLET');
     expect(dosageForm('Suspension')).toBe('SUSPENSION');
     expect(dosageForm('Oral Suspension')).toBe('ORAL_SUSPENSION');
-    expect(dosageFormLabel('ORAL_TABLETS')).toBe('Oral Tablets');
+    expect(dosageFormLabel('ORAL_TABLETS')).toBe('Tablet');
     expect(baseUnitForForm('ORAL_TABLETS')).toBe('TABLET');
     expect(isAutomaticForm('Oral Tablets')).toBe(true);
     expect(isLiquidOralForm('Oral Suspension')).toBe(true);
     expect(isAutomaticForm('Suspension')).toBe(false);
   });
+});
+
+it('recognizes every listed form and its display name without stripping meaningful endings', () => {
+  expect(dosageForms).toHaveLength(167);
+  expect(new Set(dosageForms).size).toBe(167);
+  for (const form of dosageForms) {
+    expect(dosageForm(form)).toBe(form);
+    expect(dosageForm(dosageFormLabels[form])).toBe(form);
+  }
+  expect(dosageForms).not.toContain('TABLETS');
+  expect(dosageForm('Inhalation Gas')).toBe('INHALATION_GAS');
+  expect(dosageForm('Oral Granules')).toBe('ORAL_GRANULES');
 });

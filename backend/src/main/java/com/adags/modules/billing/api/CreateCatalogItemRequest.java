@@ -9,5 +9,5 @@ public record CreateCatalogItemRequest(
         CatalogBillingCategory billingCategory,
         String classification,
         String productCodePrefix,
-        Long priceMinor
+        @io.swagger.v3.oas.annotations.media.Schema(nullable = true, minimum = "0") Long priceMinor
 ) {}

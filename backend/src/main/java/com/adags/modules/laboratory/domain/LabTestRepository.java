@@ -14,4 +14,5 @@ public interface LabTestRepository {
 
     /** 15-lab-technician.md §5.1: the catalogue the Result Entry form generates from, active tests only, name order. */
     List<LabTest> findAllActive();
+    void updateCatalogueName(String code, String name);
 }

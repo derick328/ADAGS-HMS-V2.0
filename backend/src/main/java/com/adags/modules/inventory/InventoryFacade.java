@@ -110,4 +110,5 @@ public interface InventoryFacade {
      * being accounted for).
      */
     void incrementForReturn(UUID itemId, UUID batchId, int quantity, UUID referenceId, UUID actorUserId);
+    void updateCatalogueDetails(String code, String name, String classification, boolean classificationChanged);
 }

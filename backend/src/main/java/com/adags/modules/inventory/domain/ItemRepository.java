@@ -30,4 +30,5 @@ public interface ItemRepository {
      * must appear as visible-and-unselectable, never silently absent.
      */
     List<Item> searchByName(String query, int limit);
+    void updateCatalogueDetails(String code, String name, String classification, boolean classificationChanged);
 }

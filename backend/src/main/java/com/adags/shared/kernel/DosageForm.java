@@ -4,19 +4,188 @@ import java.util.Locale;
 
 /** Supported medicine presentations and their supply-quantity policy. */
 public enum DosageForm {
-    CAPSULE, TABLET, TABLETS, ORAL_TABLETS, CAPLET, SYRUP, SUSPENSION, ORAL_SUSPENSION,
-    INJECTION, CREAM, GEL, LOTION, PASTE;
+    TABLET,
+    CAPSULE,
+    CAPLET,
+    CHEWABLE_TABLET,
+    DISPERSIBLE_TABLET,
+    SOLUBLE_TABLET,
+    EFFERVESCENT_TABLET,
+    ORALLY_DISINTEGRATING_TABLET_ODT,
+    SUBLINGUAL_TABLET,
+    BUCCAL_TABLET,
+    FILM_COATED_TABLET,
+    SUGAR_COATED_TABLET,
+    ENTERIC_COATED_TABLET,
+    EXTENDED_RELEASE_TABLET,
+    DELAYED_RELEASE_TABLET,
+    MODIFIED_RELEASE_TABLET,
+    MULTILAYER_TABLET,
+    HARD_CAPSULE,
+    SOFT_GELATIN_CAPSULE_SOFTGEL,
+    EXTENDED_RELEASE_CAPSULE,
+    DELAYED_RELEASE_CAPSULE,
+    LIQUID_FILLED_CAPSULE,
+    ORAL_POWDER,
+    ORAL_GRANULES,
+    EFFERVESCENT_GRANULES,
+    ORAL_PELLETS,
+    MEDICATED_CHEWING_GUM,
+    ORAL_FILM,
+    ORAL_WAFER,
+    ORAL_LYOPHILISATE,
+    SYRUP,
+    ORAL_SOLUTION,
+    ORAL_SUSPENSION,
+    ORAL_EMULSION,
+    ELIXIR,
+    ORAL_DROPS_SOLUTION,
+    ORAL_DROPS_SUSPENSION,
+    ORAL_DROPS_EMULSION,
+    ORAL_CONCENTRATE,
+    ORAL_LIQUID,
+    ORAL_GEL,
+    ORAL_PASTE,
+    POWDER_FOR_ORAL_SUSPENSION,
+    POWDER_FOR_ORAL_SOLUTION,
+    GRANULES_FOR_ORAL_SUSPENSION,
+    GRANULES_FOR_ORAL_SOLUTION,
+    POWDER_FOR_SYRUP,
+    GRANULES_FOR_SYRUP,
+    SOLUTION_FOR_INJECTION,
+    SUSPENSION_FOR_INJECTION,
+    EMULSION_FOR_INJECTION,
+    POWDER_FOR_SOLUTION_FOR_INJECTION,
+    POWDER_FOR_SUSPENSION_FOR_INJECTION,
+    LYOPHILIZED_POWDER_FOR_INJECTION,
+    CONCENTRATE_FOR_SOLUTION_FOR_INJECTION,
+    LIPOSOMAL_INJECTION,
+    EXTENDED_RELEASE_INJECTION,
+    INJECTABLE_FOAM,
+    SOLUTION_FOR_INFUSION,
+    CONCENTRATE_FOR_SOLUTION_FOR_INFUSION,
+    EMULSION_FOR_INFUSION,
+    POWDER_FOR_SOLUTION_FOR_INFUSION,
+    POWDER_AND_SOLVENT_FOR_SOLUTION_FOR_INJECTION,
+    POWDER_AND_SOLVENT_FOR_SOLUTION_FOR_INFUSION,
+    CREAM,
+    OINTMENT,
+    GEL,
+    LOTION,
+    PASTE,
+    TOPICAL_SOLUTION,
+    TOPICAL_SUSPENSION,
+    TOPICAL_EMULSION,
+    TOPICAL_POWDER,
+    TOPICAL_SPRAY,
+    TOPICAL_FOAM,
+    LINIMENT,
+    MEDICATED_SHAMPOO,
+    MEDICATED_SOAP,
+    MEDICATED_PLASTER,
+    MEDICATED_DRESSING,
+    MEDICATED_POULTICE,
+    TOPICAL_OIL,
+    TOPICAL_FILM,
+    TOPICAL_TINCTURE,
+    EYE_DROPS_SOLUTION,
+    EYE_DROPS_SUSPENSION,
+    EYE_DROPS_EMULSION,
+    EYE_OINTMENT,
+    EYE_GEL,
+    OPHTHALMIC_INSERT,
+    OPHTHALMIC_IRRIGATION_SOLUTION,
+    DRUG_ELUTING_CONTACT_LENS,
+    EAR_DROPS_SOLUTION,
+    EAR_DROPS_SUSPENSION,
+    EAR_DROPS_EMULSION,
+    EAR_SPRAY,
+    EAR_POWDER,
+    EAR_OINTMENT,
+    NASAL_DROPS,
+    NASAL_SPRAY,
+    NASAL_SOLUTION,
+    NASAL_SUSPENSION,
+    NASAL_GEL,
+    NASAL_POWDER,
+    NASAL_OINTMENT,
+    NASAL_WASH,
+    INHALATION_SOLUTION,
+    INHALATION_SUSPENSION,
+    INHALATION_POWDER,
+    INHALATION_AEROSOL,
+    METERED_DOSE_INHALATION_AEROSOL,
+    DRY_POWDER_FOR_INHALATION,
+    NEBULIZER_SOLUTION,
+    NEBULIZER_SUSPENSION,
+    INHALATION_GAS,
+    RECTAL_SUPPOSITORY,
+    RECTAL_CREAM,
+    RECTAL_OINTMENT,
+    RECTAL_GEL,
+    RECTAL_SOLUTION,
+    RECTAL_SUSPENSION,
+    RECTAL_FOAM,
+    ENEMA,
+    VAGINAL_TABLET,
+    VAGINAL_CAPSULE,
+    VAGINAL_PESSARY,
+    VAGINAL_CREAM,
+    VAGINAL_GEL,
+    VAGINAL_OINTMENT,
+    VAGINAL_SOLUTION,
+    VAGINAL_FOAM,
+    VAGINAL_INSERT,
+    VAGINAL_RING,
+    MOUTHWASH,
+    GARGLE,
+    LOZENGE,
+    TROCHE,
+    BUCCAL_FILM,
+    BUCCAL_SPRAY,
+    SUBLINGUAL_SPRAY,
+    OROMUCOSAL_SOLUTION,
+    OROMUCOSAL_GEL,
+    DENTAL_GEL,
+    DENTAL_PASTE,
+    DENTAL_SOLUTION,
+    TRANSDERMAL_PATCH,
+    EXTENDED_RELEASE_PATCH,
+    MEDICATED_PATCH,
+    SUBCUTANEOUS_IMPLANT,
+    IMPLANTABLE_PELLET,
+    IMPLANTABLE_ROD,
+    MEDICATED_IMPLANT,
+    INTRAUTERINE_DRUG_DELIVERY_SYSTEM,
+    IRRIGATION_SOLUTION,
+    URETHRAL_GEL,
+    URETHRAL_INSERT,
+    MEDICATED_SPONGE,
+    MEDICATED_SWAB,
+    MEDICATED_CLOTH,
+    MEDICATED_STRIP,
+    MEDICATED_TAPE,
+    MEDICAL_GAS,
+    MEDICATED_BEADS,
+    MEDICATED_DISC,
+    MEDICATED_STICK,
+    SUSPENSION,
+    INJECTION;
 
     public static DosageForm fromCatalogue(String value) {
         if (value == null) return null;
-        String normalized = value.trim().toUpperCase(Locale.ROOT).replace(' ', '_');
-        if (normalized.endsWith("S") && !normalized.equals("TABLETS") && !normalized.equals("ORAL_TABLETS")) {
-            normalized = normalized.substring(0, normalized.length() - 1);
-        }
+        String normalized = value.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", "_")
+                .replaceAll("^_|_$", "");
+        if (normalized.equals("TABLETS") || normalized.equals("ORAL_TABLETS")) return TABLET;
         try {
             return valueOf(normalized);
         } catch (IllegalArgumentException unknown) {
-            return null; // Existing, unrecognized presentations retain their legacy workflow.
+            // Only try legacy plurals after exact matching (e.g. GAS and GRANULES).
+            if (normalized.endsWith("S")) {
+                try { return valueOf(normalized.substring(0, normalized.length() - 1)); }
+                catch (IllegalArgumentException ignored) { return null; }
+            }
+            return null;
         }
     }
 
@@ -27,10 +196,10 @@ public enum DosageForm {
     }
 
     public boolean automaticQuantity() {
-        return this == CAPSULE || this == TABLET || this == TABLETS || this == ORAL_TABLETS || this == CAPLET;
+        return this == CAPSULE || this == TABLET || this == CAPLET;
     }
 
     public String baseUnit() {
-        return this == TABLETS || this == ORAL_TABLETS ? TABLET.name() : name();
+        return name();
     }
 }

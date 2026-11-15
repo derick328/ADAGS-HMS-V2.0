@@ -65,7 +65,7 @@ export function MedicationSettings({ catalogueItem, onClose }: { catalogueItem: 
   return <section className="stock-in-card" aria-label="Medication settings" style={{ marginTop: 'var(--space-4)' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}><h3>{catalogueItem.name} · medication settings</h3>
       <button type="button" className="btn btn-secondary" onClick={onClose}>Close</button></div>
-    <p>Catalogue code: {catalogueItem.code} · Current CASH selling price: {catalogueItem.currentCashPriceMinor == null ? 'Unpriced' : formatMoney(catalogueItem.currentCashPriceMinor, 'TZS')}. Use Edit Price in the catalogue row to change what patients are charged.</p>
+    <p>Catalogue code: {catalogueItem.code} · Current CASH selling price: {catalogueItem.currentCashPriceMinor == null ? 'Unpriced' : formatMoney(catalogueItem.currentCashPriceMinor, 'TZS')}. Use Edit in the catalogue row to change what patients are charged.</p>
     {sellingHistory?.[0] && <p>Last selling price update: {formatDateTime(sellingHistory[0].changedAt)} by {sellingHistory[0].changedBy}. Full selling price history is available from the catalogue row.</p>}
     {isLoading && <FeedbackState loading>Loading medicine…</FeedbackState>}
     {isError && <p role="alert" className="form-error">Could not load the medicine catalogue.</p>}

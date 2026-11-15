@@ -161,4 +161,8 @@ public class JdbcItemRepository implements ItemRepository {
                 (UUID) rs.getObject("created_by"),
                 rs.getTimestamp("created_at").toInstant());
     }
+    @Override
+    public void updateCatalogueDetails(String code, String name, String classification, boolean classificationChanged) {
+        jdbcTemplate.update("UPDATE item SET name = COALESCE(:name, name), classification = CASE WHEN :classificationChanged THEN :classification ELSE classification END WHERE code = :code", new MapSqlParameterSource("code", code).addValue("name", name).addValue("classificationChanged", classificationChanged).addValue("classification", classification == null || classification.isBlank() ? "General" : classification.trim()));
+    }
 }

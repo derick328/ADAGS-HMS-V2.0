@@ -1,3 +1,4 @@
+import { Modal } from '../../shared/components/Modal';
 import { Checkbox } from '../../shared/components/Checkbox';
 import { FeedbackState } from '../../shared/components/FeedbackState';
 import { TableRegion } from '../../shared/components/TableRegion';
@@ -12,7 +13,8 @@ import {
   listCatalogImports,
   previewCatalogImport,
   searchCatalogItems,
-  updateCatalogPrice,
+  updateCatalogItem,
+  type CatalogItemDetails,
   fetchCatalogPriceHistory,
   downloadCatalog,
   createCatalogItem,
@@ -570,6 +572,7 @@ function CatalogueItemsBrowser() {
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<CatalogItem | null>(null);
   const [newPrice, setNewPrice] = useState('');
+  const [editDetails, setEditDetails] = useState<CatalogItemDetails | null>(null);
   const [priceError, setPriceError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
@@ -584,26 +587,34 @@ function CatalogueItemsBrowser() {
   const [createError, setCreateError] = useState<string | null>(null);
   const pageSize = 50;
 
-  const savePrice = useMutation({
-    mutationFn: ({ item, amount }: { item: CatalogItem; amount: number }) =>
-      updateCatalogPrice(item.id, item.currentCashPriceMinor as number, amount, accessToken as string),
+  const saveChanges = useMutation({
+    mutationFn: ({ item, details }: { item: CatalogItem; details: CatalogItemDetails }) =>
+      updateCatalogItem(item.id, { name: item.name, type: item.type ?? null,
+        billingCategory: item.billingCategory ?? null, classification: item.classification ?? null,
+        isActive: item.isActive, priceMinor: item.currentCashPriceMinor ?? null }, details, accessToken as string),
     onSuccess: () => {
-      setEditing(null); setPriceError(null); setSuccess('Catalogue price saved.');
+      setEditing(null); setPriceError(null); setSuccess('Catalogue item saved.');
       void queryClient.invalidateQueries({ queryKey: ['catalog-items'] });
       void queryClient.invalidateQueries({ queryKey: ['price-catalog'] });
+      void queryClient.invalidateQueries({ queryKey: ['catalog-price-history'] });
+      void queryClient.invalidateQueries({ queryKey: ['items'] });
+      void queryClient.invalidateQueries({ queryKey: ['medicine-packaging', 'catalogue'] });
     },
-    onError: (error) => setPriceError(error instanceof ApiError ? error.message : 'Could not save price.'),
+    onError: (error) => setPriceError(error instanceof ApiError ? error.message : 'Could not save item.'),
   });
   const saveItem = useMutation({
     mutationFn: () => createCatalogItem({ name: createName.trim(), type: createType,
       billingCategory: createCategory, classification: createClassification.trim(),
-      productCodePrefix: createPrefix.trim(), priceMinor: Number(createPrice) }, accessToken as string),
+      productCodePrefix: createPrefix.trim(), priceMinor: createPrice.trim() === '' ? null : Number(createPrice) }, accessToken as string),
     onSuccess: (created) => {
       setShowCreate(false); setCreateName(''); setCreatePrice(''); setCreateClassification(''); setCreateError(null);
       setSuccess(`Item ${created.itemCode} created with product code ${created.productCode}.`);
       setPage(0); setSubmittedQ(''); setQ('');
       void queryClient.invalidateQueries({ queryKey: ['catalog-items'] });
       void queryClient.invalidateQueries({ queryKey: ['price-catalog'] });
+      void queryClient.invalidateQueries({ queryKey: ['catalog-price-history'] });
+      void queryClient.invalidateQueries({ queryKey: ['items'] });
+      void queryClient.invalidateQueries({ queryKey: ['medicine-packaging', 'catalogue'] });
     },
     onError: (error) => setCreateError(error instanceof ApiError ? error.message : 'Could not create item.'),
   });
@@ -657,7 +668,11 @@ function CatalogueItemsBrowser() {
       {success && <p role="status" className="badge badge-success">{success}</p>}
       {priceError && !editing && <p role="alert" className="form-error">{priceError}</p>}
 
-      {showCreate && <form onSubmit={(event) => { event.preventDefault(); setCreateError(null); saveItem.mutate(); }}
+      {showCreate && <form onSubmit={(event) => { event.preventDefault(); setCreateError(null);
+        if (createPrice.trim() !== '' && (!/^(0|[1-9]\d*)$/.test(createPrice) || !Number.isSafeInteger(Number(createPrice)))) {
+          setCreateError('Enter a nonnegative whole TZS amount or leave the price blank.'); return;
+        }
+        saveItem.mutate(); }}
         style={{ display: 'grid', gap: 'var(--space-3)', maxWidth: 560, marginTop: 'var(--space-4)' }}>
         <h3 style={{ margin: 0 }}>New catalogue item</h3>
         <p style={{ margin: 0 }}>Item code and product code are assigned when you save.</p>
@@ -687,10 +702,10 @@ function CatalogueItemsBrowser() {
           <input className="clinical-control" value={createPrefix} readOnly />}</label>
         <label>Classification (optional) <input className="clinical-control" value={createClassification}
           onChange={(event) => setCreateClassification(event.target.value)} /></label>
-        <label>CASH price (TZS) <input className="clinical-control" type="number" min="0" step="1" required value={createPrice}
+        <label>CASH price (TZS, optional) <input className="clinical-control" type="number" min="0" step="1" value={createPrice}
           onChange={(event) => setCreatePrice(event.target.value)} /></label>
         {createError && <p role="alert" className="form-error">{createError}</p>}
-        <div><button type="submit" className="btn btn-primary" disabled={saveItem.isPending || !createName.trim() || createPrice === ''}>Create item</button>{' '}
+        <div><button type="submit" className="btn btn-primary" disabled={saveItem.isPending || !createName.trim()}>Create item</button>{' '}
           <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button></div>
       </form>}
 
@@ -795,9 +810,11 @@ function CatalogueItemsBrowser() {
                     </span>
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>
-                    {item.isActive && item.currentCashPriceMinor != null && <button type="button" className="btn btn-secondary" onClick={() => {
-                      setEditing(item); setNewPrice(String(item.currentCashPriceMinor)); setPriceError(null);
-                    }}>Edit Price</button>}{' '}
+                    <button type="button" className="btn btn-secondary" onClick={() => {
+                      setEditing(item); setNewPrice(item.currentCashPriceMinor == null ? '' : String(item.currentCashPriceMinor)); setPriceError(null);
+                      setEditDetails({ name: item.name, type: item.type ?? null, billingCategory: item.billingCategory ?? null,
+                        classification: item.classification ?? null, isActive: item.isActive, priceMinor: item.currentCashPriceMinor ?? null });
+                    }}>Edit</button>{' '}
                     <button type="button" className="btn btn-ghost" onClick={() => setHistoryId(item.id)}>History</button>
                     {(item.type === 'PHARMACY' || item.billingCategory === 'MEDICINES_AND_CONSUMABLES') &&
                       <button type="button" className="btn btn-secondary" onClick={() => setMedicationSettings(item)}>Packaging & costs</button>}
@@ -840,25 +857,50 @@ function CatalogueItemsBrowser() {
           <MedicationSettings catalogueItem={medicationSettings} onClose={() => setMedicationSettings(null)} />
         </div>
       </div>}
-      {editing && <div role="dialog" aria-modal="true" aria-label="Edit catalogue price" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'grid', placeItems: 'center', zIndex: 1000, padding: 'var(--space-3)' }}>
+      {editing && editDetails && <Modal open title="Edit catalogue item" onClose={() => setEditing(null)}>
         <form onSubmit={(event) => {
           event.preventDefault();
-          if (!/^(0|[1-9]\d*)$/.test(newPrice) || !Number.isSafeInteger(Number(newPrice))) {
+          if (newPrice.trim() !== '' && (!/^(0|[1-9]\d*)$/.test(newPrice) || !Number.isSafeInteger(Number(newPrice)))) {
             setPriceError('Enter a nonnegative whole TZS amount.'); return;
           }
-          savePrice.mutate({ item: editing, amount: Number(newPrice) });
-        }} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', width: 'min(100%, 440px)' }}>
-          <h2>Edit Price</h2>
-          <p><strong>Code:</strong> {editing.code}<br /><strong>Service:</strong> {editing.name}<br /><strong>Current price:</strong> {formatMoney(editing.currentCashPriceMinor, 'TZS')}</p>
-          <label htmlFor="new-catalog-price">New price (TZS)</label>
+          if (!editDetails.name.trim() || !editDetails.type || !editDetails.billingCategory) {
+            setPriceError('Enter a name, type and billing category.'); return;
+          }
+          saveChanges.mutate({ item: editing, details: { ...editDetails, name: editDetails.name.trim(),
+            priceMinor: newPrice.trim() === '' ? null : Number(newPrice) } });
+        }} style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', width: 'min(100%, 560px)', maxHeight: '90vh', overflowY: 'auto', display: 'grid', gap: 'var(--space-2)' }}>
+          <p>Item code: {editing.itemCode ?? '—'} · Product code: {editing.code}</p>
+          <label>Product name <input className="clinical-control" required maxLength={255} value={editDetails.name}
+            onChange={event => setEditDetails({ ...editDetails, name: event.target.value })} /></label>
+          <label>Type <select className="clinical-control" required value={editDetails.type ?? ''}
+            onChange={event => setEditDetails({ ...editDetails, type: event.target.value })}>
+            <option value="">Select type</option>
+            {['LABORATORY', 'SURGERY', 'PHARMACY', 'PROCEDURE', 'RADIOLOGY', 'OPTICAL', 'DIALYSIS', 'OTHERS', 'OTHER_GENERAL_CHARGES'].map(option =>
+              <option key={option} value={option}>{option.replaceAll('_', ' ').toLowerCase()}</option>)}
+          </select></label>
+          <label>Billing category <select className="clinical-control" required value={editDetails.billingCategory ?? ''}
+            onChange={event => setEditDetails({ ...editDetails, billingCategory: event.target.value })}>
+            <option value="">Select billing category</option>
+            {['SURGICAL_CHARGES', 'MEDICINES_AND_CONSUMABLES', 'DIAGNOSTIC_EXAMINATIONS', 'PROCEDURAL_CHARGES',
+              'INPATIENT_CHARGES', 'REGISTRATION_CONSULTATION_CHARGES', 'OTHER_CHARGES', 'ADVANCE_PAYMENT'].map(option =>
+              <option key={option} value={option}>{option.replaceAll('_', ' ').toLowerCase()}</option>)}
+          </select></label>
+          <label>Classification (optional) <input className="clinical-control" value={editDetails.classification ?? ''}
+            onChange={event => setEditDetails({ ...editDetails, classification: event.target.value })} /></label>
+          <label>Status <select className="clinical-control" value={editDetails.isActive ? 'active' : 'inactive'}
+            onChange={event => setEditDetails({ ...editDetails, isActive: event.target.value === 'active' })}>
+            <option value="active">Active</option><option value="inactive">Inactive</option>
+          </select></label>
+          <label htmlFor="new-catalog-price">CASH price (TZS, optional)</label>
           <input id="new-catalog-price" className="clinical-control" inputMode="numeric" value={newPrice} onChange={(event) => setNewPrice(event.target.value)} style={{ display: 'block', width: '100%' }} />
+          <p>Leave the price blank to keep this item unpriced.</p>
           {priceError && <p role="alert" className="form-error">{priceError}</p>}
           <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
-            <button className="btn btn-primary" disabled={savePrice.isPending}>Save</button>
+            <button className="btn btn-primary" disabled={saveChanges.isPending}>Save</button>
             <button type="button" className="btn btn-secondary" onClick={() => setEditing(null)}>Cancel</button>
           </div>
         </form>
-      </div>}
+      </Modal>}
       {historyId && <div role="dialog" aria-modal="true" aria-label="Price history" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'grid', placeItems: 'center', zIndex: 1000, padding: 'var(--space-3)' }}>
         <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', maxHeight: '80vh', overflow: 'auto', width: 'min(100%, 640px)' }}>
           <h2>Price history</h2>

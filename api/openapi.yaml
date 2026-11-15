@@ -3835,6 +3835,39 @@ paths:
                 $ref: "#/components/schemas/CreatedItem"
       security:
       - bearerAuth: []
+  /api/admin/catalog/items/{itemId}:
+    put:
+      tags:
+      - catalog-import-controller
+      summary: Update catalogue item details and optional CASH price
+      description: Requires CATALOG_IMPORT. Previous values prevent stale edits. Item and product codes remain stable.
+      operationId: updateItem
+      parameters:
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCatalogItemRequest'
+      responses:
+        '204':
+          description: Catalogue item saved
+        '400':
+          description: Invalid item details
+        '403':
+          description: Insufficient permission
+        '404':
+          description: Item not found
+        '409':
+          description: Item changed since it was opened
+      security:
+      - bearerAuth: []
   /api/admin/catalog/items/deactivate-all:
     post:
       tags:
@@ -11533,8 +11566,43 @@ components:
         productCodePrefix:
           type: string
         priceMinor:
+          nullable: true
+          minimum: 0
           type: integer
           format: int64
+    UpdateCatalogItemRequest:
+      type: object
+      required: [expected, details]
+      properties:
+        expected:
+          $ref: '#/components/schemas/CatalogItemDetails'
+        details:
+          $ref: '#/components/schemas/CatalogItemDetails'
+    CatalogItemDetails:
+      type: object
+      required: [name, isActive]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        type:
+          type: string
+          nullable: true
+          enum: [PHARMACY, PROCEDURE, SURGERY, LABORATORY, RADIOLOGY, OPTICAL, DIALYSIS, OTHERS, OTHER_GENERAL_CHARGES]
+        billingCategory:
+          type: string
+          nullable: true
+          enum: [SURGICAL_CHARGES, MEDICINES_AND_CONSUMABLES, DIAGNOSTIC_EXAMINATIONS, PROCEDURAL_CHARGES, INPATIENT_CHARGES, REGISTRATION_CONSULTATION_CHARGES, OTHER_CHARGES, ADVANCE_PAYMENT]
+        classification:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        priceMinor:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0
     CreatedItem:
       type: object
       properties:

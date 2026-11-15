@@ -40,8 +40,8 @@ public class CreateCatalogItemService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name is required (maximum 255 characters)");
         if (request.type() == null || request.billingCategory() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Type and category are required");
-        if (request.priceMinor() == null || request.priceMinor() < 0)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A nonnegative CASH price is required");
+        if (request.priceMinor() != null && request.priceMinor() < 0)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CASH price must be nonnegative");
         String prefix = normalizePrefix(request.type(), request.productCodePrefix());
         // Lock per prefix so simultaneous admin submissions cannot choose the
         // same suffix. The unique service_item.code constraint is the final guard.
@@ -68,11 +68,13 @@ public class CreateCatalogItemService {
                 .addValue("type", request.type().name()).addValue("billingCategory", request.billingCategory().name())
                 .addValue("classification", request.classification() == null || request.classification().isBlank()
                         ? null : request.classification().trim()), UUID.class);
-        int priceRows = jdbc.update("""
-                INSERT INTO price_list_entry (price_list_id, service_item_id, amount_minor, currency_code, valid_from, created_by)
-                SELECT id, :itemId, :price, 'TZS', CURRENT_DATE, :actor FROM price_list WHERE payer_category = 'CASH'
-                """, new MapSqlParameterSource().addValue("itemId", id).addValue("price", request.priceMinor()).addValue("actor", actorId));
-        if (priceRows != 1) throw new IllegalStateException("CASH price list is missing");
+        if (request.priceMinor() != null) {
+            int priceRows = jdbc.update("""
+                    INSERT INTO price_list_entry (price_list_id, service_item_id, amount_minor, currency_code, valid_from, created_by)
+                    SELECT id, :itemId, :price, 'TZS', CURRENT_DATE, :actor FROM price_list WHERE payer_category = 'CASH'
+                    """, new MapSqlParameterSource().addValue("itemId", id).addValue("price", request.priceMinor()).addValue("actor", actorId));
+            if (priceRows != 1) throw new IllegalStateException("CASH price list is missing");
+        }
         if (request.type() == CatalogItemType.PHARMACY)
             inventory.ensureCatalogueItem(code, request.name().trim(), request.classification(), actorId);
         if (request.type() == CatalogItemType.LABORATORY)

@@ -19,4 +19,5 @@ public interface LaboratoryFacade {
      * of the same catalogue file never duplicates.
      */
     UUID ensureCatalogueTest(String code, String name);
+    void updateCatalogueName(String code, String name);
 }

@@ -72,11 +72,26 @@ export interface CreateCatalogItemInput {
   billingCategory: string;
   classification?: string;
   productCodePrefix: string;
-  priceMinor: number;
+  priceMinor?: number | null;
 }
 
 export function createCatalogItem(input: CreateCatalogItemInput, accessToken: string): Promise<{ id: string; itemCode: number; productCode: string }> {
   return authFetch('/api/admin/catalog/items', accessToken, { method: 'POST', body: JSON.stringify(input) });
+}
+
+export interface CatalogItemDetails {
+  name: string;
+  type: string | null;
+  billingCategory: string | null;
+  classification: string | null;
+  isActive: boolean;
+  priceMinor: number | null;
+}
+
+export function updateCatalogItem(itemId: string, expected: CatalogItemDetails, details: CatalogItemDetails, accessToken: string): Promise<void> {
+  return authFetchVoid(`/api/admin/catalog/items/${itemId}`, accessToken, {
+    method: 'PUT', body: JSON.stringify({ expected, details }),
+  });
 }
 
 export interface CatalogPriceChange {

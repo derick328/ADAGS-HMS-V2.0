@@ -86,4 +86,8 @@ public class JdbcLabTestRepository implements LabTestRepository {
                 rs.getBoolean("is_active"),
                 rs.getTimestamp("created_at").toInstant());
     }
+    @Override
+    public void updateCatalogueName(String code, String name) {
+        jdbcTemplate.update("UPDATE lab_test SET name = :name WHERE code = :code", new MapSqlParameterSource("code", code).addValue("name", name));
+    }
 }
