@@ -116,6 +116,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/catalog/items/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update catalogue item details and optional CASH price
+         * @description Requires CATALOG_IMPORT. Previous values prevent stale edits. Item and product codes remain stable.
+         */
+        put: operations["updateItem"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/items/{itemId}/price": {
         parameters: {
             query?: never;
@@ -2250,26 +2270,6 @@ export interface paths {
          * @description Requires CATALOG_IMPORT.
          */
         post: operations["createItem"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/catalog/items/{itemId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Update catalogue item details and optional CASH price
-         * @description Requires CATALOG_IMPORT. Previous values prevent stale edits. Item and product codes remain stable.
-         */
-        put: operations["updateItem"];
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4681,6 +4681,21 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        CatalogItemDetails: {
+            name?: string;
+            /** @enum {string} */
+            type?: "PHARMACY" | "PROCEDURE" | "SURGERY" | "LABORATORY" | "RADIOLOGY" | "OPTICAL" | "DIALYSIS" | "OTHERS" | "OTHER_GENERAL_CHARGES";
+            /** @enum {string} */
+            billingCategory?: "SURGICAL_CHARGES" | "MEDICINES_AND_CONSUMABLES" | "DIAGNOSTIC_EXAMINATIONS" | "PROCEDURAL_CHARGES" | "INPATIENT_CHARGES" | "REGISTRATION_CONSULTATION_CHARGES" | "OTHER_CHARGES" | "ADVANCE_PAYMENT";
+            classification?: string;
+            isActive?: boolean;
+            /** Format: int64 */
+            priceMinor?: number | null;
+        };
+        UpdateCatalogItemRequest: {
+            expected?: components["schemas"]["CatalogItemDetails"];
+            details?: components["schemas"]["CatalogItemDetails"];
+        };
         UpdateCatalogPriceRequest: {
             /** Format: int64 */
             expectedPriceMinor: number;
@@ -6894,21 +6909,6 @@ export interface components {
             /** Format: int64 */
             priceMinor?: number | null;
         };
-        UpdateCatalogItemRequest: {
-            expected: components["schemas"]["CatalogItemDetails"];
-            details: components["schemas"]["CatalogItemDetails"];
-        };
-        CatalogItemDetails: {
-            name: string;
-            /** @enum {string|null} */
-            type?: "PHARMACY" | "PROCEDURE" | "SURGERY" | "LABORATORY" | "RADIOLOGY" | "OPTICAL" | "DIALYSIS" | "OTHERS" | "OTHER_GENERAL_CHARGES" | null;
-            /** @enum {string|null} */
-            billingCategory?: "SURGICAL_CHARGES" | "MEDICINES_AND_CONSUMABLES" | "DIAGNOSTIC_EXAMINATIONS" | "PROCEDURAL_CHARGES" | "INPATIENT_CHARGES" | "REGISTRATION_CONSULTATION_CHARGES" | "OTHER_CHARGES" | "ADVANCE_PAYMENT" | null;
-            classification?: string | null;
-            isActive: boolean;
-            /** Format: int64 */
-            priceMinor?: number | null;
-        };
         CreatedItem: {
             /** Format: uuid */
             id?: string;
@@ -8713,6 +8713,30 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["ConsultationRecordResponse"];
                 };
+            };
+        };
+    };
+    updateItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCatalogItemRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -12661,58 +12685,6 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["CreatedItem"];
                 };
-            };
-        };
-    };
-    updateItem: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                itemId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateCatalogItemRequest"];
-            };
-        };
-        responses: {
-            /** @description Catalogue item saved */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Invalid item details */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Insufficient permission */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Item not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Item changed since it was opened */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
