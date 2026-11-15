@@ -20,7 +20,7 @@ public record ChargePostingCommand(
         PayerCategory payerCategory,
         UUID insurancePolicyId,
         String serviceItemCode,
-        int quantity,
+        double quantity,
         String sourceEventType,
         UUID sourceEventId,
         UUID actorUserId

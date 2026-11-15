@@ -208,8 +208,8 @@ public class PrescriptionController {
 
     public record PrescriptionHistoryResponse(
             UUID prescriptionLineId, UUID prescriptionOrderId, UUID encounterId, UUID patientId,
-            String itemCode, String itemName, int quantityPrescribed,
-            UUID prescribedBy, java.time.Instant prescribedAt, String status, Double doseAmount, String doseUnit, String route, com.adags.modules.pharmacy.domain.PrescriptionFrequency frequency, Integer durationDays, int quantityDispensed, String dosageInstructions
+            String itemCode, String itemName, double quantityPrescribed,
+            UUID prescribedBy, java.time.Instant prescribedAt, String status, Double doseAmount, String doseUnit, String route, com.adags.modules.pharmacy.domain.PrescriptionFrequency frequency, Integer durationDays, double quantityDispensed, String dosageInstructions
     ) {
     }
 }

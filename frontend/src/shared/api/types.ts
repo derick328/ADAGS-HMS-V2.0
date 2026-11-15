@@ -5052,11 +5052,11 @@ export interface components {
             prescriptionOrderId?: string;
             /** Format: uuid */
             itemId?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantityPrescribed?: number;
-            /** Format: int32 */
+            /** Format: double */
             quantityDispensed?: number;
-            /** Format: int32 */
+            /** Format: double */
             remaining?: number;
             dosageInstructions?: string;
             /** @enum {string} */
@@ -5142,7 +5142,7 @@ export interface components {
             itemName?: string;
             baseUnit?: string;
             purchaseUnit?: string;
-            /** Format: int32 */
+            /** Format: double */
             factor?: number;
             /** Format: int32 */
             blistersPerPack?: number;
@@ -5156,9 +5156,9 @@ export interface components {
             rejectedQuantity?: number;
             /** Format: int32 */
             missingQuantity?: number;
-            /** Format: int32 */
+            /** Format: double */
             acceptedBaseQuantity?: number;
-            /** Format: int32 */
+            /** Format: double */
             rejectedBaseQuantity?: number;
             /** Format: int64 */
             receivedCostMinor?: number;
@@ -5212,7 +5212,7 @@ export interface components {
             batchNumber: string;
             /** Format: date */
             expiryDate: string;
-            /** Format: int32 */
+            /** Format: double */
             quantity?: number;
             /** Format: int64 */
             unitCostAmountMinor?: number;
@@ -5245,7 +5245,7 @@ export interface components {
             /** Format: uuid */
             batchId: string;
             type: string;
-            /** Format: int32 */
+            /** Format: double */
             quantityDelta?: number;
             reason: string;
             idempotencyKey: string;
@@ -5260,7 +5260,7 @@ export interface components {
             /** Format: uuid */
             storeId?: string;
             type?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantityDelta?: number;
             reason?: string;
             status?: string;
@@ -5400,7 +5400,7 @@ export interface components {
             itemId: string;
             /** @enum {string} */
             phase: "PRE_OP" | "INTRA_OP" | "POST_OP";
-            /** Format: int32 */
+            /** Format: double */
             quantityPrepared?: number;
             /** Format: uuid */
             batchId?: string;
@@ -5414,13 +5414,13 @@ export interface components {
             itemId?: string;
             /** @enum {string} */
             phase?: "PRE_OP" | "INTRA_OP" | "POST_OP";
-            /** Format: int32 */
+            /** Format: double */
             quantityPrepared?: number;
-            /** Format: int32 */
+            /** Format: double */
             quantityUsed?: number;
-            /** Format: int32 */
+            /** Format: double */
             quantityReturned?: number;
-            /** Format: int32 */
+            /** Format: double */
             quantityWasted?: number;
             wastageReason?: string;
             /** Format: uuid */
@@ -5441,11 +5441,11 @@ export interface components {
             deferred?: boolean;
         };
         ReconcileProcedureItemRequest: {
-            /** Format: int32 */
+            /** Format: double */
             quantityUsed?: number;
-            /** Format: int32 */
+            /** Format: double */
             quantityReturned?: number;
-            /** Format: int32 */
+            /** Format: double */
             quantityWasted?: number;
             wastageReason?: string;
         };
@@ -5454,7 +5454,7 @@ export interface components {
             encounterId: string;
             /** Format: uuid */
             itemId: string;
-            /** Format: int32 */
+            /** Format: double */
             quantityPrescribed?: number;
             dosageInstructions: string;
             substitutionAllowed?: boolean;
@@ -5466,7 +5466,7 @@ export interface components {
             frequency?: "STAT" | "OD" | "BD" | "TDS" | "QDS" | "PRN" | "OTHER";
             /** Format: int32 */
             durationDays?: number;
-            /** Format: int32 */
+            /** Format: double */
             requestedQuantity?: number;
             requestedUnit?: string;
         };
@@ -5714,7 +5714,7 @@ export interface components {
             /** Format: uuid */
             itemId?: string;
             unit?: string;
-            /** Format: int32 */
+            /** Format: double */
             factor?: number;
             canSplit?: boolean;
             /** Format: int32 */
@@ -5727,7 +5727,7 @@ export interface components {
         };
         ProposalRequest: {
             unit: string;
-            /** Format: int32 */
+            /** Format: double */
             quantityInBaseUnits?: number;
             canSplit?: boolean;
             reason?: string;
@@ -5743,7 +5743,7 @@ export interface components {
         CreateLabStockRequestRequest: {
             /** Format: uuid */
             itemId: string;
-            /** Format: int32 */
+            /** Format: double */
             requestedQuantity?: number;
             /** Format: uuid */
             requestingStoreId: string;
@@ -5754,11 +5754,11 @@ export interface components {
             id?: string;
             /** Format: uuid */
             itemId?: string;
-            /** Format: int32 */
+            /** Format: double */
             requestedQuantity?: number;
-            /** Format: int32 */
+            /** Format: double */
             releasedQuantity?: number;
-            /** Format: int32 */
+            /** Format: double */
             remaining?: number;
             /** Format: uuid */
             requestingStoreId?: string;
@@ -5770,7 +5770,7 @@ export interface components {
         ReleaseLabStockRequestRequest: {
             /** Format: uuid */
             batchId: string;
-            /** Format: int32 */
+            /** Format: double */
             quantity?: number;
         };
         RespondToLabStockRequestRequest: {
@@ -5975,7 +5975,7 @@ export interface components {
         };
         CreateInvoiceLineRequest: {
             serviceItemCode: string;
-            /** Format: int32 */
+            /** Format: double */
             quantity?: number;
         };
         CreateInvoiceRequest: {
@@ -6354,7 +6354,7 @@ export interface components {
         DispenseLineRequest: {
             /** Format: uuid */
             batchId: string;
-            /** Format: int32 */
+            /** Format: double */
             quantity?: number;
             overrideReason?: string;
             requestedUnit?: string;
@@ -6374,16 +6374,16 @@ export interface components {
             itemId?: string;
             /** Format: uuid */
             batchId?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantity?: number;
             /** Format: int64 */
             unitCostAmountMinor?: number;
             unitCostCurrencyCode?: string;
             fefoOverrideReason?: string;
-            /** Format: int32 */
+            /** Format: double */
             requestedQuantity?: number;
             requestedUnit?: string;
-            /** Format: int32 */
+            /** Format: double */
             conversionFactor?: number;
         };
         DispenseResponse: {
@@ -6393,7 +6393,7 @@ export interface components {
             prescriptionLineId?: string;
             /** Format: date-time */
             dispensedAt?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantityDispensed?: number;
             lines?: components["schemas"]["DispenseLineResponse"][];
             prescriptionLine?: components["schemas"]["PrescriptionLineResponse"];
@@ -7107,7 +7107,7 @@ export interface components {
             itemId?: string;
             itemCode?: string;
             itemName?: string;
-            /** Format: int32 */
+            /** Format: double */
             totalQuantity?: number;
             /** Format: int32 */
             reorderLevel?: number;
@@ -7122,7 +7122,7 @@ export interface components {
             batchNumber?: string;
             /** Format: date */
             expiryDate?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantity?: number;
         };
         CurrentStockResponse: {
@@ -7138,16 +7138,16 @@ export interface components {
             /** Format: uuid */
             storeId?: string;
             storeName?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantity?: number;
             strength?: string;
             baseUnit?: string;
             form?: string;
             purchaseUnit?: string;
-            /** Format: int32 */
+            /** Format: double */
             packageFactor?: number;
             stockStatus?: string;
-            /** Format: int32 */
+            /** Format: double */
             availableQuantity?: number;
         };
         Movement: {
@@ -7156,7 +7156,7 @@ export interface components {
             itemName?: string;
             itemCode?: string;
             batchNumber?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantityDelta?: number;
             movementType?: string;
             referenceType?: string;
@@ -7170,7 +7170,7 @@ export interface components {
             itemId?: string;
             itemName?: string;
             batchNumber?: string;
-            /** Format: int32 */
+            /** Format: double */
             receivedQuantity?: number;
             /** Format: int64 */
             unitCostAmountMinor?: number;
@@ -7197,7 +7197,7 @@ export interface components {
             status?: string;
             /** Format: date */
             expiryDate?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantity?: number;
             /** Format: uuid */
             storeId?: string;
@@ -7239,7 +7239,7 @@ export interface components {
             name?: string;
             strength?: string;
             form?: string;
-            /** Format: int64 */
+            /** Format: double */
             quantityBilled?: number;
             /** Format: int32 */
             billedLineCount?: number;
@@ -7405,11 +7405,11 @@ export interface components {
             itemId?: string;
             itemCode?: string;
             itemName?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantityPrescribed?: number;
-            /** Format: int32 */
+            /** Format: double */
             quantityDispensed?: number;
-            /** Format: int32 */
+            /** Format: double */
             remaining?: number;
             dosageInstructions?: string;
             /** @enum {string} */
@@ -7436,7 +7436,7 @@ export interface components {
             patientId?: string;
             itemCode?: string;
             itemName?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantityPrescribed?: number;
             /** Format: uuid */
             prescribedBy?: string;
@@ -7451,7 +7451,7 @@ export interface components {
             frequency?: "STAT" | "OD" | "BD" | "TDS" | "QDS" | "PRN" | "OTHER";
             /** Format: int32 */
             durationDays?: number;
-            /** Format: int32 */
+            /** Format: double */
             quantityDispensed?: number;
             dosageInstructions?: string;
         };
@@ -7464,7 +7464,7 @@ export interface components {
         BatchAllocationResponse: {
             /** Format: uuid */
             batchId?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantity?: number;
         };
         BatchAvailabilityResponse: {
@@ -7473,7 +7473,7 @@ export interface components {
             batchNumber?: string;
             /** Format: date */
             expiryDate?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantityAvailable?: number;
         };
         DispenseContextResponse: {
@@ -7484,10 +7484,10 @@ export interface components {
             fefoSuggestion?: components["schemas"]["BatchAllocationResponse"][];
             /** Format: double */
             weightKg?: number;
-            /** Format: int32 */
+            /** Format: double */
             requestedQuantity?: number;
             requestedUnit?: string;
-            /** Format: int32 */
+            /** Format: double */
             conversionFactor?: number;
             baseUnit?: string;
             dosageForm?: string;
@@ -7733,11 +7733,11 @@ export interface components {
             itemId?: string;
             itemCode?: string;
             itemName?: string;
-            /** Format: int32 */
+            /** Format: double */
             requestedQuantity?: number;
-            /** Format: int32 */
+            /** Format: double */
             releasedQuantity?: number;
-            /** Format: int32 */
+            /** Format: double */
             remaining?: number;
             /** Format: uuid */
             requestingStoreId?: string;
@@ -7956,7 +7956,7 @@ export interface components {
             /** Format: uuid */
             serviceItemId?: string;
             serviceItemName?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantity?: number;
             /** Format: int64 */
             grossAmountMinor?: number;
@@ -8070,7 +8070,7 @@ export interface components {
             hospitalNumber?: string;
             itemCode?: string;
             itemName?: string;
-            /** Format: int32 */
+            /** Format: double */
             quantityDispensed?: number;
             /** Format: date-time */
             dispensedAt?: string;

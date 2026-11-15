@@ -82,10 +82,10 @@ public class StockReceiptService {
     }
 
     public record LineResult(UUID id, UUID itemId, String itemName, String baseUnit,
-                             String purchaseUnit, int factor, Integer blistersPerPack,
+                             String purchaseUnit, double factor, Integer blistersPerPack,
                              Integer unitsPerBlister, int receivedQuantity,
                              int acceptedQuantity, int rejectedQuantity, int missingQuantity,
-                             int acceptedBaseQuantity, int rejectedBaseQuantity, Long receivedCostMinor,
+                             double acceptedBaseQuantity, double rejectedBaseQuantity, Long receivedCostMinor,
                              Long acceptedCostMinor, String batchNumber, LocalDate expiryDate,
                              Integer orderedQuantity, Long unitPurchaseCostMinor,
                              String discrepancyReason, String notes) {
@@ -93,7 +93,7 @@ public class StockReceiptService {
 
     private record Prepared(StockReceiptRequest.Line input, Item item,
                             MedicinePackagingService.Packaging packageDefinition,
-                            int missing, int acceptedBase, int rejectedBase,
+                            int missing, double acceptedBase, double rejectedBase,
                             Long receivedCost, Long acceptedCost) {
     }
 
@@ -141,32 +141,32 @@ public class StockReceiptService {
             }
             if (line.blistersPerPack() != null) {
                 if (line.blistersPerPack() <= 0 || line.unitsPerBlister() <= 0
-                        || Math.multiplyExact(line.blistersPerPack(), line.unitsPerBlister()) != selected.factor()
+                        || com.adags.shared.kernel.DecimalQuantity.multiply(line.blistersPerPack(), line.unitsPerBlister()) != selected.factor()
                         || selected.blistersPerPack() != null && !selected.blistersPerPack().equals(line.blistersPerPack())
                         || selected.unitsPerBlister() != null && !selected.unitsPerBlister().equals(line.unitsPerBlister())) {
                     throw new IllegalArgumentException("Blister counts must match the approved pack conversion");
                 }
             }
             if (!selected.canSplit() && line.unitPurchaseCostMinor() != null
-                    && line.unitPurchaseCostMinor() % selected.factor() != 0) {
+                    && !com.adags.shared.kernel.DecimalQuantity.multiple(line.unitPurchaseCostMinor(), selected.factor())) {
                 throw new IllegalArgumentException("Cost of a sealed package must divide exactly across its inventory units");
             }
             if (!line.expiryDate().isAfter(today)) {
                 throw new IllegalArgumentException("Expiry date must be after the facility-local date");
             }
-            if (line.receivedQuantity() != Math.addExact(line.acceptedQuantity(), line.rejectedQuantity())) {
+            if (line.receivedQuantity() != com.adags.shared.kernel.DecimalQuantity.add(line.acceptedQuantity(), line.rejectedQuantity())) {
                 throw new IllegalArgumentException("Received quantity must equal accepted plus rejected");
             }
             int missing = line.orderedQuantity() == null ? 0
                     : Math.max(0, line.orderedQuantity() - line.receivedQuantity());
-            int acceptedBase = Math.multiplyExact(line.acceptedQuantity(), selected.factor());
-            int rejectedBase = Math.multiplyExact(line.rejectedQuantity(), selected.factor());
+            double acceptedBase = com.adags.shared.kernel.DecimalQuantity.multiply(line.acceptedQuantity(), selected.factor());
+            double rejectedBase = com.adags.shared.kernel.DecimalQuantity.multiply(line.rejectedQuantity(), selected.factor());
             Long receivedCost = line.unitPurchaseCostMinor() == null ? null
-                    : Math.multiplyExact((long) line.receivedQuantity(), line.unitPurchaseCostMinor());
+                    : com.adags.shared.kernel.DecimalQuantity.multiply((long) line.receivedQuantity(), line.unitPurchaseCostMinor());
             Long acceptedCost = line.unitPurchaseCostMinor() == null ? null
-                    : Math.multiplyExact((long) line.acceptedQuantity(), line.unitPurchaseCostMinor());
-            totalReceived = totalReceived == null || receivedCost == null ? null : Math.addExact(totalReceived, receivedCost);
-            totalAccepted = totalAccepted == null || acceptedCost == null ? null : Math.addExact(totalAccepted, acceptedCost);
+                    : com.adags.shared.kernel.DecimalQuantity.multiply((long) line.acceptedQuantity(), line.unitPurchaseCostMinor());
+            totalReceived = totalReceived == null || receivedCost == null ? null : com.adags.shared.kernel.DecimalQuantity.add(totalReceived, receivedCost);
+            totalAccepted = totalAccepted == null || acceptedCost == null ? null : com.adags.shared.kernel.DecimalQuantity.add(totalAccepted, acceptedCost);
             prepared.add(new Prepared(line, item, selected, missing, acceptedBase, rejectedBase,
                     receivedCost, acceptedCost));
         }
@@ -231,7 +231,7 @@ public class StockReceiptService {
                     .addValue("notes", line.notes())
                     .addValue("blistersPerPack", line.blistersPerPack())
                     .addValue("unitsPerBlister", line.unitsPerBlister()));
-            int multiple = p.packageDefinition().canSplit() ? 1 : p.packageDefinition().factor();
+            double multiple = p.packageDefinition().canSplit() ? 1 : p.packageDefinition().factor();
             receiveTranches(p, lineId, store, supplier, request.deliveryNoteNumber(), actorId,
                     p.acceptedBase(), p.acceptedCost(), StockBatchStatus.ACTIVE, multiple);
             Long rejectedCost = p.receivedCost() == null ? null : p.receivedCost() - p.acceptedCost();
@@ -245,17 +245,17 @@ public class StockReceiptService {
     }
 
     private void receiveTranches(Prepared p, UUID lineId, Store store, Supplier supplier,
-                                 String deliveryNote, UUID actorId, int baseQuantity, Long value,
-                                 StockBatchStatus status, int multiple) {
+                                 String deliveryNote, UUID actorId, double baseQuantity, Long value,
+                                 StockBatchStatus status, double multiple) {
         if (baseQuantity == 0) return;
         if (value == null) {
             receiveTranche(p, lineId, store, supplier, deliveryNote, actorId,
                     baseQuantity, 0, status, multiple);
             return;
         }
-        long floorCost = value / baseQuantity;
-        int higherCostUnits = Math.toIntExact(value % baseQuantity);
-        int lowerCostUnits = baseQuantity - higherCostUnits;
+        long floorCost = java.math.BigDecimal.valueOf(value).divideToIntegralValue(java.math.BigDecimal.valueOf(baseQuantity)).longValueExact();
+        double higherCostUnits = com.adags.shared.kernel.DecimalQuantity.subtract(value, com.adags.shared.kernel.DecimalQuantity.multiply(baseQuantity, floorCost));
+        double lowerCostUnits = com.adags.shared.kernel.DecimalQuantity.subtract(baseQuantity, higherCostUnits);
         if (lowerCostUnits > 0) receiveTranche(p, lineId, store, supplier, deliveryNote, actorId,
                 lowerCostUnits, floorCost, status, multiple);
         if (higherCostUnits > 0) receiveTranche(p, lineId, store, supplier, deliveryNote, actorId,
@@ -263,18 +263,18 @@ public class StockReceiptService {
     }
 
     private void receiveTranche(Prepared p, UUID lineId, Store store, Supplier supplier,
-                                String deliveryNote, UUID actorId, int quantity, long unitCost,
-                                StockBatchStatus status, int multiple) {
+                                String deliveryNote, UUID actorId, double quantity, long unitCost,
+                                StockBatchStatus status, double multiple) {
         StockReceiptRequest.Line line = p.input();
         StockBatch saved = batches.insert(new StockBatch(null, p.item().id(), store.id(),
                 line.batchNumber().trim(), line.expiryDate(), new Money(unitCost, "TZS"),
                 supplier.id(), deliveryNote.trim(), status, actorId, null, line.notes()));
         jdbc.update("""
                 UPDATE stock_batch SET receipt_line_id = :lineId, dispense_multiple_base = :multiple,
-                    cost_known = :costKnown
+                    cost_known = :costKnown, can_split_package = :canSplit
                 WHERE id = :id
                 """, new MapSqlParameterSource().addValue("lineId", lineId)
-                .addValue("multiple", multiple).addValue("costKnown", line.unitPurchaseCostMinor() != null)
+                .addValue("multiple", multiple).addValue("costKnown", line.unitPurchaseCostMinor() != null).addValue("canSplit", p.packageDefinition().canSplit())
                 .addValue("id", saved.id()));
         balances.applyDelta(p.item().id(), saved.id(), store.id(), quantity);
         movements.insert(StockMovement.record(p.item().id(), saved.id(), store.id(), quantity,
@@ -319,11 +319,11 @@ public class StockReceiptService {
                 """, new MapSqlParameterSource("id", receiptId), (rs, row) -> new LineResult(
                 (UUID) rs.getObject("id"), (UUID) rs.getObject("item_id"),
                 rs.getString("item_name"), rs.getString("base_unit"), rs.getString("purchase_unit"),
-                rs.getInt("quantity_in_base_units"), (Integer) rs.getObject("blisters_per_pack"),
+                rs.getDouble("quantity_in_base_units"), (Integer) rs.getObject("blisters_per_pack"),
                 (Integer) rs.getObject("units_per_blister"), rs.getInt("received_quantity"),
                 rs.getInt("accepted_quantity"), rs.getInt("rejected_quantity"),
-                rs.getInt("missing_quantity"), rs.getInt("accepted_base_quantity"),
-                rs.getInt("rejected_base_quantity"), rs.getObject("received_cost_minor", Long.class),
+                rs.getInt("missing_quantity"), rs.getDouble("accepted_base_quantity"),
+                rs.getDouble("rejected_base_quantity"), rs.getObject("received_cost_minor", Long.class),
                 rs.getObject("accepted_cost_minor", Long.class), rs.getString("batch_number"),
                 rs.getDate("expiry_date").toLocalDate(),
                 (Integer) rs.getObject("ordered_quantity"), rs.getObject("unit_purchase_cost_minor", Long.class),

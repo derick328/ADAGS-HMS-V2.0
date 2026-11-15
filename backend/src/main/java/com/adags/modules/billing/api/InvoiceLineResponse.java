@@ -8,7 +8,7 @@ public record InvoiceLineResponse(
         UUID id,
         UUID serviceItemId,
         String serviceItemName,
-        int quantity,
+        double quantity,
         long grossAmountMinor,
         long insurancePortionMinor,
         long patientPortionMinor,

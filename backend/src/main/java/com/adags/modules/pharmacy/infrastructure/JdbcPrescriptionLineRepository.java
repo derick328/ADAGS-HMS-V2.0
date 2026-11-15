@@ -51,8 +51,8 @@ public class JdbcPrescriptionLineRepository implements PrescriptionLineRepositor
                 FROM prescription_unit_snapshot WHERE prescription_line_id = :id
                 """, new MapSqlParameterSource("id", prescriptionLineId),
                 (rs, row) -> new PrescriptionUnitSnapshot((UUID) rs.getObject("prescription_line_id"),
-                        rs.getInt("requested_quantity"), rs.getString("requested_unit"),
-                        rs.getInt("conversion_factor"), rs.getString("base_unit"), rs.getString("dosage_form"),
+                        rs.getDouble("requested_quantity"), rs.getString("requested_unit"),
+                        rs.getDouble("conversion_factor"), rs.getString("base_unit"), rs.getString("dosage_form"),
                         rs.getString("product_strength")));
         return rows.stream().findFirst();
     }
@@ -143,8 +143,8 @@ public class JdbcPrescriptionLineRepository implements PrescriptionLineRepositor
                 (UUID) rs.getObject("id"),
                 (UUID) rs.getObject("prescription_order_id"),
                 (UUID) rs.getObject("item_id"),
-                rs.getInt("quantity_prescribed"),
-                rs.getInt("quantity_dispensed"),
+                rs.getDouble("quantity_prescribed"),
+                rs.getDouble("quantity_dispensed"),
                 rs.getString("dosage_instructions"),
                 (UUID) rs.getObject("invoice_line_id"),
                 PrescriptionLineStatus.valueOf(rs.getString("status")),

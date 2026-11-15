@@ -8,7 +8,7 @@ public record PrepareProcedureItemCommand(
         UUID surgeryOrderId,
         UUID itemId,
         ProcedurePhase phase,
-        int quantityPrepared,
+        double quantityPrepared,
         UUID batchId,
         UUID preparedBy
 ) {

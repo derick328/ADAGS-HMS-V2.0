@@ -19,7 +19,7 @@ public interface ProcedureItemRepository {
      * return), same idiom as every other WHERE-guarded status UPDATE in
      * this codebase. Returns false if the row was already reconciled.
      */
-    boolean reconcile(UUID procedureItemId, int quantityUsed, int quantityReturned, int quantityWasted,
+    boolean reconcile(UUID procedureItemId, double quantityUsed, double quantityReturned, double quantityWasted,
                        String wastageReason, UUID reconciledBy);
 
     /**

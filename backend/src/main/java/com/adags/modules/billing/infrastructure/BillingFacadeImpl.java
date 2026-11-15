@@ -180,7 +180,7 @@ public class BillingFacadeImpl implements BillingFacade {
 
     @Override
     public UUID postServiceCharge(UUID encounterId, UUID patientId, UUID facilityId, PayerType payerType,
-                                   String serviceItemCode, int quantity, String sourceEventType, UUID sourceEventId,
+                                   String serviceItemCode, double quantity, String sourceEventType, UUID sourceEventId,
                                    UUID actorUserId) {
         PayerCategory payerCategory = toPayerCategory(payerType);
         ChargePostingResult result = chargePostingService.postCharge(new ChargePostingCommand(

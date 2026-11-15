@@ -74,7 +74,7 @@ public class CreateDraftInvoiceService {
                     .filter(ServiceItem::isActive)
                     .orElseThrow(() -> new NoSuchElementException("No active service item with code '" + line.serviceItemCode() + "'."));
             Money unitPrice = priceResolutionService.resolvePrice(line.serviceItemCode(), payerCategory);
-            Money gross = new Money(unitPrice.amountMinor() * line.quantity(), unitPrice.currencyCode());
+            Money gross = unitPrice.times(line.quantity());
 
             // source_event_id is NOT NULL — there is no domain event behind
             // a hand-typed line, so this points at the one real thing that

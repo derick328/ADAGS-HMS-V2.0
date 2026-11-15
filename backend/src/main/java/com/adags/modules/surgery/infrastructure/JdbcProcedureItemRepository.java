@@ -78,7 +78,7 @@ public class JdbcProcedureItemRepository implements ProcedureItemRepository {
     }
 
     @Override
-    public boolean reconcile(UUID procedureItemId, int quantityUsed, int quantityReturned, int quantityWasted,
+    public boolean reconcile(UUID procedureItemId, double quantityUsed, double quantityReturned, double quantityWasted,
                               String wastageReason, UUID reconciledBy) {
         int updated = jdbcTemplate.update("""
                         UPDATE procedure_item
@@ -115,10 +115,10 @@ public class JdbcProcedureItemRepository implements ProcedureItemRepository {
                 (UUID) rs.getObject("surgery_order_id"),
                 (UUID) rs.getObject("item_id"),
                 ProcedurePhase.valueOf(rs.getString("phase")),
-                rs.getInt("quantity_prepared"),
-                rs.getInt("quantity_used"),
-                rs.getInt("quantity_returned"),
-                rs.getInt("quantity_wasted"),
+                rs.getDouble("quantity_prepared"),
+                rs.getDouble("quantity_used"),
+                rs.getDouble("quantity_returned"),
+                rs.getDouble("quantity_wasted"),
                 rs.getString("wastage_reason"),
                 (UUID) rs.getObject("batch_id"),
                 (UUID) rs.getObject("prepared_by"),

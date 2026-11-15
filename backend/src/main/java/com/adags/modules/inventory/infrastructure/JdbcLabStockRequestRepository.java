@@ -95,8 +95,8 @@ public class JdbcLabStockRequestRepository implements LabStockRequestRepository 
         return new LabStockRequest(
                 (UUID) rs.getObject("id"),
                 (UUID) rs.getObject("item_id"),
-                rs.getInt("requested_quantity"),
-                rs.getInt("released_quantity"),
+                rs.getDouble("requested_quantity"),
+                rs.getDouble("released_quantity"),
                 (UUID) rs.getObject("requesting_store_id"),
                 (UUID) rs.getObject("requested_by"),
                 rs.getTimestamp("requested_at").toInstant(),

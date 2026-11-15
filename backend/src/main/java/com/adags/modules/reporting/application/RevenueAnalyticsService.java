@@ -364,7 +364,7 @@ public class RevenueAnalyticsService {
                 """.formatted(SETTLED_PER_LINE, RevenueCategory.CASE_SQL), params, rs -> {
             rows.put((UUID) rs.getObject("id"), new Object[]{
                     rs.getString("code"), rs.getString("name"), rs.getString("strength"), rs.getString("form"),
-                    rs.getLong("quantity_billed"), rs.getInt("billed_lines"), rs.getInt("settled_lines"),
+                    rs.getDouble("quantity_billed"), rs.getInt("billed_lines"), rs.getInt("settled_lines"),
                     rs.getLong("billed_minor"), 0L});
         });
 
@@ -403,7 +403,7 @@ public class RevenueAnalyticsService {
                 .map(e -> {
                     Object[] r = e.getValue();
                     return new TopServiceItemLine(e.getKey(), (String) r[0], (String) r[1], (String) r[2],
-                            (String) r[3], (Long) r[4], (Integer) r[5], (Integer) r[6], (Long) r[7], (Long) r[8],
+                            (String) r[3], ((Number) r[4]).doubleValue(), (Integer) r[5], (Integer) r[6], (Long) r[7], (Long) r[8],
                             "TZS");
                 })
                 // Collected first — the question is "what earned the most

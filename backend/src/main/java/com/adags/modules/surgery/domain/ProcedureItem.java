@@ -20,10 +20,10 @@ public record ProcedureItem(
         UUID surgeryOrderId,
         UUID itemId,
         ProcedurePhase phase,
-        int quantityPrepared,
-        int quantityUsed,
-        int quantityReturned,
-        int quantityWasted,
+        double quantityPrepared,
+        double quantityUsed,
+        double quantityReturned,
+        double quantityWasted,
         String wastageReason,
         UUID batchId,
         UUID preparedBy,
@@ -34,7 +34,7 @@ public record ProcedureItem(
 ) {
 
     public static ProcedureItem prepare(
-            UUID surgeryOrderId, UUID itemId, ProcedurePhase phase, int quantityPrepared, UUID batchId, UUID preparedBy
+            UUID surgeryOrderId, UUID itemId, ProcedurePhase phase, double quantityPrepared, UUID batchId, UUID preparedBy
     ) {
         return new ProcedureItem(null, surgeryOrderId, itemId, phase, quantityPrepared, 0, 0, 0, null, batchId,
                 preparedBy, null, null, null, null);

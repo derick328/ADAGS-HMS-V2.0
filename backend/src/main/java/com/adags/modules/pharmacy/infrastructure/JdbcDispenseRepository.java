@@ -112,7 +112,7 @@ public class JdbcDispenseRepository implements DispenseRepository {
                 (UUID) rs.getObject("dispensed_by"),
                 rs.getTimestamp("dispensed_at").toInstant(),
                 rs.getString("idempotency_key"),
-                rs.getInt("quantity_dispensed"),
+                rs.getDouble("quantity_dispensed"),
                 rs.getString("counselling_notes"),
                 rs.getString("dispensing_notes"));
     }

@@ -10,7 +10,7 @@ public record RestockCommand(
         UUID storeId,
         String batchNumber,
         LocalDate expiryDate,
-        int quantity,
+        double quantity,
         Money unitCost,
         UUID supplierId,
         String deliveryNoteRef,

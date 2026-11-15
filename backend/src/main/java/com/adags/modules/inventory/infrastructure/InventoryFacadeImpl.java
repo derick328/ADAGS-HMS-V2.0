@@ -100,7 +100,7 @@ public class InventoryFacadeImpl implements InventoryFacade {
     }
 
     @Override
-    public int conversionFactor(UUID itemId, String unit) {
+    public double conversionFactor(UUID itemId, String unit) {
         return packagingService.approved(itemId, unit).factor();
     }
 
@@ -150,9 +150,9 @@ public class InventoryFacadeImpl implements InventoryFacade {
     }
 
     @Override
-    public void assertDispensePackaging(UUID itemId, Map<UUID, Integer> quantityByBatch) {
-        Map<UUID, Integer> grouped = new HashMap<>();
-        Map<UUID, Integer> multiples = new HashMap<>();
+    public void assertDispensePackaging(UUID itemId, Map<UUID, ? extends Number> quantityByBatch) {
+        Map<UUID, Double> grouped = new HashMap<>();
+        Map<UUID, Double> multiples = new HashMap<>();
         for (var entry : quantityByBatch.entrySet()) {
             StockBatch batch = stockBatchRepository.findById(entry.getKey())
                     .orElseThrow(() -> new NoSuchElementException("Batch not found: " + entry.getKey()));
@@ -160,13 +160,13 @@ public class InventoryFacadeImpl implements InventoryFacade {
                 throw new IllegalArgumentException("Batch belongs to another medicine");
             }
             var rule = stockBatchRepository.packagingRule(batch.id());
-            if (rule.dispenseMultipleBase() <= 1) continue;
+            if (rule.canSplit()) continue;
             UUID group = rule.receiptLineId() == null ? batch.id() : rule.receiptLineId();
-            grouped.merge(group, entry.getValue(), Math::addExact);
+            grouped.merge(group, entry.getValue().doubleValue(), com.adags.shared.kernel.DecimalQuantity::add);
             multiples.put(group, rule.dispenseMultipleBase());
         }
         for (var entry : grouped.entrySet()) {
-            if (entry.getValue() % multiples.get(entry.getKey()) != 0) {
+            if (!com.adags.shared.kernel.DecimalQuantity.multiple(entry.getValue(), multiples.get(entry.getKey()))) {
                 throw new IllegalArgumentException("This medicine cannot be split from its approved package");
             }
         }
@@ -174,7 +174,7 @@ public class InventoryFacadeImpl implements InventoryFacade {
 
     @Override
     @Transactional
-    public Money decrementForDispense(UUID itemId, UUID batchId, int quantity, UUID referenceId, UUID actorUserId) {
+    public Money decrementForDispense(UUID itemId, UUID batchId, double quantity, UUID referenceId, UUID actorUserId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NoSuchElementException("Item not found: " + itemId));
         // Evaluated live, same discipline as the billing gate — the item's
@@ -202,7 +202,7 @@ public class InventoryFacadeImpl implements InventoryFacade {
 
     @Override
     @Transactional
-    public Money decrementForProcedureItem(UUID itemId, UUID batchId, int quantity, UUID referenceId, UUID actorUserId) {
+    public Money decrementForProcedureItem(UUID itemId, UUID batchId, double quantity, UUID referenceId, UUID actorUserId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NoSuchElementException("Item not found: " + itemId));
         item.assertDispensable();
@@ -223,7 +223,7 @@ public class InventoryFacadeImpl implements InventoryFacade {
 
     @Override
     @Transactional
-    public void incrementForReturn(UUID itemId, UUID batchId, int quantity, UUID referenceId, UUID actorUserId) {
+    public void incrementForReturn(UUID itemId, UUID batchId, double quantity, UUID referenceId, UUID actorUserId) {
         StockBatch batch = stockBatchRepository.findById(batchId)
                 .orElseThrow(() -> new NoSuchElementException("Batch not found: " + batchId));
 

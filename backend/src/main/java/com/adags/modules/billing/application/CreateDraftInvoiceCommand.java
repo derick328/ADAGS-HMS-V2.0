@@ -15,6 +15,6 @@ public record CreateDraftInvoiceCommand(
         UUID actorUserId
 ) {
 
-    public record Line(String serviceItemCode, int quantity) {
+    public record Line(String serviceItemCode, double quantity) {
     }
 }

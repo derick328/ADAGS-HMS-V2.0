@@ -10,7 +10,7 @@ import java.util.UUID;
 public record PlacePrescriptionCommand(
         UUID encounterId,
         UUID itemId,
-        int quantityPrescribed,
+        double quantityPrescribed,
         String dosageInstructions,
         boolean substitutionAllowed,
         UUID prescribedBy,
@@ -19,10 +19,10 @@ public record PlacePrescriptionCommand(
         String doseUnit,
         PrescriptionFrequency frequency,
         Integer durationDays,
-        Integer requestedQuantity,
+        Number requestedQuantity,
         String requestedUnit
 ) {
-    public PlacePrescriptionCommand(UUID encounterId, UUID itemId, int quantityPrescribed,
+    public PlacePrescriptionCommand(UUID encounterId, UUID itemId, double quantityPrescribed,
             String dosageInstructions, boolean substitutionAllowed, UUID prescribedBy,
             String route, Double doseAmount, String doseUnit,
             PrescriptionFrequency frequency, Integer durationDays) {

@@ -10,7 +10,7 @@ public record DispenseResponse(
         UUID id,
         UUID prescriptionLineId,
         Instant dispensedAt,
-        int quantityDispensed,
+        double quantityDispensed,
         List<DispenseLineResponse> lines,
         PrescriptionLineResponse prescriptionLine
 ) {

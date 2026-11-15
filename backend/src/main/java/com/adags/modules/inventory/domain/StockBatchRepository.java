@@ -11,7 +11,8 @@ public interface StockBatchRepository {
 
     Optional<StockBatch> findById(UUID id);
 
-    record PackagingRule(UUID receiptLineId, int dispenseMultipleBase) {
+    record PackagingRule(UUID receiptLineId, double dispenseMultipleBase, boolean canSplit) {
+        public PackagingRule(UUID id, double factor) { this(id, factor, factor == 1); }
     }
 
     /** Snapshot attached to a received batch; legacy batches use a multiple of one. */

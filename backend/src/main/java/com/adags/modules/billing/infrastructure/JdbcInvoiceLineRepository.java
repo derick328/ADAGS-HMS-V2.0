@@ -127,7 +127,7 @@ public class JdbcInvoiceLineRepository implements InvoiceLineRepository {
                 (UUID) rs.getObject("id"),
                 (UUID) rs.getObject("invoice_id"),
                 (UUID) rs.getObject("service_item_id"),
-                rs.getInt("quantity"),
+                rs.getDouble("quantity"),
                 new Money(rs.getLong("gross_minor"), currencyCode),
                 new Money(rs.getLong("insurance_portion_minor"), currencyCode),
                 new Money(rs.getLong("patient_portion_minor"), currencyCode),

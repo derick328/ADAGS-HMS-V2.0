@@ -10,7 +10,7 @@ public record StockMovement(
         UUID itemId,
         UUID batchId,
         UUID storeId,
-        int qtyDelta,
+        double qtyDelta,
         MovementType movementType,
         String referenceType,
         UUID referenceId,
@@ -18,9 +18,10 @@ public record StockMovement(
         Instant occurredAt
 ) {
 
-    public static StockMovement record(UUID itemId, UUID batchId, UUID storeId, int qtyDelta,
+    public static StockMovement record(UUID itemId, UUID batchId, UUID storeId, double qtyDelta,
                                         MovementType movementType, String referenceType, UUID referenceId,
                                         UUID actorId) {
+        com.adags.shared.kernel.DecimalQuantity.require(qtyDelta);
         if (qtyDelta == 0) {
             throw new IllegalArgumentException("qtyDelta must not be zero.");
         }

@@ -31,7 +31,7 @@ public record TopServiceItemLine(
         String name,
         String strength,
         String form,
-        long quantityBilled,
+        double quantityBilled,
         int billedLineCount,
         int settledLineCount,
         long billedMinor,

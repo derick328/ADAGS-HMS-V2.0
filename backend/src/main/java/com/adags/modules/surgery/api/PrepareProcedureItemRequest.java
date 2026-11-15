@@ -18,7 +18,7 @@ public record PrepareProcedureItemRequest(
         @NotNull UUID surgeryOrderId,
         @NotNull UUID itemId,
         @NotNull ProcedurePhase phase,
-        @Positive int quantityPrepared,
+        @Positive @jakarta.validation.constraints.Digits(integer = 14, fraction = 6) double quantityPrepared,
         UUID batchId
 ) {
 }

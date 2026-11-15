@@ -4,9 +4,9 @@ import java.util.UUID;
 
 public record ReconcileProcedureItemCommand(
         UUID procedureItemId,
-        int quantityUsed,
-        int quantityReturned,
-        int quantityWasted,
+        double quantityUsed,
+        double quantityReturned,
+        double quantityWasted,
         String wastageReason,
         UUID reconciledBy
 ) {

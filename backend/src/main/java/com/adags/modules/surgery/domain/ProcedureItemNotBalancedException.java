@@ -11,7 +11,7 @@ public class ProcedureItemNotBalancedException extends RuntimeException {
 
     private final UUID procedureItemId;
 
-    public ProcedureItemNotBalancedException(UUID procedureItemId, int prepared, int used, int returned, int wasted) {
+    public ProcedureItemNotBalancedException(UUID procedureItemId, double prepared, double used, double returned, double wasted) {
         super("Procedure item " + procedureItemId + " does not balance: prepared=" + prepared
                 + " but used(" + used + ") + returned(" + returned + ") + wasted(" + wasted + ") = "
                 + (used + returned + wasted));

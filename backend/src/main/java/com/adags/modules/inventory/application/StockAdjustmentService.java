@@ -44,13 +44,14 @@ public class StockAdjustmentService {
     }
 
     public record Adjustment(UUID id, UUID batchId, UUID itemId, UUID storeId, String type,
-                             int quantityDelta, String reason, String status, UUID requestedBy,
+                             double quantityDelta, String reason, String status, UUID requestedBy,
                              Instant requestedAt, UUID reviewedBy, Instant reviewedAt, String reviewReason) {
     }
 
     @Transactional
-    public Adjustment request(UUID batchId, String type, int delta, String reason,
+    public Adjustment request(UUID batchId, String type, double delta, String reason,
                               String idempotencyKey, UUID actorId) {
+        com.adags.shared.kernel.DecimalQuantity.require(delta);
         if (reason == null || reason.isBlank() || idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new IllegalArgumentException("Reason and idempotency key are required");
         }
@@ -175,7 +176,7 @@ public class StockAdjustmentService {
     private Adjustment map(ResultSet rs, int row) throws SQLException {
         return new Adjustment((UUID) rs.getObject("id"), (UUID) rs.getObject("batch_id"),
                 (UUID) rs.getObject("item_id"), (UUID) rs.getObject("store_id"),
-                rs.getString("adjustment_type"), rs.getInt("quantity_delta"), rs.getString("reason"),
+                rs.getString("adjustment_type"), rs.getDouble("quantity_delta"), rs.getString("reason"),
                 rs.getString("status"), (UUID) rs.getObject("requested_by"),
                 rs.getTimestamp("requested_at").toInstant(), (UUID) rs.getObject("reviewed_by"),
                 rs.getTimestamp("reviewed_at") == null ? null : rs.getTimestamp("reviewed_at").toInstant(),

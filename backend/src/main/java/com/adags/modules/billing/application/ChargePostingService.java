@@ -165,7 +165,7 @@ public class ChargePostingService {
 
     private ChargePostingResult issueSingleLineInvoice(
             ServiceItem serviceItem, UUID encounterId, UUID patientId, UUID facilityId,
-            PayerCategory payerCategory, UUID insurancePolicyId, int quantity, Money gross,
+            PayerCategory payerCategory, UUID insurancePolicyId, double quantity, Money gross,
             Money insurancePortion, Money patientPortion, UUID coverageRuleId,
             String serviceItemCode, String sourceEventType, UUID sourceEventId, UUID actorUserId
     ) {

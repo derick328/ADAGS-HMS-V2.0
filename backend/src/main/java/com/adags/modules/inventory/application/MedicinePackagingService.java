@@ -19,7 +19,7 @@ import java.util.UUID;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/** Flat, product-specific integer factors avoid ambiguous nested conversions. */
+/** Flat, product-specific decimal factors avoid ambiguous nested conversions. */
 @Service
 public class MedicinePackagingService {
     private final NamedParameterJdbcTemplate jdbc;
@@ -35,7 +35,7 @@ public class MedicinePackagingService {
         this.events = events;
     }
 
-    public record Packaging(UUID id, UUID itemId, String unit, int factor, boolean canSplit,
+    public record Packaging(UUID id, UUID itemId, String unit, double factor, boolean canSplit,
                             int version, String status, Integer blistersPerPack, Integer unitsPerBlister) {
     }
 
@@ -139,19 +139,19 @@ public class MedicinePackagingService {
     }
 
     @Transactional
-    public Packaging propose(UUID itemId, String unit, int factor, boolean canSplit,
+    public Packaging propose(UUID itemId, String unit, double factor, boolean canSplit,
                              String reason, UUID actorId) {
         return propose(itemId, unit, factor, canSplit, reason, actorId, null, null);
     }
 
     @Transactional
-    public Packaging propose(UUID itemId, String unit, int factor, boolean canSplit,
+    public Packaging propose(UUID itemId, String unit, double factor, boolean canSplit,
                              String reason, UUID actorId, Integer blistersPerPack, Integer unitsPerBlister) {
         return propose(itemId, unit, factor, canSplit, reason, actorId, blistersPerPack, unitsPerBlister, null);
     }
 
     @Transactional
-    public Packaging propose(UUID itemId, String unit, int factor, boolean canSplit,
+    public Packaging propose(UUID itemId, String unit, double factor, boolean canSplit,
                              String reason, UUID actorId, Integer blistersPerPack, Integer unitsPerBlister,
                              UUID replacesPackagingId) {
         return propose(itemId, unit, factor, canSplit, reason, actorId, blistersPerPack,
@@ -159,7 +159,7 @@ public class MedicinePackagingService {
     }
 
     @Transactional
-    public Packaging propose(UUID itemId, String unit, int factor, boolean canSplit,
+    public Packaging propose(UUID itemId, String unit, double factor, boolean canSplit,
                              String reason, UUID actorId, Integer blistersPerPack, Integer unitsPerBlister,
                              UUID replacesPackagingId, String proposedForm, String proposedBaseUnit) {
         Item item = items.findById(itemId).orElseThrow(() -> new NoSuchElementException("Item not found"));
@@ -183,22 +183,27 @@ public class MedicinePackagingService {
                 Integer history = jdbc.queryForObject("""
                         SELECT (SELECT COUNT(*) FROM stock_batch WHERE item_id = :id)
                              + (SELECT COUNT(*) FROM prescription_line WHERE item_id = :id)
-                             + (SELECT COUNT(*) FROM medicine_packaging WHERE item_id = :id AND status <> 'PROPOSED')
+                             + (SELECT COUNT(*) FROM medicine_packaging WHERE item_id = :id AND status IN ('APPROVED', 'SUPERSEDED'))
                         """, new MapSqlParameterSource("id", itemId), Integer.class);
                 if (history != null && history > 0) {
                     throw new IllegalArgumentException("Base unit cannot change after packaging, stock or prescriptions exist");
                 }
             }
         }
-        if (normalized.equals(targetUnit) || factor < 1) {
-            throw new IllegalArgumentException("A package must contain at least one base unit and use a distinct unit name");
+        com.adags.shared.kernel.DecimalQuantity.require(factor);
+        boolean measured = List.of("G", "MG", "MCG", "KG", "ML", "L").contains(targetUnit);
+        if (!measured && factor != Math.rint(factor)) {
+            throw new IllegalArgumentException("Counted packages require whole base units; decimals are allowed for measured units such as G and ML");
+        }
+        if (normalized.equals(targetUnit) || factor <= 0) {
+            throw new IllegalArgumentException("A package must contain a positive quantity of base units and use a distinct unit name");
         }
         String proposalDetails = reason == null || reason.isBlank()
-                ? "Packaging configuration: " + normalized + " = " + factor + " " + targetUnit
+                ? "Packaging configuration: " + normalized + " = " + com.adags.shared.kernel.DecimalQuantity.format(factor) + " " + targetUnit
                 : reason.trim();
         if (blistersPerPack != null || unitsPerBlister != null) {
             if (blistersPerPack == null || unitsPerBlister == null || blistersPerPack <= 0
-                    || unitsPerBlister <= 0 || Math.multiplyExact(blistersPerPack, unitsPerBlister) != factor) {
+                    || unitsPerBlister <= 0 || com.adags.shared.kernel.DecimalQuantity.multiply(blistersPerPack, unitsPerBlister) != factor) {
                 throw new IllegalArgumentException("Blister hierarchy must match the base-unit conversion");
             }
         }
@@ -378,7 +383,7 @@ public class MedicinePackagingService {
 
     private Packaging map(ResultSet rs, int row) throws SQLException {
         return new Packaging((UUID) rs.getObject("id"), (UUID) rs.getObject("item_id"),
-                rs.getString("packaging_unit"), rs.getInt("quantity_in_base_units"),
+                rs.getString("packaging_unit"), rs.getDouble("quantity_in_base_units"),
                 rs.getBoolean("can_split"), rs.getInt("version"), rs.getString("status"),
                 (Integer) rs.getObject("blisters_per_pack"), (Integer) rs.getObject("units_per_blister"));
     }

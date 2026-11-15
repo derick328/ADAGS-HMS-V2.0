@@ -78,16 +78,16 @@ public class PlacePrescriptionService {
             throw new ItemNotDispensableException(command.itemId());
         }
 
-        int requestedQuantity = command.requestedQuantity() == null
-                ? command.quantityPrescribed() : command.requestedQuantity();
+        double requestedQuantity = command.requestedQuantity() == null
+                ? command.quantityPrescribed() : command.requestedQuantity().doubleValue();
         String requestedUnit = command.requestedUnit() == null
                 ? item.unit() : command.requestedUnit();
         if (requestedQuantity <= 0) {
             throw new IllegalArgumentException("Requested quantity must be positive");
         }
-        int factor = command.requestedUnit() == null ? 1
+        double factor = command.requestedUnit() == null ? 1
                 : inventoryFacade.conversionFactor(command.itemId(), requestedUnit);
-        if (Math.multiplyExact(requestedQuantity, factor) != command.quantityPrescribed()) {
+        if (com.adags.shared.kernel.DecimalQuantity.multiply(requestedQuantity, factor) != command.quantityPrescribed()) {
             throw new IllegalArgumentException("Prescribed base quantity does not match selected package unit");
         }
 
@@ -171,7 +171,7 @@ public class PlacePrescriptionService {
     }
 
     static void validateQuantityPolicy(ItemSummary item, PlacePrescriptionCommand command,
-                                               int requestedQuantity, String requestedUnit) {
+                                               double requestedQuantity, String requestedUnit) {
         DosageForm form = DosageForm.fromCatalogue(item.form());
         if (form == null) {
             throw new IllegalArgumentException("Assign a supported dosage form to this medicine before prescribing.");
@@ -206,8 +206,8 @@ public class PlacePrescriptionService {
             if (frequency != PrescriptionFrequency.PRN && frequency != PrescriptionFrequency.OTHER) {
                 try {
                     int administrations = frequency == PrescriptionFrequency.STAT ? 1
-                            : Math.multiplyExact(frequency.timesPerDay(), command.durationDays());
-                    int expected = Math.multiplyExact(command.doseAmount().intValue(), administrations);
+                            : com.adags.shared.kernel.DecimalQuantity.multiply(frequency.timesPerDay(), command.durationDays());
+                    int expected = com.adags.shared.kernel.DecimalQuantity.multiply(command.doseAmount().intValue(), administrations);
                     if (command.quantityPrescribed() != expected) {
                         throw new IllegalArgumentException("Dispensing quantity must equal dose units × administrations × days.");
                     }

@@ -112,7 +112,7 @@ public class JdbcItemRepository implements ItemRepository {
         String sql = "UPDATE item SET form = :form, unit = :unit WHERE id = :id "
                 + "AND (UPPER(unit) = :unit OR (NOT EXISTS (SELECT 1 FROM stock_batch WHERE item_id = :id) "
                 + "AND NOT EXISTS (SELECT 1 FROM prescription_line WHERE item_id = :id) "
-                + "AND NOT EXISTS (SELECT 1 FROM medicine_packaging WHERE item_id = :id AND status <> 'PROPOSED'))) RETURNING "
+                + "AND NOT EXISTS (SELECT 1 FROM medicine_packaging WHERE item_id = :id AND status IN ('APPROVED', 'SUPERSEDED')))) RETURNING "
                 + "id, code, name, classification, form, strength, unit, regulatory_schedule, "
                 + "reorder_level, active, requires_administration_witness, created_by, created_at";
         var rows = jdbcTemplate.query(sql, new MapSqlParameterSource()

@@ -17,18 +17,19 @@ public record DispenseLine(
         UUID dispenseId,
         UUID itemId,
         UUID batchId,
-        int quantity,
+        double quantity,
         Money unitCost,
         String fefoOverrideReason,
         Instant createdAt,
-        int requestedQuantity,
+        double requestedQuantity,
         String requestedUnit,
-        int conversionFactor,
+        double conversionFactor,
         boolean costKnown
 ) {
 
-    public static DispenseLine create(UUID dispenseId, UUID itemId, UUID batchId, int quantity, Money unitCost,
+    public static DispenseLine create(UUID dispenseId, UUID itemId, UUID batchId, double quantity, Money unitCost,
                                        String fefoOverrideReason) {
+        com.adags.shared.kernel.DecimalQuantity.require(quantity);
         if (quantity <= 0) {
             throw new IllegalArgumentException("quantity must be > 0.");
         }
@@ -36,7 +37,7 @@ public record DispenseLine(
                 quantity, null, 1, true);
     }
 
-    public DispenseLine withUnitSnapshot(int requestedQuantity, String requestedUnit, int conversionFactor) {
+    public DispenseLine withUnitSnapshot(double requestedQuantity, String requestedUnit, double conversionFactor) {
         return new DispenseLine(id, dispenseId, itemId, batchId, quantity, unitCost, fefoOverrideReason, createdAt,
                 requestedQuantity, requestedUnit, conversionFactor, costKnown);
     }

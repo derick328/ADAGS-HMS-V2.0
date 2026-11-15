@@ -1,3 +1,4 @@
+import { measuredUnit } from '../../shared/quantity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { searchItems } from '../../shared/api/items';
@@ -97,7 +98,7 @@ export function MedicationSettings({ catalogueItem, onClose }: { catalogueItem: 
         const invalidBlister = presentation === 'BLISTER_PACK' &&
           (!Number.isSafeInteger(Number(blisters)) || Number(blisters) < 1 || !Number.isSafeInteger(Number(perBlister)) || Number(perBlister) < 1 || !Number.isSafeInteger(blisterTotal) || blisterTotal < 2);
         const invalidOther = presentation === 'OTHER' &&
-          (!/^[A-Z][A-Z0-9_]*$/.test(packageUnit.trim().toUpperCase()) || !Number.isSafeInteger(Number(factor)) || Number(factor) < 2);
+          (!/^[A-Z][A-Z0-9_]*$/.test(packageUnit.trim().toUpperCase()) || (!measuredUnit(medicine?.unit) && !Number.isSafeInteger(Number(factor))) || !Number.isFinite(Number(factor)) || Number(factor) <= 0 || !/^\d+(?:\.\d{1,6})?$/.test(factor));
         if (invalidBlister || invalidOther || !reason.trim()) {
           setError('Enter positive whole packaging counts and a reason.'); return;
         } propose.mutate(); }}>
@@ -111,7 +112,7 @@ export function MedicationSettings({ catalogueItem, onClose }: { catalogueItem: 
             <label>{medicine.unit} per blister <input className="clinical-control" type="number" min="1" step="1" value={perBlister} onChange={event => setPerBlister(event.target.value)} /></label>
           </> : <>
             <label>Package name <input className="clinical-control" value={packageUnit} onChange={event => setPackageUnit(event.target.value)} placeholder="BOTTLE_100 or VIAL_10" /></label>
-            <label>{medicine.unit} per package <input className="clinical-control" type="number" min="2" step="1" value={factor} onChange={event => setFactor(event.target.value)} /></label>
+            <label>{medicine.unit} per package <input className="clinical-control" type="number" min={measuredUnit(medicine?.unit) ? 0.000001 : 1} step={measuredUnit(medicine?.unit) ? 'any' : 1} value={factor} onChange={event => setFactor(event.target.value)} /></label>
           </>}
           <label>Reason <input className="clinical-control" value={reason} onChange={event => setReason(event.target.value)} /></label></div>
         {presentation === 'BLISTER_PACK' && <p className="stock-in-calculation" role="status">{blisters || '0'} blisters × {perBlister || '0'} {medicine.unit} per blister = <strong>{Number.isSafeInteger(blisterTotal) ? blisterTotal : 'Invalid'} {medicine.unit} per pack</strong></p>}

@@ -6,7 +6,7 @@ import com.adags.modules.inventory.domain.LabStockRequestStatus;
 import java.util.UUID;
 
 public record LabStockRequestResponse(
-        UUID id, UUID itemId, int requestedQuantity, int releasedQuantity, int remaining, UUID requestingStoreId,
+        UUID id, UUID itemId, double requestedQuantity, double releasedQuantity, double remaining, UUID requestingStoreId,
         LabStockRequestStatus status, String responseNotes, String requestNotes
 ) {
 

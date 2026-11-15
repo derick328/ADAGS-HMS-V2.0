@@ -17,7 +17,7 @@ public record RestockLedgerEntry(
         UUID itemId,
         String itemName,
         String batchNumber,
-        int receivedQuantity,
+        double receivedQuantity,
         Long unitCostAmountMinor,
         Long totalCostMinor,
         String currencyCode,

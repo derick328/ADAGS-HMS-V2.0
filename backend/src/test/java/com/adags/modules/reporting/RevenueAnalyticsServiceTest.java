@@ -350,6 +350,18 @@ class RevenueAnalyticsServiceTest extends IntegrationTestSupport {
     // ---------------------------------------------------------- top items
 
     @Test
+    void reportedGramQuantitiesRetainTheirFractionalPart() {
+        Fixture f = fixture();
+        String medicine = namedItem("PHARMACY", "PHARMACY", 80, "Calamine lotion");
+        UUID line = postCharge(f, medicine, 12.5);
+        pay(f, line, 1000);
+        var top = analytics.topItems(YESTERDAY, TOMORROW, BOOTSTRAP_FACILITY_ID, RevenueCategory.PHARMACY, 5);
+        assertThat(top).hasSize(1);
+        assertThat(top.getFirst().quantityBilled()).isEqualTo(12.5);
+        assertThat(top.getFirst().billedMinor()).isEqualTo(1000);
+    }
+
+    @Test
     void medicinesAreRankedByRevenueHighestFirst() {
         Fixture f = fixture();
         String cheap = namedItem("PHARMACY", "PHARMACY", 5_000, "Paracetamol 500mg tab");
@@ -715,7 +727,7 @@ class RevenueAnalyticsServiceTest extends IntegrationTestSupport {
         return new Fixture(admin, patientId, encounterId, facilityId);
     }
 
-    private UUID postCharge(Fixture f, String serviceItemCode, int quantity) {
+    private UUID postCharge(Fixture f, String serviceItemCode, double quantity) {
         ChargePostingResult result = chargePostingService.postCharge(new ChargePostingCommand(
                 f.encounterId, f.patientId, f.facilityId, PayerCategory.CASH, null,
                 serviceItemCode, quantity, "TestFixture", UUID.randomUUID(), f.admin));

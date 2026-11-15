@@ -10,7 +10,7 @@ public class InsufficientBatchStockException extends RuntimeException {
 
     private final UUID itemId;
 
-    public InsufficientBatchStockException(UUID itemId, int requested, int available) {
+    public InsufficientBatchStockException(UUID itemId, double requested, double available) {
         super("Item " + itemId + ": requested " + requested + " but only " + available + " available across active batches.");
         this.itemId = itemId;
     }

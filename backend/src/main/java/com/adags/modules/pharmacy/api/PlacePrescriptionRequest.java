@@ -13,7 +13,7 @@ import java.util.UUID;
 public record PlacePrescriptionRequest(
         @NotNull UUID encounterId,
         @NotNull UUID itemId,
-        @Positive int quantityPrescribed,
+        @Positive @jakarta.validation.constraints.Digits(integer = 14, fraction = 6) double quantityPrescribed,
         @NotBlank String dosageInstructions,
         boolean substitutionAllowed,
         String route,
@@ -21,10 +21,10 @@ public record PlacePrescriptionRequest(
         String doseUnit,
         PrescriptionFrequency frequency,
         Integer durationDays,
-        Integer requestedQuantity,
+        Double requestedQuantity,
         String requestedUnit
 ) {
-    public PlacePrescriptionRequest(UUID encounterId, UUID itemId, int quantityPrescribed,
+    public PlacePrescriptionRequest(UUID encounterId, UUID itemId, double quantityPrescribed,
             String dosageInstructions, boolean substitutionAllowed, String route, Double doseAmount,
             String doseUnit, PrescriptionFrequency frequency, Integer durationDays) {
         this(encounterId, itemId, quantityPrescribed, dosageInstructions, substitutionAllowed,

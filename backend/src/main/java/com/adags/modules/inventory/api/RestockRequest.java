@@ -15,7 +15,7 @@ public record RestockRequest(
         // RestockService checks this against the facility-local date. Bean Validation's
         // @Future uses the server clock zone and can reject a valid local date.
         @NotNull LocalDate expiryDate,
-        @Positive int quantity,
+        @Positive @jakarta.validation.constraints.Digits(integer = 14, fraction = 6) double quantity,
         @Min(0) long unitCostAmountMinor,
         String unitCostCurrencyCode,
         @NotNull UUID supplierId,

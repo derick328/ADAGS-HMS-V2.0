@@ -17,7 +17,7 @@ public record DispenseHistoryResponse(
         String hospitalNumber,
         String itemCode,
         String itemName,
-        int quantityDispensed,
+        double quantityDispensed,
         Instant dispensedAt,
         UUID dispensedBy,
         String dispensedByUsername,

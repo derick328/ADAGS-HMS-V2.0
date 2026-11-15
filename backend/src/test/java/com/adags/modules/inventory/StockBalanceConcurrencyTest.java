@@ -57,7 +57,7 @@ class StockBalanceConcurrencyTest extends IntegrationTestSupport {
         CountDownLatch go = new CountDownLatch(1);
 
         try {
-            List<Future<Integer>> futures = IntStream.range(0, racers)
+            List<Future<Double>> futures = IntStream.range(0, racers)
                     .mapToObj(i -> pool.submit(() -> {
                         ready.countDown();
                         go.await();
@@ -103,7 +103,7 @@ class StockBalanceConcurrencyTest extends IntegrationTestSupport {
         assertThat(rowCount).isEqualTo(0);
     }
 
-    private Integer resolve(Future<Integer> future) {
+    private Double resolve(Future<Double> future) {
         try {
             return future.get(5, TimeUnit.SECONDS);
         } catch (Exception e) {

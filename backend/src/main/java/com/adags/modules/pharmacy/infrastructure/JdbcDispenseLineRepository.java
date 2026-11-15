@@ -71,10 +71,10 @@ public class JdbcDispenseLineRepository implements DispenseLineRepository {
                 (UUID) rs.getObject("dispense_id"),
                 (UUID) rs.getObject("item_id"),
                 (UUID) rs.getObject("batch_id"),
-                rs.getInt("quantity"),
+                rs.getDouble("quantity"),
                 new Money(rs.getLong("unit_cost_amount_minor"), rs.getString("unit_cost_currency_code")),
                 rs.getString("fefo_override_reason"),
-                rs.getTimestamp("created_at").toInstant(), rs.getInt("requested_quantity"),
-                rs.getString("requested_unit"), rs.getInt("conversion_factor"), rs.getBoolean("cost_known"));
+                rs.getTimestamp("created_at").toInstant(), rs.getDouble("requested_quantity"),
+                rs.getString("requested_unit"), rs.getDouble("conversion_factor"), rs.getBoolean("cost_known"));
     }
 }

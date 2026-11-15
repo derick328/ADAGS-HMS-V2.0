@@ -34,7 +34,7 @@ public class StockMovementController {
     }
 
     public record Movement(UUID id, String itemName, String itemCode, String batchNumber,
-                           int quantityDelta, String movementType, String referenceType,
+                           double quantityDelta, String movementType, String referenceType,
                            Instant occurredAt) {
     }
 
@@ -54,7 +54,7 @@ public class StockMovementController {
                 """, new MapSqlParameterSource("storeId", storeId),
                 (rs, row) -> new Movement((UUID) rs.getObject("id"), rs.getString("item_name"),
                         rs.getString("item_code"), rs.getString("batch_number"),
-                        rs.getInt("qty_delta"), rs.getString("movement_type"),
+                        rs.getDouble("qty_delta"), rs.getString("movement_type"),
                         rs.getString("reference_type"), rs.getTimestamp("occurred_at").toInstant()));
     }
 }

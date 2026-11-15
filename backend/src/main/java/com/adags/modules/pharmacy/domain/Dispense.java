@@ -14,13 +14,14 @@ public record Dispense(
         UUID dispensedBy,
         Instant dispensedAt,
         String idempotencyKey,
-        int quantityDispensed,
+        double quantityDispensed,
         String counsellingNotes,
         String dispensingNotes
 ) {
 
     public static Dispense create(UUID prescriptionLineId, UUID dispensedBy, String idempotencyKey,
-                                   int quantityDispensed, String counsellingNotes, String dispensingNotes) {
+                                   double quantityDispensed, String counsellingNotes, String dispensingNotes) {
+        com.adags.shared.kernel.DecimalQuantity.require(quantityDispensed);
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new IllegalArgumentException("idempotencyKey is required.");
         }

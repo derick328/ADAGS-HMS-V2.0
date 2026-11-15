@@ -120,7 +120,7 @@ export function StockInPage() {
         calculateDeliveryLine(accepted ?? -1, line.factor, cost);
         calculateDeliveryLine(rejected ?? -1, line.factor, cost);
       } catch { calculationValid = false; }
-      if (!line.item || !line.unit || line.factor < 1 || received == null ||
+      if (!line.item || !line.unit || line.factor <= 0 || received == null ||
           received === 0 && (ordered == null || ordered === 0) || accepted == null ||
           rejected == null || accepted > received || rejected > received ||
           accepted + rejected !== received || line.unitCost.trim() !== '' && cost == null ||

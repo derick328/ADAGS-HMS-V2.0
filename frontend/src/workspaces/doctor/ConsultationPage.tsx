@@ -1,3 +1,4 @@
+import { decimalQuantity, measuredUnit } from '../../shared/quantity';
 import { PreviousMedicalHistory } from './PreviousMedicalHistory';
 import { Checkbox } from '../../shared/components/Checkbox';
 import { FormField as FormRow } from '../../shared/components/FormField';
@@ -1719,13 +1720,13 @@ function PrescriptionTab({
     && (!(pending?.strength?.trim() || routeConfiguration?.concentration?.trim()) || approvedRoutes.length === 0);
   const selectedPackage = approvedPackages.find(p => p.status === 'APPROVED' && p.unit === supplyUnit);
   const packageFactor = automatic || supplyUnit === baseUnit ? 1 : selectedPackage?.factor ?? 0;
-  const computedQuantity = requestedQuantity * packageFactor;
+  const computedQuantity = decimalQuantity(requestedQuantity * packageFactor) ?? 0;
   const overCeiling = requestedQuantity > QUANTITY_SANITY_CEILING;
 
   function addLine() {
     if (!pending || stockStatus(pending.id).reason || injectionNeedsSetup || routesLoading || routesError || (!automatic && (packagingLoading || packagingError))
-      || !Number.isSafeInteger(computedQuantity) || computedQuantity <= 0
-      || !Number.isSafeInteger(requestedQuantity) || requestedQuantity <= 0 || !requestedUnit
+      || decimalQuantity(computedQuantity) == null || computedQuantity <= 0
+      || decimalQuantity(requestedQuantity) == null || (automatic && !Number.isSafeInteger(requestedQuantity)) || requestedQuantity <= 0 || !requestedUnit
       || !Number.isFinite(quantityPerDose) || quantityPerDose <= 0 || (automatic && !Number.isInteger(quantityPerDose))
       || !doseUnit.trim() || !route.trim() || (approvedRoutes.length > 0 && !approvedRoutes.includes(route.toUpperCase()))
       || (frequency === 'OTHER' && !dosageInstructions.trim())
@@ -1914,7 +1915,7 @@ function PrescriptionTab({
             <p><strong>{calculated ?? 'Enter a valid whole dose and duration'} {baseUnit}</strong> (Auto-calculated)</p>
           ) : <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
             <FormRow label={automatic ? 'Explicit total dispensing quantity' : 'Package quantity to dispense'}>
-              <input className="clinical-control" type="number" min={1} step={1} value={wholeQuantity} onChange={e => setWholeQuantity(Number(e.target.value))} style={fieldStyle} />
+              <input className="clinical-control" type="number" min={measuredUnit(requestedUnit) ? 0.000001 : 1} step={measuredUnit(requestedUnit) ? 'any' : 1} value={wholeQuantity} onChange={e => setWholeQuantity(Number(e.target.value))} style={fieldStyle} />
             </FormRow>
             {!automatic && <FormRow label="Dispensing unit">
               <select className="clinical-control" value={supplyUnit} onChange={e => setSupplyUnit(e.target.value)} style={fieldStyle}>

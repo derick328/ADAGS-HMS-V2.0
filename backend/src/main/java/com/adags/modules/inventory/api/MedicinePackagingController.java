@@ -98,7 +98,7 @@ public class MedicinePackagingController {
         return service.reject(id, request.reason(), actor.userId());
     }
 
-    public record ProposalRequest(@NotBlank String unit, @Min(1) int quantityInBaseUnits,
+    public record ProposalRequest(@NotBlank String unit, @jakarta.validation.constraints.DecimalMin(value = "0", inclusive = false) @jakarta.validation.constraints.Digits(integer = 14, fraction = 6) double quantityInBaseUnits,
                                   boolean canSplit, String reason,
                                   @Min(1) Integer blistersPerPack, @Min(1) Integer unitsPerBlister,
                                   UUID replacesPackagingId, String proposedForm, String proposedBaseUnit) {

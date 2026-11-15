@@ -5,8 +5,8 @@ import com.adags.modules.pharmacy.domain.DispenseLine;
 import java.util.UUID;
 
 public record DispenseLineResponse(
-        UUID id, UUID itemId, UUID batchId, int quantity, Long unitCostAmountMinor, String unitCostCurrencyCode,
-        String fefoOverrideReason, int requestedQuantity, String requestedUnit, int conversionFactor
+        UUID id, UUID itemId, UUID batchId, double quantity, Long unitCostAmountMinor, String unitCostCurrencyCode,
+        String fefoOverrideReason, double requestedQuantity, String requestedUnit, double conversionFactor
 ) {
 
     public static DispenseLineResponse from(DispenseLine line) {

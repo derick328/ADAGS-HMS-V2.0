@@ -41,7 +41,7 @@ public class ReconcileProcedureItemService {
             throw new ProcedureItemAlreadyReconciledException(item.id());
         }
 
-        int accountedFor = command.quantityUsed() + command.quantityReturned() + command.quantityWasted();
+        double accountedFor = com.adags.shared.kernel.DecimalQuantity.add(com.adags.shared.kernel.DecimalQuantity.add(command.quantityUsed(), command.quantityReturned()), command.quantityWasted());
         if (accountedFor != item.quantityPrepared()) {
             throw new ProcedureItemNotBalancedException(item.id(), item.quantityPrepared(),
                     command.quantityUsed(), command.quantityReturned(), command.quantityWasted());

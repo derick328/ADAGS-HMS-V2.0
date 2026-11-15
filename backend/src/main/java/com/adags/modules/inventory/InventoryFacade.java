@@ -40,7 +40,7 @@ public interface InventoryFacade {
     Optional<ItemSummary> findItemSummary(UUID itemId);
 
     /** Approved product-specific purchase/prescription unit to base-unit factor. */
-    int conversionFactor(UUID itemId, String unit);
+    double conversionFactor(UUID itemId, String unit);
 
     /** Empty when no product-specific route restriction has been configured. */
     List<String> approvedAdministrationRoutes(UUID itemId);
@@ -61,7 +61,7 @@ public interface InventoryFacade {
     Optional<BatchAvailability> findBatch(UUID batchId);
 
     /** Reject an incomplete sealed package, aggregating cost tranches from one receipt line. */
-    void assertDispensePackaging(UUID itemId, Map<UUID, Integer> quantityByBatch);
+    void assertDispensePackaging(UUID itemId, Map<UUID, ? extends Number> quantityByBatch);
 
     /**
      * Dispenses {@code quantity} of {@code itemId} from {@code batchId}:
@@ -80,7 +80,7 @@ public interface InventoryFacade {
      * if the item's regulatory_schedule has changed to CONTROLLED since
      * prescribing (evaluated live, same discipline as the billing gate).
      */
-    Money decrementForDispense(UUID itemId, UUID batchId, int quantity, UUID referenceId, UUID actorUserId);
+    Money decrementForDispense(UUID itemId, UUID batchId, double quantity, UUID referenceId, UUID actorUserId);
 
     /**
      * Phase 8 item 2 (surgery module): same mechanics as
@@ -96,7 +96,7 @@ public interface InventoryFacade {
      * {@code referenceId} is the caller's pre-generated ProcedureItem id,
      * same pre-generated-id pattern as {@code decrementForDispense}.
      */
-    Money decrementForProcedureItem(UUID itemId, UUID batchId, int quantity, UUID referenceId, UUID actorUserId);
+    Money decrementForProcedureItem(UUID itemId, UUID batchId, double quantity, UUID referenceId, UUID actorUserId);
 
     /**
      * Phase 8 item 3 (surgery module): "Returned items write a positive
@@ -109,6 +109,6 @@ public interface InventoryFacade {
      * CLAUDE.md "Safety" blocks CONTROLLED from consumption, not from
      * being accounted for).
      */
-    void incrementForReturn(UUID itemId, UUID batchId, int quantity, UUID referenceId, UUID actorUserId);
+    void incrementForReturn(UUID itemId, UUID batchId, double quantity, UUID referenceId, UUID actorUserId);
     void updateCatalogueDetails(String code, String name, String classification, boolean classificationChanged);
 }

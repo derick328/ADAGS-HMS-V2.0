@@ -55,10 +55,10 @@ public class JdbcStockViewRepository implements StockViewRepository {
         return jdbcTemplate.query(sql, new MapSqlParameterSource().addValue("storeIds", storeIds), (rs, rowNum) -> new CurrentStockRow(
                 (UUID) rs.getObject("item_id"), rs.getString("item_code"), rs.getString("item_name"),
                 (UUID) rs.getObject("batch_id"), rs.getString("batch_number"), rs.getDate("expiry_date").toLocalDate(),
-                (UUID) rs.getObject("store_id"), rs.getString("store_name"), rs.getInt("quantity"),
+                (UUID) rs.getObject("store_id"), rs.getString("store_name"), rs.getDouble("quantity"),
                 rs.getString("strength"), rs.getString("base_unit"), rs.getString("form"),
-                rs.getString("purchase_unit"), (Integer) rs.getObject("package_factor"), rs.getString("stock_status"),
-                rs.getInt("available_quantity")));
+                rs.getString("purchase_unit"), rs.getObject("package_factor") == null ? null : rs.getDouble("package_factor"), rs.getString("stock_status"),
+                rs.getDouble("available_quantity")));
     }
 
     @Override
@@ -85,7 +85,7 @@ public class JdbcStockViewRepository implements StockViewRepository {
                 "LEFT JOIN stock_balance sb ON sb.item_id = i.id AND sb.store_id IN (:storeIds)");
         return jdbcTemplate.query(sql, new MapSqlParameterSource().addValue("storeIds", storeIds), (rs, rowNum) -> new LowStockRow(
                 (UUID) rs.getObject("item_id"), rs.getString("item_code"), rs.getString("item_name"),
-                rs.getInt("total_quantity"), rs.getInt("reorder_level")));
+                rs.getDouble("total_quantity"), rs.getInt("reorder_level")));
     }
 
     @Override
@@ -114,7 +114,7 @@ public class JdbcStockViewRepository implements StockViewRepository {
                 .addValue("storeIds", storeIds), (rs, rowNum) -> new ExpiringBatchRow(
                 (UUID) rs.getObject("batch_id"), (UUID) rs.getObject("item_id"), rs.getString("item_code"),
                 rs.getString("item_name"), rs.getString("batch_number"), rs.getDate("expiry_date").toLocalDate(),
-                rs.getInt("quantity")));
+                rs.getDouble("quantity")));
     }
 
     @Override

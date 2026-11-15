@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public record ExpiringBatchResponse(
-        UUID batchId, UUID itemId, String itemCode, String itemName, String batchNumber, LocalDate expiryDate, int quantity
+        UUID batchId, UUID itemId, String itemCode, String itemName, String batchNumber, LocalDate expiryDate, double quantity
 ) {
 
     public static ExpiringBatchResponse from(ExpiringBatchRow row) {

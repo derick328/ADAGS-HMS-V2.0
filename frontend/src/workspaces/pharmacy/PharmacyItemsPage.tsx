@@ -1,3 +1,4 @@
+import { measuredUnit } from '../../shared/quantity';
 import { Tabs } from '../../shared/components/Tabs';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { FormField as Field } from '../../shared/components/FormField';
@@ -242,7 +243,7 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
       <label>Base inventory unit for selected form <input className="clinical-control" value={correctedBaseUnit}
         onChange={event => setCorrectedBaseUnit(event.target.value)} disabled={!item}
         placeholder="e.g. TABLET, ML, VIAL, G" /></label>
-      {item && <small>Base unit changes require a new product once packaging, stock, or prescriptions exist.</small>}
+      {item && <small>Base unit changes require a new product once approved packaging, stock, or prescriptions exist. Rejected proposals can be corrected and resubmitted.</small>}
       <label>Package type <select className="clinical-control" value={presentation} onChange={(e) => setPresentation(e.target.value as 'BLISTER_PACK' | 'OTHER')}>
         <option value="BLISTER_PACK">Pack containing blisters</option><option value="OTHER">Bottle, vial, ampoule, tube, or other</option>
       </select></label>
@@ -253,7 +254,7 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
         <label>Package name <input className="clinical-control" value={unit} onChange={(e) => setUnit(e.target.value)}
           placeholder={isLiquidOralForm(selectedForm) ? 'BOTTLE_100' : selectedForm === 'INJECTION' ? 'VIAL_10' :
             ['CREAM', 'GEL', 'LOTION', 'PASTE'].includes(selectedForm) ? 'TUBE_30' : 'PACK_50'} /></label>
-        <label>{item ? displayBaseUnit : 'Base units'} per package <input className="clinical-control" type="number" min="1" step="1" value={factor} onChange={(e) => setFactor(e.target.value)} /></label>
+        <label>{item ? displayBaseUnit : 'Base units'} per package <input className="clinical-control" type="number" min={measuredUnit(displayBaseUnit) ? 0.000001 : 1} step={measuredUnit(displayBaseUnit) ? 'any' : 1} value={factor} onChange={(e) => setFactor(e.target.value)} /></label>
       </>}
       <label><input type="checkbox" checked={canSplit} onChange={(e) => setCanSplit(e.target.checked)} /> May dispense individual base units from this package</label>
     </div>
@@ -275,7 +276,7 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
          !Number.isSafeInteger(Number(unitsPerBlister)) || Number(unitsPerBlister) < 1 ||
          !Number.isSafeInteger(blisterTotal) || blisterTotal < 1);
       const invalidOther = presentation === 'OTHER' &&
-        (!unit.trim() || !Number.isSafeInteger(Number(factor)) || Number(factor) < 1);
+        (!unit.trim() || (!measuredUnit(displayBaseUnit) && !Number.isSafeInteger(Number(factor))) || !Number.isFinite(Number(factor)) || Number(factor) <= 0 || !/^\d+(?:\.\d{1,6})?$/.test(factor));
       if (!item?.id || !item.unit) { setError('Select a medicine from the search results.'); return; }
       if (!selectedForm) { setError('Select a dosage form for this medicine.'); return; }
       const baseUnit = correctedBaseUnit.trim().toUpperCase();
@@ -285,7 +286,7 @@ function PackagingProposalForm({ edit, onCancelEdit, onEditedSubmitted }: {
         setError('The base unit does not match the dosage form.'); return;
       }
       if (invalidBlister) { setError('Enter positive whole numbers for blisters per pack and units per blister.'); return; }
-      if (invalidOther) { setError('Enter a package name and a positive whole number of base units per package.'); return; }
+      if (invalidOther) { setError('Enter a package name and a positive quantity with up to six decimal places per package.'); return; }
       setError(''); submit.mutate();
     }}>{edit ? 'Submit edited packaging' : 'Propose packaging'}</button>
   </div>;

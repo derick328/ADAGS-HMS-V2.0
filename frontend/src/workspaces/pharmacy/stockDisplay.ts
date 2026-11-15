@@ -1,3 +1,4 @@
+import { decimalQuantity } from '../../shared/quantity';
 import type { CurrentStockResponse } from '../../shared/api/stockReports';
 import { isAutomaticForm } from '../doctor/prescriptionQuantity';
 
@@ -13,7 +14,7 @@ function packageName(unit: string, count: number): string {
 export function stockTotalDisplay(rows: CurrentStockResponse[]): string {
   if (rows.length === 0) return '0';
   const baseUnit = rows[0].baseUnit ?? 'units';
-  const totalBase = rows.reduce((sum, row) => sum + (row.quantity ?? 0), 0);
+  const totalBase = rows.reduce((sum, row) => (decimalQuantity(sum + (row.quantity ?? 0)) ?? sum + (row.quantity ?? 0)), 0);
   if (isAutomaticForm(rows[0].form)) return `${totalBase} ${baseUnit}`;
 
   const groups = new Map<string, PackageGroup>();
@@ -21,18 +22,18 @@ export function stockTotalDisplay(rows: CurrentStockResponse[]): string {
   for (const row of rows) {
     const quantity = row.quantity ?? 0;
     const factor = row.packageFactor;
-    if (!row.purchaseUnit || !factor || factor <= 1 || row.purchaseUnit.toUpperCase() === baseUnit.toUpperCase()) {
-      unpackagedBase += quantity;
+    if (!row.purchaseUnit || !factor || factor <= 0 || row.purchaseUnit.toUpperCase() === baseUnit.toUpperCase()) {
+      unpackagedBase = decimalQuantity(unpackagedBase + quantity) ?? unpackagedBase + quantity;
       continue;
     }
     const key = `${row.purchaseUnit}|${factor}`;
     const group = groups.get(key) ?? { unit: row.purchaseUnit, factor, quantity: 0 };
-    group.quantity += quantity;
+    group.quantity = decimalQuantity(group.quantity + quantity) ?? group.quantity + quantity;
     groups.set(key, group);
   }
   const parts = [...groups.values()].flatMap((group) => {
-    const whole = Math.floor(group.quantity / group.factor);
-    const remainder = group.quantity % group.factor;
+    const whole = Math.floor(decimalQuantity(group.quantity / group.factor) ?? group.quantity / group.factor);
+    const remainder = decimalQuantity(group.quantity - whole * group.factor) ?? group.quantity - whole * group.factor;
     return [whole ? packageName(group.unit, whole) : '', remainder ? `${remainder} ${baseUnit}` : ''].filter(Boolean);
   });
   if (unpackagedBase) parts.push(`${unpackagedBase} ${baseUnit}`);

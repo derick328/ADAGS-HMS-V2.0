@@ -95,21 +95,21 @@ public class DispenseService {
         // Normalize each requested package quantity before FEFO, billing and stock mutation.
         // The selected factor is saved on the dispense line, so later packaging edits
         // cannot reinterpret this transaction.
-        record Normalized(DispenseLineInput input, int baseQuantity, int factor, String unit) {}
+        record Normalized(DispenseLineInput input, double baseQuantity, double factor, String unit) {}
         List<Normalized> normalized = command.lines().stream().map(input -> {
             if (input.quantity() <= 0) throw new IllegalArgumentException("Dispense quantity must be positive");
             String unit = input.requestedUnit() == null
                     ? inventoryFacade.findItemSummary(prescriptionLine.itemId()).orElseThrow().unit()
                     : input.requestedUnit();
-            int factor = prescribedUnit != null && unit.equalsIgnoreCase(prescribedUnit.requestedUnit())
+            double factor = prescribedUnit != null && unit.equalsIgnoreCase(prescribedUnit.requestedUnit())
                     ? prescribedUnit.conversionFactor()
                     : inventoryFacade.conversionFactor(prescriptionLine.itemId(), unit);
-            return new Normalized(input, Math.multiplyExact(input.quantity(), factor), factor, unit);
+            return new Normalized(input, com.adags.shared.kernel.DecimalQuantity.multiply(input.quantity(), factor), factor, unit);
         }).toList();
         List<DispenseLineInput> baseLines = normalized.stream().map(n ->
                 new DispenseLineInput(n.input().batchId(), n.baseQuantity(), n.input().overrideReason())).toList();
-        int totalQuantity = baseLines.stream().map(DispenseLineInput::quantity)
-                .reduce(0, Math::addExact);
+        double totalQuantity = baseLines.stream().map(DispenseLineInput::quantity)
+                .reduce(0d, com.adags.shared.kernel.DecimalQuantity::add);
         // §4.4's three-way rule — pure, no side effects, before anything is touched.
         PrescriptionLine updatedLine = prescriptionLine.applyDispense(totalQuantity);
 
@@ -124,8 +124,8 @@ public class DispenseService {
         }
         requireOverrideReasonIfFefoWasNotFollowed(prescriptionLine.itemId(), facilityId, baseLines, totalQuantity);
 
-        Map<UUID, Integer> quantitiesByBatch = new HashMap<>();
-        baseLines.forEach(line -> quantitiesByBatch.merge(line.batchId(), line.quantity(), Math::addExact));
+        Map<UUID, Double> quantitiesByBatch = new HashMap<>();
+        baseLines.forEach(line -> quantitiesByBatch.merge(line.batchId(), line.quantity(), com.adags.shared.kernel.DecimalQuantity::add));
         inventoryFacade.assertDispensePackaging(prescriptionLine.itemId(), quantitiesByBatch);
 
         // §5.1: evaluated NOW, never cached from prescribing time. Throws
@@ -175,7 +175,7 @@ public class DispenseService {
     // guessing which one "caused" it, and a blanket requirement is no
     // easier to satisfy honestly.
     private void requireOverrideReasonIfFefoWasNotFollowed(UUID itemId, UUID facilityId,
-                                                             List<DispenseLineInput> lines, int totalQuantity) {
+                                                             List<DispenseLineInput> lines, double totalQuantity) {
         List<BatchAvailability> available = inventoryFacade.findFefoBatches(itemId, facilityId);
         List<BatchAllocation> suggested;
         try {
@@ -193,11 +193,11 @@ public class DispenseService {
             return;
         }
 
-        Map<UUID, Integer> suggestedByBatch = new HashMap<>();
-        suggested.forEach(a -> suggestedByBatch.merge(a.batchId(), a.quantity(), Integer::sum));
+        Map<UUID, Double> suggestedByBatch = new HashMap<>();
+        suggested.forEach(a -> suggestedByBatch.merge(a.batchId(), a.quantity(), com.adags.shared.kernel.DecimalQuantity::add));
 
-        Map<UUID, Integer> submittedByBatch = new HashMap<>();
-        lines.forEach(l -> submittedByBatch.merge(l.batchId(), l.quantity(), Integer::sum));
+        Map<UUID, Double> submittedByBatch = new HashMap<>();
+        lines.forEach(l -> submittedByBatch.merge(l.batchId(), l.quantity(), com.adags.shared.kernel.DecimalQuantity::add));
 
         if (suggestedByBatch.equals(submittedByBatch)) {
             return;

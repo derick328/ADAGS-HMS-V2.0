@@ -13,8 +13,8 @@ public record PrescriptionLine(
         UUID id,
         UUID prescriptionOrderId,
         UUID itemId,
-        int quantityPrescribed,
-        int quantityDispensed,
+        double quantityPrescribed,
+        double quantityDispensed,
         String dosageInstructions,
         UUID invoiceLineId,
         PrescriptionLineStatus status,
@@ -38,10 +38,11 @@ public record PrescriptionLine(
         Instant createdAt
 ) {
 
-    public static PrescriptionLine create(UUID prescriptionOrderId, UUID itemId, int quantityPrescribed,
+    public static PrescriptionLine create(UUID prescriptionOrderId, UUID itemId, double quantityPrescribed,
                                            String dosageInstructions, UUID invoiceLineId, boolean substitutionAllowed,
                                            String route, Double doseAmount, String doseUnit,
                                            PrescriptionFrequency frequency, Integer durationDays) {
+        com.adags.shared.kernel.DecimalQuantity.require(quantityPrescribed);
         if (quantityPrescribed <= 0) {
             throw new IllegalArgumentException("quantityPrescribed must be > 0.");
         }
@@ -56,8 +57,8 @@ public record PrescriptionLine(
                 route, doseAmount, doseUnit, frequency, durationDays, null);
     }
 
-    public int remaining() {
-        return quantityPrescribed - quantityDispensed;
+    public double remaining() {
+        return com.adags.shared.kernel.DecimalQuantity.subtract(quantityPrescribed, quantityDispensed);
     }
 
     /**
@@ -66,14 +67,14 @@ public record PrescriptionLine(
      * (DispenseExceedsPrescribedException), never a silent clamp. Returns
      * the line with its new quantityDispensed/status — the caller persists it.
      */
-    public PrescriptionLine applyDispense(int quantity) {
+    public PrescriptionLine applyDispense(double quantity) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("quantity must be > 0.");
         }
         if (quantity > remaining()) {
             throw new DispenseExceedsPrescribedException(id, quantity, remaining());
         }
-        int newDispensed = quantityDispensed + quantity;
+        double newDispensed = com.adags.shared.kernel.DecimalQuantity.add(quantityDispensed, quantity);
         PrescriptionLineStatus newStatus = newDispensed == quantityPrescribed
                 ? PrescriptionLineStatus.COMPLETED : PrescriptionLineStatus.PARTIALLY_DISPENSED;
         return new PrescriptionLine(id, prescriptionOrderId, itemId, quantityPrescribed, newDispensed,

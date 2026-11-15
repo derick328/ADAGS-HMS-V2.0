@@ -16,20 +16,20 @@ public final class FefoAllocator {
     private FefoAllocator() {
     }
 
-    public static List<BatchAllocation> allocate(UUID itemId, List<BatchAvailability> batchesByExpiry, int quantity) {
+    public static List<BatchAllocation> allocate(UUID itemId, List<BatchAvailability> batchesByExpiry, double quantity) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("quantity must be > 0.");
         }
         List<BatchAllocation> result = new ArrayList<>();
-        int remaining = quantity;
+        double remaining = quantity;
         for (BatchAvailability batch : batchesByExpiry) {
             if (remaining <= 0) {
                 break;
             }
-            int take = Math.min(remaining, batch.quantityAvailable());
+            double take = Math.min(remaining, batch.quantityAvailable());
             if (take > 0) {
                 result.add(new BatchAllocation(batch.batchId(), take));
-                remaining -= take;
+                remaining = com.adags.shared.kernel.DecimalQuantity.subtract(remaining, take);
             }
         }
         if (remaining > 0) {

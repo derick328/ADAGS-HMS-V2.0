@@ -7,6 +7,6 @@ import java.util.UUID;
 // window, earliest first — the watchlist a pharmacist works down before
 // stock is written off.
 public record ExpiringBatchRow(
-        UUID batchId, UUID itemId, String itemCode, String itemName, String batchNumber, LocalDate expiryDate, int quantity
+        UUID batchId, UUID itemId, String itemCode, String itemName, String batchNumber, LocalDate expiryDate, double quantity
 ) {
 }

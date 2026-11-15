@@ -50,15 +50,19 @@ public class JdbcStockBalanceRepository implements StockBalanceRepository {
     }
 
     @Override
-    public int applyDelta(UUID itemId, UUID batchId, UUID storeId, int delta) {
+    public double applyDelta(UUID itemId, UUID batchId, UUID storeId, double delta) {
+        com.adags.shared.kernel.DecimalQuantity.require(delta);
+        String baseUnit = jdbcTemplate.queryForObject("SELECT unit FROM item WHERE id = :id",
+                new MapSqlParameterSource("id", itemId), String.class);
+        com.adags.shared.kernel.DecimalQuantity.requireForUnit(delta, baseUnit);
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("itemId", itemId)
                 .addValue("batchId", batchId)
                 .addValue("storeId", storeId)
-                .addValue("delta", delta);
+                .addValue("delta", java.math.BigDecimal.valueOf(delta));
         try {
-            List<Integer> result = jdbcTemplate.query(
-                    delta >= 0 ? INCREMENT_SQL : DECREMENT_SQL, params, (rs, rowNum) -> rs.getInt("quantity"));
+            List<Double> result = jdbcTemplate.query(
+                    delta >= 0 ? INCREMENT_SQL : DECREMENT_SQL, params, (rs, rowNum) -> rs.getDouble("quantity"));
             return result.stream().findFirst().orElseThrow(() -> new InsufficientStockException(batchId));
         } catch (DataIntegrityViolationException ex) {
             throw new InsufficientStockException(batchId);
@@ -66,15 +70,15 @@ public class JdbcStockBalanceRepository implements StockBalanceRepository {
     }
 
     @Override
-    public int quantityOnHand(UUID batchId) {
+    public double quantityOnHand(UUID batchId) {
         // Lab transfers can create another balance row for the same batch.
         // Dispensing availability is the batch's source pharmacy store only.
-        List<Integer> result = jdbcTemplate.query(
+        List<Double> result = jdbcTemplate.query(
                 """
                 SELECT sb.quantity FROM stock_balance sb JOIN stock_batch b ON b.id = sb.batch_id
                 WHERE sb.batch_id = :batchId AND sb.store_id = b.store_id
                 """,
-                new MapSqlParameterSource("batchId", batchId), (rs, rowNum) -> rs.getInt("quantity"));
-        return result.stream().findFirst().orElse(0);
+                new MapSqlParameterSource("batchId", batchId), (rs, rowNum) -> rs.getDouble("quantity"));
+        return result.stream().findFirst().orElse(0d);
     }
 }

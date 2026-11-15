@@ -11,9 +11,9 @@ public record DispenseContextResponse(
         List<BatchAvailabilityResponse> availableBatches,
         List<BatchAllocationResponse> fefoSuggestion,
         Double weightKg,
-        int requestedQuantity,
+        double requestedQuantity,
         String requestedUnit,
-        int conversionFactor,
+        double conversionFactor,
         String baseUnit,
         String dosageForm,
         String productStrength

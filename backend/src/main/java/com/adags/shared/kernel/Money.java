@@ -29,6 +29,11 @@ public record Money(long amountMinor, String currencyCode) {
         return new Money(amountMinor - other.amountMinor, currencyCode);
     }
 
+    public Money times(double quantity) {
+        return new Money(java.math.BigDecimal.valueOf(amountMinor).multiply(java.math.BigDecimal.valueOf(quantity))
+                .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact(), currencyCode);
+    }
+
     public Money times(long quantity) {
         return new Money(amountMinor * quantity, currencyCode);
     }

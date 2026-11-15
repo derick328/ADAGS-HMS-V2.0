@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public record CreateLabStockRequestRequest(
         @NotNull UUID itemId,
-        @Positive int requestedQuantity,
+        @Positive @jakarta.validation.constraints.Digits(integer = 14, fraction = 6) double requestedQuantity,
         @NotNull UUID requestingStoreId,
         @Size(max = 500) String requestNotes
 ) {

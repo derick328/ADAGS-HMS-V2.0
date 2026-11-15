@@ -1,3 +1,4 @@
+import { decimalQuantity } from '../../shared/quantity';
 import { FeedbackState } from '../../shared/components/FeedbackState';
 import { PageHeader } from '../../shared/components/PageHeader';
 import { TableRegion } from '../../shared/components/TableRegion';
@@ -26,7 +27,7 @@ type Mode = 'dispense' | 'markUnavailable' | 'substitute';
 
 const lineSchema = z.object({
   batchId: z.string().min(1, 'Select a batch'),
-  quantity: z.coerce.number({ invalid_type_error: 'Enter a quantity' }).int().positive('Enter a quantity'),
+  quantity: z.coerce.number({ invalid_type_error: 'Enter a quantity' }).finite().positive('Enter a quantity').refine(value => decimalQuantity(value) != null, 'Use at most six decimal places'),
   requestedUnit: z.string().optional(),
   overrideReason: z.string().optional(),
 });
@@ -151,9 +152,9 @@ export function DispensePage() {
   });
 
   function onSubmitDispense(values: DispenseValues) {
-    const total = values.lines.reduce((sum, line) => sum + line.quantity * factorFor(line.requestedUnit), 0);
-    if (values.lines.some(line => factorFor(line.requestedUnit) < 1) ||
-        !Number.isSafeInteger(total) || total > Number(context?.prescriptionLine?.remaining ?? 0)) {
+    const total = values.lines.reduce((sum, line) => (decimalQuantity(sum + line.quantity * factorFor(line.requestedUnit)) ?? NaN), 0);
+    if (values.lines.some(line => factorFor(line.requestedUnit) <= 0) ||
+        decimalQuantity(total) == null || total > Number(context?.prescriptionLine?.remaining ?? 0)) {
       setError('lines', { message: 'Selected packages exceed the remaining prescribed quantity or include an unavailable unit.' });
       return;
     }
@@ -298,7 +299,7 @@ export function DispensePage() {
                           {errors.lines?.[index]?.batchId && <div className="field-error">{errors.lines[index]?.batchId?.message}</div>}
                         </td>
                         <td>
-                          <input className="clinical-control" type="text" inputMode="numeric" {...register(`lines.${index}.quantity` as const)} style={{ ...inputStyle, width: 80 }} />
+                          <input className="clinical-control" type="text" inputMode="decimal" {...register(`lines.${index}.quantity` as const)} style={{ ...inputStyle, width: 80 }} />
                           {errors.lines?.[index]?.quantity && <div className="field-error">{errors.lines[index]?.quantity?.message}</div>}
                         </td>
                         <td>

@@ -7882,14 +7882,14 @@ components:
           type: string
           format: uuid
         quantityPrescribed:
-          type: integer
-          format: int32
+          type: number
+          format: double
         quantityDispensed:
-          type: integer
-          format: int32
+          type: number
+          format: double
         remaining:
-          type: integer
-          format: int32
+          type: number
+          format: double
         dosageInstructions:
           type: string
         status:
@@ -8059,8 +8059,8 @@ components:
         purchaseUnit:
           type: string
         factor:
-          type: integer
-          format: int32
+          type: number
+          format: double
         blistersPerPack:
           type: integer
           format: int32
@@ -8080,11 +8080,11 @@ components:
           type: integer
           format: int32
         acceptedBaseQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         rejectedBaseQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         receivedCostMinor:
           type: integer
           format: int64
@@ -8179,8 +8179,8 @@ components:
           type: string
           format: date
         quantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         unitCostAmountMinor:
           minimum: 0
           type: integer
@@ -8242,8 +8242,8 @@ components:
         type:
           type: string
         quantityDelta:
-          type: integer
-          format: int32
+          type: number
+          format: double
         reason:
           type: string
         idempotencyKey:
@@ -8266,8 +8266,8 @@ components:
         type:
           type: string
         quantityDelta:
-          type: integer
-          format: int32
+          type: number
+          format: double
         reason:
           type: string
         status:
@@ -8551,8 +8551,8 @@ components:
           - INTRA_OP
           - POST_OP
         quantityPrepared:
-          type: integer
-          format: int32
+          type: number
+          format: double
         batchId:
           type: string
           format: uuid
@@ -8575,17 +8575,17 @@ components:
           - INTRA_OP
           - POST_OP
         quantityPrepared:
-          type: integer
-          format: int32
+          type: number
+          format: double
         quantityUsed:
-          type: integer
-          format: int32
+          type: number
+          format: double
         quantityReturned:
-          type: integer
-          format: int32
+          type: number
+          format: double
         quantityWasted:
-          type: integer
-          format: int32
+          type: number
+          format: double
         wastageReason:
           type: string
         batchId:
@@ -8618,14 +8618,14 @@ components:
       type: object
       properties:
         quantityUsed:
-          type: integer
-          format: int32
+          type: number
+          format: double
         quantityReturned:
-          type: integer
-          format: int32
+          type: number
+          format: double
         quantityWasted:
-          type: integer
-          format: int32
+          type: number
+          format: double
         wastageReason:
           type: string
     PlacePrescriptionRequest:
@@ -8642,8 +8642,8 @@ components:
           type: string
           format: uuid
         quantityPrescribed:
-          type: integer
-          format: int32
+          type: number
+          format: double
         dosageInstructions:
           type: string
         substitutionAllowed:
@@ -8669,8 +8669,8 @@ components:
           type: integer
           format: int32
         requestedQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         requestedUnit:
           type: string
     ProposeSubstitutionRequest:
@@ -9180,8 +9180,8 @@ components:
         unit:
           type: string
         factor:
-          type: integer
-          format: int32
+          type: number
+          format: double
         canSplit:
           type: boolean
         version:
@@ -9203,9 +9203,10 @@ components:
         unit:
           type: string
         quantityInBaseUnits:
-          minimum: 1
-          type: integer
-          format: int32
+          minimum: 0
+          exclusiveMinimum: true
+          type: number
+          format: double
         canSplit:
           type: boolean
         reason:
@@ -9235,8 +9236,8 @@ components:
           type: string
           format: uuid
         requestedQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         requestingStoreId:
           type: string
           format: uuid
@@ -9254,14 +9255,14 @@ components:
           type: string
           format: uuid
         requestedQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         releasedQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         remaining:
-          type: integer
-          format: int32
+          type: number
+          format: double
         requestingStoreId:
           type: string
           format: uuid
@@ -9286,8 +9287,8 @@ components:
           type: string
           format: uuid
         quantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
     RespondToLabStockRequestRequest:
       required:
       - responseNotes
@@ -9731,8 +9732,8 @@ components:
         serviceItemCode:
           type: string
         quantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
     CreateInvoiceRequest:
       required:
       - dueDate
@@ -10532,8 +10533,8 @@ components:
           type: string
           format: uuid
         quantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         overrideReason:
           type: string
         requestedUnit:
@@ -10571,8 +10572,8 @@ components:
           type: string
           format: uuid
         quantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         unitCostAmountMinor:
           type: integer
           format: int64
@@ -10581,13 +10582,13 @@ components:
         fefoOverrideReason:
           type: string
         requestedQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         requestedUnit:
           type: string
         conversionFactor:
-          type: integer
-          format: int32
+          type: number
+          format: double
     DispenseResponse:
       type: object
       properties:
@@ -10601,8 +10602,8 @@ components:
           type: string
           format: date-time
         quantityDispensed:
-          type: integer
-          format: int32
+          type: number
+          format: double
         lines:
           type: array
           items:
@@ -11974,8 +11975,8 @@ components:
         itemName:
           type: string
         totalQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         reorderLevel:
           type: integer
           format: int32
@@ -11998,8 +11999,8 @@ components:
           type: string
           format: date
         quantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
     CurrentStockResponse:
       type: object
       properties:
@@ -12024,8 +12025,8 @@ components:
         storeName:
           type: string
         quantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         strength:
           type: string
         baseUnit:
@@ -12035,13 +12036,13 @@ components:
         purchaseUnit:
           type: string
         packageFactor:
-          type: integer
-          format: int32
+          type: number
+          format: double
         stockStatus:
           type: string
         availableQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
     Movement:
       type: object
       properties:
@@ -12055,8 +12056,8 @@ components:
         batchNumber:
           type: string
         quantityDelta:
-          type: integer
-          format: int32
+          type: number
+          format: double
         movementType:
           type: string
         referenceType:
@@ -12078,8 +12079,8 @@ components:
         batchNumber:
           type: string
         receivedQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         unitCostAmountMinor:
           type: integer
           format: int64
@@ -12123,8 +12124,8 @@ components:
           type: string
           format: date
         quantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         storeId:
           type: string
           format: uuid
@@ -12190,8 +12191,8 @@ components:
         form:
           type: string
         quantityBilled:
-          type: integer
-          format: int64
+          type: number
+          format: double
         billedLineCount:
           type: integer
           format: int32
@@ -12467,14 +12468,14 @@ components:
         itemName:
           type: string
         quantityPrescribed:
-          type: integer
-          format: int32
+          type: number
+          format: double
         quantityDispensed:
-          type: integer
-          format: int32
+          type: number
+          format: double
         remaining:
-          type: integer
-          format: int32
+          type: number
+          format: double
         dosageInstructions:
           type: string
         status:
@@ -12523,8 +12524,8 @@ components:
         itemName:
           type: string
         quantityPrescribed:
-          type: integer
-          format: int32
+          type: number
+          format: double
         prescribedBy:
           type: string
           format: uuid
@@ -12554,8 +12555,8 @@ components:
           type: integer
           format: int32
         quantityDispensed:
-          type: integer
-          format: int32
+          type: number
+          format: double
         dosageInstructions:
           type: string
     AllergyResponse:
@@ -12576,8 +12577,8 @@ components:
           type: string
           format: uuid
         quantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
     BatchAvailabilityResponse:
       type: object
       properties:
@@ -12590,8 +12591,8 @@ components:
           type: string
           format: date
         quantityAvailable:
-          type: integer
-          format: int32
+          type: number
+          format: double
     DispenseContextResponse:
       type: object
       properties:
@@ -12615,13 +12616,13 @@ components:
           type: number
           format: double
         requestedQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         requestedUnit:
           type: string
         conversionFactor:
-          type: integer
-          format: int32
+          type: number
+          format: double
         baseUnit:
           type: string
         dosageForm:
@@ -13052,14 +13053,14 @@ components:
         itemName:
           type: string
         requestedQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         releasedQuantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         remaining:
-          type: integer
-          format: int32
+          type: number
+          format: double
         requestingStoreId:
           type: string
           format: uuid
@@ -13487,8 +13488,8 @@ components:
         serviceItemName:
           type: string
         quantity:
-          type: integer
-          format: int32
+          type: number
+          format: double
         grossAmountMinor:
           type: integer
           format: int64
@@ -13683,8 +13684,8 @@ components:
         itemName:
           type: string
         quantityDispensed:
-          type: integer
-          format: int32
+          type: number
+          format: double
         dispensedAt:
           type: string
           format: date-time

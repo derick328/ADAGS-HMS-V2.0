@@ -163,9 +163,9 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
                 SELECT requested_quantity, requested_unit, conversion_factor FROM prescription_unit_snapshot
                 WHERE prescription_line_id = :id
                 """, new MapSqlParameterSource("id", line.id()));
-        assertThat(snapshot.get("requested_quantity")).isEqualTo(1);
+        assertThat((java.math.BigDecimal) snapshot.get("requested_quantity")).isEqualByComparingTo("1");
         assertThat(snapshot.get("requested_unit")).isEqualTo("BLISTER");
-        assertThat(snapshot.get("conversion_factor")).isEqualTo(3);
+        assertThat((java.math.BigDecimal) snapshot.get("conversion_factor")).isEqualByComparingTo("3");
 
         payLine(line.invoiceLineId(), patient.id(), admin);
         DispenseResult first = dispenseService.dispense(new DispenseCommand(line.id(),
@@ -180,6 +180,43 @@ class EndToEndPharmacyDispensingTest extends IntegrationTestSupport {
                 List.of(new DispenseLineInput(batch.id(), 1, null, "CAPSULE")),
                 admin, "idem-" + UUID.randomUUID(), null, null));
         assertThat(second.prescriptionLine().remaining()).isZero();
+    }
+
+    @Test
+    void gramPackageCanBePrescribedBilledAndPartiallyDispensedWithoutTruncation() {
+        UUID admin = bootstrapAdminId();
+        UUID itemId = createFixtureItem("CALAMINE-DECIMAL", admin);
+        jdbcTemplate.update("UPDATE item SET form = 'LOTION', unit = 'G' WHERE id = :id",
+                new MapSqlParameterSource("id", itemId));
+        StockBatch batch = restock(itemId, insertFixtureStore(), insertFixtureSupplier(),
+                "CAL-G", LocalDate.now().plusYears(1), 25, admin);
+        UUID reviewer = jdbcTemplate.queryForObject("INSERT INTO app_user (username, password_hash) VALUES (:name, 'test') RETURNING id",
+                new MapSqlParameterSource("name", "decimal-reviewer-" + UUID.randomUUID()), UUID.class);
+        jdbcTemplate.update("""
+                INSERT INTO medicine_packaging (item_id, packaging_unit, quantity_in_base_units, can_split,
+                    version, status, reason, proposed_by, approved_by, approved_at)
+                VALUES (:item, 'BOTTLE', 12.5, TRUE, 1, 'APPROVED', '12.5 g bottle', :admin, :reviewer, now())
+                """, new MapSqlParameterSource("item", itemId).addValue("admin", admin).addValue("reviewer", reviewer));
+        insertFixtureServiceItemAndPrice("CALAMINE-DECIMAL", 80, admin);
+        Patient patient = registerPatientService.register(patientCommand("Calamine", "Decimal", admin));
+        Encounter encounter = openEncounterService.checkIn(new OpenEncounterCommand(patient.id(), insertFixtureDepartment(), null, admin));
+        recordPregnancyStatus(encounter.id(), admin);
+        PrescriptionLine line = placePrescriptionService.placeOrder(new PlacePrescriptionCommand(
+                encounter.id(), itemId, 12.5, "Apply thin layer as needed", false, admin,
+                "TOPICAL", 1.0, "G", com.adags.modules.pharmacy.domain.PrescriptionFrequency.PRN, null, 1, "BOTTLE"));
+        assertThat(line.quantityPrescribed()).isEqualTo(12.5);
+        assertThat(jdbcTemplate.queryForObject("SELECT gross_minor FROM invoice_line WHERE id = :id",
+                new MapSqlParameterSource("id", line.invoiceLineId()), Long.class)).isEqualTo(1000);
+        payLine(line.invoiceLineId(), patient.id(), admin);
+        var first = dispenseService.dispense(new DispenseCommand(line.id(),
+                List.of(new DispenseLineInput(batch.id(), 6.25, null, "G")), admin, "idem-" + UUID.randomUUID(), null, null));
+        assertThat(first.prescriptionLine().remaining()).isEqualTo(6.25);
+        assertThat(first.lines().getFirst().quantity()).isEqualTo(6.25);
+        var second = dispenseService.dispense(new DispenseCommand(line.id(),
+                List.of(new DispenseLineInput(batch.id(), 6.25, null, "G")), admin, "idem-" + UUID.randomUUID(), null, null));
+        assertThat(second.prescriptionLine().status()).isEqualTo(PrescriptionLineStatus.COMPLETED);
+        assertThat(jdbcTemplate.queryForObject("SELECT quantity FROM stock_balance WHERE batch_id = :id",
+                new MapSqlParameterSource("id", batch.id()), Double.class)).isEqualTo(12.5);
     }
 
     // §4.3: "Several lines per item, summing to quantity_dispensed" — 30

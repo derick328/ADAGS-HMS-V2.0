@@ -6,5 +6,5 @@ import java.util.UUID;
 // nurse picks from when a prescription line's dispensing spanned more than
 // one batch. quantityDispensed is that batch's share of the total, not a
 // remaining-stock figure — administering never decrements it again.
-public record DispensedBatchSummary(UUID batchId, String batchNumber, int quantityDispensed) {
+public record DispensedBatchSummary(UUID batchId, String batchNumber, double quantityDispensed) {
 }

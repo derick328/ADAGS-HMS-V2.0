@@ -21,6 +21,24 @@ vi.mock('../../shared/api/pharmacyItemProposals', () => ({
 }));
 
 describe('pharmacy medicine packaging', () => {
+  it.each(['12.5', '0.5'])('accepts %s grams per Calamine package', async amount => {
+    vi.mocked(searchItems).mockResolvedValue([{ id: 'calamine', name: 'Calamine lotion', form: 'LOTION', unit: 'G',
+      regulatorySchedule: 'PRESCRIPTION_ONLY', selectable: true }]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
+    fireEvent.click(screen.getByRole('tab', { name: 'Packaging' }));
+    const panel = screen.getByRole('tabpanel');
+    fireEvent.change(within(panel).getByRole('combobox', { name: 'Medicine' }), { target: { value: 'Calamine' } });
+    fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Calamine lotion/ }));
+    const input = within(panel).getByLabelText('G per package');
+    expect(input).toHaveAttribute('step', 'any');
+    fireEvent.change(within(panel).getByLabelText('Package name'), { target: { value: 'BOTTLE' } });
+    fireEvent.change(input, { target: { value: amount } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Propose packaging' }));
+    await waitFor(() => expect(proposeMedicinePackaging).toHaveBeenCalledWith('calamine',
+      expect.objectContaining({ unit: 'BOTTLE', quantityInBaseUnits: Number(amount) }), 'test-token'));
+  });
+
   it('shows unapproved packaging awaiting Admin review', async () => {
     vi.mocked(fetchPendingMedicinePackaging).mockResolvedValueOnce([{
       packaging: { id: 'proposal-1', itemId: 'medicine-1', unit: 'PACK_50', factor: 50,

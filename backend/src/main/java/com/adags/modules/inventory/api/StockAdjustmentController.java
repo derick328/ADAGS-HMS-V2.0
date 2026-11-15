@@ -48,7 +48,7 @@ public class StockAdjustmentController {
         this.jdbc = jdbc;
     }
 
-    public record Request(@NotNull UUID batchId, @NotBlank String type, int quantityDelta,
+    public record Request(@NotNull UUID batchId, @NotBlank String type, double quantityDelta,
                           @NotBlank String reason, @NotBlank String idempotencyKey) {
     }
 
@@ -57,7 +57,7 @@ public class StockAdjustmentController {
 
     public record PhysicalBatch(UUID batchId, String itemName, String itemCode, String batchNumber,
                                 String baseUnit, String status, java.time.LocalDate expiryDate,
-                                int quantity, UUID storeId) {
+                                double quantity, UUID storeId) {
     }
 
     @GetMapping("/batches")
@@ -78,7 +78,7 @@ public class StockAdjustmentController {
                         rs.getString("item_name"), rs.getString("item_code"),
                         rs.getString("batch_number"), rs.getString("base_unit"),
                         rs.getString("status"), rs.getDate("expiry_date").toLocalDate(),
-                        rs.getInt("quantity"), (UUID) rs.getObject("store_id")));
+                        rs.getDouble("quantity"), (UUID) rs.getObject("store_id")));
     }
 
     @PostMapping

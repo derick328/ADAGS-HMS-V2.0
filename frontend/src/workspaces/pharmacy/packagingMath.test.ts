@@ -19,3 +19,8 @@ describe('medicine delivery preview', () => {
     expect(() => calculateDeliveryLine(Number.MAX_SAFE_INTEGER, 3, 1)).toThrow(RangeError);
   });
 });
+
+it('preserves fractional grams while keeping supplier package counts and money integral', () => {
+  expect(calculateDeliveryLine(1, 12.5, 1000)).toEqual({ baseQuantity: 12.5, totalCostMinor: 1000 });
+  expect(calculateDeliveryLine(3, 0.1, null)).toEqual({ baseQuantity: 0.3, totalCostMinor: null });
+});

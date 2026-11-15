@@ -75,10 +75,10 @@ public class JdbcStockBatchRepository implements StockBatchRepository {
     @Override
     public PackagingRule packagingRule(UUID batchId) {
         return jdbcTemplate.queryForObject("""
-                SELECT receipt_line_id, dispense_multiple_base FROM stock_batch WHERE id = :id
+                SELECT receipt_line_id, dispense_multiple_base, can_split_package FROM stock_batch WHERE id = :id
                 """, new MapSqlParameterSource("id", batchId),
                 (rs, row) -> new PackagingRule((UUID) rs.getObject("receipt_line_id"),
-                        rs.getInt("dispense_multiple_base")));
+                        rs.getDouble("dispense_multiple_base"), rs.getBoolean("can_split_package")));
     }
 
     @Override
@@ -147,7 +147,7 @@ public class JdbcStockBatchRepository implements StockBatchRepository {
                 .addValue("toTs", Timestamp.from(to)).addValue("storeIds", storeIds);
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
             Long unitCost = rs.getObject("unit_cost_amount_minor", Long.class);
-            int receivedQty = rs.getInt("received_qty");
+            double receivedQty = rs.getDouble("received_qty");
             String currency = rs.getString("currency_code");
             return new RestockLedgerEntry(
                     (UUID) rs.getObject("batch_id"),
@@ -156,7 +156,7 @@ public class JdbcStockBatchRepository implements StockBatchRepository {
                     rs.getString("batch_number"),
                     receivedQty,
                     unitCost,
-                    unitCost == null ? null : Math.multiplyExact(unitCost, receivedQty),
+                    unitCost == null ? null : new com.adags.shared.kernel.Money(unitCost, currency).times(receivedQty).amountMinor(),
                     currency,
                     (UUID) rs.getObject("supplier_id"),
                     rs.getString("supplier_name"),

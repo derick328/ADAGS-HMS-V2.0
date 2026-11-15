@@ -136,7 +136,7 @@ class StockReceiptIntegrationTest extends IntegrationTestSupport {
                 line(item, "TABLET", 5, 5, 0, 60, "PV-3"),
                 line(item, "PACK_100", 1, 1, 0, 5000, "PV-4"))), actor);
         assertThat(receipt.lines().stream().map(StockReceiptService.LineResult::acceptedBaseQuantity))
-                .containsExactly(500, 20, 5, 100);
+                .containsExactly(500d, 20d, 5d, 100d);
         assertThat(packaging.approved(item, "PACK_50").blistersPerPack()).isEqualTo(5);
         assertThat(packaging.approved(item, "PACK_100").unitsPerBlister()).isEqualTo(10);
         assertThat(receipt.lines().getFirst().blistersPerPack()).isEqualTo(5);
@@ -476,6 +476,53 @@ class StockReceiptIntegrationTest extends IntegrationTestSupport {
                 List.of(line(item, "TABLET", 1, 1, 0, 100, "B-3"))), actor))
                 .isInstanceOf(RuntimeException.class);
         assertThat(count("stock_batch")).isZero();
+    }
+
+    @Test
+    void rejectedCalaminePresentationCanBeResubmittedAndApproved() {
+        UUID medicine = item("CALAMINE-RETRY", "Calamine lotion", "unit");
+        UUID proposer = bootstrapAdminId();
+        UUID reviewer = secondUser();
+        var first = packaging.propose(medicine, "BOTTLE", 12.5, false, "Manufacturer label", proposer,
+                null, null, null, "LOTION", "G");
+        packaging.reject(first.id(), "Please resubmit", reviewer);
+        var retry = packaging.propose(medicine, "BOTTLE", 12.5, false, "Manufacturer label", proposer,
+                null, null, null, "LOTION", "G");
+        packaging.approve(retry.id(), reviewer);
+        assertThat(itemRepository.findById(medicine).orElseThrow().unit()).isEqualTo("G");
+        assertThat(packaging.approved(medicine, "BOTTLE").factor()).isEqualTo(12.5);
+        assertThat(retry.version()).isEqualTo(2);
+        assertThatThrownBy(() -> packaging.propose(medicine, "OTHER", 1, true, "Unsafe unit change", proposer,
+                null, null, null, "LOTION", "ML"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Base unit cannot change");
+    }
+
+    @Test
+    void fractionalGramsRemainExactThroughReceiptDispensingStockAndCosting() {
+        UUID medicine = item("FRACTION-G", "Calamine lotion", "G");
+        UUID proposer = bootstrapAdminId();
+        UUID reviewer = secondUser();
+        var proposal = packaging.propose(medicine, "BOTTLE", 12.5, true, "12.5 gram bottle", proposer,
+                null, null, null, "LOTION", "G");
+        packaging.approve(proposal.id(), reviewer);
+        var receipt = receipts.confirm(request(supplier(), store(), "decimal-g", List.of(
+                line(medicine, "BOTTLE", 1, 1, 0, 1000, "DEC-G"))), proposer);
+        assertThat(receipt.lines().getFirst().acceptedBaseQuantity()).isEqualTo(12.5);
+        assertThat(receipt.totalAcceptedCostMinor()).isEqualTo(1000);
+        var batch = inventory.findFefoBatches(medicine).getFirst();
+        assertThat(batch.quantityAvailable()).isEqualTo(12.5);
+        var unitCost = inventory.decrementForDispense(medicine, batch.batchId(), 6.25, UUID.randomUUID(), proposer);
+        assertThat(unitCost.times(6.25).amountMinor()).isEqualTo(500);
+        assertThat(inventory.findBatch(batch.batchId()).orElseThrow().quantityAvailable()).isEqualTo(6.25);
+        assertThat(stockViews.findCurrentStock()).filteredOn(row -> row.itemId().equals(medicine))
+                .singleElement().extracting(row -> row.quantity()).isEqualTo(6.25);
+    }
+
+    @Test
+    void fractionalCountedPackagesAreRejected() {
+        UUID medicine = item("COUNTED-FRACTION", "Tablet medicine", "TABLET");
+        assertThatThrownBy(() -> packaging.propose(medicine, "PACK", 12.5, true, "Invalid tablet count", bootstrapAdminId()))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("whole base units");
     }
 
     private StockReceiptRequest request(UUID supplier, UUID store, String key,

@@ -104,7 +104,7 @@ public interface BillingFacade {
      * caller transaction is meant to roll back with it.
      */
     UUID postServiceCharge(UUID encounterId, UUID patientId, UUID facilityId, PayerType payerType,
-                            String serviceItemCode, int quantity, String sourceEventType, UUID sourceEventId,
+                            String serviceItemCode, double quantity, String sourceEventType, UUID sourceEventId,
                             UUID actorUserId);
 
     /**

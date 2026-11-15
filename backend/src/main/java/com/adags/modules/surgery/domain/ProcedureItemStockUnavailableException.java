@@ -17,9 +17,9 @@ import java.util.UUID;
 public class ProcedureItemStockUnavailableException extends RuntimeException {
 
     private final UUID itemId;
-    private final int quantityRequested;
+    private final double quantityRequested;
 
-    public ProcedureItemStockUnavailableException(UUID itemId, int quantityRequested) {
+    public ProcedureItemStockUnavailableException(UUID itemId, double quantityRequested) {
         super("No available stock for this item — ask the pharmacist to restock before preparing it "
                 + "(needed " + quantityRequested + ", item " + itemId + ").");
         this.itemId = itemId;
@@ -30,7 +30,7 @@ public class ProcedureItemStockUnavailableException extends RuntimeException {
         return itemId;
     }
 
-    public int quantityRequested() {
+    public double quantityRequested() {
         return quantityRequested;
     }
 }

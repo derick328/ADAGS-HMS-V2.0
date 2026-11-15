@@ -10,8 +10,8 @@ import java.util.UUID;
 public record LabStockRequest(
         UUID id,
         UUID itemId,
-        int requestedQuantity,
-        int releasedQuantity,
+        double requestedQuantity,
+        double releasedQuantity,
         UUID requestingStoreId,
         UUID requestedBy,
         Instant requestedAt,
@@ -25,7 +25,7 @@ public record LabStockRequest(
         String requestNotes
 ) {
 
-    public static LabStockRequest request(UUID itemId, int requestedQuantity, UUID requestingStoreId, UUID requestedBy, String requestNotes) {
+    public static LabStockRequest request(UUID itemId, double requestedQuantity, UUID requestingStoreId, UUID requestedBy, String requestNotes) {
         if (requestedQuantity <= 0) {
             throw new IllegalArgumentException("requestedQuantity must be > 0.");
         }
@@ -33,12 +33,12 @@ public record LabStockRequest(
                 LabStockRequestStatus.PENDING, null, null, null, requestNotes);
     }
 
-    public int remaining() {
-        return requestedQuantity - releasedQuantity;
+    public double remaining() {
+        return com.adags.shared.kernel.DecimalQuantity.subtract(requestedQuantity, releasedQuantity);
     }
 
     /** Pure state transition — the caller performs the actual two-movement stock transfer separately, in the same transaction. */
-    public LabStockRequest applyRelease(int quantity, UUID reviewedBy) {
+    public LabStockRequest applyRelease(double quantity, UUID reviewedBy) {
         requireOpen();
         if (quantity <= 0) {
             throw new IllegalArgumentException("quantity must be > 0.");
@@ -46,7 +46,7 @@ public record LabStockRequest(
         if (quantity > remaining()) {
             throw new LabStockRequestExceedsRequestedException(id, quantity, remaining());
         }
-        int newReleased = releasedQuantity + quantity;
+        double newReleased = com.adags.shared.kernel.DecimalQuantity.add(releasedQuantity, quantity);
         LabStockRequestStatus newStatus = newReleased == requestedQuantity
                 ? LabStockRequestStatus.RELEASED : LabStockRequestStatus.PARTIALLY_RELEASED;
         return new LabStockRequest(id, itemId, requestedQuantity, newReleased, requestingStoreId, requestedBy,

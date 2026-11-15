@@ -79,7 +79,7 @@ public class PrepareProcedureItemService {
         return procedureItemRepository.insert(toInsert);
     }
 
-    private UUID resolveFefoBatch(UUID itemId, int quantityNeeded) {
+    private UUID resolveFefoBatch(UUID itemId, double quantityNeeded) {
         List<BatchAvailability> fefo = inventoryFacade.findFefoBatches(itemId);
         // Pick the earliest-expiring batch that can cover the whole
         // quantityPrepared in one draw. Cross-batch splitting on a

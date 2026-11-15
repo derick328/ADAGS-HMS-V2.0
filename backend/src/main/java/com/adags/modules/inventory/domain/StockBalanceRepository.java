@@ -13,8 +13,8 @@ public interface StockBalanceRepository {
      * take quantity below zero is rejected by the {@code quantity >= 0}
      * database CHECK and surfaces here as {@link InsufficientStockException}.
      */
-    int applyDelta(UUID itemId, UUID batchId, UUID storeId, int delta);
+    double applyDelta(UUID itemId, UUID batchId, UUID storeId, double delta);
 
     /** 0 if the batch has never had a balance row (never received into any store) — never absent, never negative. */
-    int quantityOnHand(UUID batchId);
+    double quantityOnHand(UUID batchId);
 }

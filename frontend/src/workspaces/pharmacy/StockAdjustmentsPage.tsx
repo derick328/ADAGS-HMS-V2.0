@@ -1,3 +1,4 @@
+import { decimalQuantity } from '../../shared/quantity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ApiError } from '../../shared/api/client';
@@ -35,7 +36,7 @@ export function StockAdjustmentsPage() {
   const request = useMutation({ mutationFn: () => {
     const parsed = Number(quantity);
     const delta = type === 'QUARANTINE' ? 0 : type === 'PHYSICAL_COUNT' || type === 'RECEIPT_CORRECTION' ? parsed : -parsed;
-    if (!batchId || !reason.trim() || !Number.isSafeInteger(delta) ||
+    if (!batchId || !reason.trim() || decimalQuantity(delta) == null ||
         type !== 'QUARANTINE' && delta === 0 || type !== 'QUARANTINE' && !quantity.trim()) {
       setError('Select a batch, enter a whole quantity change, and explain the correction.');
       throw new Error('Invalid adjustment');
@@ -68,7 +69,7 @@ export function StockAdjustmentsPage() {
           <option value="QUARANTINE">Quarantine entire batch</option>
         </select></label>
         {type !== 'QUARANTINE' && <label>{type === 'PHYSICAL_COUNT' || type === 'RECEIPT_CORRECTION' ? 'Signed base-unit change' : 'Base units removed'}
-          <input className="clinical-control" type="number" step="1" value={quantity} onChange={(e) => { setQuantity(e.target.value); setKey(crypto.randomUUID()); }} /></label>}
+          <input className="clinical-control" type="number" step="any" value={quantity} onChange={(e) => { setQuantity(e.target.value); setKey(crypto.randomUUID()); }} /></label>}
         <label>Reason <textarea className="clinical-control" value={reason} onChange={(e) => { setReason(e.target.value); setKey(crypto.randomUUID()); }} /></label>
       </div>
       {error && <p className="field-error" role="alert">{error}</p>}
