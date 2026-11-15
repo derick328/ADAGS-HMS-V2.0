@@ -15,6 +15,7 @@ import {
   updateCatalogPrice,
   fetchCatalogPriceHistory,
   downloadCatalog,
+  createCatalogItem,
   type CatalogImportBatch,
   type CatalogImportPreview,
   type CatalogItem,
@@ -136,7 +137,7 @@ function PackagingApprovalSection() {
       <p role="alert">Could not load packaging proposals. <button type="button" className="link-button" onClick={() => refetch()}>Retry</button></p> : !data?.length ?
       <FeedbackState>No packaging proposals pending.</FeedbackState> :
       <TableRegion label="Pending packaging conversions"><table className="table"><thead><tr>
-        <th>Medicine</th><th>Dosage form correction</th><th>Package</th><th>Conversion</th><th>Blister counts</th><th>Split</th><th>Proposed by</th><th>Manufacturer specification</th><th>Decision</th>
+        <th>Medicine</th><th>Dosage form correction</th><th>Package</th><th>Conversion</th><th>Blister counts</th><th>Split</th><th>Proposed by</th><th>Package details</th><th>Decision</th>
       </tr></thead><tbody>{data.map((proposal) => <tr key={proposal.packaging.id}>
         <td>{proposal.itemName}</td>
         <td>{proposal.proposedForm ? `${dosageFormLabel(proposal.proposedForm)} · ${proposal.proposedBaseUnit}` : '—'}</td>
@@ -573,6 +574,14 @@ function CatalogueItemsBrowser() {
   const [success, setSuccess] = useState<string | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
   const [medicationSettings, setMedicationSettings] = useState<CatalogItem | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createName, setCreateName] = useState('');
+  const [createType, setCreateType] = useState('LABORATORY');
+  const [createCategory, setCreateCategory] = useState('DIAGNOSTIC_EXAMINATIONS');
+  const [createPrefix, setCreatePrefix] = useState('LAB');
+  const [createClassification, setCreateClassification] = useState('');
+  const [createPrice, setCreatePrice] = useState('');
+  const [createError, setCreateError] = useState<string | null>(null);
   const pageSize = 50;
 
   const savePrice = useMutation({
@@ -584,6 +593,19 @@ function CatalogueItemsBrowser() {
       void queryClient.invalidateQueries({ queryKey: ['price-catalog'] });
     },
     onError: (error) => setPriceError(error instanceof ApiError ? error.message : 'Could not save price.'),
+  });
+  const saveItem = useMutation({
+    mutationFn: () => createCatalogItem({ name: createName.trim(), type: createType,
+      billingCategory: createCategory, classification: createClassification.trim(),
+      productCodePrefix: createPrefix.trim(), priceMinor: Number(createPrice) }, accessToken as string),
+    onSuccess: (created) => {
+      setShowCreate(false); setCreateName(''); setCreatePrice(''); setCreateClassification(''); setCreateError(null);
+      setSuccess(`Item ${created.itemCode} created with product code ${created.productCode}.`);
+      setPage(0); setSubmittedQ(''); setQ('');
+      void queryClient.invalidateQueries({ queryKey: ['catalog-items'] });
+      void queryClient.invalidateQueries({ queryKey: ['price-catalog'] });
+    },
+    onError: (error) => setCreateError(error instanceof ApiError ? error.message : 'Could not create item.'),
   });
   const { data: history } = useQuery({
     queryKey: ['catalog-price-history', historyId],
@@ -624,6 +646,7 @@ function CatalogueItemsBrowser() {
     >
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-medium)' }}>Catalogue items</h2>
+        <button type="button" className="btn btn-primary" onClick={() => { setShowCreate((open) => !open); setCreateError(null); }}>Add new item</button>
         <button type="button" className="btn btn-secondary" onClick={() => {
           void downloadCatalog(accessToken as string).catch(() => setPriceError('Could not download the catalogue.'));
         }}>Download Price Catalogue</button>
@@ -633,6 +656,43 @@ function CatalogueItemsBrowser() {
       </div>
       {success && <p role="status" className="badge badge-success">{success}</p>}
       {priceError && !editing && <p role="alert" className="form-error">{priceError}</p>}
+
+      {showCreate && <form onSubmit={(event) => { event.preventDefault(); setCreateError(null); saveItem.mutate(); }}
+        style={{ display: 'grid', gap: 'var(--space-3)', maxWidth: 560, marginTop: 'var(--space-4)' }}>
+        <h3 style={{ margin: 0 }}>New catalogue item</h3>
+        <p style={{ margin: 0 }}>Item code and product code are assigned when you save.</p>
+        <label>Product name <input className="clinical-control" required maxLength={255} value={createName}
+          onChange={(event) => setCreateName(event.target.value)} /></label>
+        <label>Type <select className="clinical-control" value={createType} onChange={(event) => {
+          const next = event.target.value; setCreateType(next);
+          setCreatePrefix(next === 'LABORATORY' ? 'LAB' : next === 'SURGERY' ? 'GES' : next === 'PHARMACY' ? 'DRG' : next.slice(0, 3));
+          setCreateCategory(next === 'LABORATORY' || next === 'RADIOLOGY' ? 'DIAGNOSTIC_EXAMINATIONS'
+            : next === 'SURGERY' ? 'SURGICAL_CHARGES' : next === 'PHARMACY' ? 'MEDICINES_AND_CONSUMABLES' : 'PROCEDURAL_CHARGES');
+        }}>
+          {['LABORATORY', 'SURGERY', 'PHARMACY', 'PROCEDURE', 'RADIOLOGY', 'OPTICAL', 'DIALYSIS', 'OTHERS', 'OTHER_GENERAL_CHARGES'].map((option) =>
+            <option key={option} value={option}>{option.replaceAll('_', ' ').toLowerCase()}</option>)}
+        </select></label>
+        <label>Billing category <select className="clinical-control" value={createCategory} onChange={(event) => setCreateCategory(event.target.value)}>
+          {['SURGICAL_CHARGES', 'MEDICINES_AND_CONSUMABLES', 'DIAGNOSTIC_EXAMINATIONS', 'PROCEDURAL_CHARGES',
+            'INPATIENT_CHARGES', 'REGISTRATION_CONSULTATION_CHARGES', 'OTHER_CHARGES', 'ADVANCE_PAYMENT'].map((option) =>
+            <option key={option} value={option}>{option.replaceAll('_', ' ').toLowerCase()}</option>)}
+        </select></label>
+        <label>Product code prefix {createType === 'PHARMACY' ?
+          <select className="clinical-control" value={createPrefix} onChange={(event) => setCreatePrefix(event.target.value)}>
+            <option value="DRG">DRG — drug</option><option value="DIS">DIS — disposable</option>
+          </select> : createType === 'SURGERY' ?
+          <><input className="clinical-control" required pattern="[A-Za-z]{2,8}" maxLength={8} value={createPrefix}
+            onChange={(event) => setCreatePrefix(event.target.value.toUpperCase())} />
+            <small>Examples: GES, GYN, DEN. Enter another surgery prefix if needed.</small></> :
+          <input className="clinical-control" value={createPrefix} readOnly />}</label>
+        <label>Classification (optional) <input className="clinical-control" value={createClassification}
+          onChange={(event) => setCreateClassification(event.target.value)} /></label>
+        <label>CASH price (TZS) <input className="clinical-control" type="number" min="0" step="1" required value={createPrice}
+          onChange={(event) => setCreatePrice(event.target.value)} /></label>
+        {createError && <p role="alert" className="form-error">{createError}</p>}
+        <div><button type="submit" className="btn btn-primary" disabled={saveItem.isPending || !createName.trim() || createPrice === ''}>Create item</button>{' '}
+          <button type="button" className="btn btn-ghost" onClick={() => setShowCreate(false)}>Cancel</button></div>
+      </form>}
 
       <form className="clinical-filter-bar"
         onSubmit={(e) => {
@@ -704,7 +764,8 @@ function CatalogueItemsBrowser() {
             <caption className="sr-only">Catalogue items</caption>
             <thead>
               <tr>
-                <th>Code</th>
+                <th>Item code</th>
+                <th>Product code</th>
                 <th>Name</th>
                 <th>Type</th>
                 <th>Category</th>
@@ -716,6 +777,7 @@ function CatalogueItemsBrowser() {
             <tbody>
               {data.items.map((item: CatalogItem) => (
                 <tr key={item.id}>
+                  <td>{item.itemCode ?? '—'}</td>
                   <td style={{ fontFamily: 'var(--font-mono, monospace)' }}>{item.code}</td>
                   <td>{item.name}</td>
                   <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{item.type?.replaceAll('_', ' ').toLowerCase() ?? '—'}</td>

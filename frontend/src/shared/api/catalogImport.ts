@@ -56,6 +56,7 @@ export interface CatalogItem {
   id: string;
   code: string;
   originalCode: string;
+  itemCode?: number | null;
   name: string;
   classification?: string;
   type?: string;
@@ -63,6 +64,19 @@ export interface CatalogItem {
   currentCashPriceMinor?: number | null;
   currencyCode: string;
   isActive: boolean;
+}
+
+export interface CreateCatalogItemInput {
+  name: string;
+  type: string;
+  billingCategory: string;
+  classification?: string;
+  productCodePrefix: string;
+  priceMinor: number;
+}
+
+export function createCatalogItem(input: CreateCatalogItemInput, accessToken: string): Promise<{ id: string; itemCode: number; productCode: string }> {
+  return authFetch('/api/admin/catalog/items', accessToken, { method: 'POST', body: JSON.stringify(input) });
 }
 
 export interface CatalogPriceChange {

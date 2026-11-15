@@ -48,7 +48,7 @@ class CatalogWorkbookExporterTest {
     }
 
     private CatalogItemView item(String code, long price) {
-        return new CatalogItemView(UUID.randomUUID(), code, code, "Test", null,
+        return new CatalogItemView(UUID.randomUUID(), code, code, null, "Test", null,
                 CatalogItemType.LABORATORY, CatalogBillingCategory.DIAGNOSTIC_EXAMINATIONS, price, true);
     }
 

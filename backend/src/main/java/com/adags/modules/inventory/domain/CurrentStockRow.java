@@ -8,6 +8,7 @@ import java.util.UUID;
 public record CurrentStockRow(
         UUID itemId, String itemCode, String itemName, UUID batchId, String batchNumber,
         LocalDate expiryDate, UUID storeId, String storeName, int quantity,
-        String strength, String baseUnit, String stockStatus, int availableQuantity
+        String strength, String baseUnit, String form, String purchaseUnit, Integer packageFactor,
+        String stockStatus, int availableQuantity
 ) {
 }

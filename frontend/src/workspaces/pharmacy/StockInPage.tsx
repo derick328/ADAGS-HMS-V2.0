@@ -14,6 +14,7 @@ import { useAuth } from '../../shared/auth/AuthProvider';
 import { useMe } from '../../shared/auth/useMe';
 import { formatMoney } from '../../shared/format/money';
 import { calculateDeliveryLine } from './packagingMath';
+import { isAutomaticForm, isLiquidOralForm } from '../doctor/prescriptionQuantity';
 import './StockInPage.css';
 
 interface DeliveryLine {
@@ -264,7 +265,8 @@ function MedicineLine({ line, index, token, update, remove, canRemove }: {
       search={(query) => searchItems(query, token)} getKey={(item) => item.id as string}
       renderOption={(item) => <span>{item.name} {item.strength} {item.selectable === false && ` — ${item.unselectableReason}`}</span>}
       isOptionDisabled={(item) => item.selectable === false}
-      onSelect={(item) => update({ item, unit: item.unit ?? '', factor: item.unit ? 1 : 0,
+      onSelect={(item) => update({ item, unit: isAutomaticForm(item.form) ? item.unit ?? '' : '',
+        factor: isAutomaticForm(item.form) && item.unit ? 1 : 0,
         blistersPerPack: '', unitsPerBlister: '', approvedBlistersPerPack: null, approvedUnitsPerBlister: null })} />
     {line.item && <p className="stock-in-selected">Selected: {line.item.name} · {line.item.strength} · {line.item.form} · base unit {baseUnit}</p>}
     <div className="stock-in-grid">
@@ -275,9 +277,14 @@ function MedicineLine({ line, index, token, update, remove, canRemove }: {
             unitsPerBlister: selected?.unitsPerBlister?.toString() ?? '',
             approvedBlistersPerPack: selected?.blistersPerPack ?? null,
             approvedUnitsPerBlister: selected?.unitsPerBlister ?? null }); }}>
-        {!line.unit && <option value="">Select unit</option>}
+        {!line.unit && <option value="">Select purchase unit</option>}
         {options.map((option) => <option key={option.id ?? 'base'} value={option.unit}>{option.unit} · {option.factor} {baseUnit}</option>)}
       </select></label>
+      {line.item && !isAutomaticForm(line.item.form) && <small>
+        {isLiquidOralForm(line.item.form)
+          ? 'Select the approved bottle package to count this stock as bottles.'
+          : 'Select the approved purchase package to count this stock in packages.'}
+      </small>}
       <label>Ordered quantity (optional) <input className="clinical-control" type="number" min="1" value={line.ordered} onChange={(e) => update({ ordered: e.target.value })} /></label>
       {isPack && <>
         <label>Blisters per pack <input className="clinical-control" type="number" min="1" step="1" value={line.blistersPerPack} onChange={(e) => update({ blistersPerPack: e.target.value })} /></label>

@@ -30,7 +30,7 @@ public class JdbcCatalogItemLookup implements CatalogItemLookupPort {
     }
 
     private static final String SELECT_COLS = """
-            SELECT si.id, si.code, si.original_code, si.name, si.classification, si.type, si.billing_category,
+            SELECT si.id, si.code, si.original_code, si.external_ref_id, si.name, si.classification, si.type, si.billing_category,
                    si.is_active,
                    ple.amount_minor AS current_cash_price
               FROM service_item si
@@ -214,6 +214,7 @@ public class JdbcCatalogItemLookup implements CatalogItemLookupPort {
                 (UUID) rs.getObject("id"),
                 rs.getString("code"),
                 rs.getString("original_code"),
+                (Integer) rs.getObject("external_ref_id"),
                 rs.getString("name"),
                 rs.getString("classification"),
                 type == null ? null : CatalogItemType.valueOf(type),

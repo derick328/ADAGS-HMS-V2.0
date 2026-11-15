@@ -30,7 +30,7 @@ public class CatalogWorkbookExporter {
             moneyStyle.setDataFormat(book.createDataFormat().getFormat("#,##0 \"TZS\""));
             Row title = sheet.createRow(0); title.createCell(0).setCellValue("ADAGS HOSPITAL Price Catalogue"); title.getCell(0).setCellStyle(titleStyle);
             sheet.createRow(1).createCell(0).setCellValue("Exported " + OffsetDateTime.now());
-            String[] headers = {"Code", "Original Code", "Name", "Classification", "Type", "Category", "Current CASH price", "Currency", "Active"};
+            String[] headers = {"Code", "Original Code", "Name", "Classification", "Type", "Category", "Current CASH price", "Currency", "Active", "Item code"};
             Row header = sheet.createRow(3);
             for (int i = 0; i < headers.length; i++) { Cell cell = header.createCell(i); cell.setCellValue(headers[i]); cell.setCellStyle(titleStyle); }
             sheet.createFreezePane(0, 4);
@@ -54,10 +54,11 @@ public class CatalogWorkbookExporter {
                     set(row, 5, item.billingCategory() == null ? null : item.billingCategory().name());
                     if (item.currentCashPriceMinor() != null) { Cell price = row.createCell(6); price.setCellValue(item.currentCashPriceMinor()); price.setCellStyle(moneyStyle); }
                     set(row, 7, "TZS"); set(row, 8, item.isActive() ? "Active" : "Inactive");
+                    if (item.itemCode() != null) row.createCell(9).setCellValue(item.itemCode());
                 }
                 if (items.size() < 500) break;
             }
-            int[] widths = {22, 22, 45, 30, 22, 35, 22, 12, 12};
+            int[] widths = {22, 22, 45, 30, 22, 35, 22, 12, 12, 14};
             for (int i = 0; i < widths.length; i++) sheet.setColumnWidth(i, widths[i] * 256);
             book.write(out);
         } finally { book.dispose(); book.close(); }

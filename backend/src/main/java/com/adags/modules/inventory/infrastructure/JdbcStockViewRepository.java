@@ -31,7 +31,8 @@ public class JdbcStockViewRepository implements StockViewRepository {
     public List<CurrentStockRow> findCurrentStock(List<UUID> storeIds) {
         String sql = """
                 SELECT i.id AS item_id, i.code AS item_code, i.name AS item_name,
-                       i.strength, i.unit AS base_unit,
+                       i.strength, i.unit AS base_unit, i.form,
+                       rl.purchase_unit, rl.quantity_in_base_units AS package_factor,
                        CASE WHEN b.expiry_date <= (now() AT TIME ZONE 'Africa/Dar_es_Salaam')::date
                             THEN 'EXPIRED'
                             WHEN NOT i.active OR i.regulatory_schedule = 'CONTROLLED'
@@ -45,6 +46,7 @@ public class JdbcStockViewRepository implements StockViewRepository {
                 FROM stock_balance sb
                 JOIN item i ON i.id = sb.item_id
                 JOIN stock_batch b ON b.id = sb.batch_id
+                LEFT JOIN stock_receipt_line rl ON rl.id = b.receipt_line_id
                 JOIN store s ON s.id = sb.store_id
                 WHERE sb.quantity > 0
                 ORDER BY i.name, b.expiry_date
@@ -54,7 +56,8 @@ public class JdbcStockViewRepository implements StockViewRepository {
                 (UUID) rs.getObject("item_id"), rs.getString("item_code"), rs.getString("item_name"),
                 (UUID) rs.getObject("batch_id"), rs.getString("batch_number"), rs.getDate("expiry_date").toLocalDate(),
                 (UUID) rs.getObject("store_id"), rs.getString("store_name"), rs.getInt("quantity"),
-                rs.getString("strength"), rs.getString("base_unit"), rs.getString("stock_status"),
+                rs.getString("strength"), rs.getString("base_unit"), rs.getString("form"),
+                rs.getString("purchase_unit"), (Integer) rs.getObject("package_factor"), rs.getString("stock_status"),
                 rs.getInt("available_quantity")));
     }
 

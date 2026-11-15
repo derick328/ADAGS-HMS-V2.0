@@ -8,6 +8,7 @@ public record CatalogItemResponse(
         UUID id,
         String code,
         String originalCode,
+        Integer itemCode,
         String name,
         String classification,
         String type,
@@ -18,7 +19,7 @@ public record CatalogItemResponse(
 ) {
     public static CatalogItemResponse from(CatalogItemView view) {
         return new CatalogItemResponse(
-                view.serviceItemId(), view.code(), view.originalCode(), view.name(), view.classification(),
+                view.serviceItemId(), view.code(), view.originalCode(), view.itemCode(), view.name(), view.classification(),
                 view.type() == null ? null : view.type().name(),
                 view.billingCategory() == null ? null : view.billingCategory().name(),
                 view.currentCashPriceMinor(),

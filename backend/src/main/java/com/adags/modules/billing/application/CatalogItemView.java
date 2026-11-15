@@ -18,6 +18,7 @@ public record CatalogItemView(
         UUID serviceItemId,
         String code,
         String originalCode,
+        Integer itemCode,
         String name,
         String classification,
         CatalogItemType type,

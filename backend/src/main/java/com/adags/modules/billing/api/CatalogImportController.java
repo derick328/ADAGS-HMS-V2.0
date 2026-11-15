@@ -5,6 +5,7 @@ import com.adags.modules.billing.application.CatalogImportPreview;
 import com.adags.modules.billing.application.CatalogItemLookupPort;
 import com.adags.modules.billing.application.CatalogItemQuery;
 import com.adags.modules.billing.application.CatalogPriceManagementService;
+import com.adags.modules.billing.application.CreateCatalogItemService;
 import com.adags.modules.billing.application.DeactivateAllCatalogItemsService;
 import com.adags.modules.billing.application.PreviewCatalogImportService;
 import com.adags.modules.billing.domain.CatalogBillingCategory;
@@ -58,6 +59,7 @@ public class CatalogImportController {
     private final AuthorizationService authorizationService;
     private final CatalogPriceManagementService priceManagement;
     private final CatalogWorkbookExporter workbookExporter;
+    private final CreateCatalogItemService createItemService;
 
     public CatalogImportController(
             PreviewCatalogImportService previewService,
@@ -67,7 +69,8 @@ public class CatalogImportController {
             DeactivateAllCatalogItemsService deactivateAllService,
             AuthorizationService authorizationService,
             CatalogPriceManagementService priceManagement,
-            CatalogWorkbookExporter workbookExporter
+            CatalogWorkbookExporter workbookExporter,
+            CreateCatalogItemService createItemService
     ) {
         this.previewService = previewService;
         this.applyService = applyService;
@@ -77,6 +80,7 @@ public class CatalogImportController {
         this.authorizationService = authorizationService;
         this.priceManagement = priceManagement;
         this.workbookExporter = workbookExporter;
+        this.createItemService = createItemService;
     }
 
     @PostMapping(path = "/import/preview", consumes = { "multipart/form-data" })
@@ -136,6 +140,18 @@ public class CatalogImportController {
         List<CatalogItemResponse> items = catalogItemLookup.listItems(query).stream()
                 .map(CatalogItemResponse::from).toList();
         return new CatalogItemPageResponse(query.page(), query.pageSize(), total, items);
+    }
+
+    @PostMapping("/items")
+    @ResponseStatus(HttpStatus.CREATED)
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Create a catalogue item with generated item and product codes", description = "Requires CATALOG_IMPORT.")
+    public CreateCatalogItemService.CreatedItem createItem(
+            @RequestBody CreateCatalogItemRequest request, @AuthenticationPrincipal Actor actor) {
+        requirePermission(actor);
+        return createItemService.create(new CreateCatalogItemService.Command(
+                request.name(), request.type(), request.billingCategory(), request.classification(),
+                request.productCodePrefix(), request.priceMinor()), actor.userId());
     }
 
     @PutMapping("/items/{itemId}/price")

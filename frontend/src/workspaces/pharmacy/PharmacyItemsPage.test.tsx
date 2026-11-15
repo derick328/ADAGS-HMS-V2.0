@@ -3,7 +3,7 @@ import { fireEvent, render, screen, within, waitFor } from '@testing-library/rea
 import { describe, expect, it, vi } from 'vitest';
 import { PharmacyItemsPage } from './PharmacyItemsPage';
 import { searchItems } from '../../shared/api/items';
-import { fetchMedicinePackagingCatalogue, proposeMedicinePackaging } from '../../shared/api/medicinePackaging';
+import { fetchMedicinePackagingCatalogue, fetchPendingMedicinePackaging, proposeMedicinePackaging } from '../../shared/api/medicinePackaging';
 import { ApiError } from '../../shared/api/client';
 
 vi.mock('../../shared/auth/AuthProvider', () => ({ useAuth: () => ({ accessToken: 'test-token' }) }));
@@ -12,6 +12,7 @@ vi.mock('../../shared/api/items', () => ({ searchItems: vi.fn() }));
 vi.mock('../../shared/api/medicinePackaging', () => ({
   fetchMedicinePackaging: vi.fn().mockResolvedValue([]),
   fetchMedicinePackagingCatalogue: vi.fn().mockResolvedValue({ items: [], hasMore: false }),
+  fetchPendingMedicinePackaging: vi.fn().mockResolvedValue([]),
   proposeMedicinePackaging: vi.fn().mockResolvedValue({}),
 }));
 vi.mock('../../shared/api/pharmacyItemProposals', () => ({
@@ -20,6 +21,23 @@ vi.mock('../../shared/api/pharmacyItemProposals', () => ({
 }));
 
 describe('pharmacy medicine packaging', () => {
+  it('shows unapproved packaging awaiting Admin review', async () => {
+    vi.mocked(fetchPendingMedicinePackaging).mockResolvedValueOnce([{
+      packaging: { id: 'proposal-1', itemId: 'medicine-1', unit: 'PACK_50', factor: 50,
+        canSplit: true, version: 1, status: 'PROPOSED', blistersPerPack: 5, unitsPerBlister: 10 },
+      itemName: 'Amoxicillin', baseUnit: 'TABLET', reason: 'Packaging configuration',
+      proposedBy: 'pharmacist', proposedForm: null, proposedBaseUnit: null,
+    }]);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><PharmacyItemsPage /></QueryClientProvider>);
+    fireEvent.click(screen.getByRole('tab', { name: 'Unapproved packaging' }));
+    const panel = screen.getByRole('tabpanel');
+    expect(await within(panel).findByText('Amoxicillin')).toBeInTheDocument();
+    expect(within(panel).getByText('PACK_50')).toBeInTheDocument();
+    expect(within(panel).getByText('Awaiting approval')).toBeInTheDocument();
+    expect(fetchPendingMedicinePackaging).toHaveBeenCalledWith('test-token');
+  });
+
   it('submits dosage form and packaging together for one approval', async () => {
     vi.mocked(proposeMedicinePackaging).mockClear();
     vi.mocked(searchItems).mockResolvedValue([{ id: 'medicine-1', name: 'Amoxicillin', form: '—', unit: 'unit',
@@ -38,8 +56,7 @@ describe('pharmacy medicine packaging', () => {
     expect(within(panel).getByLabelText('Base inventory unit for selected form')).toHaveValue('TABLET');
     fireEvent.change(within(panel).getByLabelText('Blisters per pack'), { target: { value: '5' } });
     fireEvent.change(within(panel).getByLabelText('TABLET per blister'), { target: { value: '10' } });
-    fireEvent.change(within(panel).getByLabelText('Reason and manufacturer specification'),
-      { target: { value: 'Manufacturer label confirms 5 × 10 tablets' } });
+    expect(within(panel).queryByLabelText('Reason and manufacturer specification')).not.toBeInTheDocument();
     fireEvent.click(within(panel).getByRole('button', { name: 'Propose packaging' }));
     await waitFor(() => expect(proposeMedicinePackaging).toHaveBeenCalledWith('medicine-1',
       expect.objectContaining({ proposedForm: 'TABLET', proposedBaseUnit: 'TABLET',
@@ -107,14 +124,12 @@ describe('pharmacy medicine packaging', () => {
     expect(within(panel).getByLabelText('Blisters per pack')).toHaveValue(5);
     expect(within(panel).getByLabelText('tablet per blister')).toHaveValue(10);
     fireEvent.change(within(panel).getByLabelText('Blisters per pack'), { target: { value: '6' } });
-    fireEvent.change(within(panel).getByLabelText('Reason and manufacturer specification'),
-      { target: { value: 'Manufacturer now supplies six blisters' } });
     fireEvent.click(within(panel).getByRole('button', { name: 'Submit edited packaging' }));
     await waitFor(() => expect(proposeMedicinePackaging).toHaveBeenCalledWith('medicine-1',
       expect.objectContaining({ unit: 'PACK_60', quantityInBaseUnits: 60,
         replacesPackagingId: 'pack-1', blistersPerPack: 6, unitsPerBlister: 10 }), 'test-token'));
     expect(await screen.findByRole('status')).toHaveTextContent('Edited packaging submitted for Admin approval');
-    expect(screen.getByRole('tab', { name: 'Packaging overview' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Approved packaging' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByRole('button', { name: 'Submit edited packaging' })).not.toBeInTheDocument();
   });
 
@@ -159,8 +174,6 @@ describe('pharmacy medicine packaging', () => {
     expect(within(panel).getByLabelText('May dispense individual base units from this package')).not.toBeChecked();
     fireEvent.change(within(panel).getByLabelText('Package name'), { target: { value: 'BOTTLE_100' } });
     fireEvent.change(within(panel).getByLabelText('mL per package'), { target: { value: '100' } });
-    fireEvent.change(within(panel).getByLabelText('Reason and manufacturer specification'),
-      { target: { value: 'Manufacturer 100 mL bottle' } });
     fireEvent.click(within(panel).getByRole('button', { name: 'Propose packaging' }));
     await waitFor(() => expect(proposeMedicinePackaging).toHaveBeenCalledWith('medicine-syrup',
       expect.objectContaining({ unit: 'BOTTLE_100', quantityInBaseUnits: 100 }), 'test-token'));
@@ -180,7 +193,6 @@ describe('pharmacy medicine packaging', () => {
     expect(within(panel).getByText(/Selected medicine:/)).toHaveTextContent('Amoxicillin');
     fireEvent.change(within(panel).getByLabelText('Blisters per pack'), { target: { value: String(blisters) } });
     fireEvent.change(within(panel).getByLabelText('tablet per blister'), { target: { value: String(units) } });
-    fireEvent.change(within(panel).getByLabelText('Reason and manufacturer specification'), { target: { value: 'Manufacturer pack: 5 × 10' } });
     fireEvent.click(within(panel).getByRole('button', { name: 'Propose packaging' }));
     await waitFor(() => expect(proposeMedicinePackaging).toHaveBeenCalledWith('medicine-1',
       expect.objectContaining({ unit: `PACK_${blisters * units}`, quantityInBaseUnits: blisters * units,
@@ -200,7 +212,6 @@ describe('pharmacy medicine packaging', () => {
     fireEvent.mouseDown(await within(panel).findByRole('option', { name: /Amoxicillin/ }));
     fireEvent.change(within(panel).getByLabelText('Blisters per pack'), { target: { value: '1' } });
     fireEvent.change(within(panel).getByLabelText('tablet per blister'), { target: { value: '1' } });
-    fireEvent.change(within(panel).getByLabelText('Reason and manufacturer specification'), { target: { value: 'Single tablet pack' } });
     fireEvent.click(within(panel).getByRole('button', { name: 'Propose packaging' }));
     expect(await within(panel).findByRole('alert')).toHaveTextContent('A proposal for PACK_1 is already awaiting approval');
   });

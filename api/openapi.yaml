@@ -9106,7 +9106,6 @@ components:
           format: int32
     ProposalRequest:
       required:
-      - reason
       - unit
       type: object
       properties:
@@ -11892,6 +11891,13 @@ components:
           type: string
         baseUnit:
           type: string
+        form:
+          type: string
+        purchaseUnit:
+          type: string
+        packageFactor:
+          type: integer
+          format: int32
         stockStatus:
           type: string
         availableQuantity:

@@ -193,9 +193,9 @@ public class MedicinePackagingService {
         if (normalized.equals(targetUnit) || factor < 1) {
             throw new IllegalArgumentException("A package must contain at least one base unit and use a distinct unit name");
         }
-        if (reason == null || reason.isBlank()) {
-            throw new IllegalArgumentException("A packaging reason is required");
-        }
+        String proposalDetails = reason == null || reason.isBlank()
+                ? "Packaging configuration: " + normalized + " = " + factor + " " + targetUnit
+                : reason.trim();
         if (blistersPerPack != null || unitsPerBlister != null) {
             if (blistersPerPack == null || unitsPerBlister == null || blistersPerPack <= 0
                     || unitsPerBlister <= 0 || Math.multiplyExact(blistersPerPack, unitsPerBlister) != factor) {
@@ -243,7 +243,7 @@ public class MedicinePackagingService {
                         :proposedForm, :proposedBaseUnit) RETURNING id
                 """, new MapSqlParameterSource().addValue("itemId", itemId).addValue("unit", normalized)
                 .addValue("factor", factor).addValue("canSplit", canSplit).addValue("version", next)
-                .addValue("reason", reason.trim()).addValue("actorId", actorId)
+                .addValue("reason", proposalDetails).addValue("actorId", actorId)
                 .addValue("blisters", blistersPerPack).addValue("perBlister", unitsPerBlister)
                 .addValue("replacesId", replacesPackagingId)
                 .addValue("proposedForm", targetForm).addValue("proposedBaseUnit", targetForm == null ? null : targetUnit), UUID.class);
@@ -263,7 +263,7 @@ public class MedicinePackagingService {
             }
             if (existingBlister.isEmpty()) {
                 Packaging blister = propose(itemId, blisterUnit, unitsPerBlister, true,
-                        "Blister unit for " + normalized + ": " + reason.trim(), actorId);
+                        "Blister unit for " + normalized + ": " + proposalDetails, actorId);
                 jdbc.update("UPDATE medicine_packaging SET parent_proposal_id = :parent WHERE id = :id",
                         new MapSqlParameterSource().addValue("parent", id).addValue("id", blister.id()));
             }

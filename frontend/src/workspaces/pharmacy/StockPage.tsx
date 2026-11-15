@@ -9,7 +9,7 @@ import { QueryState } from '../../shared/components/WorkspacePage';
 import { TableRegion } from '../../shared/components/TableRegion';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { fetchCurrentStock, fetchExpiringBatches, fetchLowStock, fetchStockValuation } from '../../shared/api/stockReports';
+import { fetchCurrentStock, fetchExpiringBatches, fetchLowStock, fetchStockValuation, type CurrentStockResponse } from '../../shared/api/stockReports';
 import { fetchStockReceipts } from '../../shared/api/stockReceipts';
 import { fetchStockMovements } from '../../shared/api/stockMovements';
 import { fetchAuthorizedStockStores } from '../../shared/api/stores';
@@ -20,6 +20,7 @@ import { formatMoney } from '../../shared/format/money';
 import { formatDateTime } from '../../shared/format/date';
 import { StockInPage } from './StockInPage';
 import { StockAdjustmentsPage } from './StockAdjustmentsPage';
+import { stockTotalDisplay } from './stockDisplay';
 
 type Tab = 'current' | 'stockIn' | 'movements' | 'low' | 'expiring' | 'expired' | 'history' | 'adjustments' | 'valuation';
 
@@ -147,9 +148,13 @@ function CurrentStockView({ onStockIn, canRestock }: { onStockIn: () => void; ca
     (!storeFilter || row.storeId === storeFilter) &&
     (!statusFilter || row.stockStatus === statusFilter) &&
     (!search || `${row.itemName} ${row.itemCode}`.toLowerCase().includes(search.toLowerCase())));
-  const totalsByItem = new Map<string, number>();
+  const totalsByItem = new Map<string, CurrentStockResponse[]>();
   (data ?? []).filter((row) => !storeFilter || row.storeId === storeFilter).forEach((row) => {
-    if (row.itemId) totalsByItem.set(row.itemId, (totalsByItem.get(row.itemId) ?? 0) + (row.quantity ?? 0));
+    if (row.itemId) {
+      const itemRows = totalsByItem.get(row.itemId) ?? [];
+      itemRows.push(row);
+      totalsByItem.set(row.itemId, itemRows);
+    }
   });
 
   return (
@@ -177,7 +182,7 @@ function CurrentStockView({ onStockIn, canRestock }: { onStockIn: () => void; ca
         {rows.map((r, i) => (
           <tr key={i}>
             <td>{r.itemName} <span style={{ color: 'var(--text-muted)' }}>· {r.itemCode}</span></td>
-            <td className="tabular">{totalsByItem.get(r.itemId ?? '') ?? 0} {r.baseUnit}</td>
+            <td className="tabular">{stockTotalDisplay(totalsByItem.get(r.itemId ?? '') ?? [])}</td>
             <td>{r.strength ?? '—'}</td>
             <td style={{ fontFamily: 'var(--font-mono)' }}>{r.batchNumber}</td>
             <td className="tabular">{formatDate(r.expiryDate)}</td>

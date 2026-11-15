@@ -63,8 +63,8 @@ public class MedicinePackagingController {
 
     @GetMapping("/pending")
     public List<PendingPackaging> pending(@AuthenticationPrincipal Actor actor) {
-        if (!authorization.hasPermission(actor, "PACKAGING_APPROVE")) {
-            throw new AccessDeniedException("PACKAGING_APPROVE required");
+        if (!authorization.hasAnyPermission(actor, "PACKAGING_APPROVE", "PACKAGING_PROPOSE")) {
+            throw new AccessDeniedException("Packaging proposal read permission required");
         }
         return service.pendingReview();
     }
@@ -99,7 +99,7 @@ public class MedicinePackagingController {
     }
 
     public record ProposalRequest(@NotBlank String unit, @Min(1) int quantityInBaseUnits,
-                                  boolean canSplit, @NotBlank String reason,
+                                  boolean canSplit, String reason,
                                   @Min(1) Integer blistersPerPack, @Min(1) Integer unitsPerBlister,
                                   UUID replacesPackagingId, String proposedForm, String proposedBaseUnit) {
     }

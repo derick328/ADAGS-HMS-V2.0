@@ -52,7 +52,7 @@ export function fetchMedicinePackaging(itemId: string, accessToken: string): Pro
 }
 
 export function proposeMedicinePackaging(itemId: string, body: {
-  unit: string; quantityInBaseUnits: number; canSplit: boolean; reason: string;
+  unit: string; quantityInBaseUnits: number; canSplit: boolean; reason?: string;
   blistersPerPack?: number; unitsPerBlister?: number; replacesPackagingId?: string;
   proposedForm?: string; proposedBaseUnit?: string;
 }, accessToken: string): Promise<MedicinePackaging> {

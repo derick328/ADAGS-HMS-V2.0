@@ -5691,7 +5691,7 @@ export interface components {
             /** Format: int32 */
             quantityInBaseUnits?: number;
             canSplit?: boolean;
-            reason: string;
+            reason?: string;
             /** Format: int32 */
             blistersPerPack?: number;
             /** Format: int32 */
@@ -7085,6 +7085,10 @@ export interface components {
             quantity?: number;
             strength?: string;
             baseUnit?: string;
+            form?: string;
+            purchaseUnit?: string;
+            /** Format: int32 */
+            packageFactor?: number;
             stockStatus?: string;
             /** Format: int32 */
             availableQuantity?: number;

@@ -77,6 +77,18 @@ class StockReceiptIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    void packagingProposalWithoutTypedReasonKeepsGeneratedAuditDetails() {
+        UUID actor = bootstrapAdminId();
+        UUID medicine = item("AUTO-DETAILS", "Package details medicine", "TABLET");
+
+        var proposed = packaging.propose(medicine, "PACK_20", 20, true, null, actor, 2, 10);
+
+        assertThat(packaging.pendingReview()).filteredOn(row -> row.packaging().id().equals(proposed.id()))
+                .singleElement().extracting(MedicinePackagingService.PendingPackaging::reason)
+                .isEqualTo("Packaging configuration: PACK_20 = 20 TABLET");
+    }
+
+    @Test
     void adminDefaultPurchaseCostChangesDoNotRewriteSupplierReceipt() {
         UUID actorId = bootstrapAdminId();
         Actor admin = new Actor(actorId);
@@ -283,6 +295,25 @@ class StockReceiptIntegrationTest extends IntegrationTestSupport {
                 line(azuma, "PACK", 10, 10, 0, 3000, "AZ-001"))), actor);
         assertThat(second.id()).isNotEqualTo(receipt.id());
         assertThat(quantity(azuma, "ACTIVE")).isEqualTo(60);
+    }
+
+    @Test
+    void currentStockCarriesBottleConversionWithoutChangingBaseBalance() {
+        UUID actor = bootstrapAdminId();
+        UUID store = store();
+        UUID supplier = supplier();
+        UUID medicine = item("SYRUP-BOTTLE", "Bottled syrup", "ML");
+        jdbc.update("UPDATE item SET form = 'SYRUP' WHERE id = :id", new MapSqlParameterSource("id", medicine));
+        packageRule(medicine, "BOTTLE_100", 100, true);
+        receipts.confirm(request(supplier, store, "syrup-bottles", List.of(
+                line(medicine, "BOTTLE_100", 3, 3, 0, 1000, "SYR-1"))), actor);
+
+        var stock = stockViews.findCurrentStock(List.of(store)).stream()
+                .filter(row -> medicine.equals(row.itemId())).findFirst().orElseThrow();
+        assertThat(stock.quantity()).isEqualTo(300);
+        assertThat(stock.form()).isEqualTo("SYRUP");
+        assertThat(stock.purchaseUnit()).isEqualTo("BOTTLE_100");
+        assertThat(stock.packageFactor()).isEqualTo(100);
     }
 
     @Test
