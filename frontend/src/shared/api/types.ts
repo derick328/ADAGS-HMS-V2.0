@@ -2236,6 +2236,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/catalog/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listItems"];
+        put?: never;
+        /**
+         * Create a catalogue item with generated item and product codes
+         * @description Requires CATALOG_IMPORT.
+         */
+        post: operations["createItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/catalog/items/deactivate-all": {
         parameters: {
             query?: never;
@@ -4428,22 +4448,6 @@ export interface paths {
             cookie?: never;
         };
         get: operations["activity"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/catalog/items": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listItems"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6859,6 +6863,24 @@ export interface components {
             omissionNotes?: string;
             remarks?: string;
         };
+        CreateCatalogItemRequest: {
+            name?: string;
+            /** @enum {string} */
+            type?: "PHARMACY" | "PROCEDURE" | "SURGERY" | "LABORATORY" | "RADIOLOGY" | "OPTICAL" | "DIALYSIS" | "OTHERS" | "OTHER_GENERAL_CHARGES";
+            /** @enum {string} */
+            billingCategory?: "SURGICAL_CHARGES" | "MEDICINES_AND_CONSUMABLES" | "DIAGNOSTIC_EXAMINATIONS" | "PROCEDURAL_CHARGES" | "INPATIENT_CHARGES" | "REGISTRATION_CONSULTATION_CHARGES" | "OTHER_CHARGES" | "ADVANCE_PAYMENT";
+            classification?: string;
+            productCodePrefix?: string;
+            /** Format: int64 */
+            priceMinor?: number;
+        };
+        CreatedItem: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            itemCode?: number;
+            productCode?: string;
+        };
         DeactivateAllCatalogItemsRequest: {
             confirmationPhrase?: string;
         };
@@ -8355,6 +8377,8 @@ export interface components {
             id?: string;
             code?: string;
             originalCode?: string;
+            /** Format: int32 */
+            itemCode?: number;
             name?: string;
             classification?: string;
             type?: string;
@@ -12554,6 +12578,57 @@ export interface operations {
             };
         };
     };
+    listItems: {
+        parameters: {
+            query?: {
+                q?: string;
+                type?: "PHARMACY" | "PROCEDURE" | "SURGERY" | "LABORATORY" | "RADIOLOGY" | "OPTICAL" | "DIALYSIS" | "OTHERS" | "OTHER_GENERAL_CHARGES";
+                billingCategory?: "SURGICAL_CHARGES" | "MEDICINES_AND_CONSUMABLES" | "DIAGNOSTIC_EXAMINATIONS" | "PROCEDURAL_CHARGES" | "INPATIENT_CHARGES" | "REGISTRATION_CONSULTATION_CHARGES" | "OTHER_CHARGES" | "ADVANCE_PAYMENT";
+                activeOnly?: boolean;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CatalogItemPageResponse"];
+                };
+            };
+        };
+    };
+    createItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCatalogItemRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CreatedItem"];
+                };
+            };
+        };
+    };
     deactivateAll: {
         parameters: {
             query?: never;
@@ -15572,33 +15647,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TatActivity"][];
-                };
-            };
-        };
-    };
-    listItems: {
-        parameters: {
-            query?: {
-                q?: string;
-                type?: "PHARMACY" | "PROCEDURE" | "SURGERY" | "LABORATORY" | "RADIOLOGY" | "OPTICAL" | "DIALYSIS" | "OTHERS" | "OTHER_GENERAL_CHARGES";
-                billingCategory?: "SURGICAL_CHARGES" | "MEDICINES_AND_CONSUMABLES" | "DIAGNOSTIC_EXAMINATIONS" | "PROCEDURAL_CHARGES" | "INPATIENT_CHARGES" | "REGISTRATION_CONSULTATION_CHARGES" | "OTHER_CHARGES" | "ADVANCE_PAYMENT";
-                activeOnly?: boolean;
-                page?: number;
-                pageSize?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["CatalogItemPageResponse"];
                 };
             };
         };
